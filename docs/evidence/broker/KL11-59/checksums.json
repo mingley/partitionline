@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "source_sha": "7848d98b23490782d70eefb4496f0021cdccd807",
+  "files": {
+    "docs/evidence/broker/KL11-59/1.85.0-catalog-clippy.log": {
+      "sha256": "e96a41c121ac41ff20e5a3a5d4cd000776649a725861a3a824cddd883067bd93",
+      "bytes": 359
+    },
+    "docs/evidence/broker/KL11-59/1.85.0-doc.log": {
+      "sha256": "02e5ac8a0d79f61b685196f1a2df45303ef59c04db0739138be75a1b8f18280c",
+      "bytes": 241
+    },
+    "docs/evidence/broker/KL11-59/1.85.0-integration.log": {
+      "sha256": "6c115cc0596c70384912a596f7e3bf24f1016968ed7e0971966450e0565df5a4",
+      "bytes": 1572
+    },
+    "docs/evidence/broker/KL11-59/1.85.0-unit.log": {
+      "sha256": "8cfcf2154a1788f9d90e890113acfd836c758e3f5a29b0839f10c6bcc533becb",
+      "bytes": 989
+    },
+    "docs/evidence/broker/KL11-59/4.1.2-apache-names.tsv": {
+      "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "bytes": 1450
+    },
+    "docs/evidence/broker/KL11-59/4.1.2-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-59/4.1.2-mutant.log": {
+      "sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1",
+      "bytes": 177
+    },
+    "docs/evidence/broker/KL11-59/4.1.2-oracle.log": {
+      "sha256": "b91bef0488bacd1a88d3f89e5821ff03eac0bbc919474f683f06b720e337a616",
+      "bytes": 63
+    },
+    "docs/evidence/broker/KL11-59/4.2.1-apache-names.tsv": {
+      "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "bytes": 1450
+    },
+    "docs/evidence/broker/KL11-59/4.2.1-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-59/4.2.1-mutant.log": {
+      "sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1",
+      "bytes": 177
+    },
+    "docs/evidence/broker/KL11-59/4.2.1-oracle.log": {
+      "sha256": "b91bef0488bacd1a88d3f89e5821ff03eac0bbc919474f683f06b720e337a616",
+      "bytes": 63
+    },
+    "docs/evidence/broker/KL11-59/4.3.1-apache-names.tsv": {
+      "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "bytes": 1450
+    },
+    "docs/evidence/broker/KL11-59/4.3.1-compile.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-59/4.3.1-mutant.log": {
+      "sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1",
+      "bytes": 177
+    },
+    "docs/evidence/broker/KL11-59/4.3.1-oracle.log": {
+      "sha256": "b91bef0488bacd1a88d3f89e5821ff03eac0bbc919474f683f06b720e337a616",
+      "bytes": 63
+    },
+    "docs/evidence/broker/KL11-59/README.md": {
+      "sha256": "347dae3732f0feb9d7b8ab5b34ade4c249efee873bae77bdaafe8e928605bf96",
+      "bytes": 7094
+    },
+    "docs/evidence/broker/KL11-59/TopicIdentityOracle.java": {
+      "sha256": "35509df6580fa0704e53500741d1aa3446f6b72ff9a18cc09ed137e489a8378f",
+      "bytes": 1853
+    },
+    "docs/evidence/broker/KL11-59/apache-oracle.json": {
+      "sha256": "3749a55f9862f6fe5b1efd81fdee00744d75126c3a7fe1f3c525da593a6bbf94",
+      "bytes": 8940
+    },
+    "docs/evidence/broker/KL11-59/apache-topic-sources-4.1.2.tar.gz": {
+      "sha256": "29e50923e6c73d4d97adde07898841b967ee13dd2900d74bebe1a5d232f4959b",
+      "bytes": 31799
+    },
+    "docs/evidence/broker/KL11-59/apache-topic-sources-4.2.1.tar.gz": {
+      "sha256": "30da0dc4e9d954477700d3f9c5252e42349280f53c506f5cb05e6f7216592130",
+      "bytes": 31903
+    },
+    "docs/evidence/broker/KL11-59/apache-topic-sources-4.3.1.tar.gz": {
+      "sha256": "6c9644b1e1757370b9c6b26733629eb1da23bbda0b4fa030666ce5019f569465",
+      "bytes": 32521
+    },
+    "docs/evidence/broker/KL11-59/archive-1.85.0-allfeatures.log": {
+      "sha256": "7241430fffedb7d4efc684465b7b59991d0cbbf3a3b45d726df3ce5c91fb242f",
+      "bytes": 8254
+    },
+    "docs/evidence/broker/KL11-59/archive-1.85.0-clippy.log": {
+      "sha256": "02c2d4779e84d344850ddc3521478bcafb1835602f3df09d38c1e55a55f8a1c5",
+      "bytes": 704
+    },
+    "docs/evidence/broker/KL11-59/archive-1.85.0-default.log": {
+      "sha256": "b4f375cd7de3c20868fea5e46e4104d5fb17fec8c8ca73fe15e8bd973ce26c86",
+      "bytes": 7147
+    },
+    "docs/evidence/broker/KL11-59/archive-1.85.0-doc.log": {
+      "sha256": "ad5dadda56cbc34f0c6c2e6bbb241f0c830d81d6f13457e6d54621a29079ffae",
+      "bytes": 257
+    },
+    "docs/evidence/broker/KL11-59/archive-1.85.0-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-59/archive-clean.log": {
+      "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+      "bytes": 21
+    },
+    "docs/evidence/broker/KL11-59/archive-stable-allfeatures.log": {
+      "sha256": "58de5dc0507d609ac1f74889dc6103683e5e240cfd2d1eee6213aee01d1a068b",
+      "bytes": 8254
+    },
+    "docs/evidence/broker/KL11-59/archive-stable-clippy.log": {
+      "sha256": "c03644a02561acb4a1a6f110164fd8a613ccac7326c16fd7774f87407ad23a24",
+      "bytes": 704
+    },
+    "docs/evidence/broker/KL11-59/archive-stable-default.log": {
+      "sha256": "c16c1f16e804c06499c9e1709fdd670a19f7c8e9e0bf2e13709e3d783bc159c3",
+      "bytes": 7146
+    },
+    "docs/evidence/broker/KL11-59/archive-stable-doc.log": {
+      "sha256": "53aade4ffb6be5ce8c398b5f670652e3e283a12720d10abb79eeaf64bcdec639",
+      "bytes": 257
+    },
+    "docs/evidence/broker/KL11-59/archive-stable-fmt.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "docs/evidence/broker/KL11-59/archived-source-files.json": {
+      "sha256": "407a47ba81ec4fa9700fb5bf775f17448a2d292392b16f92c753557ca62b6494",
+      "bytes": 45550
+    },
+    "docs/evidence/broker/KL11-59/catalog-history-1.85.0.bin": {
+      "sha256": "768444fb1b8ed5fed2893b867b3e20f4ddd5a3447855564da46d25e9f8fe493c",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/catalog-history-stable.bin": {
+      "sha256": "768444fb1b8ed5fed2893b867b3e20f4ddd5a3447855564da46d25e9f8fe493c",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/check-catalog-format.py": {
+      "sha256": "09326f4963f98bf12603eea8721c816811d3e148577ff71d86f80eef2ecaad3b",
+      "bytes": 7963
+    },
+    "docs/evidence/broker/KL11-59/format-mutant-illegal-name.bin": {
+      "sha256": "d52b67a529ae2e30715bda679ca4a2161ff37b0c459f6da17d9dfcc610351d4c",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/format-mutant-payload-crc.bin": {
+      "sha256": "af3334e746ba0c8d3a5e0c3026f60454219d51602e0c825d1b52aabe593a3941",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/format-mutant-record-count.bin": {
+      "sha256": "c79d6a2b5dc16998f210e962fe879f3428ab0da77eb5cf69ef92ed56f0ea00da",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/format-mutant-reused-id.bin": {
+      "sha256": "5676ece4b170c1918ed89d92c88b06226e55bad062d75b3ecd78a585d0d7e685",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/format-mutant-unknown-delete.bin": {
+      "sha256": "9a0ae2ee0bf7c64209e9d4af5aa357a3affa8d0871f6060e11492d1988af2d1a",
+      "bytes": 302
+    },
+    "docs/evidence/broker/KL11-59/independent-format.json": {
+      "sha256": "ec865466a67636b9a103467ae8fe344a12d251ac9d1313b8341e75440d2f4444",
+      "bytes": 4009
+    },
+    "docs/evidence/broker/KL11-59/independent-format.log": {
+      "sha256": "7da0860007a34605479de13e5fc751c39e349fb1cae8cceabceb0e3dfeaaf580",
+      "bytes": 108
+    },
+    "docs/evidence/broker/KL11-59/provenance.json": {
+      "sha256": "7d26164dff84198ccbba7ec89092cebb0741ddf03cb2151cbc9a3f6c8a334b0e",
+      "bytes": 6219
+    },
+    "docs/evidence/broker/KL11-59/stable-catalog-clippy.log": {
+      "sha256": "736e2582f563605dd272e5fb977840b0c0767377d27b6940c440caf75eec7157",
+      "bytes": 72
+    },
+    "docs/evidence/broker/KL11-59/stable-clippy.log": {
+      "sha256": "9c34cdf29c2c327a0df3e12100a6163a6110d1f5f885d668075f34401d56004d",
+      "bytes": 1129
+    },
+    "docs/evidence/broker/KL11-59/stable-doc.log": {
+      "sha256": "d652972d153ed0967a2c4637e1df8ed4de796f6514bd8817931bf6958ae7367c",
+      "bytes": 241
+    },
+    "docs/evidence/broker/KL11-59/stable-integration.log": {
+      "sha256": "2a9c0fc2a33136d6d6ae21d216045da4b475e4a45570792e24f46429599b159d",
+      "bytes": 1468
+    },
+    "docs/evidence/broker/KL11-59/stable-unit.log": {
+      "sha256": "edbe3a7bac8915ac0a4adc9316bda4cd437cbd27832020adf127219e3c3fb79d",
+      "bytes": 487
+    },
+    "docs/evidence/broker/KL11-59/topic-name-cases.tsv": {
+      "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "bytes": 1450
+    },
+    "docs/evidence/broker/KL11-59/topic-name-input.tsv": {
+      "sha256": "43f584874a039a6295332ed249aa521c177f099efe2ac54886a43baa9bf41f1f",
+      "bytes": 1291
+    },
+    "docs/evidence/broker/KL11-59/upstream-source-pins.json": {
+      "sha256": "5dd721c896d186b991bee3fbd165c89105f5de002b48bd2188da5e8ea7153f7b",
+      "bytes": 6078
+    }
+  }
+}

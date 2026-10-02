@@ -1,0 +1,36 @@
+{
+  "state": "Retained actual tooling attempts; no instruction/performance/server claim",
+  "attempts": [
+    {
+      "tool": "Maven official repository",
+      "outcome": "HTTP429 after three bounded retries",
+      "artifact": "maven-download.log"
+    },
+    {
+      "tool": "downloads.apache.org current mirror HEAD",
+      "outcome": "HTTP403",
+      "artifact": "No standalone raw log; original tool result and preparation summary recorded outcome."
+    },
+    {
+      "tool": "archive.apache.org official release distributions",
+      "outcome": "Three complete downloads, officialSHA512verified and embedded version/commitchecked",
+      "artifact": "apache-{version}.provenance.json"
+    },
+    {
+      "tool": "javac launcher",
+      "outcome": "Launcher missing, first Java invocation had no generated class",
+      "artifacts": [
+        "javac-launcher-missing.log",
+        "java-missing-classes.log"
+      ]
+    },
+    {
+      "tool": "Installed JDK compiler module",
+      "outcome": "Compilation plus all3generator runs succeeded,99actual cases",
+      "artifacts": [
+        "javac.log",
+        "java-{version}.log"
+      ]
+    }
+  ]
+}

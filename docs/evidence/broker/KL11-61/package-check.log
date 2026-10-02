@@ -1,0 +1,394 @@
+   Packaging partitionline v0.1.0 (/workspace/work/full-goal/client-integration-39bd19a)
+    Updating crates.io index
+    Packaged 475 files, 8.4MiB (1.4MiB compressed)
+package-docs: 23 documents, 183 local links, 114 pinned repository targets; license and exclusion inventory passed
+    Updating crates.io index
+     Locking 76 packages to highest compatible versions
+   Compiling libc v0.2.190
+    Checking cfg-if v1.0.5
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling proc-macro2 v1.0.107
+    Checking typenum v1.20.1
+    Checking hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+    Checking cmov v0.5.4
+    Checking zeroize v1.9.0
+    Checking rustls-pki-types v1.15.1
+    Checking ctutils v0.4.2
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking untrusted v0.9.0
+    Checking const-oid v0.10.2
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+    Checking digest v0.11.3
+   Compiling syn v3.0.6
+    Checking errno v0.3.14
+   Compiling rustls v0.23.45
+   Compiling parking_lot_core v0.9.12
+   Compiling crc32fast v1.5.2
+    Checking signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+    Checking rustls-webpki v0.103.15
+   Compiling crc32c v0.6.8
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking subtle v2.6.1
+    Checking scopeguard v1.2.0
+    Checking once_cell v1.21.4
+    Checking pin-project-lite v0.2.17
+    Checking simd-adler32 v0.3.10
+    Checking adler2 v2.0.1
+   Compiling getrandom v0.4.3
+   Compiling snap v1.1.2
+    Checking smallvec v1.16.2
+    Checking bytes v1.12.1
+    Checking tokio v1.53.1
+    Checking miniz_oxide v0.9.1
+    Checking lock_api v0.4.14
+    Checking hmac v0.13.0
+    Checking cpufeatures v0.3.1
+    Checking zlib-rs v0.6.8
+    Checking twox-hash v2.1.4
+    Checking lz4_flex v0.14.0
+    Checking flate2 v1.1.10
+    Checking sha2 v0.11.0
+    Checking pbkdf2 v0.13.0
+    Checking parking_lot v0.12.5
+    Checking tokio-rustls v0.26.6
+    Checking webpki-roots v1.0.9
+    Checking base64 v0.23.1
+    Checking partitionline v0.1.0 (/tmp/tmp.ttu9y0e6rp/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ttu9y0e6rp/consumer-stable-default)
+    Finished `dev` profile [unoptimized] target(s) in 22.33s
+    Updating crates.io index
+     Locking 76 packages to highest compatible versions
+   Compiling libc v0.2.190
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling ring v0.17.14
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling rustls-webpki v0.103.15
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling adler2 v2.0.1
+   Compiling smallvec v1.16.2
+   Compiling subtle v2.6.1
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling simd-adler32 v0.3.10
+   Compiling miniz_oxide v0.9.1
+   Compiling tokio v1.53.1
+   Compiling rustls v0.23.45
+   Compiling lock_api v0.4.14
+   Compiling parking_lot_core v0.9.12
+   Compiling crc32fast v1.5.2
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.4
+   Compiling zlib-rs v0.6.8
+   Compiling flate2 v1.1.10
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling crc32c v0.6.8
+   Compiling parking_lot v0.12.5
+   Compiling snap v1.1.2
+   Compiling getrandom v0.4.3
+   Compiling tokio-rustls v0.26.6
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-_kdoau2p/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-_kdoau2p/consumer)
+    Finished `test` profile [unoptimized] target(s) in 27.27s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+rustc 1.99.0 (b940084d7 2026-09-28)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+     Locking 80 packages to highest compatible versions
+    Checking once_cell v1.21.4
+   Compiling syn v2.0.119
+    Checking rustls v0.23.45
+   Compiling tracing-attributes v0.1.31
+    Checking tracing-core v0.1.36
+    Checking tracing v0.1.44
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/tmp/tmp.ttu9y0e6rp/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ttu9y0e6rp/consumer-stable-tracing)
+    Finished `dev` profile [unoptimized] target(s) in 11.91s
+    Updating crates.io index
+     Locking 80 packages to highest compatible versions
+   Compiling once_cell v1.21.4
+   Compiling rustls v0.23.45
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-raha10se/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-raha10se/consumer)
+    Finished `test` profile [unoptimized] target(s) in 14.56s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+rustc 1.99.0 (b940084d7 2026-09-28)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+     Locking 76 packages to latest compatible versions
+   Compiling libc v0.2.190
+    Checking cfg-if v1.0.5
+   Compiling find-msvc-tools v0.1.14
+   Compiling shlex v2.0.1
+   Compiling cc v1.5.1
+   Compiling proc-macro2 v1.0.107
+    Checking typenum v1.20.1
+    Checking hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+    Checking zeroize v1.9.0
+    Checking cmov v0.5.4
+    Checking ctutils v0.4.2
+    Checking rustls-pki-types v1.15.1
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking const-oid v0.10.2
+   Compiling semver v1.0.28
+    Checking untrusted v0.9.0
+   Compiling rustc_version v0.4.1
+    Checking digest v0.11.3
+   Compiling syn v3.0.6
+    Checking errno v0.3.14
+   Compiling parking_lot_core v0.9.12
+   Compiling rustls v0.23.45
+   Compiling crc32fast v1.5.2
+    Checking signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+   Compiling crc32c v0.6.8
+    Checking rustls-webpki v0.103.15
+    Checking socket2 v0.6.5
+    Checking mio v1.2.3
+    Checking pin-project-lite v0.2.17
+    Checking smallvec v1.16.2
+    Checking simd-adler32 v0.3.10
+    Checking subtle v2.6.1
+    Checking bytes v1.12.1
+    Checking adler2 v2.0.1
+    Checking scopeguard v1.2.0
+   Compiling snap v1.1.2
+   Compiling getrandom v0.4.3
+    Checking once_cell v1.21.4
+    Checking lock_api v0.4.14
+    Checking miniz_oxide v0.9.1
+    Checking tokio v1.53.1
+    Checking hmac v0.13.0
+    Checking cpufeatures v0.3.1
+    Checking zlib-rs v0.6.8
+    Checking twox-hash v2.1.4
+    Checking lz4_flex v0.14.0
+    Checking flate2 v1.1.10
+    Checking sha2 v0.11.0
+    Checking pbkdf2 v0.13.0
+    Checking parking_lot v0.12.5
+    Checking tokio-rustls v0.26.6
+    Checking webpki-roots v1.0.9
+    Checking base64 v0.23.1
+    Checking partitionline v0.1.0 (/tmp/tmp.ttu9y0e6rp/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ttu9y0e6rp/consumer-1.85.0-default)
+    Finished `dev` profile [unoptimized] target(s) in 25.42s
+    Updating crates.io index
+     Locking 76 packages to latest compatible versions
+   Compiling libc v0.2.190
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling ctutils v0.4.2
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling ring v0.17.14
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling rustls-webpki v0.103.15
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling adler2 v2.0.1
+   Compiling pin-project-lite v0.2.17
+   Compiling subtle v2.6.1
+   Compiling bytes v1.12.1
+   Compiling smallvec v1.16.2
+   Compiling simd-adler32 v0.3.10
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling rustls v0.23.45
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling parking_lot_core v0.9.12
+   Compiling tokio v1.53.1
+   Compiling crc32fast v1.5.2
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling zlib-rs v0.6.8
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling crc32c v0.6.8
+   Compiling tokio-rustls v0.26.6
+   Compiling getrandom v0.4.3
+   Compiling parking_lot v0.12.5
+   Compiling snap v1.1.2
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-nzlco7sh/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-nzlco7sh/consumer)
+    Finished `test` profile [unoptimized] target(s) in 29.95s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+rustc 1.85.0 (4d91de4e4 2025-02-17)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+    Updating crates.io index
+    Blocking waiting for file lock on package cache
+     Locking 80 packages to latest compatible versions
+    Checking once_cell v1.21.4
+   Compiling syn v2.0.119
+    Checking rustls v0.23.45
+   Compiling tracing-attributes v0.1.31
+    Checking tracing-core v0.1.36
+    Checking tracing v0.1.44
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/tmp/tmp.ttu9y0e6rp/partitionline-0.1.0)
+    Checking partitionline-crate-consumer v0.0.0 (/tmp/tmp.ttu9y0e6rp/consumer-1.85.0-tracing)
+    Finished `dev` profile [unoptimized] target(s) in 13.82s
+    Updating crates.io index
+     Locking 80 packages to latest compatible versions
+   Compiling once_cell v1.21.4
+   Compiling rustls v0.23.45
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline v0.1.0 (/tmp/partitionline-markdown-1u44k_bi/package/partitionline-0.1.0)
+   Compiling partitionline-markdown-check v0.0.0 (/tmp/partitionline-markdown-1u44k_bi/consumer)
+    Finished `test` profile [unoptimized] target(s) in 14.96s
+   Doc-tests partitionline_markdown_check
+
+running 19 tests
+test src/lib.rs - (line 19) - compile ... ok
+test src/lib.rs - (line 215) - compile ... ok
+test src/lib.rs - (line 235) - compile ... ok
+test src/lib.rs - (line 283) - compile ... ok
+test src/lib.rs - (line 268) - compile ... ok
+test src/lib.rs - (line 104) - compile ... ok
+test src/lib.rs - (line 249) - compile ... ok
+test src/lib.rs - (line 365) - compile ... ok
+test src/lib.rs - (line 3) - compile ... ok
+test src/lib.rs - (line 33) - compile ... ok
+test src/lib.rs - (line 383) - compile ... ok
+test src/lib.rs - (line 403) - compile ... ok
+test src/lib.rs - (line 293) - compile ... ok
+test src/lib.rs - (line 425) - compile ... ok
+test src/lib.rs - (line 434) - compile ... ok
+test src/lib.rs - (line 445) - compile ... ok
+test src/lib.rs - (line 90) - compile ... ok
+test src/lib.rs - (line 52) - compile ... ok
+test src/lib.rs - (line 73) - compile ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+rustc 1.85.0 (4d91de4e4 2025-02-17)
+doc-examples: 19 compiled, 39 local links checked, 0 explicitly ignored
+ci-crate-consumer: 4 actual package feature/toolchain cells passed; source/package/version and license inventory retained in /workspace/work/package-boundary/packed

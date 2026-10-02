@@ -2623,7 +2623,7 @@
       "priority": "P1",
       "kind": "implementation",
       "status": "in_progress",
-      "owner": "codex",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL01-04",
         "KL05-01"
@@ -2662,11 +2662,14 @@
         "docs/guide.md",
         "docs/gaps.md",
         "docs/support.md",
-        "docs/api-stability.md",
         "CHANGELOG.md",
         "docs/plan/evidence/KL05-11.json",
-        "docs/plan/tasks.json"
-      ]
+        "docs/plan/tasks.json",
+        "docs/evidence/client/KL05-11/"
+      ],
+      "previous_owner": "codex",
+      "takeover_context": "User authorized completing all planned work on main. Previous codex claimant has no available live agent; producer source has no uncommitted changes and was last changed2026-10-01. Existing scope is preserved, with the current team assigned to finish it.",
+      "integration_coordinator": "Root first fixes two nonfunctional Drop-impl lifetime lints, then worker exclusively edits Produce v13 behavior. docs/api-stability.md remains reserved by KL10-07 and is excluded here; document this private wire change in guide/gaps/support/CHANGELOG."
     },
     {
       "id": "KL05-12",
@@ -11830,7 +11833,7 @@
       "title": "Pin Kafka broker APIs and implement request headers/ApiVersions",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-02",
@@ -11850,7 +11853,351 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-04",
+                "status": "done",
+                "acceptance_met": true,
+                "source_sha": "7914f03456e738b7b92b13100693cc89a20e11b1",
+                "tested_base_sha": "0c2338e4d6a61d8e4b273a17a55e618583632041",
+                "previous_source_sha": "b464b230fb4c00cc049c39672628a42bf0dd79a5",
+                "implementation": "bounded borrowed classic/flexible header parser; ApiVersions only API 18versions 0-4",
+                "qualification": "not_run",
+                "source_files_sha256": {
+                        "partitionline-broker/src/protocol.rs": "72c879d42e9a981507583df1db44b4296cd709d038a4a3d4e748058e3b4a60be",
+                        "partitionline-broker/tests/protocol.rs": "29917ccfff722734f640497931e506cf32ae13ea6a4661fca5aead95482c1ade",
+                        "partitionline-broker/src/lib.rs": "fb7e727b6589ce61de1d6be8d291063457e7f07ed2a7cbe62425e351ea2f6854",
+                        "partitionline-broker/Cargo.toml": "467c8cc0985c6cc46063605a2b2258987f3979fe4364d6949c912a5ddb2d5e52",
+                        "partitionline-broker/Cargo.lock": "bf13b28f05407e53fa623016e9927d952ea2ba141feaa64e0e1011c8a11ca77a",
+                        "scripts/check-broker-api-matrix.py": "b41b81ed92b99a7acf15af9562faf0a8c22222864344f315f5d8bc71378550ab",
+                        "tests/ci/test_broker_api_matrix.py": "5a1e8f5daf518227e53deb6c533d2226af023ddd3c29baaa3cb84d4624895a19",
+                        "tests/conformance/broker/implemented-api-versions.json": "640f49b84b228d76ac2abc4ddd9cb300d37e5ab1d42d8e3d480920e0988e1b6c",
+                        "tests/conformance/broker/features.json": "f4a1625cee97449b26f65d752e0de08af7fb7450cc4d09e2ed8e5251107e5f67",
+                        "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+                        "clippy.toml": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+                },
+                "commands_artifact": "docs/evidence/broker/KL11-04/exact-validation/results.json",
+                "commands": [
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+stable",
+                                "fmt",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--check"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+stable",
+                                "test",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-targets",
+                                "--jobs",
+                                "2"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "python3",
+                                "-B",
+                                "scripts/check-broker-api-matrix.py",
+                                "--handler-report",
+                                "/workspace/work/broker-wire/exact-validation/stable-default-handler.json",
+                                "--report",
+                                "/workspace/work/broker-wire/exact-validation/stable-default-gate.json"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+stable",
+                                "test",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-targets",
+                                "--jobs",
+                                "2",
+                                "--all-features"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "python3",
+                                "-B",
+                                "scripts/check-broker-api-matrix.py",
+                                "--handler-report",
+                                "/workspace/work/broker-wire/exact-validation/stable-all-features-handler.json",
+                                "--report",
+                                "/workspace/work/broker-wire/exact-validation/stable-all-features-gate.json"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+stable",
+                                "clippy",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-features",
+                                "--all-targets",
+                                "--jobs",
+                                "2",
+                                "--",
+                                "-D",
+                                "warnings"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+stable",
+                                "doc",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-features",
+                                "--no-deps",
+                                "--jobs",
+                                "2"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+1.85.0",
+                                "fmt",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--check"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+1.85.0",
+                                "test",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-targets",
+                                "--jobs",
+                                "2"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "python3",
+                                "-B",
+                                "scripts/check-broker-api-matrix.py",
+                                "--handler-report",
+                                "/workspace/work/broker-wire/exact-validation/1.85.0-default-handler.json",
+                                "--report",
+                                "/workspace/work/broker-wire/exact-validation/1.85.0-default-gate.json"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+1.85.0",
+                                "test",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-targets",
+                                "--jobs",
+                                "2",
+                                "--all-features"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "python3",
+                                "-B",
+                                "scripts/check-broker-api-matrix.py",
+                                "--handler-report",
+                                "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-handler.json",
+                                "--report",
+                                "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-gate.json"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+1.85.0",
+                                "clippy",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-features",
+                                "--all-targets",
+                                "--jobs",
+                                "2",
+                                "--",
+                                "-D",
+                                "warnings"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "cargo",
+                                "+1.85.0",
+                                "doc",
+                                "--manifest-path",
+                                "partitionline-broker/Cargo.toml",
+                                "--all-features",
+                                "--no-deps",
+                                "--jobs",
+                                "2"
+                        ],
+                        [
+                                "taskset",
+                                "-c",
+                                "0-2,4",
+                                "python3",
+                                "-B",
+                                "-m",
+                                "unittest",
+                                "tests.ci.test_broker_api_matrix",
+                                "-v"
+                        ]
+                ],
+                "results": {
+                        "stable": {
+                                "default": {
+                                        "passed": 51,
+                                        "failed": 0,
+                                        "ignored": 0
+                                },
+                                "all_features": {
+                                        "passed": 66,
+                                        "failed": 0,
+                                        "ignored": 0
+                                },
+                                "format": "passed",
+                                "strict_clippy": "passed",
+                                "strict_rustdoc": "passed"
+                        },
+                        "rust1.85.0": {
+                                "default": {
+                                        "passed": 51,
+                                        "failed": 0,
+                                        "ignored": 0
+                                },
+                                "all_features": {
+                                        "passed": 66,
+                                        "failed": 0,
+                                        "ignored": 0
+                                },
+                                "format": "passed",
+                                "strict_clippy": "passed",
+                                "strict_rustdoc": "passed"
+                        },
+                        "protocol_named_tests": 9,
+                        "java_cases_per_release": 33,
+                        "java_release_executions": 3,
+                        "independent_java_case_executions": 99,
+                        "rust_golden_cases_per_cell": 99,
+                        "rust_golden_comparisons_four_final_cells": 396,
+                        "compiled_handler_registry_gates": 4,
+                        "inventory_and_registry_guard_tests_passed": 31,
+                        "expected_corrupt_cli_failures": 6,
+                        "observed_corrupt_cli_failures": 6,
+                        "fixture_files": 135,
+                        "implemented_api_versions": [
+                                {
+                                        "api_key": 18,
+                                        "min_version": 0,
+                                        "max_version": 4
+                                }
+                        ],
+                        "other_apis_advertised": 0,
+                        "package_note": "Clean archive cargo package --list passed; extracted standalone package tests not run because registry include_str requires repository conformance files."
+                },
+                "bounds": {
+                        "default_request_bytes": 8388608,
+                        "max_configurable_request_bytes": 67108864,
+                        "default_tags_per_block": 1024,
+                        "max_configurable_tags_per_block": 65536,
+                        "string_bytes_max": 32767,
+                        "response_capacity_max_bytes": 20,
+                        "allocation_policy": "Request strings/unknown tags are borrowed/skipped; no allocation sized from peer fields; fixed small response reserve only."
+                },
+                "behavior": [
+                        "Response header 0 for all supported versions, including flexiblev3/v4; correlation IDs preserved.",
+                        "Supported0-2 bodies empty and fully consumed; supported3-4 compact nonnull software strings plus strict tags.",
+                        "Software fields use pinned ASCII semantic pattern; invalid fields return 42 with requested response version and empty API list.",
+                        "Unsupported API 18versions use v0/error 35 fallback and ignore unknown body, matching Apache RequestContext.",
+                        "Unknown/unimplemented APIs fail closed with transport handler error; malformed connection does not interrupt independent peer.",
+                        "TCP pipeline preserves success/error 42/unsupported fallback ordering; explicit shutdown joins connections."
+                ],
+                "intentional_strict_policy_differences": [
+                        "Malformed UTF8: Java replaces bad bytes, broker closes.",
+                        "Nullable ClientId: Java accepts arbitrary negative length, broker accepts only -1.",
+                        "Unknown tag readers: Java accepts duplicate/descending IDs and certain overflowed counts; broker requires strictly increasing tags and checked u32 varints/counts/lengths.",
+                        "Supported empty-body trailing data: Java leaves bytes unconsumed, broker rejects; unsupported ApiVersions body remains intentionally ignored."
+                ],
+                "failed_attempts": [
+                        {
+                                "kind": "tooling",
+                                "artifact": "docs/evidence/broker/KL11-04/tooling-attempts.json",
+                                "details": "Maven 429, current download mirror 403, missing javac launcher; verified official archive download and installed JDK compiler module succeeded."
+                        },
+                        {
+                                "kind": "development_lint",
+                                "artifact": "docs/evidence/broker/KL11-04/working-tree-attempts/clippy-first.log",
+                                "details": "Stable Clippy caught test-side blocking fs write; moved optional sidecar write onto blocking pool with narrowly scoped lint annotation. Production handler unchanged."
+                        },
+                        {
+                                "kind": "msrv_lint",
+                                "source_sha": "b464b230fb4c00cc049c39672628a42bf0dd79a5",
+                                "artifact": "docs/evidence/broker/KL11-04/working-tree-attempts/clippy-1.85.0-all.log",
+                                "details": "Rust 1.85 Clippy rejected test-only per-byte format_collect; corrected direct hex digits at final sourceSHA. Production handler unchanged."
+                        }
+                ],
+                "context_notes": [
+                        "Final acceptance is pinned to clean git archive7914f034; shared working-tree attempts remain historical evidence only.",
+                        "Working-tree crate totals53/68 included two uncommitted journal unit tests; final exact-source totals are51/66.",
+                        "Final commands did not use --locked; committed Cargo.lock and all relevant source files are byte-identical after every check.",
+                        "No benchmark or instruction/performance claim made."
+                ],
+                "artifacts": [
+                        "partitionline-broker/src/protocol.rs",
+                        "partitionline-broker/tests/protocol.rs",
+                        "partitionline-broker/tests/fixtures/protocol/",
+                        "tests/conformance/broker/implemented-api-versions.json",
+                        "docs/evidence/broker/KL11-04/README.md",
+                        "docs/evidence/broker/KL11-04/exact-validation/results.json",
+                        "docs/evidence/broker/KL11-04/source-integrity.json",
+                        "docs/evidence/broker/KL11-04/java-policy-observations.json",
+                        "docs/evidence/broker/KL11-04/negative-cli/results.json",
+                        "docs/evidence/broker/KL11-04/SHA256SUMS"
+                ],
+                "limitations": [
+                        "Only header/ApiVersions foundation; no Produce/Fetch/Metadata/storage/replication/cluster/authentication handlers or executable broker added.",
+                        "No live Apache broker/server process or client network interoperability qualification; independent Apache Java serialization/parser observations and Rust loopback transport only.",
+                        "API 18 feature implementation marked implemented, qualification remains not_run; other API implementations remain missing.",
+                        "Synchronous parse is bounded; arbitrary CPU poll cannot be preempted by transport timeout. No handler background tasks are spawned.",
+                        "Only managed Linux host tested. No load/RSS/OS socket budget/performance/durability/production qualification claim.",
+                        "Registry source/fixture hash checks alone do not execute code; final compiled reports come from actual source-pinned Rust tests."
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/src/protocol.rs",
         "partitionline-broker/tests/protocol.rs",
@@ -11871,8 +12218,8 @@
       "title": "Persist topic metadata and serve Metadata/CreateTopics/DeleteTopics",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-03",
         "KL11-04",
@@ -11891,7 +12238,22 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/metadata.rs",
+        "partitionline-broker/tests/metadata.rs",
+        "partitionline-broker/tests/fixtures/metadata/",
+        "partitionline-broker/src/protocol.rs",
+        "partitionline-broker/tests/protocol.rs",
+        "tests/conformance/broker/implemented-api-versions.json",
+        "tests/conformance/broker/features.json",
+        "scripts/check-broker-api-matrix.py",
+        "tests/ci/test_broker_api_matrix.py",
+        "docs/plan/evidence/KL11-05.json",
+        "docs/evidence/broker/KL11-05/",
+        "docs/plan/tasks.json"
+      ],
+      "integration_coordinator": "Worker owns metadata/router/advertisement gates; root exclusively edits shared lib exports under KL11-12. Catalog persistence is done in KL11-59; do not edit it without coordination."
     },
     {
       "id": "KL11-06",
@@ -12079,7 +12441,8 @@
         "partitionline-broker/tests/raft_election.rs",
         "docs/plan/evidence/KL11-12.json",
         "docs/evidence/broker/KL11-12/",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "partitionline-broker/src/lib.rs"
       ],
       "integration_coordinator": "Root owns shared exports; worker owns durable election primitives and deterministic simulator/oracle, no wire support advertisement."
     },
@@ -13731,7 +14094,8 @@
         "KL11-58",
         "KL11-59",
         "KL11-60",
-        "KL11-61"
+        "KL11-61",
+        "KL11-62"
       ],
       "files": [
         "docs/plan/evidence/KL11-56.json"
@@ -14069,7 +14433,7 @@
       "title": "Persist a bounded topic catalog independently of wire handlers",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-03",
@@ -14090,7 +14454,182 @@
         "Run behavioral, malformed-input and durability cases on stable and Rust1.85 with strict format/clippy/rustdoc checks.",
         "Retain exact independent Apache/format evidence and actual limitations."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task_id": "KL11-59",
+                "status": "done",
+                "acceptance_met": true,
+                "source_sha": "7848d98b23490782d70eefb4496f0021cdccd807",
+                "scope": "Bounded synchronous journal-backed topic identities, logical partition counts and permanent ID tombstones, independent of metadata wire handlers.",
+                "provenance": "docs/evidence/broker/KL11-59/provenance.json",
+                "commands": [
+                        {
+                                "toolchain": "stable",
+                                "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+                                "exit_code": 0,
+                                "passed": 67,
+                                "failed": 0,
+                                "ignored": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-stable-default.log",
+                                "environment_additions": {
+                                        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-stable.bin"
+                                }
+                        },
+                        {
+                                "toolchain": "stable",
+                                "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+                                "exit_code": 0,
+                                "passed": 82,
+                                "failed": 0,
+                                "ignored": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-stable-allfeatures.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "command": "taskset -c 0-2,4 cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-stable-clippy.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "command": "taskset -c 0-2,4 cargo +stable doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-stable-doc.log",
+                                "environment_additions": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "toolchain": "stable",
+                                "command": "taskset -c 0-2,4 cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-stable-fmt.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+                                "exit_code": 0,
+                                "passed": 67,
+                                "failed": 0,
+                                "ignored": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-1.85.0-default.log",
+                                "environment_additions": {
+                                        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-1.85.0.bin"
+                                }
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+                                "exit_code": 0,
+                                "passed": 82,
+                                "failed": 0,
+                                "ignored": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-1.85.0-allfeatures.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-1.85.0-clippy.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-1.85.0-doc.log",
+                                "environment_additions": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "command": "taskset -c 0-2,4 cargo +1.85.0 fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-59/archive-1.85.0-fmt.log"
+                        }
+                ],
+                "results": {
+                        "catalog_integration_cases": 14,
+                        "catalog_private_sync_fault_cases": 2,
+                        "stable": {
+                                "default_passed": 67,
+                                "allfeatures_passed": 82,
+                                "clippy": "passed",
+                                "rustdoc": "passed",
+                                "format": "passed",
+                                "failed": 0,
+                                "ignored": 0
+                        },
+                        "msrv_1_85": {
+                                "default_passed": 67,
+                                "allfeatures_passed": 82,
+                                "clippy": "passed",
+                                "rustdoc": "passed",
+                                "format": "passed",
+                                "failed": 0,
+                                "ignored": 0
+                        },
+                        "source_files_archive_verified_before_after": 202,
+                        "independent_apache_name_executions": 87,
+                        "independent_apache_collision_assertions": 6,
+                        "independent_apache_reserved_identity_assertions": 12,
+                        "deliberately_failed_apache_variants": 3,
+                        "independently_decoded_rust_histories": 2,
+                        "deliberately_failed_format_history_mutants": 5,
+                        "torn_tombstone_prefixes_per_catalog_case": 65,
+                        "golden_journal_bytes": 302,
+                        "golden_history": {
+                                "operations": 4,
+                                "identities": 3,
+                                "live_topics": 2,
+                                "live_partitions": 8,
+                                "tombstoned_ids": [
+                                        2
+                                ]
+                        },
+                        "wire_handlers_added": 0,
+                        "new_runtime_dependencies": 0
+                },
+                "failed_attempts": [
+                        {
+                                "kind": "shared_tree_all_target_clippy",
+                                "result": "failed",
+                                "log": "docs/evidence/broker/KL11-59/stable-clippy.log",
+                                "details": "Concurrent records.rs missing crate documentation and unused mut; owner corrected them. Final catalog snapshot excluded these uncommitted siblings."
+                        },
+                        {
+                                "kind": "catalog_fixture_helper_clippy",
+                                "result": "failed",
+                                "details": "26lint findings in fixed test fixture helpers and synchronous fs::read calls. Narrow documented test-only helper allowances and explicit File/Read corrected them.",
+                                "raw_log": "Not retained; focused log overwritten before evidence archival.",
+                                "final_disposition": "Both stable/MSRV full exact-source strict gates pass."
+                        }
+                ],
+                "artifacts": [
+                        "partitionline-broker/src/catalog.rs",
+                        "partitionline-broker/tests/catalog.rs",
+                        "docs/evidence/broker/KL11-59/README.md",
+                        "docs/evidence/broker/KL11-59/archived-source-files.json",
+                        "docs/evidence/broker/KL11-59/upstream-source-pins.json",
+                        "docs/evidence/broker/KL11-59/apache-oracle.json",
+                        "docs/evidence/broker/KL11-59/independent-format.json",
+                        "docs/evidence/broker/KL11-59/provenance.json",
+                        "docs/evidence/broker/KL11-59/checksums.json"
+                ],
+                "limitations": [
+                        "Custom PLJRNL01/PLTCAT01 format; not Apache metadata-log or wire compatibility.",
+                        "Caller-supplied fresh128-bit IDs; reservedzero/one rejected. No random allocator. Additional __cluster_metadata name reservation and permanent tombstoned-ID non-reuse are explicit local policies.",
+                        "Exclusive trusted callerpath and process-local ownership only; no cross-process lock or authentication. Topic names never become paths.",
+                        "Synchronous I/O must run on storage threads; durability inherits filesystem/hardware sync guarantees.",
+                        "Private sync-fault tests validate publication and ambiguous-outcome state contracts, not actual physical fsync/power-loss failures. Real child process exit does not simulate power loss.",
+                        "Poisoned reads expose previous confirmed state, potentially different from eventual recovered state; recover before resolving an ambiguous mutation.",
+                        "Topic/partition counts are logical metadata only; no replica placement, partition-log creation/deletion, retention/compaction or journal reclamation. All history including tombstones consumes bounded capacity.",
+                        "No quorum, distributed durability, metadata handlers, network topic lifecycle interop, production or comparative performance qualification.",
+                        "Final source snapshot intentionally excludes later uncommitted sibling records work; separate integrated checks belong to its owner/root."
+                ]
+        }
+      ],
       "write_set": [
         "partitionline-broker/src/catalog.rs",
         "partitionline-broker/tests/catalog.rs",
@@ -14141,7 +14680,7 @@
       "title": "Keep broker qualification assets outside the published client package",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-01",
@@ -14165,7 +14704,260 @@
         "cargo package --list --allow-dirty --locked",
         "Validate extracted package on stable and Rust1.85; strict integrated client checks."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-61",
+                "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+                "pre_broker_baseline_sha": "6c67f704a08c6c9b11aef5db13ef8b2cde69498f",
+                "commands": [
+                        {
+                                "toolchain": "stable",
+                                "cell": "fmt",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--all",
+                                        "--",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 2.1234244530005526,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-fmt.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "cell": "verifiable-build",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 0.04312102099902404,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-verifiable-build.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "cell": "tests",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 52.986382779999985,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-tests.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "cell": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 57.2455423829997,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-clippy.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "cell": "rustdoc",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--locked",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 2.0542574920000334,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-rustdoc.log"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "cell": "doctests",
+                                "command": [
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--doc",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 14.850294768999447,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/stable-doctests.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "fmt",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "fmt",
+                                        "--all",
+                                        "--",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 2.157184118001169,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-fmt.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "verifiable-build",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 43.550061377998645,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-verifiable-build.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "tests",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "duration_seconds": 188.0393509509995,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-tests.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "clippy",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 101,
+                                "duration_seconds": 28.60944820199984,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-clippy.log"
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "rustdoc",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--locked",
+                                        "--all-features",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-rustdoc.log",
+                                "environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "cell": "doctests",
+                                "command": [
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--all-features",
+                                        "--doc"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-doctests.log",
+                                "environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "command": "PL_PACKAGE_TOOLCHAINS=\"stable 1.85.0\" bash scripts/ci-crate-consumer.sh",
+                                "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-61/package-check.log"
+                        }
+                ],
+                "results": {
+                        "package_boundary": "passed",
+                        "authoritative_package_file_count": 475,
+                        "broker_assets_in_package": 0,
+                        "all_pre_broker_client_source_test_example_paths_preserved": 426,
+                        "client_tests": {
+                                "stable": {
+                                        "passed": 1791,
+                                        "failed": 0,
+                                        "ignored": 4
+                                },
+                                "1.85.0": {
+                                        "passed": 1791,
+                                        "failed": 0,
+                                        "ignored": 4
+                                }
+                        },
+                        "stable_strict_clippy_docs": "passed",
+                        "msrv_strict_docs": "passed",
+                        "extracted_package_cells": 4,
+                        "compiled_snippets_per_cell": 19,
+                        "local_links_checked_per_cell": 39,
+                        "package_sha256": "ae5dd7cffa21b4ade5558e108d035bf535515cf0b25e59dddc3920cec6591aa2",
+                        "root_dependency_features_unchanged": true,
+                        "immutable_external_tool_links_verified": true,
+                        "production_qualified": false
+                },
+                "failed_attempts": [
+                        {
+                                "scope": "Initial incomplete sparse snapshot",
+                                "failure": "fuzz_campaign_meta test lacked committed fuzz/campaign/metadata.example.json; completed checkout and reran full matrix.",
+                                "log": "docs/evidence/broker/KL11-61/initial-sparse-qa/stable-tests.log"
+                        },
+                        {
+                                "scope": "Extra Rust1.85 strict Clippy beyond existing client CI gate",
+                                "failure": "Pre-existing comparison_chain in metrics.rs and two needless_lifetimes Drop impls in producer.rs; stable strict Clippy and both toolchain tests pass.",
+                                "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-clippy.log",
+                                "resolution": "Follow-up integration lint fixes and Produce v13 ownership are tracked separately; this failure is retained, not reported as a passed gate."
+                        }
+                ],
+                "limitations": [
+                        "Package consumer/snippet cells exercise the extracted archive; no claim that repository-only acceptance tests run from a published package.",
+                        "Root default tests still emit pre-existing feature-conditional unused-variable warnings in credential_redact; follow-up integration fix needed.",
+                        "Four existing live-broker tests remain explicitly ignored in mock suite; no new production/benchmark qualification.",
+                        "Linux x86_64 only; shared CPU quota and benchmark-affinity restrictions were retained."
+                ]
+        }
+      ],
       "write_set": [
         "Cargo.toml",
         "docs/benchmark.md",
@@ -14173,6 +14965,41 @@
         "docs/evidence/broker/KL11-57/checksums.json",
         "docs/plan/evidence/KL11-61.json",
         "docs/evidence/broker/KL11-61/",
+        "docs/plan/tasks.json"
+      ]
+    },
+    {
+      "id": "KL11-62",
+      "title": "Clear integrated client lint and feature-conditional warning debt",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
+      "depends_on": [
+        "KL11-61"
+      ],
+      "files": [
+        "src/metrics.rs",
+        "tests/credential_redact.rs"
+      ],
+      "deliverable": "Both supported Rust toolchains pass strict integrated client lint; default credential tests compile without unused-variable warnings.",
+      "acceptance": [
+        "Preserve metric throttle behavior and credential-redaction assertions; use clear code rather than disabling warnings.",
+        "Strict all-target/all-feature Clippy passes stable and Rust1.85; existing metrics/credential tests pass with defaults and tracing.",
+        "The two producer Drop lifetime corrections are coordinated exclusively under existing KL05-11 ownership, avoiding a second hot-file claim.",
+        "Retain original failed MSRV lint evidence and exact tested corrected source."
+      ],
+      "validation": [
+        "cargo +stable clippy --locked --all-targets --all-features -- -D warnings",
+        "cargo +1.85.0 clippy --locked --all-targets --all-features -- -D warnings",
+        "Run existing metrics and credential-redaction tests with default and tracing features."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/metrics.rs",
+        "tests/credential_redact.rs",
+        "docs/plan/evidence/KL11-62.json",
+        "docs/evidence/client/KL11-62/",
         "docs/plan/tasks.json"
       ]
     }

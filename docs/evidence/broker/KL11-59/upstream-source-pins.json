@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "version": "4.1.2",
+      "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "original_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "retained_archive": "apache-topic-sources-4.1.2.tar.gz",
+      "retained_archive_sha256": "29e50923e6c73d4d97adde07898841b967ee13dd2900d74bebe1a5d232f4959b",
+      "files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/Uuid.java": "6027f0cd13858612144116131044ffe664239868319f57bb82fc7eae2e3a37bd",
+        "clients/src/main/java/org/apache/kafka/common/internals/Topic.java": "8a0fedeefdb485d3afc9d1bd1c1aaaa6cd86b54e0031fc4ea086b936ba25ac6f",
+        "clients/src/test/java/org/apache/kafka/common/UuidTest.java": "3ac184a55ff084bd4e264c22f6a5239212c3ebcc3bad51c36ab6f62a679b0be1",
+        "clients/src/test/java/org/apache/kafka/common/internals/TopicTest.java": "cbd1bbb5b073f1f9b4eabd35dee399f1ec201f236ba3b4ffa7ab1d942d4ff612",
+        "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java": "7b96bde9e51fabe32afcc9986b216cc8b3d1ae5fc616a6be9f91f51255c419eb",
+        "metadata/src/main/resources/common/metadata/RemoveTopicRecord.json": "11a968375c871dbf568504c32751fe56bdca9fde9267303147dd1ad962d325b4",
+        "metadata/src/main/resources/common/metadata/TopicRecord.json": "fa8b43d6d91831cca706c443ba75772b8d53d5b24e0814480c50d3dcb59309e1"
+      }
+    },
+    {
+      "version": "4.2.1",
+      "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "original_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "retained_archive": "apache-topic-sources-4.2.1.tar.gz",
+      "retained_archive_sha256": "30da0dc4e9d954477700d3f9c5252e42349280f53c506f5cb05e6f7216592130",
+      "files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/Uuid.java": "6027f0cd13858612144116131044ffe664239868319f57bb82fc7eae2e3a37bd",
+        "clients/src/main/java/org/apache/kafka/common/internals/Topic.java": "8a0fedeefdb485d3afc9d1bd1c1aaaa6cd86b54e0031fc4ea086b936ba25ac6f",
+        "clients/src/test/java/org/apache/kafka/common/UuidTest.java": "f30964173df8535d6330fbaf0e6fa026cdd8572f01de41158783f8d4fba96ee6",
+        "clients/src/test/java/org/apache/kafka/common/internals/TopicTest.java": "cbd1bbb5b073f1f9b4eabd35dee399f1ec201f236ba3b4ffa7ab1d942d4ff612",
+        "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java": "db6074b91880707e51351bd3c25efa3a21dca8f1e9543854f6475edd68ed3be6",
+        "metadata/src/main/resources/common/metadata/RemoveTopicRecord.json": "11a968375c871dbf568504c32751fe56bdca9fde9267303147dd1ad962d325b4",
+        "metadata/src/main/resources/common/metadata/TopicRecord.json": "fa8b43d6d91831cca706c443ba75772b8d53d5b24e0814480c50d3dcb59309e1"
+      }
+    },
+    {
+      "version": "4.3.1",
+      "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "original_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "retained_archive": "apache-topic-sources-4.3.1.tar.gz",
+      "retained_archive_sha256": "6c9644b1e1757370b9c6b26733629eb1da23bbda0b4fa030666ce5019f569465",
+      "files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/Uuid.java": "6027f0cd13858612144116131044ffe664239868319f57bb82fc7eae2e3a37bd",
+        "clients/src/main/java/org/apache/kafka/common/internals/Topic.java": "8a0fedeefdb485d3afc9d1bd1c1aaaa6cd86b54e0031fc4ea086b936ba25ac6f",
+        "clients/src/test/java/org/apache/kafka/common/UuidTest.java": "f30964173df8535d6330fbaf0e6fa026cdd8572f01de41158783f8d4fba96ee6",
+        "clients/src/test/java/org/apache/kafka/common/internals/TopicTest.java": "cbd1bbb5b073f1f9b4eabd35dee399f1ec201f236ba3b4ffa7ab1d942d4ff612",
+        "metadata/src/main/java/org/apache/kafka/controller/ReplicationControlManager.java": "431b9de2300b73deb754cc5da2f38e6a03e2f1e8bb0ba52591fb8b0e10487c0f",
+        "metadata/src/main/resources/common/metadata/RemoveTopicRecord.json": "11a968375c871dbf568504c32751fe56bdca9fde9267303147dd1ad962d325b4",
+        "metadata/src/main/resources/common/metadata/TopicRecord.json": "fa8b43d6d91831cca706c443ba75772b8d53d5b24e0814480c50d3dcb59309e1"
+      }
+    }
+  ],
+  "license": "Byte-identical original Apache LICENSE, NOTICE and source copyright notices retained.",
+  "semantics": [
+    "Topic.validate/isValid ASCII naming and reserved dot names.",
+    "Topic.hasCollision dot/underscore semantics.",
+    "Uuid.ZERO_UUID/ONE_UUID/RESERVED and METADATA_TOPIC_ID.",
+    "ReplicationControlManager TopicRecord duplicate-name rejection and RemoveTopicRecord unknown-ID/tombstone/name-collision release semantics."
+  ],
+  "local_adaptations": [
+    "Caller-supplied UUID bytes instead of Apache random allocation; reserved0/1rejected, no random or version/variant policy.",
+    "Never reuse tombstoned caller IDs; retain them within an explicit identity budget.",
+    "Reserve __cluster_metadata name locally even though raw Topic.validate accepts it.",
+    "Persist partition counts in one custom atomic entry rather than Kafka TopicRecord+PartitionRecord metadata format."
+  ]
+}

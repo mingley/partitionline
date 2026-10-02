@@ -1,0 +1,51 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "cell": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.1450571750010567,
+      "log": "/workspace/work/package-boundary/qa/stable-fmt.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "verifiable-build",
+      "command": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 36.99706110999978,
+      "log": "/workspace/work/package-boundary/qa/stable-verifiable-build.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 153.10616229100015,
+      "log": "/workspace/work/package-boundary/qa/stable-tests.log"
+    }
+  ]
+}

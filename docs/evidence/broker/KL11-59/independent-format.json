@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "verdict": "passed",
+  "format": "custom PLJRNL01/PLTCAT01; not Kafka metadata log",
+  "reader_sha256": "09326f4963f98bf12603eea8721c816811d3e148577ff71d86f80eef2ecaad3b",
+  "positive_histories": [
+    {
+      "toolchain": "stable",
+      "file": "catalog-history-stable.bin",
+      "sha256": "768444fb1b8ed5fed2893b867b3e20f4ddd5a3447855564da46d25e9f8fe493c",
+      "observed": {
+        "operations": [
+          {
+            "operation": "create",
+            "id": 2,
+            "name": "alpha",
+            "partitions": 3
+          },
+          {
+            "operation": "create",
+            "id": 3,
+            "name": "beta",
+            "partitions": 2
+          },
+          {
+            "operation": "delete",
+            "id": 2
+          },
+          {
+            "operation": "create",
+            "id": 4,
+            "name": "alpha",
+            "partitions": 6
+          }
+        ],
+        "topics": [
+          {
+            "name": "alpha",
+            "id": 4,
+            "partitions": 6
+          },
+          {
+            "name": "beta",
+            "id": 3,
+            "partitions": 2
+          }
+        ],
+        "tombstones": [
+          2
+        ],
+        "identities": 3,
+        "total_partitions": 8,
+        "journal_bytes": 302,
+        "replay_bytes": 150
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "file": "catalog-history-1.85.0.bin",
+      "sha256": "768444fb1b8ed5fed2893b867b3e20f4ddd5a3447855564da46d25e9f8fe493c",
+      "observed": {
+        "operations": [
+          {
+            "operation": "create",
+            "id": 2,
+            "name": "alpha",
+            "partitions": 3
+          },
+          {
+            "operation": "create",
+            "id": 3,
+            "name": "beta",
+            "partitions": 2
+          },
+          {
+            "operation": "delete",
+            "id": 2
+          },
+          {
+            "operation": "create",
+            "id": 4,
+            "name": "alpha",
+            "partitions": 6
+          }
+        ],
+        "topics": [
+          {
+            "name": "alpha",
+            "id": 4,
+            "partitions": 6
+          },
+          {
+            "name": "beta",
+            "id": 3,
+            "partitions": 2
+          }
+        ],
+        "tombstones": [
+          2
+        ],
+        "identities": 3,
+        "total_partitions": 8,
+        "journal_bytes": 302,
+        "replay_bytes": 150
+      }
+    }
+  ],
+  "expected_rejections": [
+    {
+      "case": "payload-crc",
+      "file": "format-mutant-payload-crc.bin",
+      "verdict": "failed",
+      "expected_rejection": true,
+      "error": "payload CRC",
+      "sha256": "af3334e746ba0c8d3a5e0c3026f60454219d51602e0c825d1b52aabe593a3941"
+    },
+    {
+      "case": "reused-id",
+      "file": "format-mutant-reused-id.bin",
+      "verdict": "failed",
+      "expected_rejection": true,
+      "error": "reused identity",
+      "sha256": "5676ece4b170c1918ed89d92c88b06226e55bad062d75b3ecd78a585d0d7e685"
+    },
+    {
+      "case": "illegal-name",
+      "file": "format-mutant-illegal-name.bin",
+      "verdict": "failed",
+      "expected_rejection": true,
+      "error": "illegal name",
+      "sha256": "d52b67a529ae2e30715bda679ca4a2161ff37b0c459f6da17d9dfcc610351d4c"
+    },
+    {
+      "case": "record-count",
+      "file": "format-mutant-record-count.bin",
+      "verdict": "failed",
+      "expected_rejection": true,
+      "error": "catalog entry length/offset/count",
+      "sha256": "c79d6a2b5dc16998f210e962fe879f3428ab0da77eb5cf69ef92ed56f0ea00da"
+    },
+    {
+      "case": "unknown-delete",
+      "file": "format-mutant-unknown-delete.bin",
+      "verdict": "failed",
+      "expected_rejection": true,
+      "error": "unknown tombstone identity",
+      "sha256": "9a0ae2ee0bf7c64209e9d4af5aa357a3affa8d0871f6060e11492d1988af2d1a"
+    }
+  ],
+  "limitations": [
+    "Independent byte/history interpretation, not a synchronization, power-loss, replica or wire compatibility proof."
+  ]
+}

@@ -1,0 +1,9 @@
+    Checking libc v0.2.189
+    Checking bytes v1.12.1
+    Checking pin-project-lite v0.2.17
+    Checking crc32c v0.6.8
+    Checking socket2 v0.6.5
+    Checking mio v1.2.3
+    Checking tokio v1.53.1
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.90s

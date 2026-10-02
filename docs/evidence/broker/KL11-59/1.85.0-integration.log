@@ -1,0 +1,24 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.29s
+     Running tests/catalog.rs (/workspace/work/catalog-target/debug/deps/catalog-f2c0d9b3d3b3f819)
+
+running 14 tests
+test atomic_create_delete_tombstone_and_name_recreation_survive_restart ... ok
+test changed_file_poisoning_keeps_confirmed_state_and_recovery_repairs_tail ... ok
+test checksummed_malformed_operations_and_conflicting_histories_fail_closed ... ok
+test complete_journal_corruption_and_interior_byte_loss_fail_closed ... ok
+test deleted_collision_name_is_released_but_identity_is_not ... ok
+test invalid_limits_and_tightened_journal_bounds_are_explicit ... ok
+test deletes_count_against_operation_replay_and_journal_budgets ... ok
+test every_torn_tombstone_tail_prefix_recovers_whole_previous_catalog ... ok
+test independent_apache_name_vectors_match_and_reserved_ids_are_rejected ... ok
+test invalid_names_partitions_duplicate_names_ids_and_collisions_do_not_mutate ... ok
+test oversized_persisted_entry_and_duplicate_owner_are_rejected ... ok
+test stricter_restart_budgets_fail_without_rewriting_complete_history ... ok
+test process_exit_without_destructors_preserves_durable_history_and_reports_tails ... ok
+test topic_identity_partition_operation_and_replay_budgets_hold_before_append ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

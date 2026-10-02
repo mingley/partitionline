@@ -1,0 +1,36 @@
+test_api_versions_response_header_exception_and_classic_client_id (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_api_versions_response_header_exception_and_classic_client_id) ... ok
+test_archive_corruption_fails_even_with_unchanged_matrix (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_archive_corruption_fails_even_with_unchanged_matrix) ... ok
+test_archive_duplicate_member_symlink_and_traversal_rejected (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_archive_duplicate_member_symlink_and_traversal_rejected) ... ok
+test_archive_limits_and_missing_license_rejected (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_archive_limits_and_missing_license_rejected) ... ok
+test_checked_registry_and_synthetic_report_gate (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_checked_registry_and_synthetic_report_gate) ... ok
+test_cli_failure_has_nonzero_status_and_retains_failed_report (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_cli_failure_has_nonzero_status_and_retains_failed_report) ... ok
+test_comment_scanner_preserves_urls_and_escaped_quotes (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_comment_scanner_preserves_urls_and_escaped_quotes) ... ok
+test_compiled_handler_report_corruption_fails (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_compiled_handler_report_corruption_fails) ... ok
+test_complete_keys_include_controller_and_new_group_apis (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_complete_keys_include_controller_and_new_group_apis) ... ok
+test_duplicate_json_properties_and_unterminated_comments_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_duplicate_json_properties_and_unterminated_comments_fail) ... ok
+test_feature_claims_or_retired_dispositions_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_feature_claims_or_retired_dispositions_fail) ... ok
+test_feature_versions_and_local_gate_cannot_be_forged (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_feature_versions_and_local_gate_cannot_be_forged) ... ok
+test_matrix_key_duplicates_missing_ranges_and_flags_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_matrix_key_duplicates_missing_ranges_and_flags_fail) ... ok
+test_missing_or_changed_per_file_hash_fails (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_missing_or_changed_per_file_hash_fails) ... ok
+test_missing_or_duplicate_release_fails (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_missing_or_duplicate_release_fails) ... ok
+test_original_pin_and_reviewed_subset_hash_fail_closed (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_original_pin_and_reviewed_subset_hash_fail_closed) ... ok
+test_produce_workaround_is_separate_from_schema_support (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_produce_workaround_is_separate_from_schema_support) ... ok
+test_real_retained_sources_verify (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_real_retained_sources_verify) ... ok
+test_registry_cannot_claim_qualification_or_unchecked_source (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_registry_cannot_claim_qualification_or_unchecked_source) ... ok
+test_registry_forged_extra_or_out_of_range_claims_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_registry_forged_extra_or_out_of_range_claims_fail) ... ok
+test_registry_missing_extra_and_changed_fixtures_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_registry_missing_extra_and_changed_fixtures_fail) ... ok
+test_removed_keys_reserve_ids_without_versions_or_listener (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_removed_keys_reserve_ids_without_versions_or_listener) ... ok
+test_retention_is_byte_preserving_and_deterministic (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_retention_is_byte_preserving_and_deterministic) ... ok
+test_rewritten_source_and_self_reported_hashes_cannot_bless_a_pin (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_rewritten_source_and_self_reported_hashes_cannot_bless_a_pin) ... ok
+test_self_rehashed_golden_rewrite_still_fails_independent_pin (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_self_rehashed_golden_rewrite_still_fails_independent_pin) ... ok
+test_source_api_keys_missing_duplicate_and_changed_generator_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_source_api_keys_missing_duplicate_and_changed_generator_fail) ... ok
+test_source_bad_listener_and_header_client_id_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_source_bad_listener_and_header_client_id_fail) ... ok
+test_source_missing_key_and_unknown_key_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_source_missing_key_and_unknown_key_fail) ... ok
+test_source_missing_response_and_duplicate_request_fail (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_source_missing_response_and_duplicate_request_fail) ... ok
+test_source_pair_disagreement_fails (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_source_pair_disagreement_fails) ... ok
+test_unstable_versions_and_release_deltas_are_preserved (tests.ci.test_broker_api_matrix.BrokerApiMatrix.test_unstable_versions_and_release_deltas_are_preserved) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 4.534s
+
+OK

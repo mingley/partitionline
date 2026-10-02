@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-59",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "7848d98b23490782d70eefb4496f0021cdccd807",
+  "scope": "Bounded synchronous journal-backed topic identities, logical partition counts and permanent ID tombstones, independent of metadata wire handlers.",
+  "provenance": "docs/evidence/broker/KL11-59/provenance.json",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+      "exit_code": 0,
+      "passed": 67,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-default.log",
+      "environment_additions": {
+        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-stable.bin"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+      "exit_code": 0,
+      "passed": 82,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-allfeatures.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-clippy.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-doc.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-fmt.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+      "exit_code": 0,
+      "passed": 67,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-default.log",
+      "environment_additions": {
+        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-1.85.0.bin"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+      "exit_code": 0,
+      "passed": 82,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-allfeatures.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-clippy.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-doc.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-fmt.log"
+    }
+  ],
+  "results": {
+    "catalog_integration_cases": 14,
+    "catalog_private_sync_fault_cases": 2,
+    "stable": {
+      "default_passed": 67,
+      "allfeatures_passed": 82,
+      "clippy": "passed",
+      "rustdoc": "passed",
+      "format": "passed",
+      "failed": 0,
+      "ignored": 0
+    },
+    "msrv_1_85": {
+      "default_passed": 67,
+      "allfeatures_passed": 82,
+      "clippy": "passed",
+      "rustdoc": "passed",
+      "format": "passed",
+      "failed": 0,
+      "ignored": 0
+    },
+    "source_files_archive_verified_before_after": 202,
+    "independent_apache_name_executions": 87,
+    "independent_apache_collision_assertions": 6,
+    "independent_apache_reserved_identity_assertions": 12,
+    "deliberately_failed_apache_variants": 3,
+    "independently_decoded_rust_histories": 2,
+    "deliberately_failed_format_history_mutants": 5,
+    "torn_tombstone_prefixes_per_catalog_case": 65,
+    "golden_journal_bytes": 302,
+    "golden_history": {
+      "operations": 4,
+      "identities": 3,
+      "live_topics": 2,
+      "live_partitions": 8,
+      "tombstoned_ids": [
+        2
+      ]
+    },
+    "wire_handlers_added": 0,
+    "new_runtime_dependencies": 0
+  },
+  "failed_attempts": [
+    {
+      "kind": "shared_tree_all_target_clippy",
+      "result": "failed",
+      "log": "docs/evidence/broker/KL11-59/stable-clippy.log",
+      "details": "Concurrent records.rs missing crate documentation and unused mut; owner corrected them. Final catalog snapshot excluded these uncommitted siblings."
+    },
+    {
+      "kind": "catalog_fixture_helper_clippy",
+      "result": "failed",
+      "details": "26lint findings in fixed test fixture helpers and synchronous fs::read calls. Narrow documented test-only helper allowances and explicit File/Read corrected them.",
+      "raw_log": "Not retained; focused log overwritten before evidence archival.",
+      "final_disposition": "Both stable/MSRV full exact-source strict gates pass."
+    }
+  ],
+  "artifacts": [
+    "partitionline-broker/src/catalog.rs",
+    "partitionline-broker/tests/catalog.rs",
+    "docs/evidence/broker/KL11-59/README.md",
+    "docs/evidence/broker/KL11-59/archived-source-files.json",
+    "docs/evidence/broker/KL11-59/upstream-source-pins.json",
+    "docs/evidence/broker/KL11-59/apache-oracle.json",
+    "docs/evidence/broker/KL11-59/independent-format.json",
+    "docs/evidence/broker/KL11-59/provenance.json",
+    "docs/evidence/broker/KL11-59/checksums.json"
+  ],
+  "limitations": [
+    "Custom PLJRNL01/PLTCAT01 format; not Apache metadata-log or wire compatibility.",
+    "Caller-supplied fresh128-bit IDs; reservedzero/one rejected. No random allocator. Additional __cluster_metadata name reservation and permanent tombstoned-ID non-reuse are explicit local policies.",
+    "Exclusive trusted callerpath and process-local ownership only; no cross-process lock or authentication. Topic names never become paths.",
+    "Synchronous I/O must run on storage threads; durability inherits filesystem/hardware sync guarantees.",
+    "Private sync-fault tests validate publication and ambiguous-outcome state contracts, not actual physical fsync/power-loss failures. Real child process exit does not simulate power loss.",
+    "Poisoned reads expose previous confirmed state, potentially different from eventual recovered state; recover before resolving an ambiguous mutation.",
+    "Topic/partition counts are logical metadata only; no replica placement, partition-log creation/deletion, retention/compaction or journal reclamation. All history including tombstones consumes bounded capacity.",
+    "No quorum, distributed durability, metadata handlers, network topic lifecycle interop, production or comparative performance qualification.",
+    "Final source snapshot intentionally excludes later uncommitted sibling records work; separate integrated checks belong to its owner/root."
+  ]
+}

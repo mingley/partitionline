@@ -1,0 +1,123 @@
+{
+  "documents": [
+    "README.md",
+    "docs/guide.md",
+    "docs/migrate-from-rdkafka.md"
+  ],
+  "compiled_snippets": 19,
+  "local_links": 39,
+  "ignored_snippets": [],
+  "snippets": [
+    {
+      "document": "README.md",
+      "line": 23,
+      "sha256": "737e8da3b740b661e51f87ee4a98f187b14387bf570a23adbece43a2feb7e73d"
+    },
+    {
+      "document": "README.md",
+      "line": 42,
+      "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+    },
+    {
+      "document": "README.md",
+      "line": 62,
+      "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+    },
+    {
+      "document": "README.md",
+      "line": 86,
+      "sha256": "a990118bd77a2265b6ec3ef1355c1c965ee3232ae75798cca94f2823fad6f39c"
+    },
+    {
+      "document": "README.md",
+      "line": 111,
+      "sha256": "8b3313cd26930fe1023416b6029d56ce67f133460125f7b19a090a0819c03642"
+    },
+    {
+      "document": "README.md",
+      "line": 135,
+      "sha256": "d174cd31ee728c80ba03a9c4167cfe2a93e05a8a0ea753b87c4ed7bf69d64fd8"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 68,
+      "sha256": "c4c51043849dada85a70ec82aa279bdb056965bf21ec16ec249be11adb9ac0b2"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 221,
+      "sha256": "813a2ce2c94810da31565021b06811fcce2c413b189c40d38824042aa8aa65cc"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 245,
+      "sha256": "d8808b9a5eef57f67cfa2e52fdb2426d2a982336c13e35da9e5120cc79183d42"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 262,
+      "sha256": "ff20f2c1031cee431b3996be8900ee03c64e7d371a298819d36e7ed2bab41e48"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 303,
+      "sha256": "7318a827710d2914e781b0983e0f0c8e8558e3a1922b4ebdbbff329b4595f516"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 318,
+      "sha256": "94616599031102ea2ac914c926133a2d4c840711c8d79225385364fa8bd0f892"
+    },
+    {
+      "document": "docs/guide.md",
+      "line": 423,
+      "sha256": "ae7266acef91ef8af273684041100b13693bf8a37157b0ad81256b30f68c644f"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 91,
+      "sha256": "e225ec7ca4f62c204205edde832851484e166908e8e40f92763e356d4fd93b61"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 125,
+      "sha256": "57dec7d81e474f1ef1e7dc627500e28223a20a8137abfce4f1396009311a7825"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 187,
+      "sha256": "6da9b0b031891bb37671bd99124620f8162c67561f01b2716a71a512e1736e64"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 230,
+      "sha256": "380e427c7cfb1420e2f142fadd87d7a85f0185dce9567c2be5fcacdbf095d86a"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 258,
+      "sha256": "08e8db4b324f80d0e4ef3dd06bc8751433264d587852196e69b4d990fd7c3723"
+    },
+    {
+      "document": "docs/migrate-from-rdkafka.md",
+      "line": 285,
+      "sha256": "2397317b8f720ad1a34a19e46b7618683bd5e03f38372c7f29c44970f3027723"
+    }
+  ],
+  "package_sha256": "ae5dd7cffa21b4ade5558e108d035bf535515cf0b25e59dddc3920cec6591aa2",
+  "package_name": "partitionline",
+  "package_version": "0.1.0",
+  "package_vcs_info": {
+    "git": {
+      "sha1": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338"
+    },
+    "path_in_vcs": ""
+  },
+  "feature_mode": "tracing",
+  "dependency_features": [
+    "tracing"
+  ],
+  "toolchain": "1.85.0",
+  "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)",
+  "consumer_lock_sha256": "9ce27bd7224d4871f7cfe80746efb846b0c10f2b9dc00f497a2d65460f47c791"
+}

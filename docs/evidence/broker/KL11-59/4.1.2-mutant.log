@@ -1,0 +1,4 @@
+	false
+2e	false
+Exception in thread "main" java.lang.AssertionError: deliberate variant incorrectly expects '..' valid
+	at TopicIdentityOracle.main(TopicIdentityOracle.java:22)

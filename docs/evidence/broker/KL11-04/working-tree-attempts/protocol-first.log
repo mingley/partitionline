@@ -1,0 +1,31 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio-macros v2.7.2
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.48s
+     Running tests/protocol.rs (/workspace/work/target-broker-wire/debug/deps/protocol-25cd6fd5bc3b5242)
+
+running 9 tests
+test all_supported_request_truncations_fail_without_panicking ... ok
+test classic_and_flexible_headers_borrow_classic_client_id ... ok
+test semantic_software_validation_matches_apache_pattern ... ok
+test software_utf8_null_string_length_and_tag_faults_fail_closed ... ok
+test unsupported_api_versions_ignore_unknown_body_and_echo_signed_correlation ... ok
+test validated_limits_bound_frame_and_tag_work ... ok
+test compiled_registry_and_all_apache_goldens ... ok
+test malformed_or_unimplemented_connection_closes_while_peer_continues ... ok
+test real_tcp_pipeline_success_semantic_error_and_unsupported_fallback ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+

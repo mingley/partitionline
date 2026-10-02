@@ -1,0 +1,343 @@
+{
+  "schema_version": 1,
+  "task": "KL11-04",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "7914f03456e738b7b92b13100693cc89a20e11b1",
+  "tested_base_sha": "0c2338e4d6a61d8e4b273a17a55e618583632041",
+  "previous_source_sha": "b464b230fb4c00cc049c39672628a42bf0dd79a5",
+  "implementation": "bounded borrowed classic/flexible header parser; ApiVersions only API 18versions 0-4",
+  "qualification": "not_run",
+  "source_files_sha256": {
+    "partitionline-broker/src/protocol.rs": "72c879d42e9a981507583df1db44b4296cd709d038a4a3d4e748058e3b4a60be",
+    "partitionline-broker/tests/protocol.rs": "29917ccfff722734f640497931e506cf32ae13ea6a4661fca5aead95482c1ade",
+    "partitionline-broker/src/lib.rs": "fb7e727b6589ce61de1d6be8d291063457e7f07ed2a7cbe62425e351ea2f6854",
+    "partitionline-broker/Cargo.toml": "467c8cc0985c6cc46063605a2b2258987f3979fe4364d6949c912a5ddb2d5e52",
+    "partitionline-broker/Cargo.lock": "bf13b28f05407e53fa623016e9927d952ea2ba141feaa64e0e1011c8a11ca77a",
+    "scripts/check-broker-api-matrix.py": "b41b81ed92b99a7acf15af9562faf0a8c22222864344f315f5d8bc71378550ab",
+    "tests/ci/test_broker_api_matrix.py": "5a1e8f5daf518227e53deb6c533d2226af023ddd3c29baaa3cb84d4624895a19",
+    "tests/conformance/broker/implemented-api-versions.json": "640f49b84b228d76ac2abc4ddd9cb300d37e5ab1d42d8e3d480920e0988e1b6c",
+    "tests/conformance/broker/features.json": "f4a1625cee97449b26f65d752e0de08af7fb7450cc4d09e2ed8e5251107e5f67",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "clippy.toml": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+  },
+  "commands_artifact": "docs/evidence/broker/KL11-04/exact-validation/results.json",
+  "commands": [
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "fmt",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--check"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "--jobs",
+      "2"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/broker-wire/exact-validation/stable-default-handler.json",
+      "--report",
+      "/workspace/work/broker-wire/exact-validation/stable-default-gate.json"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "--jobs",
+      "2",
+      "--all-features"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/broker-wire/exact-validation/stable-all-features-handler.json",
+      "--report",
+      "/workspace/work/broker-wire/exact-validation/stable-all-features-gate.json"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--all-targets",
+      "--jobs",
+      "2",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "doc",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--no-deps",
+      "--jobs",
+      "2"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "fmt",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--check"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "--jobs",
+      "2"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/broker-wire/exact-validation/1.85.0-default-handler.json",
+      "--report",
+      "/workspace/work/broker-wire/exact-validation/1.85.0-default-gate.json"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "--jobs",
+      "2",
+      "--all-features"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-handler.json",
+      "--report",
+      "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-gate.json"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--all-targets",
+      "--jobs",
+      "2",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "doc",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--no-deps",
+      "--jobs",
+      "2"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "-m",
+      "unittest",
+      "tests.ci.test_broker_api_matrix",
+      "-v"
+    ]
+  ],
+  "results": {
+    "stable": {
+      "default": {
+        "passed": 51,
+        "failed": 0,
+        "ignored": 0
+      },
+      "all_features": {
+        "passed": 66,
+        "failed": 0,
+        "ignored": 0
+      },
+      "format": "passed",
+      "strict_clippy": "passed",
+      "strict_rustdoc": "passed"
+    },
+    "rust1.85.0": {
+      "default": {
+        "passed": 51,
+        "failed": 0,
+        "ignored": 0
+      },
+      "all_features": {
+        "passed": 66,
+        "failed": 0,
+        "ignored": 0
+      },
+      "format": "passed",
+      "strict_clippy": "passed",
+      "strict_rustdoc": "passed"
+    },
+    "protocol_named_tests": 9,
+    "java_cases_per_release": 33,
+    "java_release_executions": 3,
+    "independent_java_case_executions": 99,
+    "rust_golden_cases_per_cell": 99,
+    "rust_golden_comparisons_four_final_cells": 396,
+    "compiled_handler_registry_gates": 4,
+    "inventory_and_registry_guard_tests_passed": 31,
+    "expected_corrupt_cli_failures": 6,
+    "observed_corrupt_cli_failures": 6,
+    "fixture_files": 135,
+    "implemented_api_versions": [
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      }
+    ],
+    "other_apis_advertised": 0,
+    "package_note": "Clean archive cargo package --list passed; extracted standalone package tests not run because registry include_str requires repository conformance files."
+  },
+  "bounds": {
+    "default_request_bytes": 8388608,
+    "max_configurable_request_bytes": 67108864,
+    "default_tags_per_block": 1024,
+    "max_configurable_tags_per_block": 65536,
+    "string_bytes_max": 32767,
+    "response_capacity_max_bytes": 20,
+    "allocation_policy": "Request strings/unknown tags are borrowed/skipped; no allocation sized from peer fields; fixed small response reserve only."
+  },
+  "behavior": [
+    "Response header 0 for all supported versions, including flexiblev3/v4; correlation IDs preserved.",
+    "Supported0-2 bodies empty and fully consumed; supported3-4 compact nonnull software strings plus strict tags.",
+    "Software fields use pinned ASCII semantic pattern; invalid fields return 42 with requested response version and empty API list.",
+    "Unsupported API 18versions use v0/error 35 fallback and ignore unknown body, matching Apache RequestContext.",
+    "Unknown/unimplemented APIs fail closed with transport handler error; malformed connection does not interrupt independent peer.",
+    "TCP pipeline preserves success/error 42/unsupported fallback ordering; explicit shutdown joins connections."
+  ],
+  "intentional_strict_policy_differences": [
+    "Malformed UTF8: Java replaces bad bytes, broker closes.",
+    "Nullable ClientId: Java accepts arbitrary negative length, broker accepts only -1.",
+    "Unknown tag readers: Java accepts duplicate/descending IDs and certain overflowed counts; broker requires strictly increasing tags and checked u32 varints/counts/lengths.",
+    "Supported empty-body trailing data: Java leaves bytes unconsumed, broker rejects; unsupported ApiVersions body remains intentionally ignored."
+  ],
+  "failed_attempts": [
+    {
+      "kind": "tooling",
+      "artifact": "docs/evidence/broker/KL11-04/tooling-attempts.json",
+      "details": "Maven 429, current download mirror 403, missing javac launcher; verified official archive download and installed JDK compiler module succeeded."
+    },
+    {
+      "kind": "development_lint",
+      "artifact": "docs/evidence/broker/KL11-04/working-tree-attempts/clippy-first.log",
+      "details": "Stable Clippy caught test-side blocking fs write; moved optional sidecar write onto blocking pool with narrowly scoped lint annotation. Production handler unchanged."
+    },
+    {
+      "kind": "msrv_lint",
+      "source_sha": "b464b230fb4c00cc049c39672628a42bf0dd79a5",
+      "artifact": "docs/evidence/broker/KL11-04/working-tree-attempts/clippy-1.85.0-all.log",
+      "details": "Rust 1.85 Clippy rejected test-only per-byte format_collect; corrected direct hex digits at final sourceSHA. Production handler unchanged."
+    }
+  ],
+  "context_notes": [
+    "Final acceptance is pinned to clean git archive7914f034; shared working-tree attempts remain historical evidence only.",
+    "Working-tree crate totals53/68 included two uncommitted journal unit tests; final exact-source totals are51/66.",
+    "Final commands did not use --locked; committed Cargo.lock and all relevant source files are byte-identical after every check.",
+    "No benchmark or instruction/performance claim made."
+  ],
+  "artifacts": [
+    "partitionline-broker/src/protocol.rs",
+    "partitionline-broker/tests/protocol.rs",
+    "partitionline-broker/tests/fixtures/protocol/",
+    "tests/conformance/broker/implemented-api-versions.json",
+    "docs/evidence/broker/KL11-04/README.md",
+    "docs/evidence/broker/KL11-04/exact-validation/results.json",
+    "docs/evidence/broker/KL11-04/source-integrity.json",
+    "docs/evidence/broker/KL11-04/java-policy-observations.json",
+    "docs/evidence/broker/KL11-04/negative-cli/results.json",
+    "docs/evidence/broker/KL11-04/SHA256SUMS"
+  ],
+  "limitations": [
+    "Only header/ApiVersions foundation; no Produce/Fetch/Metadata/storage/replication/cluster/authentication handlers or executable broker added.",
+    "No live Apache broker/server process or client network interoperability qualification; independent Apache Java serialization/parser observations and Rust loopback transport only.",
+    "API 18 feature implementation marked implemented, qualification remains not_run; other API implementations remain missing.",
+    "Synchronous parse is bounded; arbitrary CPU poll cannot be preempted by transport timeout. No handler background tasks are spawned.",
+    "Only managed Linux host tested. No load/RSS/OS socket budget/performance/durability/production qualification claim.",
+    "Registry source/fixture hash checks alone do not execute code; final compiled reports come from actual source-pinned Rust tests."
+  ]
+}

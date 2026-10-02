@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "task": "KL11-61",
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "pre_broker_baseline_sha": "6c67f704a08c6c9b11aef5db13ef8b2cde69498f",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "cell": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.1234244530005526,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-fmt.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "verifiable-build",
+      "command": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.04312102099902404,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-verifiable-build.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 52.986382779999985,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-tests.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 57.2455423829997,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-clippy.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "rustdoc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.0542574920000334,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-rustdoc.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "doctests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 14.850294768999447,
+      "log": "docs/evidence/broker/KL11-61/client-qa/stable-doctests.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.157184118001169,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-fmt.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "verifiable-build",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 43.550061377998645,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-verifiable-build.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "tests",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 188.0393509509995,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-tests.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 28.60944820199984,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-clippy.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "rustdoc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-rustdoc.log",
+      "environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "doctests",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-doctests.log",
+      "environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "command": "PL_PACKAGE_TOOLCHAINS=\"stable 1.85.0\" bash scripts/ci-crate-consumer.sh",
+      "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-61/package-check.log"
+    }
+  ],
+  "results": {
+    "package_boundary": "passed",
+    "authoritative_package_file_count": 475,
+    "broker_assets_in_package": 0,
+    "all_pre_broker_client_source_test_example_paths_preserved": 426,
+    "client_tests": {
+      "stable": {
+        "passed": 1791,
+        "failed": 0,
+        "ignored": 4
+      },
+      "1.85.0": {
+        "passed": 1791,
+        "failed": 0,
+        "ignored": 4
+      }
+    },
+    "stable_strict_clippy_docs": "passed",
+    "msrv_strict_docs": "passed",
+    "extracted_package_cells": 4,
+    "compiled_snippets_per_cell": 19,
+    "local_links_checked_per_cell": 39,
+    "package_sha256": "ae5dd7cffa21b4ade5558e108d035bf535515cf0b25e59dddc3920cec6591aa2",
+    "root_dependency_features_unchanged": true,
+    "immutable_external_tool_links_verified": true,
+    "production_qualified": false
+  },
+  "failed_attempts": [
+    {
+      "scope": "Initial incomplete sparse snapshot",
+      "failure": "fuzz_campaign_meta test lacked committed fuzz/campaign/metadata.example.json; completed checkout and reran full matrix.",
+      "log": "docs/evidence/broker/KL11-61/initial-sparse-qa/stable-tests.log"
+    },
+    {
+      "scope": "Extra Rust1.85 strict Clippy beyond existing client CI gate",
+      "failure": "Pre-existing comparison_chain in metrics.rs and two needless_lifetimes Drop impls in producer.rs; stable strict Clippy and both toolchain tests pass.",
+      "log": "docs/evidence/broker/KL11-61/client-qa/1.85.0-clippy.log",
+      "resolution": "Follow-up integration lint fixes and Produce v13 ownership are tracked separately; this failure is retained, not reported as a passed gate."
+    }
+  ],
+  "limitations": [
+    "Package consumer/snippet cells exercise the extracted archive; no claim that repository-only acceptance tests run from a published package.",
+    "Root default tests still emit pre-existing feature-conditional unused-variable warnings in credential_redact; follow-up integration fix needed.",
+    "Four existing live-broker tests remain explicitly ignored in mock suite; no new production/benchmark qualification.",
+    "Linux x86_64 only; shared CPU quota and benchmark-affinity restrictions were retained."
+  ]
+}

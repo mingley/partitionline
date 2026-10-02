@@ -1,0 +1,455 @@
+{
+  "source_sha": "7914f03456e738b7b92b13100693cc89a20e11b1",
+  "source": "/workspace/work/broker-wire/final-source",
+  "commands": [
+    {
+      "name": "stable-format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "stable-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_results": []
+    },
+    {
+      "name": "stable-default-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-wire/exact-validation/stable-default-handler.json"
+      },
+      "exit": 0,
+      "log": "stable-default-tests.log",
+      "log_sha256": "92ba29b8fe05a75af792fcb7686b65b59870e4049568869e8a1fbcaff3fcce07",
+      "test_results": [
+        {
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "name": "stable-default-registry",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/work/broker-wire/exact-validation/stable-default-handler.json",
+        "--report",
+        "/workspace/work/broker-wire/exact-validation/stable-default-gate.json"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "stable-default-registry.log",
+      "log_sha256": "764a35979c16721c9175f231a46d75c04c2b70f5cc45e66f0d02ee5ab483008f",
+      "test_results": []
+    },
+    {
+      "name": "stable-all-features-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "2",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-wire/exact-validation/stable-all-features-handler.json"
+      },
+      "exit": 0,
+      "log": "stable-all-features-tests.log",
+      "log_sha256": "ebd7f0ef1869102f48775773d41db539d1ae6170b0b2764549f421590252f056",
+      "test_results": [
+        {
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "name": "stable-all-features-registry",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/work/broker-wire/exact-validation/stable-all-features-handler.json",
+        "--report",
+        "/workspace/work/broker-wire/exact-validation/stable-all-features-gate.json"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "stable-all-features-registry.log",
+      "log_sha256": "764a35979c16721c9175f231a46d75c04c2b70f5cc45e66f0d02ee5ab483008f",
+      "test_results": []
+    },
+    {
+      "name": "stable-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "stable-strict-clippy.log",
+      "log_sha256": "4f759cc51c34bc5b89e37c19a1fdee0608aedb3c919cbb5f316435e0a9fba0dc",
+      "test_results": []
+    },
+    {
+      "name": "stable-strict-docs",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps",
+        "--jobs",
+        "2"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit": 0,
+      "log": "stable-strict-docs.log",
+      "log_sha256": "1316730373098afddfbde06fa19dfbb0fd949dc146dd3ed559ab08245612dc39",
+      "test_results": []
+    },
+    {
+      "name": "1.85.0-format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "1.85.0-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_results": []
+    },
+    {
+      "name": "1.85.0-default-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "2"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-wire/exact-validation/1.85.0-default-handler.json"
+      },
+      "exit": 0,
+      "log": "1.85.0-default-tests.log",
+      "log_sha256": "863cc9840e57b12917d4230bb8d768504d56068cd028f3b0ed2f1998fce9017a",
+      "test_results": [
+        {
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "name": "1.85.0-default-registry",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/work/broker-wire/exact-validation/1.85.0-default-handler.json",
+        "--report",
+        "/workspace/work/broker-wire/exact-validation/1.85.0-default-gate.json"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "1.85.0-default-registry.log",
+      "log_sha256": "764a35979c16721c9175f231a46d75c04c2b70f5cc45e66f0d02ee5ab483008f",
+      "test_results": []
+    },
+    {
+      "name": "1.85.0-all-features-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "2",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-handler.json"
+      },
+      "exit": 0,
+      "log": "1.85.0-all-features-tests.log",
+      "log_sha256": "bf96c461daf60b86a82356bbcdbd81f5e99fb71c7df1d2a1ba211558d64c2bb0",
+      "test_results": [
+        {
+          "passed": 11,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "name": "1.85.0-all-features-registry",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-handler.json",
+        "--report",
+        "/workspace/work/broker-wire/exact-validation/1.85.0-all-features-gate.json"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "1.85.0-all-features-registry.log",
+      "log_sha256": "764a35979c16721c9175f231a46d75c04c2b70f5cc45e66f0d02ee5ab483008f",
+      "test_results": []
+    },
+    {
+      "name": "1.85.0-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--jobs",
+        "2",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "1.85.0-strict-clippy.log",
+      "log_sha256": "925fe349033f9a08e4eaef85a462b49e6fc73fcf0bbe5a7ef26eca6f3046ad7a",
+      "test_results": []
+    },
+    {
+      "name": "1.85.0-strict-docs",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps",
+        "--jobs",
+        "2"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit": 0,
+      "log": "1.85.0-strict-docs.log",
+      "log_sha256": "9220b5509dc3228e8e13d6b4a15d12b362709db3f94920713be9e69fa5cce667",
+      "test_results": []
+    },
+    {
+      "name": "python-guards",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "tests.ci.test_broker_api_matrix",
+        "-v"
+      ],
+      "cwd": "/workspace/work/broker-wire/final-source",
+      "env_overrides": {},
+      "exit": 0,
+      "log": "python-guards.log",
+      "log_sha256": "58a9437d9ff9c253393231e2f0978c4e9215207a88f16f83484eed106487db04",
+      "test_results": []
+    }
+  ],
+  "qualification": "not_run"
+}

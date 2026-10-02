@@ -1,0 +1,18 @@
+{
+  "source_sha": "7914f03456e738b7b92b13100693cc89a20e11b1",
+  "archive_source_files_sha256": {
+    "partitionline-broker/src/protocol.rs": "72c879d42e9a981507583df1db44b4296cd709d038a4a3d4e748058e3b4a60be",
+    "partitionline-broker/tests/protocol.rs": "29917ccfff722734f640497931e506cf32ae13ea6a4661fca5aead95482c1ade",
+    "partitionline-broker/src/lib.rs": "fb7e727b6589ce61de1d6be8d291063457e7f07ed2a7cbe62425e351ea2f6854",
+    "partitionline-broker/Cargo.toml": "467c8cc0985c6cc46063605a2b2258987f3979fe4364d6949c912a5ddb2d5e52",
+    "partitionline-broker/Cargo.lock": "bf13b28f05407e53fa623016e9927d952ea2ba141feaa64e0e1011c8a11ca77a",
+    "scripts/check-broker-api-matrix.py": "b41b81ed92b99a7acf15af9562faf0a8c22222864344f315f5d8bc71378550ab",
+    "tests/ci/test_broker_api_matrix.py": "5a1e8f5daf518227e53deb6c533d2226af023ddd3c29baaa3cb84d4624895a19",
+    "tests/conformance/broker/implemented-api-versions.json": "640f49b84b228d76ac2abc4ddd9cb300d37e5ab1d42d8e3d480920e0988e1b6c",
+    "tests/conformance/broker/features.json": "f4a1625cee97449b26f65d752e0de08af7fb7450cc4d09e2ed8e5251107e5f67",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "clippy.toml": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+  },
+  "files_unchanged_after_validation": true,
+  "cargo_lock_unchanged_after_validation": true
+}

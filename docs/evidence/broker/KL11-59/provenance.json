@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "source_sha": "7848d98b23490782d70eefb4496f0021cdccd807",
+  "validated_at_utc": "2026-10-02T20:23:55.320870+00:00",
+  "source_method": "Immutable git archive of the pushed source, every202file byte-compared with git objects and SHA256 rechecked after validation.",
+  "archive_manifest": "docs/evidence/broker/KL11-59/archived-source-files.json",
+  "cwd": "/workspace/work/catalog/source",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "PATH_prefix": "/workspace/work/cargo/bin",
+    "CARGO_TARGET_DIR": "/workspace/work/catalog-committed-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2",
+    "PL_CATALOG_TEST_TMP": "/workspace/work/catalog/test-tmp",
+    "affinity": "0-2,4"
+  },
+  "clean_command": "taskset -c 0-2,4 cargo +stable clean --manifest-path partitionline-broker/Cargo.toml -p partitionline-broker",
+  "clean_exit_code": 0,
+  "platform": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+    "machine": "x86_64",
+    "filesystem": "overlayfs",
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "zlib": "1.3.2",
+    "rustc": {
+      "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+    }
+  },
+  "catalog_binaries": [
+    {
+      "path": "/workspace/work/catalog-committed-target/debug/deps/catalog-28e0d0690acfe544",
+      "sha256": "81115f7d875c494361d978b80524879efa44ecadd5fa78045e1beb937feea1e2",
+      "bytes": 26503696
+    },
+    {
+      "path": "/workspace/work/catalog-committed-target/debug/deps/catalog-99eb6615a35d5196",
+      "sha256": "ffc68490829226f3c44f0a48a68927b30a770c51589613b0d192469cd44d0af7",
+      "bytes": 23852320
+    },
+    {
+      "path": "/workspace/work/catalog-committed-target/debug/deps/catalog-f2c0d9b3d3b3f819",
+      "sha256": "2360d9eb0dc34a6892b979ac27e1c3861a36f63c532a39cfdcdc2662507ff577",
+      "bytes": 13264944
+    },
+    {
+      "path": "/workspace/work/catalog-committed-target/debug/deps/catalog-f5a2ea9ef10ca3fb",
+      "sha256": "a7630d01d7802a43249ff57bdffde80abfda69fece15d6891da5edc8759968eb",
+      "bytes": 14816280
+    }
+  ],
+  "sources_unchanged_after_tests": true,
+  "new_catalog_dependencies": [],
+  "independent_oracles": [
+    "docs/evidence/broker/KL11-59/apache-oracle.json",
+    "docs/evidence/broker/KL11-59/upstream-source-pins.json",
+    "docs/evidence/broker/KL11-59/independent-format.json"
+  ],
+  "commands": [
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+      "exit_code": 0,
+      "passed": 67,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-default.log",
+      "environment_additions": {
+        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-stable.bin"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+      "exit_code": 0,
+      "passed": 82,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-allfeatures.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-clippy.log"
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-doc.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo +stable fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-stable-fmt.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml -j2",
+      "exit_code": 0,
+      "passed": 67,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-default.log",
+      "environment_additions": {
+        "PL_CATALOG_FORMAT_OUTPUT": "/workspace/partitionline/docs/evidence/broker/KL11-59/catalog-history-1.85.0.bin"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml --all-features -j2",
+      "exit_code": 0,
+      "passed": 82,
+      "failed": 0,
+      "ignored": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-allfeatures.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets --all-features -j2 -- -D warnings",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-clippy.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 doc --locked --manifest-path partitionline-broker/Cargo.toml --all-features --no-deps -j2",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-doc.log",
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 fmt --manifest-path partitionline-broker/Cargo.toml -- --check",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-59/archive-1.85.0-fmt.log"
+    }
+  ]
+}

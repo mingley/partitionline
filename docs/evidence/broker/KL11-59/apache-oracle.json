@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "independent_names": 87,
+  "reserved_identity_assertions": 12,
+  "collision_pairs": 6,
+  "expected_failures": 3,
+  "records": [
+    {
+      "version": "4.1.2",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "distribution_provenance": {
+        "version": "4.1.2",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+        "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+        "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+        "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+        "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+      },
+      "compile": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/catalog-oracle/4.1.2",
+        "docs/evidence/broker/KL11-59/TopicIdentityOracle.java"
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/catalog-oracle/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicIdentityOracle",
+        "/workspace/work/catalog-input.tsv"
+      ],
+      "exit": 0,
+      "summary": "PASS names=29 collision_pairs=2 reserved_identity_assertions=4",
+      "deliberate_failing_variant": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/catalog-oracle/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "TopicIdentityOracle",
+          "/workspace/work/catalog-input.tsv",
+          "mutate"
+        ],
+        "exit": 1,
+        "error": "incorrectly expects reservedname double-dot valid",
+        "output_file": "4.1.2-mutant.log",
+        "output_sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1"
+      },
+      "generator_class_sha256": "41a4f585806db59570fb55acf5e8737bbe7af8a89dd5d2e917f5c1c2412d30f0",
+      "positive_log": "4.1.2-oracle.log",
+      "output_file": "4.1.2-apache-names.tsv",
+      "output_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43"
+    },
+    {
+      "version": "4.2.1",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "distribution_provenance": {
+        "version": "4.2.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+        "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+        "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+        "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+        "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+      },
+      "compile": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "-d",
+        "/workspace/work/catalog-oracle/4.2.1",
+        "docs/evidence/broker/KL11-59/TopicIdentityOracle.java"
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/catalog-oracle/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicIdentityOracle",
+        "/workspace/work/catalog-input.tsv"
+      ],
+      "exit": 0,
+      "summary": "PASS names=29 collision_pairs=2 reserved_identity_assertions=4",
+      "deliberate_failing_variant": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/catalog-oracle/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "TopicIdentityOracle",
+          "/workspace/work/catalog-input.tsv",
+          "mutate"
+        ],
+        "exit": 1,
+        "error": "incorrectly expects reservedname double-dot valid",
+        "output_file": "4.2.1-mutant.log",
+        "output_sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1"
+      },
+      "generator_class_sha256": "41a4f585806db59570fb55acf5e8737bbe7af8a89dd5d2e917f5c1c2412d30f0",
+      "positive_log": "4.2.1-oracle.log",
+      "output_file": "4.2.1-apache-names.tsv",
+      "output_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43"
+    },
+    {
+      "version": "4.3.1",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "distribution_provenance": {
+        "version": "4.3.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+        "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+        "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+        "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+        "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+      },
+      "compile": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/catalog-oracle/4.3.1",
+        "docs/evidence/broker/KL11-59/TopicIdentityOracle.java"
+      ],
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/catalog-oracle/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "TopicIdentityOracle",
+        "/workspace/work/catalog-input.tsv"
+      ],
+      "exit": 0,
+      "summary": "PASS names=29 collision_pairs=2 reserved_identity_assertions=4",
+      "deliberate_failing_variant": {
+        "command": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/catalog-oracle/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "TopicIdentityOracle",
+          "/workspace/work/catalog-input.tsv",
+          "mutate"
+        ],
+        "exit": 1,
+        "error": "incorrectly expects reservedname double-dot valid",
+        "output_file": "4.3.1-mutant.log",
+        "output_sha256": "ec5aae3107865a48d10ffcff640f3f54fd583d2aec4964943b4e8fa7926af1c1"
+      },
+      "generator_class_sha256": "41a4f585806db59570fb55acf5e8737bbe7af8a89dd5d2e917f5c1c2412d30f0",
+      "positive_log": "4.3.1-oracle.log",
+      "output_file": "4.3.1-apache-names.tsv",
+      "output_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43"
+    }
+  ],
+  "local_policy": "Additional __cluster_metadata name reservation and non-reuse of deleted caller-supplied IDs are explicit catalog policies; no random allocator is implemented.",
+  "generator_java_source": "docs/evidence/broker/KL11-59/TopicIdentityOracle.java",
+  "generator_java_sha256": "35509df6580fa0704e53500741d1aa3446f6b72ff9a18cc09ed137e489a8378f",
+  "input_file": "docs/evidence/broker/KL11-59/topic-name-input.tsv",
+  "input_sha256": "43f584874a039a6295332ed249aa521c177f099efe2ac54886a43baa9bf41f1f",
+  "rust_fixture_sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+  "source_commit": "7848d98b23490782d70eefb4496f0021cdccd807",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "companion_slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+}

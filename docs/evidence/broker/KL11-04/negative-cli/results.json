@@ -1,0 +1,108 @@
+{
+  "source_sha": "7914f03456e738b7b92b13100693cc89a20e11b1",
+  "negative_cases": [
+    {
+      "case": "extra-api",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--registry",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/extra-api.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/extra-api.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    },
+    {
+      "case": "out-of-range",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--registry",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/out-of-range.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/out-of-range.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    },
+    {
+      "case": "forged-api",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--registry",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-api.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-api.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    },
+    {
+      "case": "forged-source",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--registry",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-source.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-source.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    },
+    {
+      "case": "forged-qualification",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--registry",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-qualification.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-qualification.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    },
+    {
+      "case": "forged-compiled-response",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "/workspace/work/broker-wire/final-source/scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-compiled-response.input.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-04/negative-cli/forged-compiled-response.report.json"
+      ],
+      "exit": 1,
+      "verdict": "failed"
+    }
+  ],
+  "expected_nonzero_failures": 6
+}

@@ -1,0 +1,135 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz.sha512",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.1.2.tgz.sha512"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.1.2.tgz"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/broker-wire/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "WireGoldens",
+      "/workspace/work/broker-wire/goldens/4.1.2"
+    ],
+    "exit": 0,
+    "actual_cases": 33
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz.sha512",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.2.1.tgz.sha512"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.2.1.tgz"
+    ],
+    "exit": 0
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/broker-wire/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "WireGoldens",
+      "/workspace/work/broker-wire/goldens/4.2.1"
+    ],
+    "exit": 0,
+    "actual_cases": 33
+  },
+  {
+    "argv": [
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz.sha512",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.3.1.tgz.sha512"
+    ],
+    "exit": 0,
+    "affinity_note": "Initial 4.3.1 download was not CPU-pinned; subsequent 4.1.2/4.2.1 downloads and all Java runs were pinned to CPUs0-2,4."
+  },
+  {
+    "argv": [
+      "curl",
+      "-fsSL",
+      "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "-o",
+      "/workspace/work/broker-wire/releases/kafka_2.13-4.3.1.tgz"
+    ],
+    "exit": 0,
+    "affinity_note": "Initial 4.3.1 download was not CPU-pinned; subsequent 4.1.2/4.2.1 downloads and all Java runs were pinned to CPUs0-2,4."
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/broker-wire/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "WireGoldens",
+      "/workspace/work/broker-wire/goldens/4.3.1"
+    ],
+    "exit": 0,
+    "actual_cases": 33
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-cp",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/broker-wire/classes",
+      "/workspace/work/broker-wire/WireGoldens.java"
+    ],
+    "exit": 0
+  }
+]

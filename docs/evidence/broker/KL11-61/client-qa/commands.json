@@ -1,0 +1,163 @@
+{
+  "source_sha": "39bd19a2f824a2c25b847eecfd3b3484aa5ca338",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "cell": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.1234244530005526,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-fmt.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "verifiable-build",
+      "command": [
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.04312102099902404,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-verifiable-build.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "tests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 52.986382779999985,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-tests.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 57.2455423829997,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-clippy.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "rustdoc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.0542574920000334,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-rustdoc.log"
+    },
+    {
+      "toolchain": "stable",
+      "cell": "doctests",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 14.850294768999447,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/stable-doctests.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 2.157184118001169,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/1.85.0-fmt.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "verifiable-build",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 43.550061377998645,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/1.85.0-verifiable-build.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "tests",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 188.0393509509995,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/1.85.0-tests.log"
+    },
+    {
+      "toolchain": "1.85.0",
+      "cell": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101,
+      "duration_seconds": 28.60944820199984,
+      "log": "/workspace/work/package-boundary/qa-complete-checkout/1.85.0-clippy.log"
+    }
+  ]
+}

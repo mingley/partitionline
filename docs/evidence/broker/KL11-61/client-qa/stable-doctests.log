@@ -1,0 +1,17 @@
+   Compiling once_cell v1.21.4
+   Compiling rustls v0.23.45
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling tokio-rustls v0.26.5
+   Compiling partitionline v0.1.0 (/workspace/work/full-goal/client-integration-39bd19a)
+    Finished `test` profile [unoptimized] target(s) in 13.84s
+   Doc-tests partitionline
+
+running 4 tests
+test src/lib.rs - (line 3066) - compile ... ok
+test src/lib.rs - (line 10) - compile ... ok
+test src/lib.rs - (line 1536) - compile ... ok
+test src/config.rs - config::Sasl (line 469) ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+

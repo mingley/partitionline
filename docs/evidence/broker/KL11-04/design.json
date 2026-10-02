@@ -1,0 +1,59 @@
+{
+  "card": "KL11-04",
+  "state": "read-only preparation; await root atomic claim before repository implementation",
+  "source_pins": {
+    "4.1.2": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "4.2.1": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "4.3.1": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+  },
+  "transport_interface": "Handler::handle(Vec<u8>) -> impl Future<Output=Result<Option<Vec<u8>>,Error>> + Send; Some is a framed response, None reserved for later acks0; protocol errors close affected connection via Err.",
+  "planned_public_surface": [
+    "Protocol Limits: validated request-payload/tag-count caps; strings inherently max32767perpinnedJava schema. Limits align with transport bounds; parsing does not spawn tasks.",
+    "Borrowed RequestHeader parser for header versions1classic/2flexible; client_id remains classicnullable int16 length in either. Preserve APIkey/version/correlation; effective null client equivalent empty.",
+    "ApiVersionsHandler: only API18, requested versions0..4; explicit unsupported-version fallback and semantic software validation. No fake generic body for other keys."
+  ],
+  "parsing_policy": {
+    "allocation": "Transport owns already bounded Vec request. Borrow string/tag slices; skip unknown payload without allocation. Response is fixed bounded small Vec. No heap sized from unvalidated peer counts/lengths.",
+    "headers": "Require8fixed bytes+classicnullable string prefix; parse version1/2only. Header2 reads taggedfieldblock after clientID. Reject truncated input and invalid bounds before slicing.",
+    "varints": "At most5bytes, checkedu32 last-byte overflow, checked conversion and slice bounds. Permit only counts within configured cap; lengths within remaining frame; tags strictly increasing/no duplicate.",
+    "strings": "StrictUTF8, defined nullable sentinel-1 only for ClientId; nonnull compact software strings atv3+. Java schema caps stringbyte lengths32767.",
+    "body": "Supportedv0..2 ApiVersions bodyempty; supportedv3..4 software fields+tagblock fully consumed. Unknown ordered tags accepted/skipped. Unsupported API18versions use pinned header version and ignore body bytes perRequestContext.",
+    "software": "Forv3+ both fields match ASCII[a-zA-Z0-9](?:[a-zA-Z0-9\\-.]*[a-zA-Z0-9])?; parsed empty/invalid strings produce42INVALID_REQUEST using requested responsebodyversion.",
+    "advertisement": "OnlyAPI18/min0/max4 in success. Unsupportedversion35 response usesv0 body/header0 and includesAPI18range. Semantically invalid42 has emptyAPIlist perJava getErrorResponse. All response headerscorrelationonly/version0, includingflexiblev3/4."
+  },
+  "explicit_conformance_differences": [
+    "JavaUTF8reader replacesmalformed bytes; strictbroker rejectsinvalidUTF8.",
+    "Java nullable header reader accepts allnegative lengths; strictbroker uses documented-1sentinel only.",
+    "GeneratedJava unknown-tag READERS accept duplicates/descending IDs and countoverflow; writer requires strictorder. Strictbroker validatesmonotonic IDs/count/size/overflow.",
+    "Java supportedemptybody context leaves trailingbytes; strictsupportedframeconsumption policy rejects. UnsupportedApiVersions body intentionally ignored asJava does."
+  ],
+  "test_plan": [
+    "Byteexactresponses for5success versions0..4 on all3 checksum-pinned Apachetargets; null/empty/unicode ClientId, signedcorrelation extremes, ordered unknownheader/bodytags.",
+    "Foursoftwareinvalidsemanticcases return42 (emptyname,emptyversion,underscore, trailingdash); valid singleASCIIcharacter/period/hyphen interior cases.",
+    "UnsupportedAPI18v5 and-1 ignoregarbagebody;responseexactv0/35;additionalmin/maxsigned versions.",
+    "UnknownAPIkey32767 and known-unimplementedMetadata closeonlyaffectedconnection;noinventedgenericbody.",
+    "Everytruncatedprefix/header/body; nullableminus2; invalidUTF8client/software; compactnull; nonnullablelengthoverflow; too-largeframe,tag-countcap,sizeoverflow/truncatedpayload; duplicate/descendingtags/5byteoverflow/6bytevarint; supportedtrailingbytes.",
+    "RealTCPtransportpipeline v0thenv4; semanticerror42thenvalidsameconnection; unsupportedv5thenv0sameconnection; malformedconnectionclosedwhileindependentpeercontinues; joinedshutdown.",
+    "Stable andMSRV1.85 protocolnamed tests plus unchanged transport suite, strictfmt/clippy. Root exportslib.rs and commits exacttested candidate; evidence captures sourceand allpasses/failures/limits."
+  ],
+  "goldens": {
+    "source": "checksum-pinned officialApache kafka-clients releasejars, embeddedcommitIds matchsourcepins",
+    "per_target_cases": 33,
+    "target_runs": 3,
+    "actual_case_executions": 99,
+    "all_target_outputs_identical": true,
+    "generator": "WireGoldens.java",
+    "summary": "golden-prep-summary.json",
+    "hashes": "goldens.sha256"
+  },
+  "proposed_write_set_additions": [
+    "partitionline-broker/tests/fixtures/protocol/",
+    "docs/plan/evidence/KL11-04.json",
+    "docs/evidence/broker/KL11-04/"
+  ],
+  "qualification_limits": [
+    "NoRustimplementation started or passed yet.",
+    "NoApachebroker/serverprocess run; these are independentJava serialization/parser cases.",
+    "Onlyheader/ApiVersions foundation; noProduce,Fetch,Metadata,SASL,TLS,storage,cluster/controllerorproductionqualification."
+  ]
+}

@@ -1,0 +1,1016 @@
+{
+  "source_sha": "7848d98b23490782d70eefb4496f0021cdccd807",
+  "archive_command": "git archive 7848d98b23490782d70eefb4496f0021cdccd807 partitionline-broker clippy.toml tests/conformance/broker docs/evidence/broker/KL11-59/topic-name-cases.tsv | tar -x -C /workspace/work/catalog/source",
+  "files": [
+    {
+      "path": "clippy.toml",
+      "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "docs/evidence/broker/KL11-59/topic-name-cases.tsv",
+      "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/Cargo.lock",
+      "sha256": "bf13b28f05407e53fa623016e9927d952ea2ba141feaa64e0e1011c8a11ca77a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/Cargo.toml",
+      "sha256": "467c8cc0985c6cc46063605a2b2258987f3979fe4364d6949c912a5ddb2d5e52",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/README.md",
+      "sha256": "250dc507a48c29534478a7d25dd3b7fab7d97fb99510d2b12468a522b6c82800",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/catalog.rs",
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/journal.rs",
+      "sha256": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "sha256": "f9ed65747d99afa7ddebba94b95c182aa1e258d8d4371e6947d31674e14ae595",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/protocol.rs",
+      "sha256": "72c879d42e9a981507583df1db44b4296cd709d038a4a3d4e748058e3b4a60be",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/security/mod.rs",
+      "sha256": "bdb6578a705a74e2048624c38fe5d41621190f3d8e331f285d52fa4e50d11cc2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/security/tls.rs",
+      "sha256": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/src/transport.rs",
+      "sha256": "142112d215fb696c36679ffe569191d9d783bfb5f827dab54c32b103fa94a8a5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/catalog.rs",
+      "sha256": "46997dc3ee04ec54a3cff37c16f066a65502dd3f0bafc5ce2502a5984c67919e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/client-invalid-utf8.request.bin",
+      "sha256": "962621cd6f7d095b5332821e9e6b39be192ffd2aa9bf8a902b1793bf44a82245",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/client-length-minus2.request.bin",
+      "sha256": "dc54ad3e41e4df6984e622b27d2c6a3e767e72cf663a3aca2a5666fa24327435",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/goldens.json",
+      "sha256": "ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-descending-tags.request.bin",
+      "sha256": "ce25f7306e502a1f2a0858371dc8978280df433555bc83965a9554dcd3878b00",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-duplicate-tags.request.bin",
+      "sha256": "acd3e032eb2781db85393254209807737a6114c1b8678cc64b434bee7666773a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-tag-size-truncated.request.bin",
+      "sha256": "8a28989c1653c3cf54a72d1ed567027538222d9e84afa982d8f48a2f720b1466",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-tag-varint-overflow.request.bin",
+      "sha256": "45bfab9d62aca04d6cafe55f6004c5e52a9fc411d0340e79d2144523357f15c3",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-tag-varint-sixbytes.request.bin",
+      "sha256": "6ef9d1c197bb317d41f550460599924e6d2b435d881568e99afef9ca3413fc45",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-0.request.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-1.request.bin",
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-10.request.bin",
+      "sha256": "9007473cd33baeb974a771f57e2e518f9bf81fca589641b7278533fdd4ab2097",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-2.request.bin",
+      "sha256": "c493f6f146685f76b44f0c77ca88120cb8bc89f534fe69b6828827b974e68849",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-3.request.bin",
+      "sha256": "9c756c25331a1f5ff13ccfd1a88fcc299e31565eb82ef911e7f9661c13ca81e2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-4.request.bin",
+      "sha256": "c8d4c0ca99265086142009242c8cd69d165d85fec9de69c00eb180378763ac43",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-5.request.bin",
+      "sha256": "02d83000d5bb518a320cabeaab22a33e938008a8c712a8abfc37352d4d13c50f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-6.request.bin",
+      "sha256": "de47d4d648358b91febc2806ca87525807bcc140f07e1eedab9d610b69e3774c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-7.request.bin",
+      "sha256": "ed85c41550feddad189904c0e1ebbc140855a21d868113af51fe02c5afde4df5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-8.request.bin",
+      "sha256": "f73d9b3ef2f73ab597cd43a3bf657949498eea17bf67b6a3a07cd6e596c727fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/header-truncated-9.request.bin",
+      "sha256": "80096fa3b1adde1046c6388aa8e91558e2a876a4bdf8adfc26e5d9a3b2d6e54f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/supported-v0-trailing-body.request.bin",
+      "sha256": "bc407568669589416b291a9278af81371a9966859dad348cedee3267b56c1709",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unimplemented-metadata.request.bin",
+      "sha256": "163c269f642cd815fc88c70cf0a095b6c8a594cd92dbd4416e9d1afb6561cf36",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unknown-api-key.request.bin",
+      "sha256": "8aa5be33be4a07dfa0506b30faf0ba1a692211d644ca30c1afbe79616f57b7d8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unsupported-negative-version.request.bin",
+      "sha256": "c29fd36865f4df40565e1e05fb5ae8ab264d34e0f62cf62094248220d438e72e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unsupported-negative-version.response.bin",
+      "sha256": "5d4a94e16329755c5dbe414be60d0797f83a35e44dea1b20179c35dec4ea4929",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unsupported-v5.request.bin",
+      "sha256": "f7607be0704c499317ac36edafb26d502039521f8392aecd56b627d220eb8ebb",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/unsupported-v5.response.bin",
+      "sha256": "8172c129f7bc1ae47e55ea46beb25cb589561aa8287718bd908f23758ed1fa99",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v0-named.request.bin",
+      "sha256": "2f147704c17d6a04e5523007ad9dbac97cfe5084ca30dbae40227489f7f0c2f8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v0-named.response.bin",
+      "sha256": "acca644f668fd91234ffca22d0563416eb8d0424cb6e56abaee1f36aafcdc589",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v1-null-client.request.bin",
+      "sha256": "df2c094cc406d2a2c721f79702b480f3908febea158fc8ec7abc761fd5adc715",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v1-null-client.response.bin",
+      "sha256": "38899f869bcb4551b4f8b749260e1baebb9dc98dfce0fd4541e5a319d808822f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v2-empty-client.request.bin",
+      "sha256": "e359f11eccce65e01dda33f3c6aad9f79cb316add11e40263093e85658d245c5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v2-empty-client.response.bin",
+      "sha256": "773a9f6ae90a0021ed2497b6a4d97437dbc04faa81ce570aea192809ef27f83a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-body-null-software.request.bin",
+      "sha256": "0a8ae9f317d22268013c5bc39acfb78d095ffbfa74c25c086826593f736bcb0c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-empty-software.request.bin",
+      "sha256": "b3e58f61a8cc28b402db6669b9370830d6065ad36a469502970f86aebcfc165d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-empty-software.response.bin",
+      "sha256": "6522ff1f74885245536a1df1ab03b80de38e57cc71d1542079fda322291950fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-flexible.request.bin",
+      "sha256": "52b00289bf675690efd3247bb34b7a8e048e204be3120c71a9117e36918b5457",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-flexible.response.bin",
+      "sha256": "bb3f5c116ae43b45693882e854d972e029a9aa1168cd439cc6a7758afa3fd1a7",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-underscore-software.request.bin",
+      "sha256": "033bb0ace517eb6bace77a4f5b187f929fd25cc245d0a6151bf407cf239a029b",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v3-underscore-software.response.bin",
+      "sha256": "1f7c5bc9fccae48d5dd444513418a4086d9839dbf304e9ba184a9381d1b52c57",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-empty-software-version.request.bin",
+      "sha256": "0b53cfbbc9b77dc50634860d7fe4c91940b5ac206b4600de50f5a17514f49ff9",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-empty-software-version.response.bin",
+      "sha256": "67c3df4555ba7f8e0e1a49cf889eb334674048d978f0b96a5119e37957574fb1",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-trailing-dash-version.request.bin",
+      "sha256": "fa6bf75e25ec2ac617c40209071e7e184c1f7aad0f4533040e92d07ee48770fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-trailing-dash-version.response.bin",
+      "sha256": "5f06259753f8ee73fbb723b91e77b2934414ed5fdc83666174d042e05eaf8608",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-unknown-tags.request.bin",
+      "sha256": "8b0b7be6594a96afc5afb4a268186f8a8041623f79db5e9f37169955f6d96e9f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.1.2/v4-unknown-tags.response.bin",
+      "sha256": "2fdaa8e88dc2cd4ad667353f4d6260220815f4612993febef67c83013653ea89",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/client-invalid-utf8.request.bin",
+      "sha256": "962621cd6f7d095b5332821e9e6b39be192ffd2aa9bf8a902b1793bf44a82245",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/client-length-minus2.request.bin",
+      "sha256": "dc54ad3e41e4df6984e622b27d2c6a3e767e72cf663a3aca2a5666fa24327435",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/goldens.json",
+      "sha256": "ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-descending-tags.request.bin",
+      "sha256": "ce25f7306e502a1f2a0858371dc8978280df433555bc83965a9554dcd3878b00",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-duplicate-tags.request.bin",
+      "sha256": "acd3e032eb2781db85393254209807737a6114c1b8678cc64b434bee7666773a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-tag-size-truncated.request.bin",
+      "sha256": "8a28989c1653c3cf54a72d1ed567027538222d9e84afa982d8f48a2f720b1466",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-tag-varint-overflow.request.bin",
+      "sha256": "45bfab9d62aca04d6cafe55f6004c5e52a9fc411d0340e79d2144523357f15c3",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-tag-varint-sixbytes.request.bin",
+      "sha256": "6ef9d1c197bb317d41f550460599924e6d2b435d881568e99afef9ca3413fc45",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-0.request.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-1.request.bin",
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-10.request.bin",
+      "sha256": "9007473cd33baeb974a771f57e2e518f9bf81fca589641b7278533fdd4ab2097",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-2.request.bin",
+      "sha256": "c493f6f146685f76b44f0c77ca88120cb8bc89f534fe69b6828827b974e68849",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-3.request.bin",
+      "sha256": "9c756c25331a1f5ff13ccfd1a88fcc299e31565eb82ef911e7f9661c13ca81e2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-4.request.bin",
+      "sha256": "c8d4c0ca99265086142009242c8cd69d165d85fec9de69c00eb180378763ac43",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-5.request.bin",
+      "sha256": "02d83000d5bb518a320cabeaab22a33e938008a8c712a8abfc37352d4d13c50f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-6.request.bin",
+      "sha256": "de47d4d648358b91febc2806ca87525807bcc140f07e1eedab9d610b69e3774c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-7.request.bin",
+      "sha256": "ed85c41550feddad189904c0e1ebbc140855a21d868113af51fe02c5afde4df5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-8.request.bin",
+      "sha256": "f73d9b3ef2f73ab597cd43a3bf657949498eea17bf67b6a3a07cd6e596c727fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/header-truncated-9.request.bin",
+      "sha256": "80096fa3b1adde1046c6388aa8e91558e2a876a4bdf8adfc26e5d9a3b2d6e54f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/supported-v0-trailing-body.request.bin",
+      "sha256": "bc407568669589416b291a9278af81371a9966859dad348cedee3267b56c1709",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unimplemented-metadata.request.bin",
+      "sha256": "163c269f642cd815fc88c70cf0a095b6c8a594cd92dbd4416e9d1afb6561cf36",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unknown-api-key.request.bin",
+      "sha256": "8aa5be33be4a07dfa0506b30faf0ba1a692211d644ca30c1afbe79616f57b7d8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unsupported-negative-version.request.bin",
+      "sha256": "c29fd36865f4df40565e1e05fb5ae8ab264d34e0f62cf62094248220d438e72e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unsupported-negative-version.response.bin",
+      "sha256": "5d4a94e16329755c5dbe414be60d0797f83a35e44dea1b20179c35dec4ea4929",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unsupported-v5.request.bin",
+      "sha256": "f7607be0704c499317ac36edafb26d502039521f8392aecd56b627d220eb8ebb",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/unsupported-v5.response.bin",
+      "sha256": "8172c129f7bc1ae47e55ea46beb25cb589561aa8287718bd908f23758ed1fa99",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v0-named.request.bin",
+      "sha256": "2f147704c17d6a04e5523007ad9dbac97cfe5084ca30dbae40227489f7f0c2f8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v0-named.response.bin",
+      "sha256": "acca644f668fd91234ffca22d0563416eb8d0424cb6e56abaee1f36aafcdc589",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v1-null-client.request.bin",
+      "sha256": "df2c094cc406d2a2c721f79702b480f3908febea158fc8ec7abc761fd5adc715",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v1-null-client.response.bin",
+      "sha256": "38899f869bcb4551b4f8b749260e1baebb9dc98dfce0fd4541e5a319d808822f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v2-empty-client.request.bin",
+      "sha256": "e359f11eccce65e01dda33f3c6aad9f79cb316add11e40263093e85658d245c5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v2-empty-client.response.bin",
+      "sha256": "773a9f6ae90a0021ed2497b6a4d97437dbc04faa81ce570aea192809ef27f83a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-body-null-software.request.bin",
+      "sha256": "0a8ae9f317d22268013c5bc39acfb78d095ffbfa74c25c086826593f736bcb0c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-empty-software.request.bin",
+      "sha256": "b3e58f61a8cc28b402db6669b9370830d6065ad36a469502970f86aebcfc165d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-empty-software.response.bin",
+      "sha256": "6522ff1f74885245536a1df1ab03b80de38e57cc71d1542079fda322291950fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-flexible.request.bin",
+      "sha256": "52b00289bf675690efd3247bb34b7a8e048e204be3120c71a9117e36918b5457",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-flexible.response.bin",
+      "sha256": "bb3f5c116ae43b45693882e854d972e029a9aa1168cd439cc6a7758afa3fd1a7",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-underscore-software.request.bin",
+      "sha256": "033bb0ace517eb6bace77a4f5b187f929fd25cc245d0a6151bf407cf239a029b",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v3-underscore-software.response.bin",
+      "sha256": "1f7c5bc9fccae48d5dd444513418a4086d9839dbf304e9ba184a9381d1b52c57",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-empty-software-version.request.bin",
+      "sha256": "0b53cfbbc9b77dc50634860d7fe4c91940b5ac206b4600de50f5a17514f49ff9",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-empty-software-version.response.bin",
+      "sha256": "67c3df4555ba7f8e0e1a49cf889eb334674048d978f0b96a5119e37957574fb1",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-trailing-dash-version.request.bin",
+      "sha256": "fa6bf75e25ec2ac617c40209071e7e184c1f7aad0f4533040e92d07ee48770fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-trailing-dash-version.response.bin",
+      "sha256": "5f06259753f8ee73fbb723b91e77b2934414ed5fdc83666174d042e05eaf8608",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-unknown-tags.request.bin",
+      "sha256": "8b0b7be6594a96afc5afb4a268186f8a8041623f79db5e9f37169955f6d96e9f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.2.1/v4-unknown-tags.response.bin",
+      "sha256": "2fdaa8e88dc2cd4ad667353f4d6260220815f4612993febef67c83013653ea89",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/client-invalid-utf8.request.bin",
+      "sha256": "962621cd6f7d095b5332821e9e6b39be192ffd2aa9bf8a902b1793bf44a82245",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/client-length-minus2.request.bin",
+      "sha256": "dc54ad3e41e4df6984e622b27d2c6a3e767e72cf663a3aca2a5666fa24327435",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/goldens.json",
+      "sha256": "ca8d4a2e1badf53a829b8286e19775b57f5361b9ba608819321102444ba1a040",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-descending-tags.request.bin",
+      "sha256": "ce25f7306e502a1f2a0858371dc8978280df433555bc83965a9554dcd3878b00",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-duplicate-tags.request.bin",
+      "sha256": "acd3e032eb2781db85393254209807737a6114c1b8678cc64b434bee7666773a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-tag-size-truncated.request.bin",
+      "sha256": "8a28989c1653c3cf54a72d1ed567027538222d9e84afa982d8f48a2f720b1466",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-tag-varint-overflow.request.bin",
+      "sha256": "45bfab9d62aca04d6cafe55f6004c5e52a9fc411d0340e79d2144523357f15c3",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-tag-varint-sixbytes.request.bin",
+      "sha256": "6ef9d1c197bb317d41f550460599924e6d2b435d881568e99afef9ca3413fc45",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-0.request.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-1.request.bin",
+      "sha256": "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-10.request.bin",
+      "sha256": "9007473cd33baeb974a771f57e2e518f9bf81fca589641b7278533fdd4ab2097",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-2.request.bin",
+      "sha256": "c493f6f146685f76b44f0c77ca88120cb8bc89f534fe69b6828827b974e68849",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-3.request.bin",
+      "sha256": "9c756c25331a1f5ff13ccfd1a88fcc299e31565eb82ef911e7f9661c13ca81e2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-4.request.bin",
+      "sha256": "c8d4c0ca99265086142009242c8cd69d165d85fec9de69c00eb180378763ac43",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-5.request.bin",
+      "sha256": "02d83000d5bb518a320cabeaab22a33e938008a8c712a8abfc37352d4d13c50f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-6.request.bin",
+      "sha256": "de47d4d648358b91febc2806ca87525807bcc140f07e1eedab9d610b69e3774c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-7.request.bin",
+      "sha256": "ed85c41550feddad189904c0e1ebbc140855a21d868113af51fe02c5afde4df5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-8.request.bin",
+      "sha256": "f73d9b3ef2f73ab597cd43a3bf657949498eea17bf67b6a3a07cd6e596c727fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/header-truncated-9.request.bin",
+      "sha256": "80096fa3b1adde1046c6388aa8e91558e2a876a4bdf8adfc26e5d9a3b2d6e54f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/supported-v0-trailing-body.request.bin",
+      "sha256": "bc407568669589416b291a9278af81371a9966859dad348cedee3267b56c1709",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unimplemented-metadata.request.bin",
+      "sha256": "163c269f642cd815fc88c70cf0a095b6c8a594cd92dbd4416e9d1afb6561cf36",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unknown-api-key.request.bin",
+      "sha256": "8aa5be33be4a07dfa0506b30faf0ba1a692211d644ca30c1afbe79616f57b7d8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unsupported-negative-version.request.bin",
+      "sha256": "c29fd36865f4df40565e1e05fb5ae8ab264d34e0f62cf62094248220d438e72e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unsupported-negative-version.response.bin",
+      "sha256": "5d4a94e16329755c5dbe414be60d0797f83a35e44dea1b20179c35dec4ea4929",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unsupported-v5.request.bin",
+      "sha256": "f7607be0704c499317ac36edafb26d502039521f8392aecd56b627d220eb8ebb",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/unsupported-v5.response.bin",
+      "sha256": "8172c129f7bc1ae47e55ea46beb25cb589561aa8287718bd908f23758ed1fa99",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v0-named.request.bin",
+      "sha256": "2f147704c17d6a04e5523007ad9dbac97cfe5084ca30dbae40227489f7f0c2f8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v0-named.response.bin",
+      "sha256": "acca644f668fd91234ffca22d0563416eb8d0424cb6e56abaee1f36aafcdc589",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v1-null-client.request.bin",
+      "sha256": "df2c094cc406d2a2c721f79702b480f3908febea158fc8ec7abc761fd5adc715",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v1-null-client.response.bin",
+      "sha256": "38899f869bcb4551b4f8b749260e1baebb9dc98dfce0fd4541e5a319d808822f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v2-empty-client.request.bin",
+      "sha256": "e359f11eccce65e01dda33f3c6aad9f79cb316add11e40263093e85658d245c5",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v2-empty-client.response.bin",
+      "sha256": "773a9f6ae90a0021ed2497b6a4d97437dbc04faa81ce570aea192809ef27f83a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-body-null-software.request.bin",
+      "sha256": "0a8ae9f317d22268013c5bc39acfb78d095ffbfa74c25c086826593f736bcb0c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-empty-software.request.bin",
+      "sha256": "b3e58f61a8cc28b402db6669b9370830d6065ad36a469502970f86aebcfc165d",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-empty-software.response.bin",
+      "sha256": "6522ff1f74885245536a1df1ab03b80de38e57cc71d1542079fda322291950fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-flexible.request.bin",
+      "sha256": "52b00289bf675690efd3247bb34b7a8e048e204be3120c71a9117e36918b5457",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-flexible.response.bin",
+      "sha256": "bb3f5c116ae43b45693882e854d972e029a9aa1168cd439cc6a7758afa3fd1a7",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-underscore-software.request.bin",
+      "sha256": "033bb0ace517eb6bace77a4f5b187f929fd25cc245d0a6151bf407cf239a029b",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v3-underscore-software.response.bin",
+      "sha256": "1f7c5bc9fccae48d5dd444513418a4086d9839dbf304e9ba184a9381d1b52c57",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-empty-software-version.request.bin",
+      "sha256": "0b53cfbbc9b77dc50634860d7fe4c91940b5ac206b4600de50f5a17514f49ff9",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-empty-software-version.response.bin",
+      "sha256": "67c3df4555ba7f8e0e1a49cf889eb334674048d978f0b96a5119e37957574fb1",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-trailing-dash-version.request.bin",
+      "sha256": "fa6bf75e25ec2ac617c40209071e7e184c1f7aad0f4533040e92d07ee48770fe",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-trailing-dash-version.response.bin",
+      "sha256": "5f06259753f8ee73fbb723b91e77b2934414ed5fdc83666174d042e05eaf8608",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-unknown-tags.request.bin",
+      "sha256": "8b0b7be6594a96afc5afb4a268186f8a8041623f79db5e9f37169955f6d96e9f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/protocol/4.3.1/v4-unknown-tags.response.bin",
+      "sha256": "2fdaa8e88dc2cd4ad667353f4d6260220815f4612993febef67c83013653ea89",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/ca1.cert.der",
+      "sha256": "8b1abfdd8e16b55aeab28114fc8fe49c15bd79b5e61e79debb536d2b54970b88",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+      "sha256": "a867f8d9a7cdf397208b278722a4b320d0cd8356b05046c82e3612eff93db529",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/ca2.cert.der",
+      "sha256": "fb8397f3ec5d9fa96064faddbe88316e689e4d794993280eeca0285c66d49625",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/ca2.cert.pem",
+      "sha256": "e429a46e6e52d768d3fe6649cf2aa3573fd6420c9dfc50772cd5341b77ae73fd",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-chain.cert.der",
+      "sha256": "f47aea6b734bea9b078dbbaa306466a241c97ca262c59b496f0fcc7a8733c3cc",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-chain.cert.pem",
+      "sha256": "c61075029b9aff3bd9b33232398506ff2e31468cdbd8cc3520caeffbe1abe214",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-chain.key.der",
+      "sha256": "cbe6780a243ba257df026d317ef609b89283fd6a27d2140056c39d07a95d0de4",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-chain.key.pem",
+      "sha256": "d53a6b4e6c2c5ee35c19562be4a92b4afab255dcd8db6df2b5a4abc03c610929",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-expired.cert.der",
+      "sha256": "847e146e657fc965da34ead5ee74157e41c57639f55e9b28992578cfedcb3a90",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-expired.cert.pem",
+      "sha256": "d91b97093d8cef7a62153d374950010ca4ae1c37b244d183905c2302fa651fef",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-expired.key.der",
+      "sha256": "30a6d8a885ce372b1d790d98ee6a0c2b5026197d9d0fab34f18b4607227e2a1c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-expired.key.pem",
+      "sha256": "fbe93d572131bd745aa4c590e3192a4d253c7ff1f0e98ea7e2a702199c11823b",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-wrong-purpose.cert.der",
+      "sha256": "73a35e3c7ed7120eabe9a20523983c6b1b771aa495695921779b5750cfa6045c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-wrong-purpose.cert.pem",
+      "sha256": "5685a6f57d92cd78017828025eace9d2ed8b23d0bdad0588f358655d81f6dcac",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-wrong-purpose.key.der",
+      "sha256": "253dccf5b02a89c42d34576f174a2d696eaba32541fc9326cee66f156528b405",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client-wrong-purpose.key.pem",
+      "sha256": "f3bb065e0db2bfe0f81c82cedd01826a16fb688697e8870497b29880fc67a0f4",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client1.cert.der",
+      "sha256": "0dd4614daada063b0eb6929dd5ced3022d45aeceec581a7e5ff86cdf0b99ae12",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client1.cert.pem",
+      "sha256": "8065a1b0353c16f4949100694018281e470441e629f5b748b691fc91dd3a0a9e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client1.key.der",
+      "sha256": "ae9d693f3849bdfbfe11d2193f1b9ea97221d3e37c2c74f891a439d3bdd36d5c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client1.key.pem",
+      "sha256": "96ca1e2d904fa748f33fddcb807c6a3a2ff46876d4fa4f0d0ce39d95b0212d8c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client2.cert.der",
+      "sha256": "430a125992043c73a12a84850df9398ade96cfc41bd869da5ca80951f3eb074a",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client2.cert.pem",
+      "sha256": "cfd3f21a57b75c170936ab22ca7642ea36d85f233a32cc53c5f0513721ca9560",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client2.key.der",
+      "sha256": "af4741fc8a734180a5095ab9e6bf09e0faffd017a979b5a5f55a680fcf0f0ecb",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/client2.key.pem",
+      "sha256": "6e6fd5d16431d0bfff4bff11c51ae9c5ab10fbf7c74fa9cd78af8e16f1231ddd",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/intermediate.cert.der",
+      "sha256": "e556e215e229257a527fd731607a0218bf33ffc0ed13bc955fb953a82be150cb",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/intermediate.cert.pem",
+      "sha256": "a4bbd21e6d88900c9d7ae4d863aef730e7873826ae9813ba1177f05558ea9eb2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-expired.cert.der",
+      "sha256": "b3350e78392bd144c124bccc8040378970037143c2b9d9f9c8e6707534a97c47",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-expired.cert.pem",
+      "sha256": "b6bb28cca691bed5f2dfb2b7d02a8bbfb60fd9aa4742d64a38ec11d220376954",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-expired.key.der",
+      "sha256": "02d4879df42554aafc55b6096955a25083005c558cda6fa713310c5a0d264f58",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-expired.key.pem",
+      "sha256": "8a91e90d7182ebefc7968a6e73b00fecacc01c747904c0758e3cf613f548109e",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-wrong-name.cert.der",
+      "sha256": "4a1455c7b5ef562d4e30df848e7d7bd169b154aedcfa9b30ac62e5ba8d79d8b2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-wrong-name.cert.pem",
+      "sha256": "cc18eb2f679a11e2bcb2e1eea8fa956ec1cfbd92afd96abfaa326a9400537c87",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-wrong-name.key.der",
+      "sha256": "f2a7befeb7a98c52b00ed35b92f6d6154f0209bdd8e683f2d9c5ec8ac7c45c06",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server-wrong-name.key.pem",
+      "sha256": "f3e7ea0378cc4a82af9427c0711889b82fe798ba7255d0d273543080baa719b2",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server1.cert.der",
+      "sha256": "d282618fae52580bb50d17af0355a4f1cb74ec32f7cde8b4602cc89755157b49",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server1.cert.pem",
+      "sha256": "b979353a7052c745c26c771e2bfeea2ce3508bc800c6e40b91886fd82e053dd8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server1.key.der",
+      "sha256": "43cde253ee0d9d7196084604ba0f095229e4e2fe67ceb36c1c1228181734860c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server1.key.pem",
+      "sha256": "2218af65e4c4c4e74282ee84f0402546a8365b1f97150b004759c61a6b40fc56",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server2.cert.der",
+      "sha256": "6bb740797c083d68818cae996675a9f73d3a135544b85ea19feeae43e9c100af",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server2.cert.pem",
+      "sha256": "ec4e12f502f7a7172812921d13ffa9b2a04bfe549cda26beedeee9c38c7f831f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server2.key.der",
+      "sha256": "69cfc2b9e3ec5d4984c4f28ec191b0e6252b6f4eb762e8a567dfe09586076e00",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/fixtures/tls/server2.key.pem",
+      "sha256": "9aabf4274d7b08a69a328037e7835a0a8d276d07ede536fd5b9b05bd56ea0355",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/journal.rs",
+      "sha256": "99d4184beaef96a70ed23483ee3131cfa74bb81935a1c0f224586067058771b8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/protocol.rs",
+      "sha256": "29917ccfff722734f640497931e506cf32ae13ea6a4661fca5aead95482c1ade",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/tls.rs",
+      "sha256": "9862a0d1a8785364c0743f894ae7a24a52c2230fc0c82416b8234755087ffe9f",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "partitionline-broker/tests/transport.rs",
+      "sha256": "7f0ce85062c4297be4af2e049be3441332e727b1e744e48ea70b13115f303bab",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/api-matrix.json",
+      "sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/features.json",
+      "sha256": "f4a1625cee97449b26f65d752e0de08af7fb7450cc4d09e2ed8e5251107e5f67",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/implemented-api-versions.json",
+      "sha256": "640f49b84b228d76ac2abc4ddd9cb300d37e5ab1d42d8e3d480920e0988e1b6c",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/upstream/README.md",
+      "sha256": "501543ee207d006ee5e19cd78e54ae2fb88092be5d0b4d9e5d09b562fe021660",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz",
+      "sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz",
+      "sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz",
+      "sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "archive_matches_commit": true
+    },
+    {
+      "path": "tests/conformance/broker/upstream/retain-sources.py",
+      "sha256": "a8061e5daec396401fcb0c90201d0c086d8e59777be081d49c1632a2fc9aea13",
+      "archive_matches_commit": true
+    }
+  ]
+}

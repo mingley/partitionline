@@ -1,0 +1,250 @@
+{
+  "releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "bytes_and_observations_identical": true,
+  "cases": [
+    {
+      "name": "v3-empty-software",
+      "broker_expectation": "reply-invalid-request42",
+      "scope": "Independent Apache generated header/body serialization and request isValid semantics; only API18range0..4 selected in success fixture",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 17,
+        "client_id_normalized": "client",
+        "header_consumed": 17,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 3,
+        "unsupported_request_version": false,
+        "software_valid": false
+      }
+    },
+    {
+      "name": "v4-empty-software-version",
+      "broker_expectation": "reply-invalid-request42",
+      "scope": "Independent Apache generated header/body serialization and request isValid semantics; only API18range0..4 selected in success fixture",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 4,
+        "correlation_id": 18,
+        "client_id_normalized": "client",
+        "header_consumed": 17,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 4,
+        "unsupported_request_version": false,
+        "software_valid": false
+      }
+    },
+    {
+      "name": "v3-underscore-software",
+      "broker_expectation": "reply-invalid-request42",
+      "scope": "Independent Apache generated header/body serialization and request isValid semantics; only API18range0..4 selected in success fixture",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 19,
+        "client_id_normalized": "client",
+        "header_consumed": 17,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 3,
+        "unsupported_request_version": false,
+        "software_valid": false
+      }
+    },
+    {
+      "name": "unsupported-v5",
+      "broker_expectation": "reply-v0-unsupported-version35",
+      "scope": "Actual Apache RequestContext ignores unsupported ApiVersions body and serializes v0 fallback with supported API18 range",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 5,
+        "correlation_id": 102,
+        "client_id_normalized": "",
+        "header_consumed": 11,
+        "body_accepted": true,
+        "body_remaining": 3,
+        "body_version": 0,
+        "unsupported_request_version": true,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "unsupported-negative-version",
+      "broker_expectation": "reply-v0-unsupported-version35",
+      "scope": "Actual Apache RequestContext ignores unsupported ApiVersions body and serializes v0 fallback with supported API18 range",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 1,
+        "api_key": 18,
+        "api_version": -1,
+        "correlation_id": -102,
+        "client_id_normalized": "",
+        "header_consumed": 10,
+        "body_accepted": true,
+        "body_remaining": 3,
+        "body_version": 0,
+        "unsupported_request_version": true,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "client-invalid-utf8",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Java replaces malformed UTF8; strict broker rejects invalid wire strings explicitly",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 1,
+        "api_key": 18,
+        "api_version": 0,
+        "correlation_id": 5,
+        "client_id_normalized": "\ufffd",
+        "header_consumed": 11,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 0,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "client-length-minus2",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Java treats all negative lengths as nullable; strict broker accepts only defined null sentinel -1",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 1,
+        "api_key": 18,
+        "api_version": 0,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 10,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 0,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "header-duplicate-tags",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Java generated unknown-tag reader accepts duplicates; writer requires strictly increasing tags",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 15,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 3,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "header-descending-tags",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Java generated unknown-tag reader accepts descending tags; writer requires strictly increasing tags",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 15,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 3,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "header-tag-varint-overflow",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Bounded checked unsigned varint/count; actual Java outcome retained",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 15,
+        "body_accepted": true,
+        "body_remaining": 0,
+        "body_version": 3,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "unimplemented-metadata",
+      "broker_expectation": "close-unimplemented-policy",
+      "scope": "Java recognizes Metadata header, but broker has no implemented Metadata handler and advertises no such API",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 1,
+        "api_key": 3,
+        "api_version": 0,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 10
+      }
+    },
+    {
+      "name": "supported-v0-trailing-body",
+      "broker_expectation": "close-strict-policy",
+      "scope": "Java request context may ignore trailing bytes for empty schema; strict frame-consumption policy recorded",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 1,
+        "api_key": 18,
+        "api_version": 0,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 10,
+        "body_accepted": true,
+        "body_remaining": 1,
+        "body_version": 0,
+        "unsupported_request_version": false,
+        "software_valid": true
+      }
+    },
+    {
+      "name": "v3-body-null-software",
+      "broker_expectation": "close",
+      "scope": "Nonnullable compact software name cannot be null",
+      "actual_java": {
+        "header_accepted": true,
+        "header_version": 2,
+        "api_key": 18,
+        "api_version": 3,
+        "correlation_id": 5,
+        "client_id_normalized": "",
+        "header_consumed": 11,
+        "body_accepted": false,
+        "exception": "org.apache.kafka.common.errors.InvalidRequestException",
+        "message": "Error getting request for apiKey: API_VERSIONS, apiVersion: 3, connectionId: golden, listenerName: ListenerName(PLAINTEXT), principal: User:ANONYMOUS"
+      }
+    }
+  ]
+}
