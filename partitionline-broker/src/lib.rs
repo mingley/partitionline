@@ -9,6 +9,7 @@
 
 pub mod catalog;
 pub mod journal;
+pub mod partition;
 pub mod protocol;
 pub mod raft;
 pub mod records;
