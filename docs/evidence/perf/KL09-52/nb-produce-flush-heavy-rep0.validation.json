@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "error_count": 0,
+  "errors": [],
+  "summary": {
+    "scenario_id": "nb-produce-flush-heavy",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 1761.6255908897406,
+    "latency_p99_us": 49167.01,
+    "total_acknowledged": 2000,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

@@ -1,0 +1,288 @@
+{
+  "schema_version": 1,
+  "baseline_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+  "source_sha256": "76c728e5b5db7e8dabfa90a390c69e2cb0f3785cbed34f1d0d05d1be292bba80",
+  "binary_sha256": "e95708a33ae7e9a9ef4d32deee3927bc5e66dea53e35d7ca2603fdfcb5d58e12",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "profile": "release dependencies; rustc -O standalone probe",
+  "allocator": "codec::CountingAlloc and codec::census from the baseline checkout",
+  "repetitions": 5,
+  "samples": [
+    {
+      "request_bytes": 32,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 128,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 512,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 4096,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 16384,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 65536,
+      "requests": 10000,
+      "baseline_allocations": 2,
+      "baseline_allocated_bytes": 65576,
+      "reuse_allocations": 1,
+      "reuse_allocated_bytes": 65536,
+      "repetition": 0
+    },
+    {
+      "request_bytes": 32,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 128,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 512,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 4096,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 16384,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 65536,
+      "requests": 10000,
+      "baseline_allocations": 2,
+      "baseline_allocated_bytes": 65576,
+      "reuse_allocations": 1,
+      "reuse_allocated_bytes": 65536,
+      "repetition": 1
+    },
+    {
+      "request_bytes": 32,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 128,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 512,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 4096,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 16384,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 65536,
+      "requests": 10000,
+      "baseline_allocations": 2,
+      "baseline_allocated_bytes": 65576,
+      "reuse_allocations": 1,
+      "reuse_allocated_bytes": 65536,
+      "repetition": 2
+    },
+    {
+      "request_bytes": 32,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 128,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 512,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 4096,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 16384,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 65536,
+      "requests": 10000,
+      "baseline_allocations": 2,
+      "baseline_allocated_bytes": 65576,
+      "reuse_allocations": 1,
+      "reuse_allocated_bytes": 65536,
+      "repetition": 3
+    },
+    {
+      "request_bytes": 32,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 4
+    },
+    {
+      "request_bytes": 128,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 4
+    },
+    {
+      "request_bytes": 512,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 4
+    },
+    {
+      "request_bytes": 4096,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 4
+    },
+    {
+      "request_bytes": 16384,
+      "requests": 10000,
+      "baseline_allocations": 1,
+      "baseline_allocated_bytes": 40,
+      "reuse_allocations": 0,
+      "reuse_allocated_bytes": 0,
+      "repetition": 4
+    },
+    {
+      "request_bytes": 65536,
+      "requests": 10000,
+      "baseline_allocations": 2,
+      "baseline_allocated_bytes": 65576,
+      "reuse_allocations": 1,
+      "reuse_allocated_bytes": 65536,
+      "repetition": 4
+    }
+  ],
+  "limits": [
+    "Standalone allocation mechanism probe; no runtime timing comparison.",
+    "Input and initial 16 KiB request buffers are allocated outside each census.",
+    "Each split payload is dropped before the next request, matching completed writes.",
+    "The reuse arm isolates take/restore; it is not a production candidate or a proposed retention policy."
+  ]
+}

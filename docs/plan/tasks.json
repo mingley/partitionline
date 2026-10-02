@@ -4735,14 +4735,186 @@
     {
       "id": "KL09-52",
       "title": "Reuse RPC request buffer capacity across writes",
-      "priority": "P1", "kind": "implementation", "status": "in_progress", "owner": "codex-goal-20261002",
+      "priority": "P1", "kind": "implementation", "status": "done", "owner": "codex-goal-20261002",
       "depends_on": ["KL09-09", "KL09-11"],
       "files": ["src/net.rs"],
       "deliverable": "BrokerConn reuses request buffer capacity across completed writes instead of handing off its BytesMut after every RPC.",
       "acceptance": ["Outcome branch (performance-leadership.md section 6): measure the parent SHA first. If the targeted cost is not visible (<1% of the named cell) or the KL09 acceptance rule is not met, revert the code and record disposition rejected-no-gain or rejected-regression; the remaining criteria then do not apply. Otherwise every remaining criterion must hold and the disposition is accepted.", "Cancellation still closes partially written frames; wire bytes are identical.", "Allocations per RPC fall."],
       "validation": ["cargo test --locked --test network_deadlines", "cargo test --locked --test full_surface", "A/B cell nb-produce-flush-heavy (allocations per RPC): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)", "A/B cell nb-send-seq (p50/p99 guardrail): >=5 interleaved repetitions on the same host, medians with 95% CI, artifacts validated (cell definitions: performance-leadership.md section 4)"],
       "write_set": ["src/net.rs", "docs/plan/evidence/KL09-52.json", "docs/evidence/perf/KL09-52/", "docs/plan/tasks.json"],
-      "evidence": []
+      "evidence": [
+        {
+                "id": "KL09-52",
+                "status": "done",
+                "disposition": "rejected-no-gain",
+                "outcome_branch": "early rejection at performance-leadership.md section 6 step 2: targeted cost below 1%; remaining implementation/acceptance criteria do not apply",
+                "source_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+                "baseline_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+                "candidate_sha": null,
+                "hypothesis": "BrokerConn::write_request_deadline splits its BytesMut after each RPC, assumed to hand off capacity and trigger fresh per-RPC request allocations. Reusing the whole request buffer was expected to reduce allocations per RPC.",
+                "finding": "The hypothesis does not hold with the locked bytes 1.12.1. BytesMut::split leaves the spare-capacity view in BrokerConn; after the completed payload is dropped, reserve reclaims the original backing allocation. A 10,000-request census records one 40-byte shared-allocation metadata promotion, with zero subsequent per-RPC allocations at all sizes through 16 KiB. A 64 KiB request additionally requires one growth allocation in both arms. Named producer data requests already use Worker.write_buf and BrokerConn::write_all_timeout rather than the targeted request encoder.",
+                "cells": [
+                        "nb-produce-flush-heavy",
+                        "nb-send-seq"
+                ],
+                "host": {
+                        "cpu_model": "AMD EPYC 9V74 80-Core Processor",
+                        "logical_cores_reported": 4,
+                        "os": "Linux 6.18.44",
+                        "arch": "x86_64",
+                        "frequency_policy": "CPU frequency governor/control not exposed in this managed environment; no frequency pinning; harness reported 2596.15 MHz",
+                        "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+                        "profile": "release; default core features; locked runtime harness"
+                },
+                "commands": [
+                        "git clone --shared --no-checkout /workspace/partitionline /workspace/work/rpc-reuse/baseline; git -C /workspace/work/rpc-reuse/baseline checkout --detach f5bd936d5719f166a784049f75eb78ebfe87c589 (exit 0; isolated checkout)",
+                        "CARGO_HOME=/workspace/work/cargo RUSTUP_HOME=/workspace/work/rustup PATH=/workspace/work/cargo/bin:$PATH cargo build --locked --release --manifest-path /workspace/work/rpc-reuse/baseline/benchmarks/runtime/Cargo.toml --target-dir /workspace/work/target-rpc-baseline (exit 0)",
+                        "cd /workspace/work/rpc-reuse/baseline; /workspace/work/target-rpc-baseline/release/runtime --cell nb-produce-flush-heavy --out /workspace/work/rpc-reuse/baseline-initial/nb-produce-flush-heavy --repetitions 1 (exit 0; granted initial measurement window)",
+                        "cd /workspace/work/rpc-reuse/baseline; /workspace/work/target-rpc-baseline/release/runtime --cell nb-send-seq --out /workspace/work/rpc-reuse/baseline-initial/nb-send-seq --repetitions 1 (exit 0; granted initial measurement window)",
+                        "python3 docs/evidence/perf/KL09-52/run-split-census.py --repo-root /workspace/work/rpc-reuse/baseline --target-dir /workspace/work/target-rpc-baseline --output docs/evidence/perf/KL09-52/split-census.json --repetitions 5 (exit 0; 30 samples)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests cargo test --locked --test network_deadlines --test full_surface -- --test-threads=2 (isolated baseline, exit 0; 332 passed, 0 failed/ignored/filtered)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests cargo fmt --check (isolated baseline, exit 0)",
+                        "CARGO_TARGET_DIR=/workspace/work/target-rpc-tests cargo clippy --locked --lib --all-features -- -D warnings (isolated baseline, exit 0)",
+                        "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.result.json --quiet --json (exit 0; valid; 0 errors)",
+                        "python3 scripts/benchmark-report.py docs/evidence/perf/KL09-52/nb-send-seq-rep0.result.json --quiet --json (exit 0; valid; 0 errors)",
+                        "Python SHA-256 check of four broker/latency sidecars against sanitized result provenance (4/4 valid); sha256sum -c docs/evidence/perf/KL09-52/checksums.sha256 (all valid)"
+                ],
+                "results": {
+                        "primary": {
+                                "metric": "request backing allocations over 10,000 completed write/split/drop cycles",
+                                "request_sizes_bytes": [
+                                        32,
+                                        128,
+                                        512,
+                                        4096,
+                                        16384,
+                                        65536
+                                ],
+                                "baseline_allocations_by_size": [
+                                        1,
+                                        1,
+                                        1,
+                                        1,
+                                        1,
+                                        2
+                                ],
+                                "take_restore_probe_allocations_by_size": [
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        0,
+                                        1
+                                ],
+                                "saved_allocations_per_connection": 1,
+                                "saved_bytes_per_connection": 40,
+                                "repetitions": 5,
+                                "samples": 30,
+                                "interpretation": "Constant one-time metadata cost per connection, not per RPC. Source-derived upper bound is <0.18% of either named cell allocation census, below the 1% visibility threshold. No production candidate was created."
+                        },
+                        "named_cell_baselines": [
+                                {
+                                        "cell": "nb-produce-flush-heavy",
+                                        "baseline_allocation_count": 5159,
+                                        "baseline_allocations_per_record": 2.5795,
+                                        "baseline_allocations_per_produce_rpc": 41.272,
+                                        "accepted_records": 2000,
+                                        "produce_requests": 125,
+                                        "metadata_requests": 1,
+                                        "validation_failures": 0,
+                                        "conservative_split_metadata_allocation_upper_bound": 9,
+                                        "upper_bound_share_of_baseline_allocations_pct": 0.1744524132583834,
+                                        "upper_bound_note": "Source-derived cap: at most eight default producer data connections plus one metadata connection, one 40-byte shared-allocation metadata promotion per connection. No faults, timeouts or record failures occurred. This intentionally includes setup outside the census, so it overestimates removable census allocations.",
+                                        "p50_us": 46910.5,
+                                        "p99_us": 49167.01,
+                                        "artifact": "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.result.json"
+                                },
+                                {
+                                        "cell": "nb-send-seq",
+                                        "baseline_allocation_count": 63661,
+                                        "baseline_allocations_per_record": 63.661,
+                                        "baseline_allocations_per_produce_rpc": 63.661,
+                                        "accepted_records": 1000,
+                                        "produce_requests": 1000,
+                                        "metadata_requests": 1,
+                                        "validation_failures": 0,
+                                        "conservative_split_metadata_allocation_upper_bound": 9,
+                                        "upper_bound_share_of_baseline_allocations_pct": 0.014137383955640032,
+                                        "upper_bound_note": "Source-derived cap: at most eight default producer data connections plus one metadata connection, one 40-byte shared-allocation metadata promotion per connection. No faults, timeouts or record failures occurred. This intentionally includes setup outside the census, so it overestimates removable census allocations.",
+                                        "p50_us": 81.0,
+                                        "p99_us": 51611.26,
+                                        "artifact": "docs/evidence/perf/KL09-52/nb-send-seq-rep0.result.json"
+                                }
+                        ],
+                        "allocations": {
+                                "unit": "end-to-end client allocation count divided by broker-observed Produce RPC count",
+                                "baseline_flush_heavy_per_rpc": 41.272,
+                                "baseline_send_seq_per_rpc": 63.661,
+                                "candidate": null
+                        },
+                        "instructions": null,
+                        "guardrails": "Both baseline cells acknowledged every offered record and had zero broker framing/CRC/count/sequence/transaction validation failures. No candidate comparison; latency/RSS/instruction acceptance guardrails not evaluated on this early rejection branch.",
+                        "net_production_lines": 0,
+                        "correctness": {
+                                "source_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+                                "passed": 332,
+                                "failed": 0,
+                                "skipped": 0,
+                                "suites": [
+                                        {
+                                                "suite": "full_surface",
+                                                "passed": 324,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "filtered_out": 0
+                                        },
+                                        {
+                                                "suite": "network_deadlines",
+                                                "passed": 8,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "filtered_out": 0
+                                        }
+                                ],
+                                "format": "cargo fmt --check: clean",
+                                "lint": "cargo clippy --locked --lib --all-features -- -D warnings: clean",
+                                "production_diff": "src/net.rs unchanged"
+                        }
+                },
+                "acceptance_met": [
+                        "Early outcome branch: baseline measurement and exact deterministic mechanism census establish below-1% targeted allocation cost. Disposition rejected-no-gain; production implementation unchanged.",
+                        "Two baseline named-cell artifacts validated; 30 deterministic allocation probe samples agree; companion checksums verified.",
+                        "Unchanged baseline correctness suites: 332 passed, zero failed and zero new skips."
+                ],
+                "artifacts": [
+                        "docs/evidence/perf/KL09-52/correctness.json",
+                        "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.broker.json",
+                        "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.result.json",
+                        "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.validation.json",
+                        "docs/evidence/perf/KL09-52/nb-send-seq-rep0.broker.json",
+                        "docs/evidence/perf/KL09-52/nb-send-seq-rep0.latency-us.txt",
+                        "docs/evidence/perf/KL09-52/nb-send-seq-rep0.result.json",
+                        "docs/evidence/perf/KL09-52/nb-send-seq-rep0.validation.json",
+                        "docs/evidence/perf/KL09-52/run-split-census.py",
+                        "docs/evidence/perf/KL09-52/sanitization.json",
+                        "docs/evidence/perf/KL09-52/split-census.json",
+                        "docs/evidence/perf/KL09-52/split-census.rs",
+                        "docs/evidence/perf/KL09-52/checksums.sha256"
+                ],
+                "limits": [
+                        "Local unsigned null-broker evidence; never a Kafka throughput comparison or public performance claim; Suite HOLD remains active.",
+                        "No production candidate, no candidate SHA, no >=5 paired named-cell A/B comparison, and no bootstrap CI: the section 6 step-2 early rejection branch applies. The five standalone allocation probe repetitions are not five runtime A/B pairs.",
+                        "The removable request-allocation bound is source-derived from at most nine connections and a measured one-time split promotion; no allocation-stack profiler or transport-only runtime allocation attribution was added.",
+                        "No frequency pinning; a shared managed host was used. Baseline latency values are retained as observations, not optimization effects.",
+                        "Runtime harness RSS peak/baseline sampler values were zero on this Linux host; process-wide ru_maxrss was retained in artifacts but no RSS guardrail conclusion is drawn.",
+                        "Runtime harness reports an existing unused CStr import warning on Linux. The core crate clippy gate passes; the harness warning lies outside this card write set.",
+                        "No encoder, wire, cancellation, API, buffer-retention policy or resource-contract changes were made; byte-equivalence and Java oracle checks are therefore inapplicable to this rejection.",
+                        "The preliminary allocation-only reproduction runs under concurrent work were discarded from timing evidence; only the subsequent granted-window baseline cell artifacts are committed."
+                ],
+                "next_dependency_effect": "Coordinator should mark any card listing KL09-52 in requires_accepted blocked with this rejected-no-gain disposition; no new request-buffer retention policy is warranted by these named cells."
+        }
+      ]
     },
     {
       "id": "KL09-53",

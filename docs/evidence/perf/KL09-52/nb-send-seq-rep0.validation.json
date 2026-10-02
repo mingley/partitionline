@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "error_count": 0,
+  "errors": [],
+  "summary": {
+    "scenario_id": "nb-send-seq",
+    "peer": "partitionline",
+    "suite_hold": "active",
+    "throughput_rps": 123.53562158938408,
+    "latency_p99_us": 51611.26,
+    "total_acknowledged": 1000,
+    "integrity_verified": true,
+    "has_retained_integrity_failure": false
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "artifact": "docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.result.json",
+      "raw_sha256": "1b811cb6ee9f30b4a6eec30026589923e182c416798762d37ad60df4cbc60dbc",
+      "sanitized_sha256": "0b5512d6d3465590ccaec79a9c9baa603b9cb1db5ba71b4628f5c05f7b8a5e12",
+      "sanitization": [
+        "provenance.host.hostname replaced with redacted",
+        "binary path replaced with logical binary label",
+        "companion artifact paths changed to repository-relative; contents/checksums unchanged"
+      ],
+      "validator_exit": 0,
+      "companion_checksums_verified": 2
+    },
+    {
+      "artifact": "docs/evidence/perf/KL09-52/nb-send-seq-rep0.result.json",
+      "raw_sha256": "6de94b82686dee7e2bf627de9455da478e8b22993aa86d4f4414e6a98e1077d4",
+      "sanitized_sha256": "a0d3a813646cbe4c684cbbdbdea8ce8921afdfdd897f96a8f8eeaa3bbaffd07d",
+      "sanitization": [
+        "provenance.host.hostname replaced with redacted",
+        "binary path replaced with logical binary label",
+        "companion artifact paths changed to repository-relative; contents/checksums unchanged"
+      ],
+      "validator_exit": 0,
+      "companion_checksums_verified": 2
+    }
+  ],
+  "limits": [
+    "Raw artifacts remain in scratch and are not committed.",
+    "Measurements, binary checksum, baseline commit/tree and settings were preserved."
+  ]
+}

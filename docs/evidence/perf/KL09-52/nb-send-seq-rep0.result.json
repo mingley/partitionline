@@ -1,0 +1,331 @@
+{
+  "contract_version": "1.1.0",
+  "execution": {
+    "cell_id": "nb-send-seq",
+    "drive_mode": "sequential",
+    "flush_us_total": 0,
+    "latency_note": "sequential: per-record send-call latency (send to metadata). try_send modes (pipelined/flush-heavy): offer-to-flush-complete bound per record (enqueue stamp to delivering flush end); flush time also in flush_us_total",
+    "offsets_observed": true,
+    "queue_full_retries": 0,
+    "records_consumed": 0,
+    "records_offered": 1000,
+    "repetition_index": 0,
+    "result_path": "/workspace/work/rpc-reuse/baseline-initial/nb-send-seq/nb-send-seq-rep0.result.json",
+    "timed_out": false,
+    "validation_failures": 0
+  },
+  "integrity": {
+    "high_watermark_audit": {
+      "matches_acknowledged": true,
+      "partitions": [
+        {
+          "end_offset": 167,
+          "partition": 0,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "partition": 1,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "partition": 2,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 167,
+          "partition": 3,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 166,
+          "partition": 4,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        },
+        {
+          "end_offset": 166,
+          "partition": 5,
+          "start_offset": 0,
+          "topic": "nb-seq"
+        }
+      ],
+      "total_offset_delta": 1000
+    },
+    "integrity_failure": false,
+    "record_ids": {
+      "checksum_algorithm": "broker batch-CRC validation (KL09-06) + client offset accounting",
+      "duplicate_ids_count": 0,
+      "end_id": 1000,
+      "expected_count": 1000,
+      "missing_ids_count": 0,
+      "payload_checksum_matches": true,
+      "start_id": 1,
+      "verified_count": 1000
+    },
+    "verified": true
+  },
+  "measurements": {
+    "broker_resources": {
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 0.0,
+      "disk_write_bytes": 759,
+      "disk_write_unit": "bytes",
+      "note": "null broker is a validating loopback; user/system CPU and peak RSS via wait4 child rusage; disk writes are the broker artifacts only",
+      "peak_rss_bytes": 2547712,
+      "rss_unit": "bytes",
+      "system_cpu_seconds": 0.055177,
+      "user_cpu_seconds": 0.018749
+    },
+    "client_resources": {
+      "allocations": {
+        "allocation_count": 63661,
+        "allocations_per_record": 63.661,
+        "total_allocated_bytes": 27201004,
+        "unit": "bytes"
+      },
+      "cpu_ns_per_record": 111097.0,
+      "cpu_seconds_unit": "seconds",
+      "cpu_unit": "percent",
+      "cpu_utilization_pct": 1.3724436951715804,
+      "rss": {
+        "average_rss_bytes": 0,
+        "baseline_rss_bytes": 0,
+        "note": "peak/average from a 10ms sampler over the measured phase only; baseline read at phase start (fixture + runtime); process_peak is ru_maxrss, monotonic per process",
+        "peak_rss_bytes": 0,
+        "process_peak_rss_bytes": 8650752,
+        "unit": "bytes"
+      },
+      "system_cpu_seconds": 0.05355,
+      "threads_count": 1,
+      "user_cpu_seconds": 0.057547
+    },
+    "errors": [],
+    "latency": {
+      "confidence_interval_95": {
+        "lower": 7018.633681043377,
+        "unit": "microseconds",
+        "upper": 9168.406318956624
+      },
+      "max": 98632,
+      "mean": 8093.52,
+      "min": 25,
+      "p50": 81.0,
+      "p90": 43765.5,
+      "p95": 47578.4,
+      "p99": 51611.26,
+      "p99_9": 55808.86599999898,
+      "raw_histogram": {
+        "bucket_unit": "microseconds",
+        "buckets": [
+          {
+            "count": 0,
+            "upper_bound_us": 1
+          },
+          {
+            "count": 126,
+            "upper_bound_us": 32
+          },
+          {
+            "count": 267,
+            "upper_bound_us": 64
+          },
+          {
+            "count": 301,
+            "upper_bound_us": 128
+          },
+          {
+            "count": 69,
+            "upper_bound_us": 256
+          },
+          {
+            "count": 9,
+            "upper_bound_us": 512
+          },
+          {
+            "count": 7,
+            "upper_bound_us": 1024
+          },
+          {
+            "count": 9,
+            "upper_bound_us": 2048
+          },
+          {
+            "count": 26,
+            "upper_bound_us": 4096
+          },
+          {
+            "count": 15,
+            "upper_bound_us": 8192
+          },
+          {
+            "count": 170,
+            "upper_bound_us": 65536
+          },
+          {
+            "count": 1,
+            "upper_bound_us": 131072
+          }
+        ]
+      },
+      "sample_count": 1000,
+      "stddev": 17342.290783965076,
+      "unit": "microseconds"
+    },
+    "throughput": {
+      "megabytes_per_second": 0.013666278938644937,
+      "megabytes_per_second_unit": "MB/s",
+      "records_per_second": 123.53562158938408,
+      "records_per_second_unit": "records/s",
+      "total_bytes_transferred": 116000,
+      "total_bytes_unit": "bytes"
+    }
+  },
+  "outcomes": {
+    "accepted": 1000,
+    "acknowledged": 1000,
+    "consumed": 0,
+    "offered": 1000,
+    "rejected": 0,
+    "timed_out": 0,
+    "unknown": 0
+  },
+  "provenance": {
+    "artifacts": [
+      {
+        "path": "docs/evidence/perf/KL09-52/nb-send-seq-rep0.broker.json",
+        "sha256": "fdc814434688b77a559043a00f39fad6781a1c3c19c7475c9943df15e56240c1",
+        "size_bytes": 759,
+        "type": "broker-counts"
+      },
+      {
+        "path": "docs/evidence/perf/KL09-52/nb-send-seq-rep0.latency-us.txt",
+        "sha256": "7d457a5465637bbd86191a57d8af267bedc1573b8fb41b2c2416a5077d4d6259",
+        "size_bytes": 3790,
+        "type": "raw-latency-us"
+      }
+    ],
+    "binary": {
+      "name": "runtime",
+      "path": "runtime (not committed; pinned by SHA-256)",
+      "sha256": "45b2fb00264ec14d1bd266a5b0e1a28cd0d1275212ac90bad2fef4253e013427",
+      "size_bytes": 7082864
+    },
+    "broker": {
+      "cluster_id": "nb-serve-single",
+      "endpoints": [
+        "127.0.0.1:40913"
+      ],
+      "image": "nullbroker (KL09-06, workspace-excluded harness broker)",
+      "mode": "null-broker loopback",
+      "node_count": 1,
+      "version": "0.1.0"
+    },
+    "config": {
+      "effective_settings": {
+        "acks": 1,
+        "batch_records": null,
+        "batch_size_bytes": 1000000,
+        "compression": "none",
+        "drive_mode": "sequential",
+        "entropy": "random",
+        "fault_rate_per_million": 0,
+        "fault_seed": 1592590337,
+        "flush_every": 0,
+        "headers_each": 0,
+        "idempotence": false,
+        "idle_seconds": 0,
+        "key_bytes": 16,
+        "linger_ms": 0,
+        "linger_override_ms": 0,
+        "max_in_flight": 16,
+        "seed": 1592590343,
+        "timeout_secs": 60,
+        "value_bytes": 100
+      },
+      "sha256": "82d804fd084cd8e676bbb5de29e287ba09b18af531d8c4fa928f1ed66fbe4544"
+    },
+    "host": {
+      "arch": "x86_64",
+      "cpu": {
+        "frequency_mhz": 2596.15,
+        "logical_cores": 4,
+        "model": "AMD EPYC 9V74 80-Core Processor",
+        "physical_cores": 5
+      },
+      "hostname": "redacted",
+      "kernel_version": "6.18.44 #1 SMP Sat Sep 26 20:02:31 UTC 2026",
+      "memory": {
+        "total_bytes": 18882699264,
+        "unit": "bytes"
+      },
+      "os": "Linux 6.18.44",
+      "os_family": "linux"
+    },
+    "seeds": {
+      "key_seed": 11400714817752235026,
+      "partition_seed": 14029467333106158848,
+      "payload_seed": 1592590343,
+      "repetition_seed": 1592590343
+    },
+    "source": {
+      "dirty_tree": false,
+      "git_branch": "HEAD",
+      "git_commit": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+      "tree_hash": "178e2dacbae95af28e79752ff16b3dfa28415301"
+    },
+    "timestamps": {
+      "duration_seconds": 8.094831168,
+      "duration_unit": "seconds",
+      "end_time_utc": "2026-10-02T15:50:14.386748172Z",
+      "start_time_utc": "2026-10-02T15:50:06.291916904Z"
+    },
+    "toolchains": {
+      "build_tool": "cargo 1.99.0 (5f94df478 2026-08-27)",
+      "compiler": "rustc 1.99.0 (b940084d7 2026-09-28)",
+      "runtime": "rustc 1.99.0 (b940084d7 2026-09-28)"
+    },
+    "topology": {
+      "broker_nodes": 1,
+      "client_nodes": 1,
+      "environment": "loopback",
+      "network_interface": "lo",
+      "rtt_ms": 0.01345095,
+      "rtt_unit": "milliseconds"
+    }
+  },
+  "repetition_history": {
+    "attempts": [
+      {
+        "integrity_failure": false,
+        "repetition_index": 0,
+        "status": "passed_measurement"
+      }
+    ],
+    "failed_attempts": 0,
+    "total_attempts": 1
+  },
+  "scenario": {
+    "cell_disposition": "executed",
+    "cell_id": "nb-send-seq",
+    "equal_semantics": {
+      "acks": 1,
+      "idempotence": false,
+      "max_in_flight": 16
+    },
+    "peer": "partitionline",
+    "profile": "bulk",
+    "scenario_id": "nb-send-seq",
+    "tier": "exploratory"
+  },
+  "schema_version": "1.0.0",
+  "suite_hold": {
+    "status": "active"
+  }
+}

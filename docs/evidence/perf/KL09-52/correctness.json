@@ -1,0 +1,25 @@
+{
+  "source_sha": "f5bd936d5719f166a784049f75eb78ebfe87c589",
+  "passed": 332,
+  "failed": 0,
+  "skipped": 0,
+  "suites": [
+    {
+      "suite": "full_surface",
+      "passed": 324,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 0
+    },
+    {
+      "suite": "network_deadlines",
+      "passed": 8,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 0
+    }
+  ],
+  "format": "cargo fmt --check: clean",
+  "lint": "cargo clippy --locked --lib --all-features -- -D warnings: clean",
+  "production_diff": "src/net.rs unchanged"
+}

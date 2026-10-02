@@ -1,0 +1,13 @@
+94f5f55fa4cce139c50436a3e808a2e6b45a220def5cbc73c4eaaf240f517a51  docs/evidence/perf/KL09-52/correctness.json
+c22bdea355051313022c0da8df1c3f5b33cf047ed313666b744d648c920c9a23  docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.broker.json
+7b9c7f8ba4a665b44b5914b1315ec5d11bd959bc51907212cd2eff0d015161d3  docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.latency-us.txt
+0b5512d6d3465590ccaec79a9c9baa603b9cb1db5ba71b4628f5c05f7b8a5e12  docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.result.json
+99e4c15c3aee381ea4dbed0fe063b331c0a4d3d70e31e55f45cd22fb87a3c4bf  docs/evidence/perf/KL09-52/nb-produce-flush-heavy-rep0.validation.json
+fdc814434688b77a559043a00f39fad6781a1c3c19c7475c9943df15e56240c1  docs/evidence/perf/KL09-52/nb-send-seq-rep0.broker.json
+7d457a5465637bbd86191a57d8af267bedc1573b8fb41b2c2416a5077d4d6259  docs/evidence/perf/KL09-52/nb-send-seq-rep0.latency-us.txt
+a0d3a813646cbe4c684cbbdbdea8ce8921afdfdd897f96a8f8eeaa3bbaffd07d  docs/evidence/perf/KL09-52/nb-send-seq-rep0.result.json
+5817eee5dc3d48b4cccff8dac6271b7542e24de68c43387169df62c76e7f7b37  docs/evidence/perf/KL09-52/nb-send-seq-rep0.validation.json
+00e5e379b7b46bd01987f56de2cf85894d42c787c33cd1015717d654fc1a426a  docs/evidence/perf/KL09-52/run-split-census.py
+f9e9e47e6ab89f694953ab745fca18e64f2bd2aa21dc0ac3ea998e7bfa2651df  docs/evidence/perf/KL09-52/sanitization.json
+0d8a8b86f56ade7d79be049e973fdf98c01d31621cae0b688cc480bf306a5c7f  docs/evidence/perf/KL09-52/split-census.json
+76c728e5b5db7e8dabfa90a390c69e2cb0f3785cbed34f1d0d05d1be292bba80  docs/evidence/perf/KL09-52/split-census.rs
