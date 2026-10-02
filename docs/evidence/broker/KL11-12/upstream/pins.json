@@ -1,0 +1,68 @@
+[
+  {
+    "version": "4.1.2",
+    "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "original_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/resources/common/message/BeginQuorumEpochRequest.json": "e5b5fcc284b5002bed458480a4a80580aef2e7739fc95416e96c19dd118053ea",
+      "clients/src/main/resources/common/message/VoteRequest.json": "aac8735bbc8f06d915dcb5659a18f75ce966f70852644b320e8ff1dd97fee9be",
+      "raft/src/main/java/org/apache/kafka/raft/CandidateState.java": "a264e3f757d81e09ea6c6784bbac40cd71575a54279c78a483d582be390be118",
+      "raft/src/main/java/org/apache/kafka/raft/ElectionState.java": "158b00c4b1430c189fd2daafc8b1b32ec2335871c6ff3ef9c83d0c49016efd53",
+      "raft/src/main/java/org/apache/kafka/raft/FileQuorumStateStore.java": "93961c8c554ac8b5b2648719c3fa461cb6ab57afb4f908749cb62ecf0f992d2b",
+      "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "ce29d89883f722aaf7dbd9377acbc075dc4dd42ee9b295359e8e86ec21a9b755",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumState.java": "6ded8d831dce1c9f21dc1ea71bc8f9f6a60b02d5abd9548c13cbb45245f71477",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumStateStore.java": "c8f4dd276a005491df2dc4940880b6db33498a4a5c7fa5239ecba98c46ab1292",
+      "raft/src/main/java/org/apache/kafka/raft/internals/EpochElection.java": "bb0276664eab0b29ed0f19120e1f3e7bf17bbd3ae27c5443ff8e49e7b42af256",
+      "raft/src/main/resources/common/message/QuorumStateData.json": "0af3c62aca7c3f96dce764a7a8f45b77f450d123be7a738b336ed0ba80887258",
+      "server-common/src/main/java/org/apache/kafka/server/common/OffsetAndEpoch.java": "73936f5589936dfa96056a77e6e536e3c600e81886448bfeb29b93d8638dd723"
+    },
+    "scope": "Pinned election/persistence references and wire distinctions, not Java behavior execution or KRaft compatibility"
+  },
+  {
+    "version": "4.2.1",
+    "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "original_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/resources/common/message/BeginQuorumEpochRequest.json": "e5b5fcc284b5002bed458480a4a80580aef2e7739fc95416e96c19dd118053ea",
+      "clients/src/main/resources/common/message/VoteRequest.json": "aac8735bbc8f06d915dcb5659a18f75ce966f70852644b320e8ff1dd97fee9be",
+      "raft/src/main/java/org/apache/kafka/raft/CandidateState.java": "a264e3f757d81e09ea6c6784bbac40cd71575a54279c78a483d582be390be118",
+      "raft/src/main/java/org/apache/kafka/raft/ElectionState.java": "158b00c4b1430c189fd2daafc8b1b32ec2335871c6ff3ef9c83d0c49016efd53",
+      "raft/src/main/java/org/apache/kafka/raft/FileQuorumStateStore.java": "93961c8c554ac8b5b2648719c3fa461cb6ab57afb4f908749cb62ecf0f992d2b",
+      "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "d982c3101fa8a65923896bfe516c361d512d1f13f1d3c0d1bed400f8ae57d9ae",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumState.java": "d3a624ff94c71b80424eb975b8d604aa18f3c682f2acb68976303dcb680ff768",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumStateStore.java": "c8f4dd276a005491df2dc4940880b6db33498a4a5c7fa5239ecba98c46ab1292",
+      "raft/src/main/java/org/apache/kafka/raft/internals/EpochElection.java": "da232b74ac6bccf1473b9bba9f415e04e44bf7bb537330e5f095088e78f6faab",
+      "raft/src/main/resources/common/message/QuorumStateData.json": "0af3c62aca7c3f96dce764a7a8f45b77f450d123be7a738b336ed0ba80887258",
+      "server-common/src/main/java/org/apache/kafka/server/common/OffsetAndEpoch.java": "73936f5589936dfa96056a77e6e536e3c600e81886448bfeb29b93d8638dd723"
+    },
+    "scope": "Pinned election/persistence references and wire distinctions, not Java behavior execution or KRaft compatibility"
+  },
+  {
+    "version": "4.3.1",
+    "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "original_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+    "original_archive_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "retained_files_sha256": {
+      "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+      "clients/src/main/resources/common/message/BeginQuorumEpochRequest.json": "e5b5fcc284b5002bed458480a4a80580aef2e7739fc95416e96c19dd118053ea",
+      "clients/src/main/resources/common/message/VoteRequest.json": "aac8735bbc8f06d915dcb5659a18f75ce966f70852644b320e8ff1dd97fee9be",
+      "raft/src/main/java/org/apache/kafka/raft/CandidateState.java": "a264e3f757d81e09ea6c6784bbac40cd71575a54279c78a483d582be390be118",
+      "raft/src/main/java/org/apache/kafka/raft/ElectionState.java": "158b00c4b1430c189fd2daafc8b1b32ec2335871c6ff3ef9c83d0c49016efd53",
+      "raft/src/main/java/org/apache/kafka/raft/FileQuorumStateStore.java": "93961c8c554ac8b5b2648719c3fa461cb6ab57afb4f908749cb62ecf0f992d2b",
+      "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "16a0abb19225a1b7c75790954010cf925a0d754e4d3955f5663d1c5348c932e8",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumState.java": "d3a624ff94c71b80424eb975b8d604aa18f3c682f2acb68976303dcb680ff768",
+      "raft/src/main/java/org/apache/kafka/raft/QuorumStateStore.java": "c8f4dd276a005491df2dc4940880b6db33498a4a5c7fa5239ecba98c46ab1292",
+      "raft/src/main/java/org/apache/kafka/raft/internals/EpochElection.java": "da232b74ac6bccf1473b9bba9f415e04e44bf7bb537330e5f095088e78f6faab",
+      "raft/src/main/resources/common/message/QuorumStateData.json": "0af3c62aca7c3f96dce764a7a8f45b77f450d123be7a738b336ed0ba80887258",
+      "server-common/src/main/java/org/apache/kafka/server/common/OffsetAndEpoch.java": "73936f5589936dfa96056a77e6e536e3c600e81886448bfeb29b93d8638dd723"
+    },
+    "scope": "Pinned election/persistence references and wire distinctions, not Java behavior execution or KRaft compatibility"
+  }
+]

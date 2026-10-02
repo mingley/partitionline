@@ -1,0 +1,46 @@
+{
+  "selection_status": "blocked_no_comparable_frozen_cell",
+  "eligible_cell_ids": [],
+  "driver_status": "not_implemented",
+  "comparison_standing": "excluded",
+  "performance_claim": null,
+  "candidates": [
+    {
+      "crate": "rskafka", "version": "0.6.0", "repository": "https://github.com/influxdata/rskafka",
+      "git_commit": "b48003428f0bf6b989eb0516253b4febce0baa3e",
+      "crate_archive_sha256": "849b87417a191e37e16b8893eba8928bbd10e1989e6b57c4f8531549eaa29bdc",
+      "license": "MIT OR Apache-2.0", "declared_msrv": "1.85", "edition": "2024",
+      "audit_configuration": "default-features=false; native lz4/zstd default codec dependencies excluded from a strict no-native candidate configuration",
+      "limitations": {
+        "acks": "fixed -1; frozen acks=1 cells cannot match",
+        "idempotence": "producer_id/epoch/base_sequence=-1 and transactional_id=None",
+        "transactions": "no public transactional producer lifecycle; no demonstrated aborted-transaction filtering",
+        "isolation": "Fetch/ListOffsets fixed ReadCommitted; no ReadUncommitted selector. Aborted transaction metadata is decoded but not applied when extracting records; no verified transactional-isolation claim",
+        "groups": "no KIP-848 consumer group lifecycle",
+        "share": "no KIP-932 API keys or public lifecycle",
+        "tcp_nodelay": "transport does not expose/call set_nodelay; frozen true knob cannot match"
+      },
+      "capabilities_not_to_erase": ["BatchProducer with_linger and aggregation are implemented", "Optional TLS accepts rustls ClientConfig", "SASL Plain, ScramSha256, ScramSha512, Oauthbearer variants exist"],
+      "source_hashes": {
+        "Cargo.toml.orig": "11e0a8741cbcc60db9ded1b3ef40bfd4ec0889b7343bdafccc02714c27bb533f",
+        "src/client/partition.rs": "c9b4cd384ced66829afba46453eebfb810597a71a3d5be8360a755bf76e444ad",
+        "src/client/producer.rs": "541832d1945d10278fb45894a6bc1a544353ea553e27622b963a6ef169b06533",
+        "src/connection/transport.rs": "aec950833bf4465707422f3e63a141cc1ac898044df6e6e8e7f1d5858f458e81",
+        "src/connection/transport/sasl.rs": "1b577f1ea11a98d4f3e51d4ea513ebf3e8a41cca2b3fda0ed46fa459e00578a8",
+        "src/protocol/messages/fetch.rs": "2f13ce9b2c211df689894f437d44c9bd6713ba59c153d13c492ae08a363db771"
+      }
+    },
+    {
+      "crate": "kafka", "version": "0.10.0", "repository": "https://github.com/kafka-rust/kafka-rust",
+      "git_commit": "779981238d05364abf180dc4d06e60e107e8a0d9",
+      "crate_archive_sha256": "2054ba4edcb4dcda4209e138c7e88caf26d4a325b3db76fbdb6ca5eecc23e426",
+      "license": "MIT OR Apache-2.0", "declared_msrv": null,
+      "capabilities": ["acks 0/1/-1", "synchronous single-record sends", "one pooled connection per broker"],
+      "limitations": ["No TCP_NODELAY setter/call", "Fetch v0 has per-partition limit, not frozen total 16MiB limit; six partitions could admit ~96MiB", "Message magic v0 lacks idempotent/transactional RecordBatch or headers", "No SASL, KIP-848, or KIP-932; optional TLS uses OpenSSL"],
+      "source_hashes": {
+        "src/client/network.rs": "8ef98dfb36679cd3a2b6ef3d14e0416dae11c440aaa5c985a730cb4c39a9b654",
+        "src/protocol/fetch.rs": "f261b561e8e78879dc4ccebea8a7cee3bd944d74443de7f90dc5c96ea0aece70"
+      }
+    }
+  ]
+}

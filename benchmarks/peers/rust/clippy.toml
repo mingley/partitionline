@@ -1,0 +1,3 @@
+# Independent synchronous benchmark workspace: parent async-runtime restrictions
+# do not apply. Strict Clippy and documented-unsafe-block checks still apply.
+disallowed-methods = []

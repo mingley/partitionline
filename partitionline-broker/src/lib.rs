@@ -10,6 +10,7 @@
 pub mod catalog;
 pub mod journal;
 pub mod protocol;
+pub mod raft;
 pub mod records;
 pub mod transport;
 

@@ -1,0 +1,27 @@
+{
+  "wrapper": {
+    "crate": "rdkafka", "version": "0.39.0", "license": "MIT", "msrv": "1.74",
+    "repository": "https://github.com/fede1024/rust-rdkafka",
+    "git_commit": "598ac4ba1f714852bdf4e5685fe10cf5a66e947c",
+    "crate_archive_sha256": "d7956f9ac12b5712e50372d9749a3102f4810a8d42481c5eae3748d36d585bcf"
+  },
+  "bindings": {
+    "crate": "rdkafka-sys", "version": "4.10.0+2.12.1", "header_version": "2.12.1",
+    "license": "MIT", "msrv": "1.74", "link_mode": "dynamic-linking",
+    "git_commit": "47a17d8de72b8bfa89589a84a4a0c600c54df1e0",
+    "crate_archive_sha256": "e234cf318915c1059d4921ef7f75616b5219b10b46e9f3a511a15eb4b56a3f77"
+  },
+  "native": {
+    "repository": "https://github.com/confluentinc/librdkafka.git", "tag": "v2.15.0",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab", "version": "2.15.0",
+    "tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+    "build_card": "KL04-03", "pin_file": "../librdkafka/source-pin.json"
+  },
+  "independent_auditor": {
+    "client": "org.apache.kafka:kafka-clients", "version": "3.9.1", "license": "Apache-2.0",
+    "jar_sha256": "25c5e4eb059c35766f645c0e0bd2fe623a1ebdc18250957506b1edbf476d1272",
+    "client_build_commit": "f745dfdcee2b9851",
+    "note": "Caller supplies the inspected Kafka 3.9.1 distribution. Build and run pin the jar SHA256; Java consumer emits actual fenced keys/values/offsets, Python independently derives expected bytes."
+  },
+  "classification": "Benchmark-only native wrapper; distinct from the C-only bar and from pure Rust clients."
+}
