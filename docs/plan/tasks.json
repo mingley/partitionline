@@ -5982,7 +5982,9 @@
         "tests/fetch_buffer_budget.rs",
         "docs/plan/evidence/KL09-45.json",
         "docs/evidence/perf/KL09-45/",
-        "docs/plan/tasks.json"
+        "docs/plan/tasks.json",
+        "benchmarks/runtime/src/main.rs",
+        "benchmarks/runtime/tests/e2e.rs"
       ]
     },
     {
@@ -7962,8 +7964,8 @@
       "title": "Bound broker framed transport and shutdown",
       "priority": "P0",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-01"
       ],
@@ -7982,15 +7984,22 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/transport.rs",
+        "docs/plan/evidence/KL11-02.json",
+        "docs/evidence/broker/KL11-02/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL11-03",
       "title": "Persist bounded partition journal entries with crash recovery",
       "priority": "P0",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-full-goal-20261002",
       "depends_on": [
         "KL11-01"
       ],
@@ -8009,7 +8018,14 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/tests/journal.rs",
+        "docs/plan/evidence/KL11-03.json",
+        "docs/evidence/broker/KL11-03/",
+        "docs/plan/tasks.json"
+      ]
     },
     {
       "id": "KL11-04",
