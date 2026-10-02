@@ -675,69 +675,22 @@ impl BrokerConn {
         Self::connect_tls(addr, client_id, connect_timeout, None).await
     }
 
-    /// Race bootstrap addresses until one TCP/TLS connection succeeds.
-    ///
-    /// At most four dials run concurrently per call. Each retains the existing
-    /// TCP and TLS connect deadlines; negotiation and SASL remain with the caller.
-    /// Dropping the losing futures closes their sockets before returning the
-    /// winner, and cancelling this call closes every pending dial. No dial task
-    /// is spawned or pooled. The temporary bound is four sockets/TLS handshakes
-    /// and up to four connection buffers (24 KiB each), plus TLS/kernel buffers;
-    /// only the winning connection is retained. These network allocations are
-    /// outside producer `buffer_memory`, as specified by the resource contract.
-    /// Tokio hostname resolution may use blocking resolver jobs that outlive
-    /// cancellation; the four-dial bound does not bound those resolver workers.
-    /// If every dial fails, return the last configured address's error.
+    /// Try each bootstrap address until one connects.
     pub async fn connect_tls_any(
         addrs: &[String],
         client_id: &str,
         connect_timeout: Duration,
         tls: Option<&TlsConfig>,
     ) -> Result<Self> {
-        const MAX_BOOTSTRAP_DIALS: usize = 4;
-        let addresses = parse_and_validate_addresses(addrs)?;
-        let mut remaining = addresses.iter().enumerate();
-        let mut pending = Vec::with_capacity(MAX_BOOTSTRAP_DIALS);
-        for (index, addr) in remaining.by_ref().take(MAX_BOOTSTRAP_DIALS) {
-            pending.push((
-                index,
-                Box::pin(Self::connect_tls(addr, client_id, connect_timeout, tls)),
-            ));
-        }
-        let mut last = None;
-        while !pending.is_empty() {
-            let (slot, result) = poll_fn(|cx| {
-                for (slot, (_, dial)) in pending.iter_mut().enumerate() {
-                    if let Poll::Ready(result) = dial.as_mut().poll(cx) {
-                        return Poll::Ready((slot, result));
-                    }
-                }
-                Poll::Pending
-            })
-            .await;
-            let (index, _) = pending.swap_remove(slot);
-            match result {
+        let addrs = parse_and_validate_addresses(addrs)?;
+        let mut last = Error::protocol("all bootstrap servers failed");
+        for addr in &addrs {
+            match Self::connect_tls(addr, client_id, connect_timeout, tls).await {
                 Ok(conn) => return Ok(conn),
-                Err(error) => {
-                    if last
-                        .as_ref()
-                        .is_none_or(|(last_index, _)| index > *last_index)
-                    {
-                        last = Some((index, error));
-                    }
-                }
-            }
-            if let Some((index, addr)) = remaining.next() {
-                pending.push((
-                    index,
-                    Box::pin(Self::connect_tls(addr, client_id, connect_timeout, tls)),
-                ));
+                Err(e) => last = e,
             }
         }
-        Err(last.map_or_else(
-            || Error::protocol("all bootstrap servers failed"),
-            |(_, error)| error,
-        ))
+        Err(last)
     }
 
     /// Connect, optionally with rustls.
