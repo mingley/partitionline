@@ -1572,12 +1572,13 @@
     {
       "id": "KL05-02",
       "title": "Choose a policy-compliant zstd backend",
-      "priority": "P1", "kind": "decision", "status": "pending", "owner": null,
+      "priority": "P1", "kind": "decision", "status": "in_progress", "owner": "codex-goal-20261002",
       "depends_on": ["KL05-01", "KL02-01"],
       "files": ["docs/zstd-spike.md", "deny.toml", "Cargo.toml"],
       "deliverable": "A reviewed decoder/encoder/backend decision with licensing, MSRV, limits, maintenance and dependency evidence.",
       "acceptance": ["Evaluate decode and encode separately; do not assume a decoder crate is a complete codec.", "Retain no-native-compression defaults and the existing ban unless the maintainer explicitly approves a scoped policy change.", "If no acceptable encoder exists, mark that implementation blocked and preserve the incomplete-profile label instead of inventing support."],
       "validation": ["Record candidate capability/license/MSRV evidence and a small independent frame-compatibility evaluation.", "Review the proposed feature/dependency graph before any dependency change."],
+      "write_set": ["docs/zstd-spike.md", "docs/plan/evidence/KL05-02.json", "docs/evidence/codecs/KL05-02/", "docs/plan/tasks.json"],
       "evidence": []
     },
     {
