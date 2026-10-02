@@ -3941,3 +3941,83 @@ async fn fetch_session_recovery_terminal_retirement_obeys_broker_quota_and_close
         }
     }
 }
+
+#[tokio::test]
+async fn capped_pending_order_survives_pause_and_later_fetch_rounds() {
+    let mut broker = fetch_fixture::FixtureBroker::start_with_handler("t", 2, |topics, attempt| {
+        let partition = |id, offset, values: &[&[u8]]| {
+            let mut part = FetchedPartition::partition_response(id, 0);
+            part.high_watermark = offset + values.len() as i64;
+            part.records = vec![fetch_fixture::data_batch(offset, values, None)];
+            part
+        };
+        let partitions = if attempt == 0 {
+            // Deliberately put partition 1 first. A sorted partition index
+            // would change the arrival order when it resumes.
+            vec![
+                partition(1, 0, &[b"a", b"b", b"c"]),
+                partition(0, 0, &[b"d", b"e"]),
+            ]
+        } else {
+            assert_eq!(attempt, 1, "buffered delivery must avoid extra Fetch RPCs");
+            assert_eq!(topics[0].partitions.len(), 1);
+            assert_eq!(topics[0].partitions[0].partition, 0);
+            assert_eq!(topics[0].partitions[0].fetch_offset, 2);
+            vec![partition(0, 2, &[b"f", b"g"])]
+        };
+        vec![FetchedTopic {
+            topic: "t".into(),
+            topic_id: [0; 16],
+            partitions,
+        }]
+    })
+    .await;
+    let mut consumer = Consumer::new(broker.config().max_poll_records(1))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    let first = consumer.fetch().await.unwrap();
+    assert_eq!(
+        first
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(1, 0)]
+    );
+    assert_eq!(consumer.buffered_bytes(), 4);
+    consumer.pause([("t", 1)]);
+    for offset in 0..3 {
+        let delivered = consumer.fetch().await.unwrap();
+        assert_eq!(
+            delivered
+                .iter()
+                .map(|r| (r.partition, r.offset))
+                .collect::<Vec<_>>(),
+            vec![(0, offset)]
+        );
+        assert_eq!(consumer.position("t", 1).unwrap(), 1);
+        assert_eq!(consumer.fetch_cursor("t", 1).unwrap(), 3);
+    }
+    assert_eq!(consumer.buffered_bytes(), 3);
+    assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 4);
+    consumer.resume([("t", 1)]);
+    for (partition, offset, bytes) in [(1, 1, 2), (1, 2, 1), (0, 3, 0)] {
+        let delivered = consumer.fetch().await.unwrap();
+        assert_eq!(
+            delivered
+                .iter()
+                .map(|r| (r.partition, r.offset))
+                .collect::<Vec<_>>(),
+            vec![(partition, offset)]
+        );
+        assert_eq!(consumer.buffered_bytes(), bytes);
+    }
+    assert_eq!(consumer.position("t", 1).unwrap(), 3);
+    assert_eq!(consumer.position("t", 0).unwrap(), 4);
+    assert_eq!(broker.attempt_count(), 2);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}

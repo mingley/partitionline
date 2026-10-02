@@ -964,3 +964,80 @@ async fn batch_past_budget_is_not_decompressed() {
     consumer.close().await.expect("close succeeds");
     cluster.shutdown().await;
 }
+
+#[tokio::test]
+async fn capped_pending_large_paused_partition_releases_only_sought_buffers() {
+    let mut broker =
+        fetch_fixture::FixtureBroker::start_with_handler("t", 2, |_topics, attempt| {
+            assert_eq!(
+                attempt, 0,
+                "retained queues should satisfy every capped poll"
+            );
+            let mut held = FetchedPartition::partition_response(0, 0);
+            held.high_watermark = 1000;
+            held.records = vec![build_batch_with_record_sizes(0, 1000, 100)];
+            let mut ready = FetchedPartition::partition_response(1, 0);
+            ready.high_watermark = 4;
+            ready.records = vec![build_batch_with_record_sizes(0, 4, 200)];
+            vec![FetchedTopic {
+                topic: "t".into(),
+                topic_id: [0; 16],
+                partitions: vec![held, ready],
+            }]
+        })
+        .await;
+    let mut consumer = Consumer::new(broker.config().max_poll_records(1).buffer_memory(200_000))
+        .await
+        .unwrap();
+    consumer
+        .assign_many([(("t", 0), 0), (("t", 1), 0)])
+        .await
+        .unwrap();
+    assert_eq!(consumer.fetch().await.unwrap()[0].partition, 0);
+    assert_eq!(consumer.buffered_bytes(), 999 * 100 + 4 * 200);
+    consumer.pause([("t", 0)]);
+    for offset in 0..2 {
+        let records = consumer.fetch().await.unwrap();
+        assert_eq!(
+            records
+                .iter()
+                .map(|r| (r.partition, r.offset))
+                .collect::<Vec<_>>(),
+            vec![(1, offset)]
+        );
+        assert_eq!(
+            consumer.buffered_bytes(),
+            999 * 100 + (3 - usize::try_from(offset).unwrap()) * 200
+        );
+        assert_eq!(consumer.position("t", 0).unwrap(), 1);
+        assert_eq!(consumer.fetch_cursor("t", 0).unwrap(), 1000);
+    }
+    consumer.seek("t", 0, 1000).unwrap();
+    assert_eq!(
+        consumer.buffered_bytes(),
+        2 * 200,
+        "seek releases only partition 0"
+    );
+    consumer.resume([("t", 0)]);
+    for offset in 2..4 {
+        let records = consumer.fetch().await.unwrap();
+        assert_eq!(
+            records
+                .iter()
+                .map(|r| (r.partition, r.offset))
+                .collect::<Vec<_>>(),
+            vec![(1, offset)]
+        );
+    }
+    assert_eq!(consumer.buffered_bytes(), 0);
+    assert_eq!(consumer.position("t", 0).unwrap(), 1000);
+    assert_eq!(consumer.position("t", 1).unwrap(), 4);
+    assert_eq!(broker.attempt_count(), 1);
+    consumer
+        .assign_many(std::iter::empty::<(TopicPartition, i64)>())
+        .await
+        .unwrap();
+    assert_eq!(consumer.buffered_bytes(), 0);
+    consumer.close().await.unwrap();
+    broker.shutdown().await;
+}

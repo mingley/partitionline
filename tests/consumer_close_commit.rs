@@ -804,3 +804,81 @@ async fn kip848_fencing_rejoin_preserves_delivered_position() {
     );
     group.leave().await.unwrap();
 }
+
+#[tokio::test]
+async fn capped_pending_commit_tracks_each_paused_partition_independently() {
+    let mock = common::Mock::start().await;
+    mock.set_topic_partitions("t", 2);
+    let producer =
+        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+            .await
+            .unwrap();
+    let _metadata = producer
+        .send_all([
+            ProduceRecord::to("t").partition(0).value(&b"a"[..]),
+            ProduceRecord::to("t").partition(0).value(&b"b"[..]),
+            ProduceRecord::to("t").partition(1).value(&b"c"[..]),
+            ProduceRecord::to("t").partition(1).value(&b"d"[..]),
+        ])
+        .await
+        .unwrap();
+    producer.close().await.unwrap();
+    let mut group = ConsumerGroup::join(
+        ConsumerConfig::bootstrap([mock.addr.clone()])
+            .auto_commit(false)
+            .max_poll_records(1),
+        "pending-partitions",
+        "t",
+    )
+    .await
+    .unwrap();
+    let first = group.poll().await.unwrap()[0].partition;
+    let second = 1 - first;
+    assert_eq!(group.fetch_cursor("t", first).unwrap(), 2);
+    group.pause([("t", first)]);
+    let records = group.poll().await.unwrap();
+    assert_eq!(
+        records
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(second, 0)]
+    );
+    group.pause([("t", second)]);
+    assert!(group.poll().await.unwrap().is_empty());
+    group.commit().await.unwrap();
+    for partition in 0..2 {
+        assert_eq!(group.position("t", partition).unwrap(), 1);
+        assert_eq!(
+            mock.committed_offset("pending-partitions", "t", partition),
+            Some(1)
+        );
+    }
+    group.seek("t", first, 2).unwrap();
+    group.commit().await.unwrap();
+    assert_eq!(
+        mock.committed_offset("pending-partitions", "t", first),
+        Some(2)
+    );
+    assert_eq!(
+        mock.committed_offset("pending-partitions", "t", second),
+        Some(1)
+    );
+    group.resume([("t", second)]);
+    let records = group.poll().await.unwrap();
+    assert_eq!(
+        records
+            .iter()
+            .map(|r| (r.partition, r.offset))
+            .collect::<Vec<_>>(),
+        vec![(second, 1)]
+    );
+    group.commit().await.unwrap();
+    group.leave().await.unwrap();
+    for partition in 0..2 {
+        assert_eq!(
+            mock.committed_offset("pending-partitions", "t", partition),
+            Some(2)
+        );
+    }
+}

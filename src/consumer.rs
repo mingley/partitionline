@@ -1303,6 +1303,10 @@ impl<V> PartitionMap<V> {
         self.topics.get(topic)?.get(&partition)
     }
 
+    fn get_mut(&mut self, topic: &str, partition: i32) -> Option<&mut V> {
+        self.topics.get_mut(topic)?.get_mut(&partition)
+    }
+
     fn contains(&self, topic: &str, partition: i32) -> bool {
         self.get(topic, partition).is_some()
     }
@@ -1335,6 +1339,134 @@ impl<V> PartitionMap<V> {
     }
 }
 
+/// A contiguous arrival run. Separate runs of the same partition can straddle
+/// other partitions, so queue grouping alone cannot preserve delivery order.
+struct PendingRun {
+    topic: String,
+    partition: i32,
+    count: usize,
+}
+
+struct PendingRecords {
+    partitions: PartitionMap<VecDeque<FetchedRecord>>,
+    order: VecDeque<PendingRun>,
+}
+
+impl PendingRecords {
+    fn new() -> Self {
+        Self {
+            partitions: PartitionMap::new(),
+            order: VecDeque::new(),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        self.order.is_empty()
+    }
+
+    fn clear(&mut self) {
+        self.partitions.clear();
+        self.order.clear();
+    }
+
+    fn extend(&mut self, records: Vec<FetchedRecord>) {
+        for rec in records {
+            if let Some(run) = self
+                .order
+                .back_mut()
+                .filter(|run| run.topic == rec.topic && run.partition == rec.partition)
+            {
+                run.count += 1;
+            } else {
+                self.order.push_back(PendingRun {
+                    topic: rec.topic.clone(),
+                    partition: rec.partition,
+                    count: 1,
+                });
+            }
+            if let Some(queue) = self.partitions.get_mut(&rec.topic, rec.partition) {
+                queue.push_back(rec);
+            } else {
+                let topic = rec.topic.clone();
+                let _previous =
+                    self.partitions
+                        .insert(&topic, rec.partition, VecDeque::from([rec]));
+            }
+        }
+    }
+
+    fn drop_for(&mut self, topic: &str, partition: i32) -> usize {
+        let removed = self.partitions.remove(topic, partition);
+        self.order
+            .retain(|run| run.topic != topic || run.partition != partition);
+        removed.map_or(0, |queue| {
+            queue
+                .iter()
+                .map(record_bytes)
+                .fold(0, usize::saturating_add)
+        })
+    }
+
+    fn retain_assigned(&mut self, assigned: &PartitionMap<()>) -> usize {
+        let mut removed_bytes = 0usize;
+        self.partitions.topics.retain(|topic, partitions| {
+            partitions.retain(|partition, records| {
+                if assigned.contains(topic, *partition) {
+                    true
+                } else {
+                    removed_bytes = records
+                        .iter()
+                        .map(record_bytes)
+                        .fold(removed_bytes, usize::saturating_add);
+                    false
+                }
+            });
+            !partitions.is_empty()
+        });
+        self.order
+            .retain(|run| assigned.contains(&run.topic, run.partition));
+        removed_bytes
+    }
+
+    fn drain(
+        &mut self,
+        paused: &PartitionMap<()>,
+        cap: usize,
+        buffered_bytes: &mut usize,
+    ) -> Vec<FetchedRecord> {
+        let mut out = Vec::new();
+        let mut index = 0;
+        while out.len() < cap {
+            let Some(run) = self.order.get_mut(index) else {
+                break;
+            };
+            if paused.contains(&run.topic, run.partition) {
+                index += 1;
+                continue;
+            }
+            if let Some(queue) = self.partitions.get_mut(&run.topic, run.partition) {
+                let count = run.count.min(cap - out.len());
+                for _ in 0..count {
+                    if let Some(rec) = queue.pop_front() {
+                        *buffered_bytes = buffered_bytes.saturating_sub(record_bytes(&rec));
+                        out.push(rec);
+                        run.count -= 1;
+                    }
+                }
+                if queue.is_empty() {
+                    let _removed = self.partitions.remove(&run.topic, run.partition);
+                }
+            }
+            if run.count == 0 {
+                let _removed = self.order.remove(index);
+            } else {
+                break;
+            }
+        }
+        out
+    }
+}
+
 /// Manual-assignment fetch client.
 pub struct Consumer {
     cfg: ConsumerConfig,
@@ -1352,7 +1484,7 @@ pub struct Consumer {
     last_fetched_epochs: PartitionMap<i32>,
     preferred: PartitionMap<i32>,
     paused: PartitionMap<()>,
-    pending: VecDeque<FetchedRecord>,
+    pending: PendingRecords,
     buffered_bytes: usize,
     aborted_pids: HashMap<(String, i32), HashMap<i64, i64>>,
     aborted_txs: HashMap<(String, i32), Vec<(i64, i64)>>,
@@ -1662,7 +1794,7 @@ impl Consumer {
             last_fetched_epochs: PartitionMap::new(),
             preferred: PartitionMap::new(),
             paused: PartitionMap::new(),
-            pending: VecDeque::new(),
+            pending: PendingRecords::new(),
             buffered_bytes: 0,
             aborted_pids: HashMap::new(),
             aborted_txs: HashMap::new(),
@@ -1875,12 +2007,11 @@ impl Consumer {
     }
 
     fn delivered_position(&self, topic: &str, partition: i32, fetch_cursor: i64) -> i64 {
-        for rec in &self.pending {
-            if rec.topic == topic && rec.partition == partition {
-                return rec.offset;
-            }
-        }
-        fetch_cursor
+        self.pending
+            .partitions
+            .get(topic, partition)
+            .and_then(|records| records.front())
+            .map_or(fetch_cursor, |record| record.offset)
     }
 
     pub(crate) fn assigned_offsets(&self) -> &[(String, i32, i64)] {
@@ -4192,15 +4323,9 @@ impl Consumer {
     }
 
     fn drop_pending_for(&mut self, topic: &str, partition: i32) {
-        let mut kept = VecDeque::with_capacity(self.pending.len());
-        while let Some(r) = self.pending.pop_front() {
-            if r.topic == topic && r.partition == partition {
-                self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&r));
-            } else {
-                kept.push_back(r);
-            }
-        }
-        self.pending = kept;
+        self.buffered_bytes = self
+            .buffered_bytes
+            .saturating_sub(self.pending.drop_for(topic, partition));
         let key = (topic.to_string(), partition);
         let _ = self.aborted_pids.remove(&key);
         let _ = self.aborted_txs.remove(&key);
@@ -4212,15 +4337,9 @@ impl Consumer {
         for (topic, partition, _) in &self.assigned {
             let _previous = assigned.insert(topic, *partition, ());
         }
-        let mut kept = VecDeque::with_capacity(self.pending.len());
-        while let Some(r) = self.pending.pop_front() {
-            if assigned.contains(&r.topic, r.partition) {
-                kept.push_back(r);
-            } else {
-                self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&r));
-            }
-        }
-        self.pending = kept;
+        self.buffered_bytes = self
+            .buffered_bytes
+            .saturating_sub(self.pending.retain_assigned(&assigned));
     }
 
     fn take_ready(&mut self) -> Option<Vec<FetchedRecord>> {
@@ -4253,18 +4372,8 @@ impl Consumer {
             .max_poll_records
             .filter(|n| *n > 0)
             .unwrap_or(usize::MAX);
-        let mut out = Vec::new();
-        let mut kept = VecDeque::new();
-        while let Some(rec) = self.pending.pop_front() {
-            if self.paused.contains(&rec.topic, rec.partition) || out.len() >= cap {
-                kept.push_back(rec);
-                continue;
-            }
-            self.buffered_bytes = self.buffered_bytes.saturating_sub(record_bytes(&rec));
-            out.push(rec);
-        }
-        self.pending = kept;
-        out
+        self.pending
+            .drain(&self.paused, cap, &mut self.buffered_bytes)
     }
 }
 
