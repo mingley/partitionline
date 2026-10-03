@@ -1,0 +1,809 @@
+{
+  "source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "verified_source_objects_sha256": {
+    "docs/evidence/broker/KL11-72/peers/server/Cargo.toml": "78500c7d85cb5ef152663fad7c988314a0b1a3a66b7b9e1bd47f6c6f2a0ffeb6",
+    "docs/evidence/broker/KL11-72/peers/server/Cargo.lock": "f0c4a8106df828a88a67d3d129c28c60ad16290cf4b669d53d17eaf5bbcc9d8b",
+    "docs/evidence/broker/KL11-72/peers/server/src/main.rs": "4bc2af8f3b0bf211af37fdccdb47da03125212f8221b8b681a92b248f21b70d3",
+    "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java": "3ebdee9480cae0ba7b4846e47fd988f22d4fd2fdd13e1a538c6ed0395a08b305",
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "e88691eb064085d6f4d093299e10b74448182d2f943be7c6950c2c6995c697e8",
+    "docs/evidence/broker/KL11-72/peers/compile-peers.py": "ae1fc251afb9a9fe439dcdc0cf8fa6fe391a03f147d6952c298468787f5ec47f",
+    "docs/evidence/broker/KL11-72/peers/audit-journal.py": "1688dd0fe0e6183d47500e1bece62331d17a4941914a120da1312c090537a29a",
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3",
+    "docs/evidence/broker/KL11-72/peers/run-live.py": "a09a1369c7491288219f35fba9c6d398566148b3d4a72230b2a9709ca39d6158",
+    "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+    "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d",
+    "partitionline-broker/src/catalog.rs": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+    "partitionline-broker/src/codecs.rs": "28112daa3779f18da53d8dd3cb4db41019e6404f47ce710d744fb353baa5a0b4",
+    "partitionline-broker/src/journal.rs": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+    "partitionline-broker/src/lib.rs": "2d9599b00c825f768f7da354ce42179b3666374084966b266eadd0db3343b635",
+    "partitionline-broker/src/metadata.rs": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322",
+    "partitionline-broker/src/partition.rs": "6cb18f96abba507c8b26683c40f9795227dd3bd3cddbdd4407e5be975dffda99",
+    "partitionline-broker/src/produce.rs": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/src/raft/protocol.rs": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+    "partitionline-broker/src/records.rs": "dfa1c02190cb712c78d8541fc55fab7a936c5e80b9f50a92bc432ce23f4e11e7",
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/mod.rs": "eae37d7a6756186331155ca6e3b58d342761d36e323b416220679bedcc623003",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/src/security/session.rs": "f1bd26922aa56fbe3d47c14a92314b0f7dfe8f1dab6207f02152f558e229ce6c",
+    "partitionline-broker/src/security/tls.rs": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/fixtures/tls/server1.cert.der": "d282618fae52580bb50d17af0355a4f1cb74ec32f7cde8b4602cc89755157b49",
+    "partitionline-broker/tests/fixtures/tls/server1.key.der": "43cde253ee0d9d7196084604ba0f095229e4e2fe67ceb36c1c1228181734860c",
+    "partitionline-broker/tests/fixtures/tls/ca1.cert.pem": "a867f8d9a7cdf397208b278722a4b320d0cd8356b05046c82e3612eff93db529"
+  },
+  "scope": "Actual Rust TLS/SASL/Profile/Store/MetadataRouter composed in an evidence-only harness; independent Java SASL clients/generated requests and native librdkafka/OpenSSL connections/admin. No ready-to-deploy broker/full KIP368 claim.",
+  "production_qualification": false,
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline-broker",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "broker-package-clean.stdout.log",
+      "stderr": "broker-package-clean.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "f9c0c4adafd21e314aa78ff06b5e233b92667ac37062dcc9a9f528c84a19f4db"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline-sasl-wire-evidence",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/source-400a71f2/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "harness-package-clean.stdout.log",
+      "stderr": "harness-package-clean.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "a8c38b1e2e8abba854c1ec1a1d842c17c3b687327d2f4eea96aa2f2c32949b3a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/source-400a71f2/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 300,
+      "timed_out": false,
+      "stdout": "actual-server-build.stdout.log",
+      "stderr": "actual-server-build.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "6d62090e7ae59191a91c3545379ebe38adb41d2a73e7b40e9b3ce8284356ec08"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.1.2-sessions.stdout.log",
+      "stderr": "4.1.2-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.2.1-sessions.stdout.log",
+      "stderr": "4.2.1-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-sessions.stdout.log",
+      "stderr": "4.3.1-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-admin.stdout.log",
+      "stderr": "4.3.1-admin.stderr.log",
+      "stdout_sha256": "ac4495dc178a93652bb0bf665b0ac087644bd7031268de8debf1098fd22013d7",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-sessions.stdout.log",
+      "stderr": "native-sessions.stderr.log",
+      "stdout_sha256": "74f516e11575adfd2f0cf136bb07ea413d636b88dcde270fd6e3d0cc0e190107",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/final-400a71f2-peer-01/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "exit_code": 1,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-admin.stdout.log",
+      "stderr": "native-admin.stderr.log",
+      "stdout_sha256": "5ebace6d5e4ab71744d4ab799b10575f62184dbee850342afa1bbc71008e6e39",
+      "stderr_sha256": "f171b2990c4942e64c159e35cf96cce208d9296fa4dd7542410a3d6abe645ecc"
+    }
+  ],
+  "server_lifecycles": [
+    {
+      "phase": "initial",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/sasl-wire/final-400a71f2-live-01-state",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "initial"
+      ],
+      "exit_code": 0,
+      "stdout": "initial-server.stdout.log",
+      "stderr": "initial-server.stderr.log",
+      "stdout_sha256": "fd66b3ca35c274543ed8a904f6279530102effd8433b72002fe9222f17c90d3d",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "events": [
+        {
+          "event": "bootstrap",
+          "user": "user",
+          "generation": 2
+        },
+        {
+          "event": "bootstrap",
+          "user": "admin",
+          "generation": 3
+        },
+        {
+          "event": "bootstrap",
+          "user": "unicode",
+          "generation": 4
+        },
+        {
+          "event": "credential-recovery",
+          "entries": 0,
+          "truncated_bytes": 0,
+          "healthy": true
+        },
+        {
+          "event": "ready",
+          "tls_port": 29372,
+          "plaintext_port": 29373,
+          "admin_allowlist_count": 1
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "created-user",
+          "generation": 5,
+          "api": 3,
+          "correlation": 727201,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "created-user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 727202,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 4,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "shutdown",
+          "tls_accepted": 120,
+          "tls_joined": 120,
+          "plain_accepted": 35,
+          "plain_joined": 35,
+          "shutdown_connections": 0,
+          "worker_failures": 0,
+          "credential_store_joined": true
+        }
+      ],
+      "pending_sockets_at_stop": 0
+    }
+  ],
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "ports": [
+    29372,
+    29373
+  ],
+  "peer_compilation_receipt_sha256": "ca02d0722ba22288146aa5a6a0ae67e1fdcc91bb43bf426313faf1779d45db3e",
+  "limits": {
+    "connections_per_listener": 64,
+    "handlers_per_listener": 8,
+    "request_bytes": 16384,
+    "response_bytes": 1048576,
+    "preauth_absolute_seconds": 3,
+    "read_handler_write_seconds": 5
+  },
+  "server_binary_sha256": "d136618af19245594c8b9bd74bcc04f173ed713381860dccc6830cbc0cabecba",
+  "native_peer_binary_sha256": "320621cd8ca2a625dbf6044c464536a88bb30354e24bdecd37159dfe24b42746",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "verdict": "failed",
+  "failure_class": "AssertionError",
+  "failure_context": "native-admin failed; logs retained"
+}

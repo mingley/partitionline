@@ -1,0 +1,106 @@
+{
+  "scope": "Diagnostic native envelope receipt; committed production400a and same verified library, owned C draft adds only numeric error output. Failed final state was copied; original retained untouched.",
+  "production_source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "peer_draft_sha256": "78007f5d5af8e150505b134b104c80cd6cf6019143ae7b8b79f7da227ff326b9",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-isystem",
+        "/workspace/work/c-peer/source/src",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/sasl-native-peer.c",
+        "-L",
+        "/workspace/work/c-peer/lib",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-lrdkafka",
+        "-o",
+        "/workspace/work/sasl-wire/native-diagnostic-01/sasl-native-peer"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/sasl-wire/native-diagnostic-01/state",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "restart"
+      ],
+      "pid": 536347,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/native-diagnostic-01/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "exit_code": 1
+    }
+  ],
+  "server_events": [
+    {
+      "event": "credential-recovery",
+      "entries": 5,
+      "truncated_bytes": 0,
+      "healthy": true
+    },
+    {
+      "event": "ready",
+      "tls_port": 29372,
+      "plaintext_port": 29373,
+      "admin_allowlist_count": 1
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "shutdown",
+      "tls_accepted": 2,
+      "tls_joined": 2,
+      "plain_accepted": 0,
+      "plain_joined": 0,
+      "shutdown_connections": 0,
+      "worker_failures": 0,
+      "credential_store_joined": true
+    }
+  ],
+  "logs_sha256": {
+    "compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "peer.stderr.log": "f171b2990c4942e64c159e35cf96cce208d9296fa4dd7542410a3d6abe645ecc",
+    "peer.stdout.log": "4620a920190e4902d5528af2572fc3bae7656ca6c57eefba972af314235511d4",
+    "server.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stdout.log": "a6727d90a7b970265c8033d260ca37ec550678dfbfb834971f686285dc9a8dbf"
+  }
+}

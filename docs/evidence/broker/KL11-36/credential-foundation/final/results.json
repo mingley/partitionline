@@ -1,0 +1,22 @@
+{
+  "source_sha": "1b4e0205565c552c28795b9ce595e1a83719af8b",
+  "scope": "Credential foundation only. KL11-36 remains in progress for actualsocket/admin/live-client qualification.",
+  "stable_and_msrv": {
+    "tests_per_toolchain": 54,
+    "lib": 35,
+    "existing_sasl": 10,
+    "credential_public": 9,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 0,
+    "strict_sasl_all_targets_clippy": "passed"
+  },
+  "development_counts": "Earlier isolated prefoundation snapshots had32lib tests; pushed source includes3independent Produce unit tests, hence35. No tests were omitted.",
+  "artifacts": {
+    "final/pinned-1b4-1.85.0-clippy.log": "62e936441f20b8b4bbb3cc0857319bcead1d87a595cb51c6b1ea50f0b9d35f60",
+    "final/pinned-1b4-1.85.0-test.log": "4a06d6a3aa89da702f67634045f17d0a23959f1c8bb5ae43eadd8d81628c7737",
+    "final/pinned-1b4-stable-clippy.log": "15bd5ceb536333aefaee4312a942d1981c45571999888f77a2b161bcad69f363",
+    "final/pinned-1b4-stable-test.log": "88ddd2e4e1b009337fdd24963bcd8fa56608c23df7aa33dd74c1447f5eea662d",
+    "final/source-proof.json": "02ecf47e33a3509a6c727e2561464dcc6f731504b2e1b79d7ea582212434b021"
+  }
+}

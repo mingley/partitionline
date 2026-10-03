@@ -1,0 +1,26 @@
+{
+  "repository": "https://github.com/confluentinc/librdkafka.git",
+  "tag": "v2.15.0",
+  "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "source_sha256": {
+    "src/rdkafka_event.c": "f99de584d35e19cf9a0bf3139322ec92d75fbec4c16dd525bb8b36c8b48dd211",
+    "src/rdkafka_op.c": "6fdcbcc4e76adb7260de0572e48ed53986414ece262009d1b7e2a04dc202c554",
+    "src/rdkafka_proto.h": "5c8ffc45cbd23ecd0da8001537a607f10b5ccbc680b00db2cd41868951fc8af7"
+  },
+  "scope": "Additional unmodified selected source from same pinned native peer tree; diagnosis only. No native library or broker workaround.",
+  "call_chain": [
+    "rdkafka_event.c:109 delegates event destruction to rd_kafka_op_destroy",
+    "rdkafka_op.c:500 frees admin_result.errstr",
+    "rdkafka_admin.c:5869-5875 assigns static or stack-allocated text to that owned field",
+    "rdkafka_proto.h:281 defines the stack-allocation macro"
+  ],
+  "actual_observation": "Two genuine Describe31 event-cleanup invocations abort with SIGABRT after the numeric pre-destroy marker. Official Java generated parser validates both server responses.",
+  "exact_upstream_git_object_matches": {
+    "src/rdkafka_event.c": true,
+    "src/rdkafka_op.c": true,
+    "src/rdkafka_proto.h": true
+  },
+  "source_tree_verified": true
+}

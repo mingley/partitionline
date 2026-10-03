@@ -1,0 +1,21 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/control-rework-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.86s
+     Running tests/sasl_sessions.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_sessions-31bccacf4e67f910)
+
+running 13 tests
+test absolute_sasl_admission_deadline_also_caps_unfinished_tls_handshake ... ok
+test admin_authority_is_explicit_and_unauthorized_alter_never_reaches_storage ... ok
+test authenticated_alter_control_ceiling_precedes_header_parse_and_storage ... ok
+test authenticated_authenticate_control_ceiling_precedes_header_parse ... ok
+test authenticated_describe_control_ceiling_precedes_header_parse ... ok
+test authenticated_handshake_control_ceiling_precedes_header_parse ... ok
+test actual_socket_scram_all_versions_legacy_and_typed_identity_gate ... ok
+test cumulative_preauth_bytes_include_prefixes_and_cannot_be_reset_by_valid_negotiation ... ok
+test preauth_deadline_rounds_bytes_and_shutdown_are_bound_to_each_socket ... ok
+test authorized_wire_rotation_restart_duplicate_policy_invalid_credentials_and_delete ... ok
+test unsupported_plain_early_application_wrong_proof_and_repeated_handshake_are_terminal ... ok
+test wire_budget_failure_never_acknowledges_success_or_publishes_new_credentials ... ok
+test tls_plain_all_versions_legacy_unicode_and_poison_shutdown_dispatch_gate ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.73s
+

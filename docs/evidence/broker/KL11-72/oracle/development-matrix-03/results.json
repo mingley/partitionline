@@ -1,0 +1,247 @@
+{
+  "scope": "Actual Apache generated serializers/parsers, RequestHeader/ResponseHeader, Errors and getErrorResponse; not an Apache network/server execution.",
+  "source_sha": null,
+  "production_qualification": false,
+  "crypto_reference_source": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "crypto_fixture_sha256": "b7967a38b463b1ee13beeca95d31fc63c723556e90e7c39f9981c5e909d654c1",
+  "generator_sha256": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3",
+  "runner_sha256": "78a1e0ca4fe3a58a37b54f68a04c357383be28aa693bff99a393bb8fa995c180",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "releases": [
+    {
+      "version": "4.1.2",
+      "upstream_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "distribution_provenance": {
+        "version": "4.1.2",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+        "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+        "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+        "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+        "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+      },
+      "jar_properties": {
+        "commitId": "c82fd9b934b4c1e6",
+        "version": "4.1.2"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+            "-d",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.1.2",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.1.2-compile.stdout.log",
+          "stderr": "4.1.2-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/development-matrix-03/4.1.2",
+            "/workspace/partitionline/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.1.2-generate-replay.stdout.log",
+          "stderr": "4.1.2-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    },
+    {
+      "version": "4.2.1",
+      "upstream_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "distribution_provenance": {
+        "version": "4.2.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+        "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+        "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+        "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+        "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+      },
+      "jar_properties": {
+        "commitId": "18d5ecd939c8d510",
+        "version": "4.2.1"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+            "-d",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.2.1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.2.1-compile.stdout.log",
+          "stderr": "4.2.1-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/development-matrix-03/4.2.1",
+            "/workspace/partitionline/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.2.1-generate-replay.stdout.log",
+          "stderr": "4.2.1-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    },
+    {
+      "version": "4.3.1",
+      "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "distribution_provenance": {
+        "version": "4.3.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+        "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+        "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+        "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+        "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+      },
+      "jar_properties": {
+        "commitId": "26b251a451ce941d",
+        "version": "4.3.1"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+            "-d",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.3.1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.3.1-compile.stdout.log",
+          "stderr": "4.3.1-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/development-matrix-03/classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/development-matrix-03/4.3.1",
+            "/workspace/partitionline/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.3.1-generate-replay.stdout.log",
+          "stderr": "4.3.1-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    }
+  ],
+  "source_context": "Uncommitted fixture development; source SHA256 hashes are exact, not a frozen source qualification.",
+  "verdict": "passed",
+  "byte_identical_across_releases": true,
+  "total_wire_cases": 237,
+  "total_truncated_rejections": 237,
+  "total_trailing_prefix_acceptances": 237,
+  "fixture_sha256": {
+    "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+    "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+    "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+    "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+  }
+}

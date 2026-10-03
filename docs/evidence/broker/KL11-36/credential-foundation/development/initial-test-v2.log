@@ -1,0 +1,66 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/credentials-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 3.76s
+     Running unittests src/lib.rs (/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-3f4869ee22bdcef8)
+
+running 28 tests
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test security::sasl::tests::apache_first_message_parser_scope_and_stricter_policy ... ok
+test security::sasl::tests::authentic_apache_plain_decisions ... ok
+test security::sasl::tests::cancellation_releases_admission_and_running_worker_remains_bounded ... ok
+test security::sasl::tests::cancelled_queued_work_does_not_execute_after_pool_unblocks ... ok
+test security::sasl::tests::constant_time_api_rejects_first_middle_last_and_wrong_length ... ok
+test security::sasl::tests::contended_credential_access_is_bounded_and_releases_admission ... ok
+test security::sasl::tests::authentic_apache_and_literal_rfc_scram_proofs ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.24s
+
+     Running tests/sasl.rs (/workspace/work/broker-sasl/target/debug/deps/sasl-9e464fb36ca988b9)
+
+running 10 tests
+test imported_forms_and_all_hard_bounds_reject_invalid_values ... ok
+test credential_generation_rotation_and_snapshot_admission_bound ... ok
+test malformed_first_is_terminal_and_limits_are_checked ... ok
+test optional_extensions_are_ignored_but_bound_to_the_exact_proof ... ok
+test plain_wrong_password_unknown_identity_authz_and_malformed ... ok
+test kafka_raw_utf8_passwords_and_identities_are_preserved ... ok
+test scram_escaped_name_self_authz_and_unrelated_authz ... ok
+test strong_fresh_nonces_salts_and_redacted_debug_errors ... ok
+test scram_wrong_password_nonce_channel_binding_proof_and_replay ... ok
+test valid_scram_both_hashes_and_plain_from_verifiers ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.13s
+
+     Running tests/sasl_credentials.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_credentials-95d4fbc2be4acc98)
+
+running 8 tests
+test file_permissions_and_symlinks_are_enforced_without_diagnostics_leaks ... ok
+test incomplete_tail_repair_is_reported_but_complete_corruption_fails_closed ... ok
+test invalid_and_missing_changes_never_partially_commit ... ok
+test raw_utf8_plain_identity_and_password_survive_restart ... ok
+test persisted_bytes_contain_only_verifier_form ... ok
+test retained_operation_budget_preserves_last_confirmed_generation ... ok
+test shutdown_disables_new_authentication_and_admin ... ok
+test two_algorithms_restart_rotation_delete_and_metadata_only_description ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+

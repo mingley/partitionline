@@ -1,0 +1,54 @@
+{
+  "source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "cargo",
+    "test",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/broker-sasl/control-rework-source/partitionline-broker/Cargo.toml",
+    "--all-features",
+    "--test",
+    "sasl_sessions",
+    "authenticated_"
+  ],
+  "attempts": [
+    {
+      "log": "ee8796-control-cap-failing-first.log",
+      "sha256": "26a02e21eb5755519799c84faa973f490b49be7817b3766bab093f68a893946e",
+      "primary_reproduction": false,
+      "test_counts": {
+        "passed": 0,
+        "failed": 1,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 9
+      },
+      "production_source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+      "test_source_sha256": null,
+      "test_source_scope": "Only tests/sasl_sessions.rs overlaid; every production Git blob remained identical to ee8796. Initial single-loop draft test was superseded and is retained as a development failure only."
+    },
+    {
+      "log": "ee8796-four-control-caps-failing-first.log",
+      "sha256": "bf81b8873f897c477672f0c5bf3f9d127cbf1f5032c7e18c23970df3f57c612a",
+      "primary_reproduction": true,
+      "test_counts": {
+        "passed": 0,
+        "failed": 4,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 9
+      },
+      "production_source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+      "test_source_sha256": "a9a4e2e6017724def1b9582244130062e0fc6e91eb04e803d692cb58e28bc66f",
+      "test_source_scope": "Only tests/sasl_sessions.rs overlaid; every production Git blob remained identical to ee8796. Initial single-loop draft test was superseded and is retained as a development failure only."
+    }
+  ],
+  "logical_control_ceiling": 256,
+  "caller_transport_request_ceiling": 65536,
+  "synthetic_valid_client_id_bytes": 300,
+  "assertion": "All17/36/50/51 oversized postproof controls must terminate before parsing/work; no dispatch or credential-generation change. Initial production replies violated each assertion.",
+  "new_ignored_tests": 0
+}

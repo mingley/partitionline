@@ -1,0 +1,149 @@
+{
+  "scope": "Strict independent peer compilation only; no live connection claim.",
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "production_qualification": false,
+  "source_sha256": {
+    "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java": "9a4a67f5b7ae0c93d03c2e39ff524ca9585db499020692452dacf716b81f78ff",
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "fb1542ef1275de2b3748468e684e2d561dec400ed59fa73b0479f6773a96fefb",
+    "docs/evidence/broker/KL11-72/peers/compile-peers.py": "ae1fc251afb9a9fe439dcdc0cf8fa6fe391a03f147d6952c298468787f5ec47f",
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3"
+  },
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.1.2",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.1.2-compile.stdout.log",
+      "stderr": "4.1.2-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "-d",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.2.1",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.2.1-compile.stdout.log",
+      "stderr": "4.2.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.3.1",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.3.1-compile.stdout.log",
+      "stderr": "4.3.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-isystem",
+        "/workspace/work/c-peer/source/src",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/sasl-native-peer.c",
+        "-L",
+        "/workspace/work/c-peer/lib",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-lrdkafka",
+        "-o",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer"
+      ],
+      "exit_code": 0,
+      "stdout": "native-compile.stdout.log",
+      "stderr": "native-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "compiler_version": "cc (Debian 14.2.0-19) 14.2.0",
+  "native_peer_build": {
+    "4.1.2": {
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "ff8e0e307a015efeaecc3b559ca5483eab135d3a53102dd5831d1d38d33a7cfb",
+        "SaslSocketPeer.class": "56cf93c2564ac0bce711f3f3d072fa18995ab8ad13fea6a81f57ceaae13d830d",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    },
+    "4.2.1": {
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "ff8e0e307a015efeaecc3b559ca5483eab135d3a53102dd5831d1d38d33a7cfb",
+        "SaslSocketPeer.class": "56cf93c2564ac0bce711f3f3d072fa18995ab8ad13fea6a81f57ceaae13d830d",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    },
+    "4.3.1": {
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "ff8e0e307a015efeaecc3b559ca5483eab135d3a53102dd5831d1d38d33a7cfb",
+        "SaslSocketPeer.class": "56cf93c2564ac0bce711f3f3d072fa18995ab8ad13fea6a81f57ceaae13d830d",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    }
+  },
+  "verdict": "passed",
+  "native_binary_sha256": "b6338a620c1eec729e349673bb635db9ea79d5de10f3424e303c4fd8eeb61d20",
+  "warning_policy": "Strict own-source warnings; exact external vendor header is a system header."
+}

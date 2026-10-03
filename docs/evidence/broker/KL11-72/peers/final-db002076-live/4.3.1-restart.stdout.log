@@ -1,0 +1,9 @@
+{"operation":"login","variant":"SCRAM-SHA-256-framed-v2","error":0}
+{"operation":"metadata","variant":"replayed-credential","error":0}
+{"operation":"login","variant":"SCRAM-SHA-256-framed-v2","error":0}
+{"operation":"describe","variant":"created-user","error":0}
+{"operation":"delete","variant":"created-user","error":0}
+{"operation":"describe","variant":"created-user","error":91}
+{"operation":"delete","variant":"created-user","error":91}
+{"operation":"login","variant":"deleted-credential","error":58}
+{"status":"pass","phase":"restart","assertions":84}

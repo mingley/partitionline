@@ -1,0 +1,6 @@
+/workspace/partitionline/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java:217: error: cannot find symbol
+        require(!bytes.hasRemaining() && result.brokers().size() == 1 && result.brokers().get(0).nodeId() == 0,
+                                                                                         ^
+  symbol:   method get(int)
+  location: class MetadataResponseBrokerCollection
+1 error

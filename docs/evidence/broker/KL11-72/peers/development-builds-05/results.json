@@ -1,0 +1,143 @@
+{
+  "scope": "Strict independent peer compilation only; no live connection claim.",
+  "source_sha": null,
+  "production_qualification": false,
+  "source_sha256": {
+    "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java": "07104f5698841ff69c56051038e680b83fbab007083c0164e6fa1eaf14d27daf",
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "a6cb4f25ff41a5feb5c32bf543e6ce6c3c526c9dd99219fdda9fedb0b3f9a373",
+    "docs/evidence/broker/KL11-72/peers/compile-peers.py": "84e9f9307d4d053c4d2bbd3c0101d7fec919912a2fa88eb8b3e1f4ca4813b2a3",
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3"
+  },
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/sasl-wire/peer-development-05/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.1.2-compile.stdout.log",
+      "stderr": "4.1.2-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "-d",
+        "/workspace/work/sasl-wire/peer-development-05/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.2.1-compile.stdout.log",
+      "stderr": "4.2.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/sasl-wire/peer-development-05/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "stdout": "4.3.1-compile.stdout.log",
+      "stderr": "4.3.1-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-isystem",
+        "/workspace/work/c-peer/source/src",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/sasl-native-peer.c",
+        "-L",
+        "/workspace/work/c-peer/lib",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-lrdkafka",
+        "-o",
+        "/workspace/work/sasl-wire/peer-development-05/sasl-native-peer"
+      ],
+      "exit_code": 0,
+      "stdout": "native-compile.stdout.log",
+      "stderr": "native-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "compiler_version": "cc (Debian 14.2.0-19) 14.2.0",
+  "native_peer_build": {
+    "4.1.2": {
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "35ac28b446193e936eba3652b4c901aa56d689de984e57b1c093db56262f3508",
+        "SaslSocketPeer.class": "ffc3df39eec70a6522fb42209cabf9c3d07796a847d121d48eaa17fd4828321a",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    },
+    "4.2.1": {
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "35ac28b446193e936eba3652b4c901aa56d689de984e57b1c093db56262f3508",
+        "SaslSocketPeer.class": "ffc3df39eec70a6522fb42209cabf9c3d07796a847d121d48eaa17fd4828321a",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    },
+    "4.3.1": {
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "classes_sha256": {
+        "SaslSocketPeer$Connection.class": "35ac28b446193e936eba3652b4c901aa56d689de984e57b1c093db56262f3508",
+        "SaslSocketPeer.class": "ffc3df39eec70a6522fb42209cabf9c3d07796a847d121d48eaa17fd4828321a",
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      }
+    }
+  },
+  "verdict": "passed",
+  "native_binary_sha256": "3e96390e5f99680ee36df29e73425ba189e0bb003811fa8f240dd8d7a515d9ee",
+  "warning_policy": "Strict own-source warnings; exact external vendor header is a system header."
+}

@@ -1,0 +1,27 @@
+{
+  "scope": "Retain/review original development-only diagnostic drafts; this observer is excluded from final live driver.",
+  "argv": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cc",
+    "-std=c11",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-shared",
+    "-fPIC",
+    "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/diagnostic-ssl-shape.c",
+    "-ldl",
+    "-pthread",
+    "-lcrypto",
+    "-o",
+    "/workspace/work/broker-sasl/72-takeover/diagnostic-shape.so"
+  ],
+  "exit_code": 0,
+  "source_sha256": "6f031e418f373967d0e12cea39f981c3ccf9fd1333dd9b628186acbfbc92e764",
+  "logs_sha256": {
+    "diagnostic-compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "diagnostic-compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

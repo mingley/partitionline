@@ -1,0 +1,51 @@
+{
+  "source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+  "accepted": false,
+  "reason": "Independent review found authenticated API17/36/50/51 bypass of configured control frame ceiling when caller transport ceiling is larger. All earlier QA passes are valid observations but insufficient for acceptance.",
+  "commands_passed": 20,
+  "test_counts": {
+    "stable-default-test": {
+      "passed": 132,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-sasl-test": {
+      "passed": 173,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-all-test": {
+      "passed": 202,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-default-test": {
+      "passed": 132,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-sasl-test": {
+      "passed": 173,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-all-test": {
+      "passed": 202,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    }
+  },
+  "review": "docs/evidence/broker/KL11-72/peers/review-ee8796f3.json"
+}

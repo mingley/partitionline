@@ -1,0 +1,11 @@
+{
+  "source_sha": "1b4e0205565c552c28795b9ce595e1a83719af8b",
+  "tree": "92070faf3e2d1b706768a7bf56a8eb48cadc5f7c",
+  "checked_git_blobs": 7887,
+  "mismatches": [],
+  "inputs": {
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/tests/sasl_credentials.rs": "236b35f4af17caad577c389465597961d303269cf00f2d0c42903360ea11e333"
+  }
+}

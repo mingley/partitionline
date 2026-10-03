@@ -1,0 +1,17 @@
+case	api	result_count	user	error_code	credential_infos	controller_records
+describe-null	50	1	user	0	2	0
+describe-empty	50	1	user	0	2	0
+describe-named	50	2	missing	91	0	0
+describe-named	50	2	user	0	2	0
+describe-duplicate	50	1	user	92	0	0
+describe-unknown-tag	50	2	missing	91	0	0
+describe-unknown-tag	50	2	user	0	2	0
+alter-upsert256	51	1	user	0	0	1
+alter-upsert512	51	1	user	0	0	1
+alter-both	51	1	user	92	0	0
+alter-delete	51	1	user	0	0	1
+alter-duplicate	51	1	user	92	0	0
+alter-invalid-iterations	51	1	user	93	0	0
+alter-empty-salt	51	1	user	0	0	1
+alter-short-salted	51	1	user	0	0	1
+alter-unknown-tag	51	1	user	0	0	1

@@ -1,0 +1,8 @@
+{"operation":"login","variant":"SCRAM-SHA-256-framed-v2","error":0}
+{"operation":"describe-schema","variant":"whole-generated-response-empty-results","error":31}
+{"operation":"describe","variant":"user","error":31}
+{"operation":"upsert","variant":"default-forbidden","error":31}
+{"operation":"metadata","variant":"authenticated-admin-empty-allowlist","error":0}
+{"operation":"restart","variant":"persisted-deletion-created-user","error":58}
+{"operation":"restart","variant":"persisted-deletion-native-created","error":58}
+{"status":"pass","phase":"admin-denied","assertions":63}

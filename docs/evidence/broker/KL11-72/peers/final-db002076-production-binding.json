@@ -1,0 +1,26 @@
+{
+  "rust_full_matrix_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "live_harness_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "scope": "Core SASL/source/test/manifest byte binding between final full Rust matrix and final live source. This is not equality of the entire broker tree; independent replication source changed.",
+  "identical_scoped_inputs": {
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/src/security/session.rs": "65461cfd95750d8c4943515fb825c855a6c2ef3cd873e56749dc6369ef4f8ee3",
+    "partitionline-broker/src/security/mod.rs": "eae37d7a6756186331155ca6e3b58d342761d36e323b416220679bedcc623003",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/sasl_sessions.rs": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3",
+    "partitionline-broker/tests/sasl_credentials.rs": "236b35f4af17caad577c389465597961d303269cf00f2d0c42903360ea11e333",
+    "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+    "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae"
+  },
+  "other_broker_paths_changed": [
+    "partitionline-broker/src/raft/election.rs",
+    "partitionline-broker/src/raft/mod.rs",
+    "partitionline-broker/src/raft/protocol.rs",
+    "partitionline-broker/src/raft/replication.rs",
+    "partitionline-broker/tests/raft_election.rs",
+    "partitionline-broker/tests/raft_replication.rs"
+  ],
+  "entire_broker_tree_identical": false,
+  "all_scoped_inputs_byte_identical": true
+}

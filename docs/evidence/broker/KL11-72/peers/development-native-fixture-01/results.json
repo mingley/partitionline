@@ -1,0 +1,150 @@
+{
+  "scope": "Developmental actual Apache canonical serializer/crypto generates the public native-request fixture; live native packet digest is compared separately.",
+  "helper_draft_sha256": "b059cdd64b112e1558d0d0015503d681b6f5660363a1a795c19c245167d2802f",
+  "oracle_source_sha": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.1.2",
+        "-d",
+        "/workspace/work/sasl-wire/native-fixture-01/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/NativeAlterFixture.java"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/native-fixture-01/4.1.2:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "NativeAlterFixture",
+        "/workspace/work/sasl-wire/native-fixture-01/4.1.2/output"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.2.1",
+        "-d",
+        "/workspace/work/sasl-wire/native-fixture-01/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/NativeAlterFixture.java"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/native-fixture-01/4.2.1:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "NativeAlterFixture",
+        "/workspace/work/sasl-wire/native-fixture-01/4.2.1/output"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.3.1",
+        "-d",
+        "/workspace/work/sasl-wire/native-fixture-01/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/NativeAlterFixture.java"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/sasl-wire/native-fixture-01/4.3.1:/workspace/work/sasl-wire/final-400a71f2-peer-01/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "NativeAlterFixture",
+        "/workspace/work/sasl-wire/native-fixture-01/4.3.1/output"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "versions": {
+    "4.1.2": {
+      "canonical_bytes": 105,
+      "native_bytes": 106,
+      "canonical_sha256": "8210f677ddd093c925f5a90f8d1ffb8ec25ec019fcc26bbfffff5f54d13e2044",
+      "native_sha256": "10f53b45dc952f8b9a821b8b312761ee3990a7c2f705a92fcf740a3cb20acbcd"
+    },
+    "4.2.1": {
+      "canonical_bytes": 105,
+      "native_bytes": 106,
+      "canonical_sha256": "8210f677ddd093c925f5a90f8d1ffb8ec25ec019fcc26bbfffff5f54d13e2044",
+      "native_sha256": "10f53b45dc952f8b9a821b8b312761ee3990a7c2f705a92fcf740a3cb20acbcd"
+    },
+    "4.3.1": {
+      "canonical_bytes": 105,
+      "native_bytes": 106,
+      "canonical_sha256": "8210f677ddd093c925f5a90f8d1ffb8ec25ec019fcc26bbfffff5f54d13e2044",
+      "native_sha256": "10f53b45dc952f8b9a821b8b312761ee3990a7c2f705a92fcf740a3cb20acbcd"
+    }
+  },
+  "verdict": "passed",
+  "logs_sha256": {
+    "4.1.2-compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.1.2-compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.1.2-generate.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.1.2-generate.stdout.log": "0162ea5af8faea7bf664a6b29c4c0112f8afe3767b1e555589d426381922ecf1",
+    "4.2.1-compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.2.1-compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.2.1-generate.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.2.1-generate.stdout.log": "0162ea5af8faea7bf664a6b29c4c0112f8afe3767b1e555589d426381922ecf1",
+    "4.3.1-compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.3.1-compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.3.1-generate.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "4.3.1-generate.stdout.log": "0162ea5af8faea7bf664a6b29c4c0112f8afe3767b1e555589d426381922ecf1"
+  }
+}

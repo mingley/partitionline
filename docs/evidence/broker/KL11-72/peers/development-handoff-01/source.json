@@ -1,0 +1,13 @@
+{
+  "scope": "Original independent worker WORK drafts preserved before explicitly delegated production-implementer orchestration follow-up. These bytes were not the earlier immutable live source.",
+  "delegation_source_sha": "f0d4e5d0947d0fbf254f156ad6aa0d7a87e10781",
+  "original_worker": "zstd_decision",
+  "followup_worker": "consumer_lookups",
+  "production_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "files": {
+    "sasl-native-peer.c": "a211dc1945fd72d279498de413188e7d56192fe0859a96af546ca46a80586fdc",
+    "run-live.py": "86dca65507201bf48bf52dfcae510ea4b0cef3ca993bbc158e9825327e016e46",
+    "diagnostic-ssl-shape.c": "6f031e418f373967d0e12cea39f981c3ccf9fd1333dd9b628186acbfbc92e764",
+    "run-native-diagnostic.py": "8d1348d49ac968a99c9d53b87300b62712f16b8a6ca2c966ea38c3a8c576035a"
+  }
+}

@@ -1,0 +1,8 @@
+{"event":"bootstrap","user":"user","generation":2}
+{"event":"bootstrap","user":"admin","generation":3}
+{"event":"bootstrap","user":"unicode","generation":4}
+{"event":"credential-recovery","entries":0,"truncated_bytes":0,"healthy":true}
+{"event":"ready","tls_port":29372,"plaintext_port":29373,"admin_allowlist_count":1}
+{"event":"application-dispatch","user":"user","generation":4,"api":3,"correlation":5,"tls":true}
+{"event":"application-dispatch","user":"user","generation":4,"api":3,"correlation":5,"tls":true}
+{"event":"shutdown","tls_accepted":2,"tls_joined":2,"plain_accepted":0,"plain_joined":0,"shutdown_connections":0,"worker_failures":0,"credential_store_joined":true}

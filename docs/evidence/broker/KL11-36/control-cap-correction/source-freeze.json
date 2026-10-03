@@ -1,0 +1,24 @@
+{
+  "base_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+  "overlay_only": true,
+  "files": {
+    "partitionline-broker/src/security/session.rs": "f1bd26922aa56fbe3d47c14a92314b0f7dfe8f1dab6207f02152f558e229ce6c",
+    "partitionline-broker/tests/sasl_sessions.rs": "a9a4e2e6017724def1b9582244130062e0fc6e91eb04e803d692cb58e28bc66f"
+  },
+  "unchanged_transport_sha256": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+  "regression_before": {
+    "failing_tests": 4,
+    "passed": 0,
+    "filtered": 9,
+    "production_source": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+    "log": "../rejected-control-candidate/ee8796/ee8796-four-control-caps-failing-first.log"
+  },
+  "after": {
+    "stable_socket_passed": 13,
+    "msrv_socket_passed": 13,
+    "strict_alltarget_clippy_cells": 4,
+    "format_cells": 2,
+    "ignored": 0,
+    "failures": 0
+  }
+}

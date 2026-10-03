@@ -1,0 +1,145 @@
+{
+  "scope": "Developmental evidence-only harness compilation against exact committed broker plus owned draft harness; no sockets or final qualification.",
+  "broker_source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+  "harness_draft_sha256": "4bc2af8f3b0bf211af37fdccdb47da03125212f8221b8b681a92b248f21b70d3",
+  "commands": [
+    {
+      "attempt": 1,
+      "exit_code": 101,
+      "failure": "Initial copied broker lock plus own entry was not resolved for the harness dependency subset; lock regenerated offline with Rust1.85 then existing libc0.2.189 preserved.",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "generate-lockfile",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "update",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml",
+        "-p",
+        "libc",
+        "--precise",
+        "0.2.189"
+      ]
+    },
+    {
+      "attempt": 2,
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/server/Cargo.toml",
+        "--",
+        "--check"
+      ]
+    },
+    {
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/sasl-wire/development-ee8796f3/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ]
+    }
+  ],
+  "logs_sha256": {
+    "harness-development-01.stderr.log": "9ddc66dfa9e5100cf833d0f197d4715136261fe7d0e9fcc11bbcca17590da10f",
+    "harness-development-01.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-development-02.stderr.log": "14c38645c4c2aff2ff893a7bd767a4808dec4f7846b472e8f0fe1655198591b2",
+    "harness-development-02.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-development-clippy.stderr.log": "6597defc4f0f85b02bfde7d5ac655c5b886a2e4b0c25fee594917a22028c5d0a",
+    "harness-development-clippy.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-development-fmt.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-development-fmt.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-development-msrv.stderr.log": "359211da1bc4e763a0e112c6c88ad3edcbdbacf5053a7d09777653e202411f43",
+    "harness-development-msrv.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-lock-pin.stderr.log": "f4c5757d90c53074e704f76ab99c8a9b41a4d66c355b3ce48e09504502898dc3",
+    "harness-lock-pin.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "harness-lock.stderr.log": "ffc05241b67947b638597267e252685752a3be4217857a01e5375f7ccdff4498",
+    "harness-lock.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-codecs",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  }
+}

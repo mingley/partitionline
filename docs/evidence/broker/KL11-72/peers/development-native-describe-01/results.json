@@ -1,0 +1,103 @@
+{
+  "scope": "Development diagnosis; copied public synthetic state and owned server. Numeric request framing/digest only, no auth tokens/keys logged. Preload forwards unchanged bytes; final live driver has no preload.",
+  "production_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "diagnostic_runner_sha256": "8d1348d49ac968a99c9d53b87300b62712f16b8a6ca2c966ea38c3a8c576035a",
+  "server_binary_sha256": "e199ad8a8a41d924a23bd0e1d11d71f677593581e60199400339debb762636b3",
+  "peer_binary_sha256": "46fdff486f0a44d013173d4113329ee3f2893376e6ec52b425e1e9decd85f6cc",
+  "preload_binary_sha256": "8c328fd55ce731d596c937dd65a7cf2299fd9fcd9f689fc5e9f3b73b71a506b4",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/sasl-wire/native-describe-diagnostic-01-state",
+        "/workspace/work/sasl-wire/source-2db175c7/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-2db175c7/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "initial"
+      ],
+      "pid": 590015,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/native-describe-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-2db175c7/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "describe-user-denied"
+      ],
+      "environment": {
+        "LD_PRELOAD": "/workspace/work/sasl-wire/native-describe-shape.so"
+      },
+      "exit_code": -6
+    }
+  ],
+  "server_events": [
+    {
+      "event": "bootstrap",
+      "user": "user",
+      "generation": 2
+    },
+    {
+      "event": "bootstrap",
+      "user": "admin",
+      "generation": 3
+    },
+    {
+      "event": "bootstrap",
+      "user": "unicode",
+      "generation": 4
+    },
+    {
+      "event": "credential-recovery",
+      "entries": 0,
+      "truncated_bytes": 0,
+      "healthy": true
+    },
+    {
+      "event": "ready",
+      "tls_port": 29372,
+      "plaintext_port": 29373,
+      "admin_allowlist_count": 1
+    },
+    {
+      "event": "application-dispatch",
+      "user": "user",
+      "generation": 4,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "application-dispatch",
+      "user": "user",
+      "generation": 4,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "shutdown",
+      "tls_accepted": 2,
+      "tls_joined": 2,
+      "plain_accepted": 0,
+      "plain_joined": 0,
+      "shutdown_connections": 0,
+      "worker_failures": 0,
+      "credential_store_joined": true
+    }
+  ],
+  "logs_sha256": {
+    "peer.stderr.log": "e5635c223348daf9af3ce79e8d3e1634a871f405a0c60b4edc71d058f00641d0",
+    "peer.stdout.log": "6b3adc3a5b79c47efa513b14de2952288b32b8b72f0c82b4e9cdedab11821fcc",
+    "server.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stdout.log": "e62f69574fdf1d145f36bca2ee7d7da84490bea15287083a7786d8427cef6a51"
+  }
+}

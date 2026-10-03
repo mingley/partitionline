@@ -1,0 +1,12 @@
+{
+  "production_source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "scope": "Preserve exact previous proof server binary before authorized package-only rebuild; no active target user observed.",
+  "original": "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+  "retained": "/workspace/work/broker-sasl/72-takeover/preserved-2db175c7-server",
+  "sha256": "e199ad8a8a41d924a23bd0e1d11d71f677593581e60199400339debb762636b3",
+  "python_syntax_paths": [
+    "run-live.py",
+    "run-native-diagnostic.py"
+  ],
+  "python_syntax_passed": true
+}

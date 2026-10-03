@@ -1,0 +1,21 @@
+{
+  "scope": "Actual TLS SSL_write public synthetic API51 frame digest equals independent real Apache canonical serializer/crypto frame plus one redundant empty tag, for all three pinned releases. No native/auth token or key bytes logged; frame fixture credentials are deliberately public vectors.",
+  "production_source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "native_source_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "actual_native_frame_bytes": 106,
+  "actual_native_frame_sha256": "10f53b45dc952f8b9a821b8b312761ee3990a7c2f705a92fcf740a3cb20acbcd",
+  "apache_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "fixture_files_sha256": {
+    "native-alter-canonical.frame.hex": "faabc7c4b216e5a2dbb08d7b6a6761a420800a3bec23c7fbf2967a389461da9e",
+    "native-alter-redundant-empty-tag.frame.hex": "16fbd026ba781f8a915ca079265ed6cfa563d46a82099cc85da745721e3d2a89"
+  },
+  "diagnostic_receipt": "development-native-diagnostic-04/results.json",
+  "apache_generator_receipt": "development-native-fixture-01/results.json",
+  "native_writer_finalizer_pins": "native-framing-references/pins.json",
+  "verdict": "exact bytes independently reproduced and matched to authentic native digest",
+  "production_qualification": false
+}

@@ -1,0 +1,9 @@
+{"peer":"librdkafka","version":"2.15.0","phase":"restart"}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":true,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-describe","user":"native-created","error":0,"algorithms":1}
+{"operation":"native-alter-envelope","error":0}
+{"operation":"native-delete","user":"native-created","error":0}
+{"operation":"native-describe","user":"native-created","error":91,"algorithms":0}
+{"operation":"native-alter-envelope","error":0}
+{"operation":"native-delete","user":"native-created","error":91}
+{"status":"pass","assertions":65,"suppressed_native_log_messages":0}

@@ -1,0 +1,30 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "scope": "Sidecar/source/actual count validation; two external SDK error-cleanup completions remain failed.",
+  "verdict": "scoped_server_gates_passed_with_sdk_completion_failures",
+  "passing_commands": 13,
+  "failed_sdk_completion_commands": 2,
+  "successful_peer_processes": 10,
+  "successful_peer_assertions": {
+    "4.1.2-sessions.stdout.log": 710,
+    "4.2.1-sessions.stdout.log": 710,
+    "4.3.1-sessions.stdout.log": 710,
+    "4.3.1-admin.stdout.log": 213,
+    "native-sessions.stdout.log": 170,
+    "native-admin.stdout.log": 103,
+    "4.3.1-restart.stdout.log": 84,
+    "native-restart.stdout.log": 65,
+    "4.3.1-admin-denied.stdout.log": 63,
+    "native-admin-denied.stdout.log": 44
+  },
+  "successful_peer_assertions_total": 2872,
+  "owned_listener_lifecycles": 3,
+  "accepted_connections": 187,
+  "joined_connections": 187,
+  "verifier_journal_entries": 9,
+  "official_describe31_schema_proofs": 2,
+  "checked_result_sha256": "259eea179556e907b60cbd8bd0fdb381b4caf4a1cdb634dbcedc4404349e5c09",
+  "validation_producer_sha256": "cd4d505fbd8e29b0d5ffc9abe327575fe33417a1d9faeeece299de4b8c7d218a",
+  "sidecar_hashes_verified": true,
+  "production_qualification": false
+}

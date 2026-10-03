@@ -1,0 +1,73 @@
+{
+  "scope": "Development1bimmutablebaseline+owned3fileoverlay. Authoritative exact-pushed source runs follow sourcefreeze commit.",
+  "baseline": "1b4e0205565c552c28795b9ce595e1a83719af8b",
+  "fixture_source": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "frozen_inputs": {
+    "partitionline-broker/src/security/session.rs": "55e9c786785b4e8b009fbd20551673d3f875b03bfdda11444d4e648b0cca76f2",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/sasl_sessions.rs": "10e0e0e0a13f1242a0ca4deb2587123660cadf6f125c30ff09c295b516a67659"
+  },
+  "matrix_tested_transport_before_module_prose_sha256": "bcbf9021ecbb97f6295be804519384bae638ff1d8ff5afafb585953cfe9b0415",
+  "prose_only_followup": {
+    "frozen_transport_sha256": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "code_after_module_docs_identical": true,
+    "strict_docs_after_prose": "passed"
+  },
+  "matrix": {
+    "stable/default": {
+      "passed": 122,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    },
+    "stable/sasl": {
+      "passed": 163,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    },
+    "stable/all": {
+      "passed": 192,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    },
+    "1.85.0/default": {
+      "passed": 122,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    },
+    "1.85.0/sasl": {
+      "passed": 163,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    },
+    "1.85.0/all": {
+      "passed": 192,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "test_binaries_including_doc_tests": 16,
+      "strict_clippy_exit": 0
+    }
+  },
+  "raw_failures_retained": [
+    "session-admin-before-correction.log:nullable-success string encoding differed fromgoldens, correctedbeforequalification",
+    "session-admin-before-duplicate-correction.log:Describe duplicate produced2results, correctedtoone92",
+    "session-admin-before-alter-correction.log:cross-algorithm Alter erroneouslysucceeded, correctedto92",
+    "session-initial-clippy.log:large enum variant, boxed socketauth state",
+    "session-stable-default-clippy-failed-v1.log:cfgdefaultliteralNone unwrap lint, helperdeadlinecorrected"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "scope": "Development compile only; no live server/session execution.",
+  "source_sha": null,
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/sasl-wire/live-development-01/classes",
+        "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 0,
+      "source_note": "Earlier developmental Java bytes, followed by added Unicode/state cases; final compilation remains required."
+    },
+    {
+      "argv": [
+        "cc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-I",
+        "/workspace/work/c-peer/source/src",
+        "sasl-native-peer.c",
+        "-lrdkafka"
+      ],
+      "exit_code": null,
+      "observed_failure": true,
+      "reason": "Pinned external rdkafka.h const int return triggers -Wignored-qualifiers; shell returned trailing cat status, exact compiler exit was not captured."
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-isystem",
+        "/workspace/work/c-peer/source/src",
+        "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c",
+        "-L",
+        "/workspace/work/c-peer/lib",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-lrdkafka",
+        "-o",
+        "/workspace/work/sasl-wire/live-development-01/sasl-native-peer"
+      ],
+      "exit_code": 0,
+      "source_sha256": "a6cb4f25ff41a5feb5c32bf543e6ce6c3c526c9dd99219fdda9fedb0b3f9a373",
+      "note": "External vendor header classified as system; strict warning checks retained for own source."
+    }
+  ],
+  "logs_sha256": {
+    "compile.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-compile-02.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-compile-02.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-compile.stderr.log": "1a248fc56dd8d392d069a3a1cac1b52243b4c563a5e31441dce5095ac9bc7485",
+    "native-compile.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

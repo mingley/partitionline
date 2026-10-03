@@ -1,0 +1,15 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.13s
+     Running tests/sasl_sessions.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_sessions-31bccacf4e67f910)
+
+running 7 tests
+test admin_authority_is_explicit_and_unauthorized_alter_never_reaches_storage ... ok
+test actual_socket_scram_all_versions_legacy_and_typed_identity_gate ... ok
+test authorized_wire_rotation_restart_duplicate_policy_invalid_credentials_and_delete ... ok
+test preauth_deadline_rounds_bytes_and_shutdown_are_bound_to_each_socket ... ok
+test unsupported_plain_early_application_wrong_proof_and_repeated_handshake_are_terminal ... ok
+test wire_budget_failure_never_acknowledges_success_or_publishes_new_credentials ... ok
+test tls_plain_all_versions_legacy_unicode_and_poison_shutdown_dispatch_gate ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.29s
+

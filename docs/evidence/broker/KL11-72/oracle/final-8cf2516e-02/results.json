@@ -1,0 +1,344 @@
+{
+  "scope": "Actual Apache generated serializers/parsers, RequestHeader/ResponseHeader, Errors and getErrorResponse; not an Apache network/server execution.",
+  "source_sha": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "production_qualification": false,
+  "crypto_reference_source": "029355f95687bb0528eb70f7872ce2e901adf4de",
+  "crypto_fixture_sha256": "b7967a38b463b1ee13beeca95d31fc63c723556e90e7c39f9981c5e909d654c1",
+  "generator_sha256": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3",
+  "runner_sha256": "78a1e0ca4fe3a58a37b54f68a04c357383be28aa693bff99a393bb8fa995c180",
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "slf4j_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "releases": [
+    {
+      "version": "4.1.2",
+      "upstream_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "distribution_provenance": {
+        "version": "4.1.2",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+        "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+        "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+        "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+        "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+      },
+      "jar_properties": {
+        "commitId": "c82fd9b934b4c1e6",
+        "version": "4.1.2"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+            "-d",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.1.2",
+            "/workspace/work/sasl-wire/source-8cf2516e/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.1.2-compile.stdout.log",
+          "stderr": "4.1.2-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/final-8cf2516e-02/4.1.2",
+            "/workspace/work/sasl-wire/source-8cf2516e/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.1.2-generate-replay.stdout.log",
+          "stderr": "4.1.2-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    },
+    {
+      "version": "4.2.1",
+      "upstream_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "distribution_provenance": {
+        "version": "4.2.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+        "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+        "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+        "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+        "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+      },
+      "jar_properties": {
+        "commitId": "18d5ecd939c8d510",
+        "version": "4.2.1"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+            "-d",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.2.1",
+            "/workspace/work/sasl-wire/source-8cf2516e/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.2.1-compile.stdout.log",
+          "stderr": "4.2.1-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/final-8cf2516e-02/4.2.1",
+            "/workspace/work/sasl-wire/source-8cf2516e/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.2.1-generate-replay.stdout.log",
+          "stderr": "4.2.1-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    },
+    {
+      "version": "4.3.1",
+      "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "distribution_provenance": {
+        "version": "4.3.1",
+        "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+        "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+        "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+        "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+        "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+      },
+      "jar_properties": {
+        "commitId": "26b251a451ce941d",
+        "version": "4.3.1"
+      },
+      "commands": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+            "-d",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.3.1",
+            "/workspace/work/sasl-wire/source-8cf2516e/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java"
+          ],
+          "exit_code": 0,
+          "stdout": "4.3.1-compile.stdout.log",
+          "stderr": "4.3.1-compile.stderr.log",
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/sasl-wire/final-8cf2516e-02/classes/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "SaslWireOracle",
+            "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/final-8cf2516e-02/4.3.1",
+            "/workspace/work/sasl-wire/source-8cf2516e/partitionline-broker/tests/fixtures/sasl/apache-scram.tsv"
+          ],
+          "exit_code": 0,
+          "stdout": "4.3.1-generate-replay.stdout.log",
+          "stderr": "4.3.1-generate-replay.stderr.log",
+          "stdout_sha256": "b0c87155a6ed3e4760486228149e7721e8a10dc0c64a874d84e2dd9e7b247c62",
+          "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+        }
+      ],
+      "output_sha256": {
+        "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+        "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+        "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+        "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+      },
+      "compiled_class_sha256": {
+        "SaslWireOracle.class": "2803875c62f573b203cf0a1b956f8eba551b046c38f81a8eeedb830bf6fb0ba1"
+      },
+      "exact_wire_cases": 79,
+      "truncated_parser_rejections": 79,
+      "trailing_prefix_parser_acceptances": 79,
+      "policy": "Apache generated parsers consume a prefix and leave trailing bytes; the Rust listener independently requires whole input. Constructed scoped error fixtures do not imply server execution."
+    }
+  ],
+  "verified_source_objects_sha256": {
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3",
+    "docs/evidence/broker/KL11-72/oracle/run-wire.py": "78a1e0ca4fe3a58a37b54f68a04c357383be28aa693bff99a393bb8fa995c180",
+    "partitionline-broker/tests/fixtures/sasl/apache-scram.tsv": "b7967a38b463b1ee13beeca95d31fc63c723556e90e7c39f9981c5e909d654c1",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java": "169379912e38afa68f726d60f5835f443a53af4bd0bd857af5d8499d8bcff55d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/Errors.java": "144afb0d739031d7a73dde33962101a5e8ba9145af2588b1b619865c89ce27a6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsRequest.java": "d76af5ecb01094f43939183489804071dfe8efebeb9eeb876d707a5d960b966f",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsResponse.java": "2d14fd5b7a29b51a66c42366a39d963c7d563c678b7b580dd94c7ff66d2ca6f5",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsRequest.java": "462bec2be2aba66a9b00649c1c8478bfdfed3d587c7ab273549f84d829e438f4",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsResponse.java": "f6d7d913419052f6a6b22ba2dd097e1eb29a4b64a1f8dbaba238cebfaee5ce9e",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateRequest.java": "7dc8f3a9a65689184b0776241fe1f9a49b364bde86cfb18486cd377911403883",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateResponse.java": "f27d0f86085f6a0023762ec87c1ee46408d1533ac50a482a22b66df683cd526c",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeRequest.java": "da0989da7dc2e2794220f9f866fd3ab404b85d3e3fc65c7c282d9c01eaf7ed89",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeResponse.java": "72f3e6bff5e5cb2da52607c1cd759ad9c9c6ea0491e9e5d9a85b1154fcb9cf76",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslClientAuthenticator.java": "8760ab91d78e5d8088560a3a1016617f501a80d8be236535202c573f9e6e97b3",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslServerAuthenticator.java": "3e93ba1ee6497c58ecf77b419ce1720015cfd952a1bc3093e5e9667691fba992",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramCredentialUtils.java": "0bf9096a7e2318cd87abaf8a99862390e932e94fc93cae1e1c5f71c30e6f2e45",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/AlterUserScramCredentialsRequest.json": "fcf7ca27e8028316c0957b346c93108c235388d06f829f7ecc5a304407719d26",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/AlterUserScramCredentialsResponse.json": "f9bba249467a5f499ae10523be22f96aab4ddc6bdff0f54f7cf0be030820ff2d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/DescribeUserScramCredentialsRequest.json": "e3551378a9f2d59fb65de32641f79f40ea5a9b5a554ee668ed06d182c5064323",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/DescribeUserScramCredentialsResponse.json": "2ead5ef7c1fc92546da6c50bc703e0ed13eee56ae108dfc76857c9069b6cde8b",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/SaslAuthenticateRequest.json": "07918241bd578115b918ec3a0e5ca33c7dca06240e894e7e1ca6758ae9b48d25",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/SaslAuthenticateResponse.json": "136e0a0f5fe901063da58849cda4b1536ed0f59f9fca3ab755a709f48f06a6c8",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/SaslHandshakeRequest.json": "2316215be78ce0bc79f5ce08f825cf317f3c104ac38ee609581454de7634df47",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/clients/src/main/resources/common/message/SaslHandshakeResponse.json": "a7aa00f2fa01ecf31674a39a243bd4d2d284c9cd1993ce6501f93b57c1f90ba9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.1.2/metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java": "9a39230ce0fda549a8fb64016d74ddc8fcb54fee9dbf9f58ec3aa5399564fb02",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/Errors.java": "144afb0d739031d7a73dde33962101a5e8ba9145af2588b1b619865c89ce27a6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsRequest.java": "d76af5ecb01094f43939183489804071dfe8efebeb9eeb876d707a5d960b966f",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsResponse.java": "2d14fd5b7a29b51a66c42366a39d963c7d563c678b7b580dd94c7ff66d2ca6f5",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsRequest.java": "462bec2be2aba66a9b00649c1c8478bfdfed3d587c7ab273549f84d829e438f4",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsResponse.java": "f6d7d913419052f6a6b22ba2dd097e1eb29a4b64a1f8dbaba238cebfaee5ce9e",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateRequest.java": "7dc8f3a9a65689184b0776241fe1f9a49b364bde86cfb18486cd377911403883",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateResponse.java": "f27d0f86085f6a0023762ec87c1ee46408d1533ac50a482a22b66df683cd526c",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeRequest.java": "da0989da7dc2e2794220f9f866fd3ab404b85d3e3fc65c7c282d9c01eaf7ed89",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeResponse.java": "72f3e6bff5e5cb2da52607c1cd759ad9c9c6ea0491e9e5d9a85b1154fcb9cf76",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslClientAuthenticator.java": "0760d2017a36ca3a28e915d844ebd6a40fe0c951232bbbfe0982c801cd20db6e",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslServerAuthenticator.java": "8d1aed0c0490b42354da2f62e9f37a87329c914d7cee164d1fbb2832cb6b12f8",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramCredentialUtils.java": "0bf9096a7e2318cd87abaf8a99862390e932e94fc93cae1e1c5f71c30e6f2e45",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/AlterUserScramCredentialsRequest.json": "fcf7ca27e8028316c0957b346c93108c235388d06f829f7ecc5a304407719d26",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/AlterUserScramCredentialsResponse.json": "f9bba249467a5f499ae10523be22f96aab4ddc6bdff0f54f7cf0be030820ff2d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/DescribeUserScramCredentialsRequest.json": "e3551378a9f2d59fb65de32641f79f40ea5a9b5a554ee668ed06d182c5064323",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/DescribeUserScramCredentialsResponse.json": "2ead5ef7c1fc92546da6c50bc703e0ed13eee56ae108dfc76857c9069b6cde8b",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/SaslAuthenticateRequest.json": "07918241bd578115b918ec3a0e5ca33c7dca06240e894e7e1ca6758ae9b48d25",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/SaslAuthenticateResponse.json": "136e0a0f5fe901063da58849cda4b1536ed0f59f9fca3ab755a709f48f06a6c8",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/SaslHandshakeRequest.json": "2316215be78ce0bc79f5ce08f825cf317f3c104ac38ee609581454de7634df47",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/clients/src/main/resources/common/message/SaslHandshakeResponse.json": "a7aa00f2fa01ecf31674a39a243bd4d2d284c9cd1993ce6501f93b57c1f90ba9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.2.1/metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java": "917cffa40d29d378e59c3cd47aa501598d7b0c64cbf2b8c17746e7f316b4a73b",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/Errors.java": "144afb0d739031d7a73dde33962101a5e8ba9145af2588b1b619865c89ce27a6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsRequest.java": "d76af5ecb01094f43939183489804071dfe8efebeb9eeb876d707a5d960b966f",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/AlterUserScramCredentialsResponse.java": "2d14fd5b7a29b51a66c42366a39d963c7d563c678b7b580dd94c7ff66d2ca6f5",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsRequest.java": "462bec2be2aba66a9b00649c1c8478bfdfed3d587c7ab273549f84d829e438f4",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeUserScramCredentialsResponse.java": "f6d7d913419052f6a6b22ba2dd097e1eb29a4b64a1f8dbaba238cebfaee5ce9e",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateRequest.java": "7dc8f3a9a65689184b0776241fe1f9a49b364bde86cfb18486cd377911403883",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/SaslAuthenticateResponse.java": "f27d0f86085f6a0023762ec87c1ee46408d1533ac50a482a22b66df683cd526c",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeRequest.java": "da0989da7dc2e2794220f9f866fd3ab404b85d3e3fc65c7c282d9c01eaf7ed89",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/SaslHandshakeResponse.java": "72f3e6bff5e5cb2da52607c1cd759ad9c9c6ea0491e9e5d9a85b1154fcb9cf76",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslClientAuthenticator.java": "0760d2017a36ca3a28e915d844ebd6a40fe0c951232bbbfe0982c801cd20db6e",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/authenticator/SaslServerAuthenticator.java": "8d1aed0c0490b42354da2f62e9f37a87329c914d7cee164d1fbb2832cb6b12f8",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/plain/internals/PlainSaslServer.java": "e160716ccea32978ce72ef2ab1b56691e4a315c4ca8d37370fd25e43d7c917b6",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramCredentialUtils.java": "0bf9096a7e2318cd87abaf8a99862390e932e94fc93cae1e1c5f71c30e6f2e45",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramFormatter.java": "a0ad8545028b974dcc800c7515e13060222c5028320bf624db6dfb43329640de",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslClient.java": "b3d862459994cae3130a9efc8e882facc2858186facd331adcdfbc1250078573",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/java/org/apache/kafka/common/security/scram/internals/ScramSaslServer.java": "0ff659742dca5d62bb2b582bdeeb15009d17080af96745dbf2e390dac86d23d9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/AlterUserScramCredentialsRequest.json": "fcf7ca27e8028316c0957b346c93108c235388d06f829f7ecc5a304407719d26",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/AlterUserScramCredentialsResponse.json": "f9bba249467a5f499ae10523be22f96aab4ddc6bdff0f54f7cf0be030820ff2d",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/DescribeUserScramCredentialsRequest.json": "e3551378a9f2d59fb65de32641f79f40ea5a9b5a554ee668ed06d182c5064323",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/DescribeUserScramCredentialsResponse.json": "2ead5ef7c1fc92546da6c50bc703e0ed13eee56ae108dfc76857c9069b6cde8b",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/SaslAuthenticateRequest.json": "07918241bd578115b918ec3a0e5ca33c7dca06240e894e7e1ca6758ae9b48d25",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/SaslAuthenticateResponse.json": "136e0a0f5fe901063da58849cda4b1536ed0f59f9fca3ab755a709f48f06a6c8",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/SaslHandshakeRequest.json": "2316215be78ce0bc79f5ce08f825cf317f3c104ac38ee609581454de7634df47",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/clients/src/main/resources/common/message/SaslHandshakeResponse.json": "a7aa00f2fa01ecf31674a39a243bd4d2d284c9cd1993ce6501f93b57c1f90ba9",
+    "docs/evidence/broker/KL11-72/oracle/references/4.3.1/metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+    "docs/evidence/broker/KL11-72/oracle/references/pins.json": "6bc0c08046ae64c98c8f3ad0123b60e539c5e6909aa9ad9ff9987d8bdd1eeb62"
+  },
+  "verdict": "passed",
+  "byte_identical_across_releases": true,
+  "total_wire_cases": 237,
+  "total_truncated_rejections": 237,
+  "total_trailing_prefix_acceptances": 237,
+  "fixture_sha256": {
+    "apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+    "apache-errors.tsv": "4386fdbe9ed788e13e43a304d2d160e36da27f185eade0ebc6b1f7eae860da4d",
+    "apache-parser-outcomes.tsv": "20a613a78aeff83c8650072be61206f985ff4e538bcd834af2e283aeaeef704a",
+    "apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d"
+  }
+}

@@ -1,0 +1,13 @@
+{"peer":"librdkafka","version":"2.15.0","phase":"sessions"}
+{"operation":"native-session","mechanism":"PLAIN","tls":true,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-session","mechanism":"PLAIN","tls":true,"expected_success":false,"metadata_error":-195,"authentication_callbacks":3}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":true,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":true,"expected_success":false,"metadata_error":-195,"authentication_callbacks":5}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":false,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":false,"expected_success":false,"metadata_error":-195,"authentication_callbacks":5}
+{"operation":"native-session","mechanism":"SCRAM-SHA-512","tls":true,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-session","mechanism":"SCRAM-SHA-512","tls":true,"expected_success":false,"metadata_error":-195,"authentication_callbacks":5}
+{"operation":"native-session","mechanism":"SCRAM-SHA-512","tls":false,"expected_success":true,"metadata_error":0,"authentication_callbacks":0}
+{"operation":"native-session","mechanism":"SCRAM-SHA-512","tls":false,"expected_success":false,"metadata_error":-195,"authentication_callbacks":4}
+{"operation":"native-session","mechanism":"PLAIN","tls":false,"expected_success":false,"metadata_error":-195,"authentication_callbacks":5}
+{"status":"pass","assertions":169,"suppressed_native_log_messages":53}

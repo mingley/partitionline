@@ -1,0 +1,33 @@
+{
+  "source_sha": "ee8796f3cb7e456f22c7821d76d1f484e226a900",
+  "reviewer": "codex zstd_decision independent KL11-72 oracle/peer worker",
+  "mode": "Read-only review; no reviewer production edits or production test reruns. Separate evidence-only harness developmental compilation does not qualify sockets.",
+  "source_objects_sha256": {
+    "partitionline-broker/src/security/session.rs": "55e9c786785b4e8b009fbd20551673d3f875b03bfdda11444d4e648b0cca76f2",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/sasl_sessions.rs": "10e0e0e0a13f1242a0ca4deb2587123660cadf6f125c30ff09c295b516a67659",
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938"
+  },
+  "findings": [
+    {
+      "status": "blocking_pending_worker_resolution",
+      "file": "partitionline-broker/src/security/session.rs",
+      "detail": "Authenticated key17/36/50/51 control frames use request.len as parser ceiling and Session::frame_limit returns configured transport maximum after proof; with transport cap larger than Limits.frame_bytes, declared one-control payload ceiling is bypassed. API18 separately enforces its frame_bytes. Transport still bounds allocation. Enforce control payload length before parse/work, regress authentic postauth socket with wider transport cap, and distinguish admitted buffer cap from control parser cap."
+    }
+  ],
+  "reviewed_invariants": [
+    "TLS and SASL absolute deadlines start at accepted socket admission; TLS uses minimum handshake/preauth deadline; handler-permit wait, response writes and reads retain absolute limits.",
+    "Preauth cumulative wire bytes, rounds, strict message consumption, per-field/count/tag bounds prevent application dispatch before proof; owned profile allowlist selects actually composed ranges.",
+    "PLAIN offered only explicit TLS profile; plaintext profile supports SCRAM only; terminal negotiation/proof failures close; v1/v2 lifetime zero and no reauthentication.",
+    "Original authentication/Alter wire frames and SaltedPassword copies have zeroizing ownership; errors and Debug remain redacted; private credential service cannot be externally mutated.",
+    "Durable Store validates salt/iterations/hash sizes, preserves verifier-only records, poisons ambiguous append failures, skips canceled queued commands, and does not acknowledge nondurable state as success.",
+    "Actual Apache Describe duplicate names collapse to one92 result and any repeated Alter username has92 whole-user result, including cross-algorithm changes; authenticated admin allowlist empty by default.",
+    "Joined shutdown cancels socket/TLS/auth futures and drains owned connection tasks; feature optionality retains existing unauthenticated listener behavior."
+  ],
+  "limitations": [
+    "No listener readiness or full Kafka server/KIP368 claim.",
+    "Control-frame enforcement finding must be resolved before final independent live qualification.",
+    "Credential identity generations describe immutable snapshots within the process; no durable cross-restart generation monotonicity claimed."
+  ],
+  "production_qualification": false
+}

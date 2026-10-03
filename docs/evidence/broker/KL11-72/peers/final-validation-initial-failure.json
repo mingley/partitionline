@@ -1,0 +1,10 @@
+{
+  "stage": "Post-run artifact validator development, not a listener or SDK test failure.",
+  "exit_code": 1,
+  "actual_tool_output": "Traceback (most recent call last):\n  File \"<stdin>\", line 13, in <module>\nAssertionError\n",
+  "incorrect_assertion": "TSV data row count equals14.",
+  "correction": "Count14 distinct request cases and16 result rows per release: two Describe requests each emit two user results. Actual Apache producer already asserts14 input cases; outcomes are unchanged.",
+  "actual_request_cases_all_releases": 42,
+  "actual_result_rows_all_releases": 48,
+  "production_source_changed": false
+}

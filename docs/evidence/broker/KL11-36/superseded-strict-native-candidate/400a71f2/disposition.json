@@ -1,0 +1,8 @@
+{
+  "source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "accepted_final_listener": false,
+  "rust_qa_valid_observations": true,
+  "reason": "All20 Rust/source gates passed, but genuine native2.15 Alter51v0 adds one redundant empty top-level tag block. Strict input rejected the real client. Revised bounded dialect needs source freeze, full QA and fresh genuine live qualification.",
+  "independent_failure": "docs/evidence/broker/KL11-72/peers/final-400a71f2-live-01/",
+  "independent_cause": "docs/evidence/broker/KL11-72/peers/development-native-diagnostic-02/results.json"
+}

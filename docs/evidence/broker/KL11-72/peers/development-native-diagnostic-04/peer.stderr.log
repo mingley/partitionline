@@ -1,0 +1,15 @@
+{"trace":"native-SSL_write","api":18,"version":3,"correlation":1,"frame_bytes":50}
+{"trace":"native-SSL_write","api":17,"version":1,"correlation":2,"frame_bytes":45}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":3,"frame_bytes":79}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":4,"frame_bytes":165}
+{"trace":"native-SSL_write","api":3,"version":13,"correlation":5,"frame_bytes":35}
+{"trace":"native-SSL_write","api":18,"version":3,"correlation":1,"frame_bytes":50}
+{"trace":"native-SSL_write","api":17,"version":1,"correlation":2,"frame_bytes":45}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":3,"frame_bytes":79}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":4,"frame_bytes":165}
+{"trace":"native-SSL_write","api":3,"version":13,"correlation":5,"frame_bytes":35}
+{"trace":"native-SSL_write","api":50,"version":0,"correlation":6,"frame_bytes":49}
+{"trace":"native-SSL_write","api":51,"version":0,"correlation":7,"frame_bytes":106}
+{"trace":"native-Alter-public-fixture-frame-hash","sha256":"10f53b45dc952f8b9a821b8b312761ee3990a7c2f705a92fcf740a3cb20acbcd"}
+{"trace":"native-Alter-numeric-shape","header_tags":0,"deletions_compact_count":1,"upserts_compact_count":2,"name_compact_length":15,"algorithm":1,"iterations":4096,"salt_compact_length":17,"salted_compact_length":33,"struct_tags":0,"body_tags":0,"trailing_bytes":1,"trailing_all_zero":true,"canonical_shape":false}
+assertion failed: native alter envelope success

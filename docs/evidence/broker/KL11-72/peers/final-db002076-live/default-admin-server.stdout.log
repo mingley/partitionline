@@ -1,0 +1,8 @@
+{"event":"credential-recovery","entries":9,"truncated_bytes":0,"healthy":true}
+{"event":"ready","tls_port":29372,"plaintext_port":29373,"admin_allowlist_count":0}
+{"event":"application-dispatch","user":"admin","generation":1,"api":3,"correlation":727204,"tls":true}
+{"event":"application-dispatch","user":"admin","generation":1,"api":3,"correlation":5,"tls":true}
+{"event":"application-dispatch","user":"admin","generation":1,"api":3,"correlation":5,"tls":true}
+{"event":"application-dispatch","user":"admin","generation":1,"api":3,"correlation":5,"tls":true}
+{"event":"application-dispatch","user":"admin","generation":1,"api":3,"correlation":5,"tls":true}
+{"event":"shutdown","tls_accepted":13,"tls_joined":13,"plain_accepted":1,"plain_joined":1,"shutdown_connections":2,"worker_failures":0,"credential_store_joined":true}

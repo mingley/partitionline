@@ -1,0 +1,41 @@
+{
+  "scope": "Strict independent peer compilation only; no live connection claim.",
+  "source_sha": null,
+  "production_qualification": false,
+  "source_sha256": {
+    "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java": "3e3b74f5cb949aa6358181dcaca5d51556b080c49c9a33d8cfb2ab9183237dfc",
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "a6cb4f25ff41a5feb5c32bf543e6ce6c3c526c9dd99219fdda9fedb0b3f9a373",
+    "docs/evidence/broker/KL11-72/peers/compile-peers.py": "84e9f9307d4d053c4d2bbd3c0101d7fec919912a2fa88eb8b3e1f4ca4813b2a3",
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3"
+  },
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/sasl-wire/peer-development-03/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java",
+        "/workspace/partitionline/docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java"
+      ],
+      "exit_code": 1,
+      "stdout": "4.1.2-compile.stdout.log",
+      "stderr": "4.1.2-compile.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "62ed7f7cb365d2111437cbdaef21e55c6f6002be452cc6510ea08e3a2db26650"
+    }
+  ],
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "compiler_version": "cc (Debian 14.2.0-19) 14.2.0",
+  "native_peer_build": {}
+}

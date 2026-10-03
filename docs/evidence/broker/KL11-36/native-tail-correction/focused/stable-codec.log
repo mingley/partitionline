@@ -1,0 +1,11 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/native-rework-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 3.26s
+     Running unittests src/lib.rs (/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-92a2b3eca838ec9a)
+
+running 3 tests
+test security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens ... ok
+test security::session::tests::malformed_varint_tag_order_count_and_null_sentinels_fail_boundedly ... ok
+test security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 36 filtered out; finished in 0.20s
+

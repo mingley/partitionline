@@ -1,0 +1,161 @@
+{
+  "journal_sha256": "7443ea97c775a45776bdc1cde51593900e4d228363437de84b66666a31e93798",
+  "journal_bytes": 1581,
+  "entries": 9,
+  "history": [
+    {
+      "entry": 0,
+      "user": "user",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 0,
+      "user": "user",
+      "algorithm": 2,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 64,
+      "server_key_bytes": 64,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 1,
+      "user": "admin",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 1,
+      "user": "admin",
+      "algorithm": 2,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 64,
+      "server_key_bytes": 64,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 2,
+      "user": "unicode",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 2,
+      "user": "unicode",
+      "algorithm": 2,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 64,
+      "server_key_bytes": 64,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 3,
+      "user": "created-user",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 4,
+      "user": "created-user",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 5,
+      "user": "native-created",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 6,
+      "user": "native-created",
+      "algorithm": 1,
+      "operation": "upsert",
+      "iterations": 4096,
+      "salt_bytes": 16,
+      "stored_key_bytes": 32,
+      "server_key_bytes": 32,
+      "independent_derivation_matches": true
+    },
+    {
+      "entry": 7,
+      "user": "created-user",
+      "algorithm": 1,
+      "operation": "delete"
+    },
+    {
+      "entry": 8,
+      "user": "native-created",
+      "algorithm": 1,
+      "operation": "delete"
+    }
+  ],
+  "retained_identity_algorithms": [
+    {
+      "user": "admin",
+      "algorithm": 1
+    },
+    {
+      "user": "admin",
+      "algorithm": 2
+    },
+    {
+      "user": "unicode",
+      "algorithm": 1
+    },
+    {
+      "user": "unicode",
+      "algorithm": 2
+    },
+    {
+      "user": "user",
+      "algorithm": 1
+    },
+    {
+      "user": "user",
+      "algorithm": 2
+    }
+  ],
+  "crc32c_headers_and_payloads_verified": true,
+  "canonical_verifier_schema_only": true,
+  "stored_server_keys_independently_derived": true,
+  "password_and_salted_password_raw_hex_base64_absent": true,
+  "proof_field_absent_from_canonical_schema": true,
+  "limits": "Public synthetic test users only; structural replay plus independently computed verifiers. No live auth tokens are logged or collected by this audit."
+}

@@ -1,0 +1,22 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 3.18s
+     Running tests/sasl_sessions.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_sessions-31bccacf4e67f910)
+
+running 1 test
+test authenticated_control_ceiling_is_enforced_before_header_parse_and_admin_work ... FAILED
+
+failures:
+
+---- authenticated_control_ceiling_is_enforced_before_header_parse_and_admin_work stdout ----
+
+thread 'authenticated_control_ceiling_is_enforced_before_header_parse_and_admin_work' (468706) panicked at tests/sasl_sessions.rs:983:9:
+assertion failed: closed(&mut socket).await?
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    authenticated_control_ceiling_is_enforced_before_header_parse_and_admin_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `--test sasl_sessions`

@@ -1,0 +1,2 @@
+{"peer":"librdkafka","version":"2.15.0","phase":"describe-user-denied"}
+{"operation":"native-describe","user":"user","error":31,"algorithms":0}

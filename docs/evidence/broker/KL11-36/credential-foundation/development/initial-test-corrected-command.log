@@ -1,0 +1,22 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/credentials-source/partitionline-broker)
+error[E0592]: duplicate definitions with name `iterations`
+   --> src/security/sasl.rs:269:5
+    |
+266 |     pub(crate) fn iterations(&self) -> u32 {
+    |     -------------------------------------- other definition for `iterations`
+...
+269 |     pub(crate) fn iterations(&self) -> u32 {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ duplicate definitions for `iterations`
+
+error[E0308]: mismatched types
+   --> src/security/credentials.rs:560:13
+    |
+560 |             self.journal.append(1, &payload)
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected `Result<(), _>`, found `Result<Append, Error>`
+    |
+    = note: expected enum `Result<(), _>`
+               found enum `Result<journal::Append, journal::Error>`
+
+Some errors have detailed explanations: E0308, E0592.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `partitionline-broker` (lib) due to 2 previous errors

@@ -1,0 +1,55 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "scope": "Final immutable source, raw TSV case/result counts, binary/library/class and log validation. Two SDK cleanup completions remain failed.",
+  "verdict": "scoped_server_gates_passed_with_sdk_completion_failures",
+  "verified_git_blobs_before_after": 20137,
+  "verified_final_command_sidecars": 43,
+  "final_reports": [
+    {
+      "path": "oracle/final-8cf2516e-01/results.json",
+      "sha256": "fdd2796b39df7742ae2bc03e8064c9a30e21a86a399aaa051f076ad2f29a3af3",
+      "commands": 6,
+      "verdict": "passed"
+    },
+    {
+      "path": "oracle/final-8cf2516e-02/results.json",
+      "sha256": "555beccd3135ca1cc6352e4f437e3916dca530bf0a25673c22c708d22636ba0c",
+      "commands": 6,
+      "verdict": "passed"
+    },
+    {
+      "path": "peers/final-db002076-compilation/results.json",
+      "sha256": "4c220847e22bf6a4ed62d2993321a3304a9b334bf7a0cd0380d10dfbba7eec23",
+      "commands": 4,
+      "verdict": "passed"
+    },
+    {
+      "path": "peers/final-db002076-admin-policy/results.json",
+      "sha256": "9190920dfd8e8e2169bb1db57581e877b0e26521cfa688395ad1b0dc93d7df76",
+      "commands": 6,
+      "verdict": "passed"
+    },
+    {
+      "path": "peers/final-db002076-native-fixture/results.json",
+      "sha256": "66fa899842859a3b6e2a28f22c9bafdda98643e44948764641dff143637e945d",
+      "commands": 6,
+      "verdict": "passed"
+    },
+    {
+      "path": "peers/final-db002076-live/results.json",
+      "sha256": "259eea179556e907b60cbd8bd0fdb381b4caf4a1cdb634dbcedc4404349e5c09",
+      "commands": 15,
+      "verdict": "scoped_server_gates_passed_with_sdk_completion_failures"
+    }
+  ],
+  "actual_apache_object_policy_cases": 42,
+  "actual_apache_object_policy_result_rows": 48,
+  "all_final_native_library_binary_and_java_class_hashes_verified": true,
+  "failed_external_sdk_completion_cells": 2,
+  "unqualified_all_peer_pass": false,
+  "final_server_binary_sha256": "a07d780428b4a58a274a45529f502080c0994d795f567a73f0557bccab96a3b5",
+  "live_validation_sha256": "3e72b30110367eec26bd479c0da7be63f3047a26549f306b5734f95d8ed74be2",
+  "validation_producer_sha256": "e4b4fb053d754f513cf71bb4705729ec56a487f9f46dc0f405e2518ae3e5c088",
+  "production_qualification": false,
+  "retained_validator_draft_failure": "peers/final-validation-initial-failure.json"
+}

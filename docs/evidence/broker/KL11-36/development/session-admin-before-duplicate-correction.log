@@ -1,0 +1,26 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.99s
+     Running unittests src/lib.rs (/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-3f4869ee22bdcef8)
+
+running 3 tests
+test security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens ... ok
+test security::session::tests::malformed_varint_tag_order_count_and_null_sentinels_fail_boundedly ... ok
+test security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted ... FAILED
+
+failures:
+
+---- security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted stdout ----
+
+thread 'security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted' (391757) panicked at src/security/session.rs:1221:9:
+assertion `left == right` failed
+  left: Some(2)
+ right: Some(1)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.20s
+
+error: test failed, to rerun pass `--lib`

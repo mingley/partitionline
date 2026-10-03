@@ -1,0 +1,43 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/control-rework-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.23s
+     Running tests/sasl_sessions.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_sessions-31bccacf4e67f910)
+
+running 4 tests
+test authenticated_authenticate_control_ceiling_precedes_header_parse ... FAILED
+test authenticated_alter_control_ceiling_precedes_header_parse_and_storage ... FAILED
+test authenticated_describe_control_ceiling_precedes_header_parse ... FAILED
+test authenticated_handshake_control_ceiling_precedes_header_parse ... FAILED
+
+failures:
+
+---- authenticated_authenticate_control_ceiling_precedes_header_parse stdout ----
+
+thread 'authenticated_authenticate_control_ceiling_precedes_header_parse' (476233) panicked at tests/sasl_sessions.rs:984:5:
+control API36 bypassed its configured ceiling
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- authenticated_alter_control_ceiling_precedes_header_parse_and_storage stdout ----
+
+thread 'authenticated_alter_control_ceiling_precedes_header_parse_and_storage' (476232) panicked at tests/sasl_sessions.rs:984:5:
+control API51 bypassed its configured ceiling
+
+---- authenticated_describe_control_ceiling_precedes_header_parse stdout ----
+
+thread 'authenticated_describe_control_ceiling_precedes_header_parse' (476238) panicked at tests/sasl_sessions.rs:984:5:
+control API50 bypassed its configured ceiling
+
+---- authenticated_handshake_control_ceiling_precedes_header_parse stdout ----
+
+thread 'authenticated_handshake_control_ceiling_precedes_header_parse' (476241) panicked at tests/sasl_sessions.rs:984:5:
+control API17 bypassed its configured ceiling
+
+
+failures:
+    authenticated_alter_control_ceiling_precedes_header_parse_and_storage
+    authenticated_authenticate_control_ceiling_precedes_header_parse
+    authenticated_describe_control_ceiling_precedes_header_parse
+    authenticated_handshake_control_ceiling_precedes_header_parse
+
+test result: FAILED. 0 passed; 4 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.59s
+
+error: test failed, to rerun pass `--test sasl_sessions`

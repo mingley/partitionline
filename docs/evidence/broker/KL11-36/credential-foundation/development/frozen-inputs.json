@@ -1,0 +1,19 @@
+{
+  "scope": "Development foundation only; not complete KL11-36 qualification. Immutable source-pin reruns follow coordinator push.",
+  "inputs": {
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/tests/sasl_credentials.rs": "236b35f4af17caad577c389465597961d303269cf00f2d0c42903360ea11e333"
+  },
+  "counts": {
+    "lib": 32,
+    "existing_sasl": 10,
+    "credential_public": 9
+  },
+  "limitations": [
+    "Private actor injection tests simulate commit-boundary faults; actual low-level write/sync fault core is existing journal tests.",
+    "No socket/wire/admin/live-client qualification yet.",
+    "Unix trusted regular file permission policy; no cross-process locking or hostile directory race defense.",
+    "Stored generation IDs are process-local; admitted sessions retain their generation until completion."
+  ]
+}

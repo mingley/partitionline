@@ -1,0 +1,89 @@
+{
+  "scope": "Development diagnosis only: unchanged committed400a production and pinned native library; SSL_write shim observes numeric Kafka header/Alter field lengths and forwards bytes unchanged. No credentials, tokens, salt or keys logged/persisted. Original failed state copied and preserved.",
+  "production_source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "diagnostic_sources_sha256": {
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "78007f5d5af8e150505b134b104c80cd6cf6019143ae7b8b79f7da227ff326b9",
+    "docs/evidence/broker/KL11-72/peers/diagnostic-ssl-shape.c": "ba0be681b39ccd35bd41d8f36ea65382d62f9e61cf4125625994c0f61ee5025e"
+  },
+  "preload_binary_sha256": "c04d316cd48dc0dd85da3c291c88cb78d45b1b744160018ddcb8e03f6cd7532a",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/sasl-wire/native-diagnostic-02/state",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "restart"
+      ],
+      "pid": 537446,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/native-diagnostic-01/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "environment": {
+        "LD_PRELOAD": "/workspace/work/sasl-wire/native-diagnostic-01/diagnostic-ssl-shape.so"
+      },
+      "exit_code": 1
+    }
+  ],
+  "server_events": [
+    {
+      "event": "credential-recovery",
+      "entries": 5,
+      "truncated_bytes": 0,
+      "healthy": true
+    },
+    {
+      "event": "ready",
+      "tls_port": 29372,
+      "plaintext_port": 29373,
+      "admin_allowlist_count": 1
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "shutdown",
+      "tls_accepted": 2,
+      "tls_joined": 2,
+      "plain_accepted": 0,
+      "plain_joined": 0,
+      "shutdown_connections": 0,
+      "worker_failures": 0,
+      "credential_store_joined": true
+    }
+  ],
+  "logs_sha256": {
+    "peer.stderr.log": "2d21b41387c3e472c5a9296ca3ce0664291a0862b9576fe864723bda51ab80c1",
+    "peer.stdout.log": "4620a920190e4902d5528af2572fc3bae7656ca6c57eefba972af314235511d4",
+    "server.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stdout.log": "a6727d90a7b970265c8033d260ca37ec550678dfbfb834971f686285dc9a8dbf"
+  }
+}

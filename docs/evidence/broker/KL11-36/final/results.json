@@ -1,0 +1,53 @@
+{
+  "source_sha": "2db175c70d7f3e0c15390a1e6c97903958cfee09",
+  "checked_git_blobs_before_and_after": 17383,
+  "all_source_bytes_unchanged": true,
+  "commands_passed": 20,
+  "test_counts": {
+    "stable-default-test": {
+      "passed": 151,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-sasl-test": {
+      "passed": 199,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "stable-all-test": {
+      "passed": 228,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-default-test": {
+      "passed": 151,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-sasl-test": {
+      "passed": 199,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    },
+    "1.85.0-all-test": {
+      "passed": 228,
+      "failed": 0,
+      "ignored": 0,
+      "measured": 0,
+      "filtered": 0
+    }
+  },
+  "strict_format_alltarget_clippy_and_rustdoc": "passed on stable and Rust 1.85.0",
+  "new_skips_ignored_or_filtered": 0,
+  "scope": "Complete Rust QA; independent Java/C live gates are separate receipts."
+}

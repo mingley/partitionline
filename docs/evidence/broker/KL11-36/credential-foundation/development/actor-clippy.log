@@ -1,0 +1,23 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/credentials-source/partitionline-broker)
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> src/security/credentials.rs:193:12
+    |
+193 |     Mutate(Request<(String, Vec<Change>, oneshot::Sender<Result<u64, Error>>)>),
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+    = note: `-D clippy::type-complexity` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+   --> src/security/credentials.rs:195:9
+    |
+195 | /         Request<(
+196 | |             Option<Vec<String>>,
+197 | |             oneshot::Sender<Result<Vec<CredentialInfo>, Error>>,
+198 | |         )>,
+    | |__________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#type_complexity
+
+error: could not compile `partitionline-broker` (lib) due to 2 previous errors

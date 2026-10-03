@@ -1,0 +1,12 @@
+{"trace":"native-SSL_write","api":18,"version":3,"correlation":1,"frame_bytes":50}
+{"trace":"native-SSL_write","api":17,"version":1,"correlation":2,"frame_bytes":45}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":3,"frame_bytes":78}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":4,"frame_bytes":165}
+{"trace":"native-SSL_write","api":3,"version":13,"correlation":5,"frame_bytes":35}
+{"trace":"native-SSL_write","api":18,"version":3,"correlation":1,"frame_bytes":50}
+{"trace":"native-SSL_write","api":17,"version":1,"correlation":2,"frame_bytes":45}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":3,"frame_bytes":78}
+{"trace":"native-SSL_write","api":36,"version":1,"correlation":4,"frame_bytes":165}
+{"trace":"native-SSL_write","api":3,"version":13,"correlation":5,"frame_bytes":35}
+{"trace":"native-SSL_write","api":50,"version":0,"correlation":6,"frame_bytes":39}
+munmap_chunk(): invalid pointer

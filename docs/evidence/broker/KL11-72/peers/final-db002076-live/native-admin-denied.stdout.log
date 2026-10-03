@@ -1,0 +1,5 @@
+{"peer":"librdkafka","version":"2.15.0","phase":"admin-denied"}
+{"operation":"native-alter-envelope","error":0}
+{"operation":"native-upsert","user":"default-forbidden","error":31}
+{"operation":"native-session","mechanism":"SCRAM-SHA-256","tls":true,"expected_success":false,"metadata_error":-195,"authentication_callbacks":4}
+{"status":"pass","assertions":44,"suppressed_native_log_messages":12}

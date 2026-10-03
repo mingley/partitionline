@@ -1,0 +1,9 @@
+{
+  "scope": "Own native evidence peer source review; no broker change and no live execution.",
+  "finding": "librdkafka log callbacks can run on internal worker threads, so an ordinary shared log counter allowed a C data race. Authentication counter also changed to an atomic for explicit callback ownership.",
+  "resolution": "C11 atomic_int and relaxed loads/stores/fetch-add, same peer logic/settings.",
+  "original_c_sha256": "ddb4b125eb8800aa6f826317c39ded7956e70a66a3a45bdf6c5b38edd37fe6fe",
+  "corrected_c_sha256": "e88691eb064085d6f4d093299e10b74448182d2f943be7c6950c2c6995c697e8",
+  "strict_compilation_receipt": "development-builds-09/results.json",
+  "production_qualification": false
+}

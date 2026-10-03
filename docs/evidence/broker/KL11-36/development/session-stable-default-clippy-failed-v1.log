@@ -1,0 +1,17 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+error: used `unwrap_or()` on `None` value
+   --> src/transport.rs:747:29
+    |
+747 |         let read_deadline = preauth_deadline.unwrap_or(Instant::now() + config.read_timeout);
+    |                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: remove the `None` and `unwrap_or()`
+   --> src/transport.rs:742:49
+    |
+742 |         let preauth_deadline: Option<Instant> = None;
+    |                                                 ^^^^
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unnecessary_literal_unwrap
+    = note: `-D clippy::unnecessary-literal-unwrap` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_literal_unwrap)]`
+
+error: could not compile `partitionline-broker` (lib) due to 1 previous error

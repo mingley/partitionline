@@ -1,0 +1,17 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "tree": "8ce5441b90347e0f7c65c1644e750e1acc159ca0",
+  "checked_git_blobs": 20137,
+  "mismatches": [],
+  "inputs": {
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/mod.rs": "eae37d7a6756186331155ca6e3b58d342761d36e323b416220679bedcc623003",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/src/security/session.rs": "65461cfd95750d8c4943515fb825c855a6c2ef3cd873e56749dc6369ef4f8ee3",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-wire.tsv": "3bd875f19afd00cae0b3174bdcd4ebc4f0b44b5e4ee70debd37b7aae2e8bc5b3",
+    "partitionline-broker/tests/sasl_credentials.rs": "236b35f4af17caad577c389465597961d303269cf00f2d0c42903360ea11e333",
+    "partitionline-broker/tests/sasl_sessions.rs": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+  }
+}

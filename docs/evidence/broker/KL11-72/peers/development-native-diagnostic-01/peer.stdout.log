@@ -1,0 +1,3 @@
+{"peer":"librdkafka","version":"2.15.0","phase":"admin"}
+{"operation":"native-describe","user":"native-created","error":91,"algorithms":0}
+{"operation":"native-alter-envelope","error":-195}

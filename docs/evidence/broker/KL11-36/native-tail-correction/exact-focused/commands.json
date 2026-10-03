@@ -1,0 +1,166 @@
+{
+  "base_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "overlay_paths": [
+    "partitionline-broker/src/security/session.rs",
+    "partitionline-broker/tests/sasl_sessions.rs",
+    "partitionline-broker/tests/fixtures/sasl-wire/native-alter-canonical.frame.hex",
+    "partitionline-broker/tests/fixtures/sasl-wire/native-alter-redundant-empty-tag.frame.hex"
+  ],
+  "commands": [
+    {
+      "name": "msrv-socket",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--test",
+        "sasl_sessions"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 9.289657831192017,
+      "log": "msrv-socket.log",
+      "sha256": "36ed50be423fd5d88d5fa7dc39d230d3b441df770baa53e718a72ecc400aa09b"
+    },
+    {
+      "name": "stable-format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.19881319999694824,
+      "log": "stable-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stable-sasl-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.4005119800567627,
+      "log": "stable-sasl-clippy.log",
+      "sha256": "263085b4ababa4a069eabf18e81114431849a85fe29af9cceffd5af6443e5dc3"
+    },
+    {
+      "name": "stable-all-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.48743724822998047,
+      "log": "stable-all-clippy.log",
+      "sha256": "62ed0fe38c62a2adc33ecca8200e4d8546ca4cd674e16ab09476ac8f9771b5e4"
+    },
+    {
+      "name": "1.85.0-format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.21242284774780273,
+      "log": "1.85.0-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "1.85.0-sasl-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.5648925304412842,
+      "log": "1.85.0-sasl-clippy.log",
+      "sha256": "ac0b42a46a79e40bc5709f89eea175a4d2237ee5597bcfa049b9bb49a9d7d27b"
+    },
+    {
+      "name": "1.85.0-all-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/native-rework-source/partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.6988892555236816,
+      "log": "1.85.0-all-clippy.log",
+      "sha256": "6dbdfd0723fa1bd9de356cc32990120b53db40c3b2fe4da0d26ac049efca9764"
+    }
+  ]
+}

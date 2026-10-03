@@ -1,0 +1,65 @@
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling miniz_oxide v0.9.1
+   Compiling crc32fast v1.5.2
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling snap v1.1.2
+   Compiling zstd-rs v0.1.0
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 7.85s
+     Running tests/sasl_sessions.rs (/workspace/work/broker-sasl/target/debug/deps/sasl_sessions-31bccacf4e67f910)
+
+running 5 tests
+test admin_authority_is_explicit_and_unauthorized_alter_never_reaches_storage ... ok
+test preauth_deadline_rounds_bytes_and_shutdown_are_bound_to_each_socket ... ok
+test tls_plain_all_versions_legacy_unicode_and_poison_shutdown_dispatch_gate ... ok
+test actual_socket_scram_all_versions_legacy_and_typed_identity_gate ... ok
+test unsupported_plain_early_application_wrong_proof_and_repeated_handshake_are_terminal ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.28s
+
+     Running tests/tls.rs (/workspace/work/broker-sasl/target/debug/deps/tls-44780823ee869ed0)
+
+running 15 tests
+test admitted_pending_handshake_retains_pre_rotation_generation ... ok
+test handshakes_and_established_sessions_share_cap_and_joined_shutdown ... ok
+test idle_and_fragmented_tls_progress_share_absolute_handshake_deadline ... ok
+test oversized_tls_record_and_handshake_lengths_fail_closed ... ok
+test pending_handshake_shutdown_can_be_cancelled_retried_and_drop_cleaned ... ok
+test independent_openssl_peer_verifies_tls_versions_and_mtls_rejections ... ok
+test rejects_invalid_limits_der_keys_trust_and_totals_eagerly ... ok
+test plaintext_never_falls_back_on_tls_listener ... ok
+test required_mtls_rejects_missing_untrusted_expired_and_wrong_purpose_clients ... ok
+test required_mtls_verifies_intermediate_chain_and_preserves_peer_metadata ... ok
+test server_only_tls_has_no_authenticated_client_identity ... ok
+test verified_peer_chain_cap_closes_before_handler_dispatch ... ok
+test verified_tls12_and_tls13_frame_roundtrip ... ok
+test verifying_clients_reject_wrong_server_name_expiry_and_trust ... ok
+test rotation_updates_new_server_identity_and_client_trust_preserving_old_session ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.82s
+
+     Running tests/transport.rs (/workspace/work/broker-sasl/target/debug/deps/transport-29c20172c18bec83)
+
+running 16 tests
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test connection_overload_rejects_without_spawning_handler ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.51s
+

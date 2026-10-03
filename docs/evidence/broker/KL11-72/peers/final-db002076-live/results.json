@@ -1,0 +1,1571 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "verified_source_objects_sha256": {
+    "docs/evidence/broker/KL11-72/peers/server/Cargo.toml": "78500c7d85cb5ef152663fad7c988314a0b1a3a66b7b9e1bd47f6c6f2a0ffeb6",
+    "docs/evidence/broker/KL11-72/peers/server/Cargo.lock": "f0c4a8106df828a88a67d3d129c28c60ad16290cf4b669d53d17eaf5bbcc9d8b",
+    "docs/evidence/broker/KL11-72/peers/server/src/main.rs": "4bc2af8f3b0bf211af37fdccdb47da03125212f8221b8b681a92b248f21b70d3",
+    "docs/evidence/broker/KL11-72/peers/SaslSocketPeer.java": "9a4a67f5b7ae0c93d03c2e39ff524ca9585db499020692452dacf716b81f78ff",
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "fb1542ef1275de2b3748468e684e2d561dec400ed59fa73b0479f6773a96fefb",
+    "docs/evidence/broker/KL11-72/peers/compile-peers.py": "ae1fc251afb9a9fe439dcdc0cf8fa6fe391a03f147d6952c298468787f5ec47f",
+    "docs/evidence/broker/KL11-72/peers/audit-journal.py": "1688dd0fe0e6183d47500e1bece62331d17a4941914a120da1312c090537a29a",
+    "docs/evidence/broker/KL11-72/oracle/SaslWireOracle.java": "fd66686b8fe7c187a87cbe0208738009e8f9ee55c6bb1d966f21c786129f2bb3",
+    "docs/evidence/broker/KL11-72/peers/run-live.py": "33b797a43e2d6866fae9513188977f06df42a370a11e526abd65253932ed47ab",
+    "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+    "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae",
+    "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv": "c054a32b9ec4601174adaae07dc39c7676b05ef6f72494fb873223bd1caf342d",
+    "partitionline-broker/src/catalog.rs": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+    "partitionline-broker/src/codecs.rs": "28112daa3779f18da53d8dd3cb4db41019e6404f47ce710d744fb353baa5a0b4",
+    "partitionline-broker/src/fetch.rs": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+    "partitionline-broker/src/journal.rs": "40b360da2d2880aaf4d810b634822c478de85eaef418ac9c9cf7e5c485efa5fe",
+    "partitionline-broker/src/lib.rs": "87dface4013734d8b6d9a4cb41e3321dff10bd64ee5cdb6e7037d6280a4e40bc",
+    "partitionline-broker/src/metadata.rs": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+    "partitionline-broker/src/partition.rs": "6cb18f96abba507c8b26683c40f9795227dd3bd3cddbdd4407e5be975dffda99",
+    "partitionline-broker/src/produce.rs": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/raft/election.rs": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+    "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/replication.rs": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+    "partitionline-broker/src/records.rs": "dfa1c02190cb712c78d8541fc55fab7a936c5e80b9f50a92bc432ce23f4e11e7",
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938",
+    "partitionline-broker/src/security/mod.rs": "eae37d7a6756186331155ca6e3b58d342761d36e323b416220679bedcc623003",
+    "partitionline-broker/src/security/sasl.rs": "92b84bfb8a8fbad1998660428fb5043b26eee258cae610ae14ef18318168cbe7",
+    "partitionline-broker/src/security/session.rs": "65461cfd95750d8c4943515fb825c855a6c2ef3cd873e56749dc6369ef4f8ee3",
+    "partitionline-broker/src/security/tls.rs": "3c9714c5754378f5486a4441ce6fba92d4b75dea65cf48994a466dfa0c1fe040",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/fixtures/tls/server1.cert.der": "d282618fae52580bb50d17af0355a4f1cb74ec32f7cde8b4602cc89755157b49",
+    "partitionline-broker/tests/fixtures/tls/server1.key.der": "43cde253ee0d9d7196084604ba0f095229e4e2fe67ceb36c1c1228181734860c",
+    "partitionline-broker/tests/fixtures/tls/ca1.cert.pem": "a867f8d9a7cdf397208b278722a4b320d0cd8356b05046c82e3612eff93db529"
+  },
+  "scope": "Actual Rust TLS/SASL/Profile/Store/MetadataRouter composed in an evidence-only harness; independent Java SASL clients/generated requests and native librdkafka/OpenSSL connections/admin. No ready-to-deploy broker/full KIP368 claim.",
+  "production_qualification": false,
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline-broker",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "broker-package-clean.stdout.log",
+      "stderr": "broker-package-clean.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "8cc499f3222539bc8ca10875af7d9f942fb88ba6197cefef3a4542b8c0dd4bbb"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline-sasl-wire-evidence",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "harness-package-clean.stdout.log",
+      "stderr": "harness-package-clean.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "8f644767b17fe635ac0348e571c5f9ffa443af96e987625257b12df1a3bef4a1"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/docs/evidence/broker/KL11-72/peers/server/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 300,
+      "timed_out": false,
+      "stdout": "actual-server-build.stdout.log",
+      "stderr": "actual-server-build.stderr.log",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "97b4290f9d687131a0f77a5c36d46b622c4da64d643afc1b635bf9170d3a36a3"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.1.2-sessions.stdout.log",
+      "stderr": "4.1.2-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.2.1-sessions.stdout.log",
+      "stderr": "4.2.1-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-sessions.stdout.log",
+      "stderr": "4.3.1-sessions.stderr.log",
+      "stdout_sha256": "dd5d8244fa8f7fdb7776efc84b8c668491ce29553b2ac9dc862ac038ffaf943d",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-admin.stdout.log",
+      "stderr": "4.3.1-admin.stderr.log",
+      "stdout_sha256": "fcd4128ce88e22313f00df63520fed5ef7d0840fb540fab8ef652c25761be380",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "sessions"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-sessions.stdout.log",
+      "stderr": "native-sessions.stderr.log",
+      "stdout_sha256": "3e1f00eef423fde8cd43f255e2f16f8a3b54c46e7f71c44f5f80ad1dc3024e22",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-admin.stdout.log",
+      "stderr": "native-admin.stderr.log",
+      "stdout_sha256": "7674c74a7310a2e7134913d54899c235713aa07c84fcb31d654bd8aef3d4313b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "describe-user-denied"
+      ],
+      "exit_code": -6,
+      "expected_exit_code": -6,
+      "completion_verdict": "failed_external_sdk_completion",
+      "expected_observation": true,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "native-describe-user-denied.stdout.log",
+      "stderr": "native-describe-user-denied.stderr.log",
+      "stdout_sha256": "91682968ad618a0060ec473f6f2eba57117e58d15e30e11f2b56d4d9108468f4",
+      "stderr_sha256": "0b6d3860d5d0c9095326297b62c2871845cf2557da3a32e6eb5eac635e3ea1fe"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "restart"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-restart.stdout.log",
+      "stderr": "4.3.1-restart.stderr.log",
+      "stdout_sha256": "ef9bac507f2e5124ba9d233c29d07b55f85e8f6f52a3657569a9efeca89027c2",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "restart"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-restart.stdout.log",
+      "stderr": "native-restart.stderr.log",
+      "stdout_sha256": "52e8a6f6d686cfcd78c6d334686c703069e6b06492cad3514badeed7eafe50a1",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xms16m",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "SaslSocketPeer",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin-denied"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 90,
+      "timed_out": false,
+      "stdout": "4.3.1-admin-denied.stdout.log",
+      "stderr": "4.3.1-admin-denied.stderr.log",
+      "stdout_sha256": "babe986d639bcd87b87a8a2b9be9082b0763d78b5d398690cbf3432fa7c1aed6",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin-denied"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "completion_verdict": "passed",
+      "expected_observation": true,
+      "timeout_seconds": 120,
+      "timed_out": false,
+      "stdout": "native-admin-denied.stdout.log",
+      "stderr": "native-admin-denied.stderr.log",
+      "stdout_sha256": "6f444df89cec573d103a90ec67dc8edb5d538d9129c9be600fd5a8a8ef3c592b",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-peer/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "describe-admin-denied"
+      ],
+      "exit_code": -6,
+      "expected_exit_code": -6,
+      "completion_verdict": "failed_external_sdk_completion",
+      "expected_observation": true,
+      "timeout_seconds": 30,
+      "timed_out": false,
+      "stdout": "native-describe-admin-denied.stdout.log",
+      "stderr": "native-describe-admin-denied.stderr.log",
+      "stdout_sha256": "9d765f82418d1802b2dec564dcaca7484dca398182a12edb19058534c6b9ac60",
+      "stderr_sha256": "0b6d3860d5d0c9095326297b62c2871845cf2557da3a32e6eb5eac635e3ea1fe"
+    }
+  ],
+  "server_lifecycles": [
+    {
+      "phase": "initial",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-state",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "initial"
+      ],
+      "exit_code": 0,
+      "stdout": "initial-server.stdout.log",
+      "stderr": "initial-server.stderr.log",
+      "stdout_sha256": "a1217ff6578d623a561d4c8926d4f7101c19de7e630f9bd9b77946b5a90e13e6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "events": [
+        {
+          "event": "bootstrap",
+          "user": "user",
+          "generation": 2
+        },
+        {
+          "event": "bootstrap",
+          "user": "admin",
+          "generation": 3
+        },
+        {
+          "event": "bootstrap",
+          "user": "unicode",
+          "generation": 4
+        },
+        {
+          "event": "credential-recovery",
+          "entries": 0,
+          "truncated_bytes": 0,
+          "healthy": true
+        },
+        {
+          "event": "ready",
+          "tls_port": 29372,
+          "plaintext_port": 29373,
+          "admin_allowlist_count": 1
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1003,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1006,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1009,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1011,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1017,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1021,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1025,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1027,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1034,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1038,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1042,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1044,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1058,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1062,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "unicode",
+          "generation": 4,
+          "api": 3,
+          "correlation": 1066,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "created-user",
+          "generation": 5,
+          "api": 3,
+          "correlation": 727201,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "created-user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 727202,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 4,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 6,
+          "api": 3,
+          "correlation": 6,
+          "tls": false
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 6,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "native-created",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "native-created",
+          "generation": 8,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "user",
+          "generation": 8,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "shutdown",
+          "tls_accepted": 131,
+          "tls_joined": 131,
+          "plain_accepted": 34,
+          "plain_joined": 34,
+          "shutdown_connections": 2,
+          "worker_failures": 0,
+          "credential_store_joined": true
+        }
+      ],
+      "pending_sockets_at_stop": 2
+    },
+    {
+      "phase": "restart",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-state",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "restart"
+      ],
+      "exit_code": 0,
+      "stdout": "restart-server.stdout.log",
+      "stderr": "restart-server.stderr.log",
+      "stdout_sha256": "3392189a9ed3d9d1b07b13375d9cc5937718280406f967d6fd88cace0d602dd6",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "events": [
+        {
+          "event": "credential-recovery",
+          "entries": 7,
+          "truncated_bytes": 0,
+          "healthy": true
+        },
+        {
+          "event": "ready",
+          "tls_port": 29372,
+          "plaintext_port": 29373,
+          "admin_allowlist_count": 1
+        },
+        {
+          "event": "application-dispatch",
+          "user": "created-user",
+          "generation": 1,
+          "api": 3,
+          "correlation": 727203,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 2,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "native-created",
+          "generation": 2,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "native-created",
+          "generation": 2,
+          "api": 3,
+          "correlation": 6,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 2,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "shutdown",
+          "tls_accepted": 7,
+          "tls_joined": 7,
+          "plain_accepted": 1,
+          "plain_joined": 1,
+          "shutdown_connections": 2,
+          "worker_failures": 0,
+          "credential_store_joined": true
+        }
+      ],
+      "pending_sockets_at_stop": 2
+    },
+    {
+      "phase": "default-admin",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/broker-sasl/72-takeover/final-db002076-state",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/broker-sasl/72-takeover/source-db002076/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "default-admin"
+      ],
+      "exit_code": 0,
+      "stdout": "default-admin-server.stdout.log",
+      "stderr": "default-admin-server.stderr.log",
+      "stdout_sha256": "c511926021f4954f0fedd5cba1c478dfbb49d24e34d720d68f2c30a841155ec8",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "events": [
+        {
+          "event": "credential-recovery",
+          "entries": 9,
+          "truncated_bytes": 0,
+          "healthy": true
+        },
+        {
+          "event": "ready",
+          "tls_port": 29372,
+          "plaintext_port": 29373,
+          "admin_allowlist_count": 0
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 1,
+          "api": 3,
+          "correlation": 727204,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 1,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 1,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 1,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "application-dispatch",
+          "user": "admin",
+          "generation": 1,
+          "api": 3,
+          "correlation": 5,
+          "tls": true
+        },
+        {
+          "event": "shutdown",
+          "tls_accepted": 13,
+          "tls_joined": 13,
+          "plain_accepted": 1,
+          "plain_joined": 1,
+          "shutdown_connections": 2,
+          "worker_failures": 0,
+          "credential_store_joined": true
+        }
+      ],
+      "pending_sockets_at_stop": 2
+    }
+  ],
+  "native_library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "ports": [
+    29372,
+    29373
+  ],
+  "peer_compilation_receipt_sha256": "4c220847e22bf6a4ed62d2993321a3304a9b334bf7a0cd0380d10dfbba7eec23",
+  "provenance": {
+    "original_peer_oracle_worker": "zstd_decision",
+    "followup_orchestration_worker": "consumer_lookups (production implementer)",
+    "independent_expectations": "Pinned Apache generated parsers/SASL clients and unmodified native SDK; follow-up orchestration is explicitly attributed."
+  },
+  "limits": {
+    "connections_per_listener": 64,
+    "handlers_per_listener": 8,
+    "request_bytes": 16384,
+    "response_bytes": 1048576,
+    "preauth_absolute_seconds": 3,
+    "read_handler_write_seconds": 5
+  },
+  "server_binary_sha256": "a07d780428b4a58a274a45529f502080c0994d795f567a73f0557bccab96a3b5",
+  "native_peer_binary_sha256": "b6338a620c1eec729e349673bb635db9ea79d5de10f3424e303c4fd8eeb61d20",
+  "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "known_external_sdk_failures": [
+    {
+      "phase": "describe-user-denied",
+      "verdict": "failed_external_sdk_completion",
+      "exit_code": -6,
+      "parsed_describe_error": 31,
+      "cause": "Pinned native Describe parser stores static/stack error text as owned admin_result.errstr; event cleanup frees it. Response validity is independently decoded; no production behavior workaround.",
+      "clean_native_completion": false,
+      "pre_cleanup_marker_verified": true,
+      "stdout": "native-describe-user-denied.stdout.log",
+      "stderr": "native-describe-user-denied.stderr.log"
+    },
+    {
+      "phase": "describe-admin-denied",
+      "verdict": "failed_external_sdk_completion",
+      "exit_code": -6,
+      "parsed_describe_error": 31,
+      "cause": "Pinned native Describe parser stores static/stack error text as owned admin_result.errstr; event cleanup frees it. Response validity is independently decoded; no production behavior workaround.",
+      "clean_native_completion": false,
+      "pre_cleanup_marker_verified": true,
+      "stdout": "native-describe-admin-denied.stdout.log",
+      "stderr": "native-describe-admin-denied.stderr.log"
+    }
+  ],
+  "initial_journal_audit": {
+    "journal_sha256": "8074c1fb3a1dc4b7e4085ba5b8907c37ed78fdf8c86860424cf10c307117a2f1",
+    "journal_bytes": 1465,
+    "entries": 7,
+    "history": [
+      {
+        "entry": 0,
+        "user": "user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 0,
+        "user": "user",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 1,
+        "user": "admin",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 1,
+        "user": "admin",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 2,
+        "user": "unicode",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 2,
+        "user": "unicode",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 3,
+        "user": "created-user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 4,
+        "user": "created-user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 5,
+        "user": "native-created",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 6,
+        "user": "native-created",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      }
+    ],
+    "retained_identity_algorithms": [
+      {
+        "user": "admin",
+        "algorithm": 1
+      },
+      {
+        "user": "admin",
+        "algorithm": 2
+      },
+      {
+        "user": "created-user",
+        "algorithm": 1
+      },
+      {
+        "user": "native-created",
+        "algorithm": 1
+      },
+      {
+        "user": "unicode",
+        "algorithm": 1
+      },
+      {
+        "user": "unicode",
+        "algorithm": 2
+      },
+      {
+        "user": "user",
+        "algorithm": 1
+      },
+      {
+        "user": "user",
+        "algorithm": 2
+      }
+    ],
+    "crc32c_headers_and_payloads_verified": true,
+    "canonical_verifier_schema_only": true,
+    "stored_server_keys_independently_derived": true,
+    "password_and_salted_password_raw_hex_base64_absent": true,
+    "proof_field_absent_from_canonical_schema": true,
+    "limits": "Public synthetic test users only; structural replay plus independently computed verifiers. No live auth tokens are logged or collected by this audit."
+  },
+  "final_journal_audit": {
+    "journal_sha256": "7443ea97c775a45776bdc1cde51593900e4d228363437de84b66666a31e93798",
+    "journal_bytes": 1581,
+    "entries": 9,
+    "history": [
+      {
+        "entry": 0,
+        "user": "user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 0,
+        "user": "user",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 1,
+        "user": "admin",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 1,
+        "user": "admin",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 2,
+        "user": "unicode",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 2,
+        "user": "unicode",
+        "algorithm": 2,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 64,
+        "server_key_bytes": 64,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 3,
+        "user": "created-user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 4,
+        "user": "created-user",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 5,
+        "user": "native-created",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 6,
+        "user": "native-created",
+        "algorithm": 1,
+        "operation": "upsert",
+        "iterations": 4096,
+        "salt_bytes": 16,
+        "stored_key_bytes": 32,
+        "server_key_bytes": 32,
+        "independent_derivation_matches": true
+      },
+      {
+        "entry": 7,
+        "user": "created-user",
+        "algorithm": 1,
+        "operation": "delete"
+      },
+      {
+        "entry": 8,
+        "user": "native-created",
+        "algorithm": 1,
+        "operation": "delete"
+      }
+    ],
+    "retained_identity_algorithms": [
+      {
+        "user": "admin",
+        "algorithm": 1
+      },
+      {
+        "user": "admin",
+        "algorithm": 2
+      },
+      {
+        "user": "unicode",
+        "algorithm": 1
+      },
+      {
+        "user": "unicode",
+        "algorithm": 2
+      },
+      {
+        "user": "user",
+        "algorithm": 1
+      },
+      {
+        "user": "user",
+        "algorithm": 2
+      }
+    ],
+    "crc32c_headers_and_payloads_verified": true,
+    "canonical_verifier_schema_only": true,
+    "stored_server_keys_independently_derived": true,
+    "password_and_salted_password_raw_hex_base64_absent": true,
+    "proof_field_absent_from_canonical_schema": true,
+    "limits": "Public synthetic test users only; structural replay plus independently computed verifiers. No live auth tokens are logged or collected by this audit."
+  },
+  "verdict": "scoped_server_gates_passed_with_sdk_completion_failures",
+  "driver_completed": true,
+  "server_contract_gates": "passed",
+  "positive_native_admin_restart_completion": "passed",
+  "native_describe_error_completion": "failed",
+  "unqualified_all_peer_pass": false,
+  "describe31_official_schema_proofs": [
+    {
+      "phase": "4.3.1-admin",
+      "decoder": "Apache4.3.1 generated DescribeUserScramCredentialsResponseData",
+      "whole_input_consumed": true,
+      "results_empty": true,
+      "error_message_null": true,
+      "error": 31,
+      "stdout": "4.3.1-admin.stdout.log"
+    },
+    {
+      "phase": "4.3.1-admin-denied",
+      "decoder": "Apache4.3.1 generated DescribeUserScramCredentialsResponseData",
+      "whole_input_consumed": true,
+      "results_empty": true,
+      "error_message_null": true,
+      "error": 31,
+      "stdout": "4.3.1-admin-denied.stdout.log"
+    }
+  ],
+  "preauth_application_dispatches": 0,
+  "captured_rotation_generation": 5,
+  "new_rotation_generation": 6,
+  "joined_owned_listener_lifecycles": 3,
+  "passwords_absent_from_logs": true,
+  "authenticated_java_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "native_runtime_version": "2.15.0"
+}

@@ -1,0 +1,38 @@
+{
+  "source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "reviewer": "codex zstd_decision independent KL11-72 oracle/peer worker",
+  "mode": "Read-only review; no reviewer production edits or production test reruns. Separate evidence-only harness developmental compilation does not qualify sockets.",
+  "source_objects_sha256": {
+    "partitionline-broker/src/security/session.rs": "f1bd26922aa56fbe3d47c14a92314b0f7dfe8f1dab6207f02152f558e229ce6c",
+    "partitionline-broker/src/transport.rs": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+    "partitionline-broker/tests/sasl_sessions.rs": "a9a4e2e6017724def1b9582244130062e0fc6e91eb04e803d692cb58e28bc66f",
+    "partitionline-broker/src/security/credentials.rs": "68c31f3d2aebfe4606d0b4012ae295720ddc549e821e9928fd7199947701f938"
+  },
+  "findings": [
+    {
+      "status": "resolved_source_review",
+      "file": "partitionline-broker/src/security/session.rs",
+      "detail": "Authenticated key17/36/50/51 control frames use request.len as parser ceiling and Session::frame_limit returns configured transport maximum after proof; with transport cap larger than Limits.frame_bytes, declared one-control payload ceiling is bypassed. API18 separately enforces its frame_bytes. Transport still bounds allocation. Enforce control payload length before parse/work, regress authentic postauth socket with wider transport cap, and distinguish admitted buffer cap from control parser cap.",
+      "resolution": "Known control keys17/36/50/51 enforce declared payload cap before header parsing/copies/store work. Documentation distinguishes authenticated transport allocation cap. Four real-socket regressions use transport65536/control256 and structurally valid300-byte ClientId, demand no reply/app dispatch/store generation mutation. Implementation worker reports failing-first unchangedee source and stable/MSRV13 focused tests plus4strictlint cells after fix; reviewer did not rerun those production tests."
+    }
+  ],
+  "reviewed_invariants": [
+    "TLS and SASL absolute deadlines start at accepted socket admission; TLS uses minimum handshake/preauth deadline; handler-permit wait, response writes and reads retain absolute limits.",
+    "Preauth cumulative wire bytes, rounds, strict message consumption, per-field/count/tag bounds prevent application dispatch before proof; owned profile allowlist selects actually composed ranges.",
+    "PLAIN offered only explicit TLS profile; plaintext profile supports SCRAM only; terminal negotiation/proof failures close; v1/v2 lifetime zero and no reauthentication.",
+    "Original authentication/Alter wire frames and SaltedPassword copies have zeroizing ownership; errors and Debug remain redacted; private credential service cannot be externally mutated.",
+    "Durable Store validates salt/iterations/hash sizes, preserves verifier-only records, poisons ambiguous append failures, skips canceled queued commands, and does not acknowledge nondurable state as success.",
+    "Actual Apache Describe duplicate names collapse to one92 result and any repeated Alter username has92 whole-user result, including cross-algorithm changes; authenticated admin allowlist empty by default.",
+    "Joined shutdown cancels socket/TLS/auth futures and drains owned connection tasks; feature optionality retains existing unauthenticated listener behavior."
+  ],
+  "limitations": [
+    "No listener readiness or full Kafka server/KIP368 claim.",
+    "No duplicate reviewer broker test matrix; worker owns exact-commit full production validation. Separate final independent Java/C runtime receipts remain distinct.",
+    "Credential identity generations describe immutable snapshots within the process; no durable cross-restart generation monotonicity claimed."
+  ],
+  "production_qualification": false,
+  "supersedes_review": "review-ee8796f3.json",
+  "superseded_review_sha256": "c4be7154678f92a7ae5250c7c10985749f0bd8a4ca134e9ddb3752c0f92d3af0",
+  "blocking_findings": 0,
+  "verdict": "No blocking finding in reviewed bounded foundation scope."
+}

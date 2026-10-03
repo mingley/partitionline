@@ -1,0 +1,34 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-sasl/session-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.85s
+     Running unittests src/lib.rs (/workspace/work/broker-sasl/target/debug/deps/partitionline_broker-3f4869ee22bdcef8)
+
+running 3 tests
+test security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens ... FAILED
+test security::session::tests::malformed_varint_tag_order_count_and_null_sentinels_fail_boundedly ... ok
+test security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted ... FAILED
+
+failures:
+
+---- security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens stdout ----
+
+thread 'security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens' (389839) panicked at src/security/session.rs:1085:29:
+assertion `left == right` failed
+  left: [0, 0, 3, 255, 0, 0, 255, 255, 0, 0, 0, 0]
+ right: [0, 0, 3, 255, 0, 0, 0, 0, 0, 0, 0, 0]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted stdout ----
+
+thread 'security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted' (389838) panicked at src/security/session.rs:1179:9:
+assertion `left == right` failed
+  left: [0, 0, 4, 38, 0, 0, 0, 0, 0, 0, 0, 0, 2, 5, 117, 115, 101, 114, 0, 0, 0, 3, 1, 0, 0, 16, 0, 0, 2, 0, 0, 32, 0, 0, 0, 0]
+ right: [0, 0, 4, 38, 0, 0, 0, 0, 0, 0, 0, 1, 2, 5, 117, 115, 101, 114, 0, 0, 1, 3, 1, 0, 0, 16, 0, 0, 2, 0, 0, 32, 0, 0, 0, 0]
+
+
+failures:
+    security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted
+    security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.18s
+
+error: test failed, to rerun pass `--lib`

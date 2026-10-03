@@ -1,0 +1,74 @@
+{
+  "base_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "files": {
+    "partitionline-broker/src/security/session.rs": "65461cfd95750d8c4943515fb825c855a6c2ef3cd873e56749dc6369ef4f8ee3",
+    "partitionline-broker/tests/sasl_sessions.rs": "ece34791a3ae5d904a19f77444971a6eeac898660052352c876fcf77255367cc"
+  },
+  "unchanged_transport_sha256": "58e6b3407f2e5aeb0480d53c9379fd083ce2663f15876c4f9e14c82ee4b64d71",
+  "policy": "After complete canonical API51v0 body, consume exactly one extra empty tag byte0. Reject all other tails; finish remains strict for every other API.",
+  "independent_actual_cause": "docs/evidence/broker/KL11-72/peers/development-native-diagnostic-02/results.json",
+  "failing_first": {
+    "production_source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+    "only_overlay": "partitionline-broker/tests/sasl_sessions.rs",
+    "test_sha256": "ece34791a3ae5d904a19f77444971a6eeac898660052352c876fcf77255367cc",
+    "failed": 1,
+    "passed": 0,
+    "ignored": 0,
+    "filtered": 14,
+    "log": "../superseded-strict-native-candidate/400a71f2/400a-exact-native-tail-failing-first.log",
+    "earlier_overlay_attempt": "../superseded-strict-native-candidate/400a71f2/400a-native-tail-failing-first.log",
+    "earlier_overlay_scope": "ee8796 archive plus the identical400a session/transport/credential source; preserved as preliminary observation, not exact full400a source."
+  },
+  "checks": {
+    "stable_socket_tests": 15,
+    "msrv_socket_tests": 15,
+    "private_golden_codec_tests_per_chain": 3,
+    "strict_clippy_sasl_and_all_per_chain": 2,
+    "format_per_chain": 1,
+    "ignored": 0,
+    "failed": 0
+  },
+  "behavior": {
+    "canonical_and_native_successful_mutations": 4,
+    "hashes": [
+      "SHA256",
+      "SHA512"
+    ],
+    "generation_advances_per_mutation": 1,
+    "successful_reopened_authentications": 4,
+    "journal_entries_after_successful_requests": 10,
+    "invalid_alter_tails": [
+      [
+        1
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        1
+      ],
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        128
+      ]
+    ],
+    "other_API_extra0_rejected": [
+      17,
+      36,
+      50
+    ],
+    "journal_entries_after_malformed_attempts": 6,
+    "malformed_generation_changes": 0,
+    "malformed_application_dispatches": 0
+  }
+}

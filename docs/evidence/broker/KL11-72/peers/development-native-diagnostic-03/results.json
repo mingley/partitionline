@@ -1,0 +1,92 @@
+{
+  "scope": "Development diagnosis of rejected400a Alter only: unchanged committed400a production and pinned native library; SSL_write observer forwards bytes unchanged and logs numeric framing/lengths only.",
+  "production_source_sha": "400a71f246b8e1e315d5c03817bdde3abed07c34",
+  "diagnostic_sources_sha256": {
+    "docs/evidence/broker/KL11-72/peers/sasl-native-peer.c": "78007f5d5af8e150505b134b104c80cd6cf6019143ae7b8b79f7da227ff326b9",
+    "docs/evidence/broker/KL11-72/peers/diagnostic-ssl-shape.c": "4119a5683c935b0950da2006695138afa7ebfdc78c79ac5f39e22d30906ff61e"
+  },
+  "server_binary_sha256": "d136618af19245594c8b9bd74bcc04f173ed713381860dccc6830cbc0cabecba",
+  "peer_binary_sha256": "9f01942ada209faabf6148d10ab453117c9421afe0f739566bf3cdc58d367aab",
+  "preload_binary_sha256": "eca00040d495ecb48099f9b6ee446cc786999dd77dcb2931aa29f4ff9f33ecad",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/target-broker-codecs/debug/partitionline-sasl-wire-evidence",
+        "/workspace/work/sasl-wire/native-diagnostic-03/state",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls",
+        "29372",
+        "29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv",
+        "restart"
+      ],
+      "pid": 538172,
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/sasl-wire/native-diagnostic-01/sasl-native-peer",
+        "localhost:29372",
+        "localhost:29373",
+        "/workspace/work/sasl-wire/source-400a71f2/partitionline-broker/tests/fixtures/tls/ca1.cert.pem",
+        "admin"
+      ],
+      "environment": {
+        "LD_PRELOAD": "/workspace/work/sasl-wire/native-diagnostic-01/diagnostic-ssl-shape.so"
+      },
+      "exit_code": 1
+    }
+  ],
+  "server_events": [
+    {
+      "event": "credential-recovery",
+      "entries": 5,
+      "truncated_bytes": 0,
+      "healthy": true
+    },
+    {
+      "event": "ready",
+      "tls_port": 29372,
+      "plaintext_port": 29373,
+      "admin_allowlist_count": 1
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "application-dispatch",
+      "user": "admin",
+      "generation": 1,
+      "api": 3,
+      "correlation": 5,
+      "tls": true
+    },
+    {
+      "event": "shutdown",
+      "tls_accepted": 2,
+      "tls_joined": 2,
+      "plain_accepted": 0,
+      "plain_joined": 0,
+      "shutdown_connections": 0,
+      "worker_failures": 0,
+      "credential_store_joined": true
+    }
+  ],
+  "logs_sha256": {
+    "peer.stderr.log": "86a470cabbdb9497ece37078dbd784fbf58db52ac5d29c020dc8d429a69688da",
+    "peer.stdout.log": "4620a920190e4902d5528af2572fc3bae7656ca6c57eefba972af314235511d4",
+    "server.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "server.stdout.log": "a6727d90a7b970265c8033d260ca37ec550678dfbfb834971f686285dc9a8dbf"
+  },
+  "finding": "Actual nativeAlter51v0 frame106 canonical parse leaves exactly one trailing zero; same source writes bodytags explicitly and automatically at finalize. Metadata13/controller0 and Describe50v0 worked; no API60 requirement."
+}
