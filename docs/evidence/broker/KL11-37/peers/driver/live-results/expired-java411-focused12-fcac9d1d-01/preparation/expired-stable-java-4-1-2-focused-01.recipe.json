@@ -1,0 +1,92 @@
+{
+  "name": "expired-stable-java-4-1-2-focused-01",
+  "server_toolchain": "stable",
+  "profile": "metadata",
+  "status": "additive WORK proposal; no runtime/config replacement yet",
+  "steps": [
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "expired"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "expired",
+        "expected_rejection_layer": "broker-authentication"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    }
+  ],
+  "step_count": 12,
+  "driver_budget_seconds": 240,
+  "outer_total_budget_seconds": 300,
+  "outer_cleanup_included": true,
+  "deny_claim": "typed public failure plus actual authority witness; client/local/transport/native-unproved origin differs from broker protocol response; no synchronized application-dispatch absence proof",
+  "selected_peer": "java-4-1-2",
+  "policies": [
+    "valid",
+    "expired"
+  ],
+  "fresh_after_prior_positive": true,
+  "issuer_sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+  "java_local_expected": [],
+  "native_origin": "-169 remains public-authentication-origin-unproved; callback rejection distinct from actual broker58",
+  "correction_scope": "Focused real expired-token query with same-configured baseline and recovery, preserving originalfullsignedcell failure separately; not a fullsignedmatrix."
+}

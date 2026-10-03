@@ -1,0 +1,609 @@
+[
+  {
+    "driver_sequence": 0,
+    "actor": "broker",
+    "api_keys": [
+      3,
+      17,
+      18,
+      19,
+      20,
+      36
+    ],
+    "broker": "localhost:45767",
+    "event": "ready",
+    "maximum_runtime_secs": 240,
+    "profile": "metadata",
+    "recovered_entries": 1,
+    "session_lifetime_ms": 0,
+    "topic": "oidc-probe"
+  },
+  {
+    "driver_sequence": 1,
+    "actor": "driver",
+    "event": "issuer-control",
+    "token_policy": "valid",
+    "outage": []
+  },
+  {
+    "driver_sequence": 2,
+    "actor": "java-4-1-2",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "issuer": "https://localhost:33917/issuer",
+    "callback": {
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 3,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 0,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 4,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 1,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 5,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 2,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 6,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 8,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 3,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 7,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 4,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 8,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 5,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 9,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 6,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 10,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "expired_baseline",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 11,
+    "actor": "java-4-1-2",
+    "deadline_reached": false,
+    "operator_commands": 2,
+    "event": "complete",
+    "callback": {
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 12,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 1,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 13,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 14,
+    "actor": "driver",
+    "event": "issuer-control",
+    "token_policy": "expired"
+  },
+  {
+    "driver_sequence": 15,
+    "actor": "java-4-1-2",
+    "issuer": "https://localhost:33917/issuer",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "callback": {
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 16,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "expired",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 1.0,
+      "admin-client-metrics:connection-creation-total": 1.0,
+      "admin-client-metrics:failed-authentication-total": 1.0,
+      "admin-client-metrics:request-total": 0.0,
+      "admin-client-metrics:response-total": 0.0,
+      "admin-client-metrics:successful-authentication-total": 0.0,
+      "admin-client-node-metrics:request-total": 0.0,
+      "admin-client-node-metrics:response-total": 0.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 1.0,
+      "consumer-metrics:connection-creation-total": 1.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 0.0,
+      "consumer-metrics:response-total": 0.0,
+      "consumer-metrics:successful-authentication-total": 0.0,
+      "consumer-node-metrics:request-total": 0.0,
+      "consumer-node-metrics:response-total": 0.0
+    },
+    "callback": {
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 17,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "signed-policy",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 18,
+    "actor": "java-4-1-2",
+    "event": "complete",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "callback": {
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 19,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "extension_calls": 1,
+      "closed": 1,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 20,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 21,
+    "actor": "driver",
+    "event": "issuer-control",
+    "token_policy": "valid"
+  },
+  {
+    "driver_sequence": 22,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:33917/issuer",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 23,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 7,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 24,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 8,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 25,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 9,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 26,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 26,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 10,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 27,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 11,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 28,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 12,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 29,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:33917/issuer",
+    "ordinal": 13,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 30,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "expired_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 31,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "expired_recovered"
+  },
+  {
+    "driver_sequence": 32,
+    "actor": "java-4-1-2",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 33,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 34,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 35,
+    "actor": "broker",
+    "event": "shutdown-attempts",
+    "listener_attempted": true,
+    "listener_ok": true,
+    "router_attempted": true,
+    "router_ok": true,
+    "service_attempted": true,
+    "service_ok": true,
+    "stage": "served"
+  },
+  {
+    "driver_sequence": 36,
+    "actor": "broker",
+    "absolute_lifetime_reached": false,
+    "accepted": 10,
+    "application_dispatches": 14,
+    "event": "joined",
+    "handler_errors": 2,
+    "joined": 10,
+    "read_deadlines": 0,
+    "stop_file": true,
+    "tls_handshake_errors": 0,
+    "worker_failures": 0
+  },
+  {
+    "driver_sequence": 37,
+    "actor": "broker",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 38,
+    "actor": "broker",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 17,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 39,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 40,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 41,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 42,
+    "actor": "driver",
+    "event": "complete-source-identity",
+    "file_count": 73196,
+    "before_after_identical": true,
+    "raw_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4"
+  }
+]

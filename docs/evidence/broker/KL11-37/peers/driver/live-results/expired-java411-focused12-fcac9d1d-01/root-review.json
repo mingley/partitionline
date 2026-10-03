@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "root_review": "passed",
+  "reviewed_public_packet_sha256": "ac356fc71f12139b6ba69755473326beacb9ff0d19f72722da1c9ff864977bbe",
+  "exact_public_paths_bytes_full_modes_verified": 20,
+  "actual_focused_steps_passed": 12,
+  "actual_broker_rejection_and_valid_recovery_verified": true,
+  "actual_provider_READY_separate": true,
+  "owned_outer_closed_without_forced_cleanup": true,
+  "private_paths_metadata_only_audit": {
+    "directories": 3,
+    "files": 20,
+    "payload_read_or_hash": false
+  },
+  "source_rows_and_compressed_roundtrip_verified": 73196,
+  "earlier_root_publication_assumption_failures": [
+    {
+      "exit_code": 1,
+      "failure": "Non-filesystem original_path label treated as a file path. Eighteen exact public files copied; no source edits or staging."
+    },
+    {
+      "exit_code": 1,
+      "failure": "Whole source row count checked against three-key metadata wrapper instead of its files list. All twenty exact copies verified; no source edits or staging."
+    }
+  ],
+  "remaining_scope": "Original failed constructor expectation remains retained. Full32matrix plus revised temporal branches, additional SDKs, production soak and whole Kafka remain incomplete. No operation-synchronized dispatch denial claim."
+}

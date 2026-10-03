@@ -1,0 +1,42 @@
+{
+  "name": "expired-stable-java-4-1-2-focused-01",
+  "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01.json",
+  "config_sha256": "2ca85767c92c4097be8c08c315cd91f856abf803c8ad0c51662bbf9627365d4a",
+  "config_bytes": 17959,
+  "config_mode": "0o600",
+  "steps": 12,
+  "profile": "metadata",
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "recipe": "/workspace/work/broker-oidc/signed-expired-recipe-revision-01/expired-stable-java-4-1-2-focused-01.recipe.json",
+  "recipe_sha256": "a46bed886f1b32d50db540ffc1ccb88e142fda1d734f683500efdc53b2550c14",
+  "normal_binding": "/workspace/work/normal-oidc-example-fcac9d1d/build-bindings/stable.json",
+  "normal_binding_sha256": "c340073cc9c61e8b78554f9113f1c72642dc2f250efd11b7edcb361894b1c305",
+  "runtime_rehashes": 68,
+  "source_guard": {
+    "files": 73196,
+    "before_equals_after": true,
+    "full07777_and_exact_pathset": true
+  },
+  "original32config_recipe_untouched": true,
+  "outer_command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+    "--config",
+    "/workspace/work/broker-oidc/live-configs-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01.json",
+    "--output",
+    "/workspace/work/broker-oidc/live-runs-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01",
+    "--private-scratch",
+    "/workspace/work/broker-oidc/private-live-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01"
+  ],
+  "required_negative_witness": {
+    "condition": "signed-policy",
+    "policy": "expired",
+    "expected_rejection_layer": "broker-authentication"
+  },
+  "scope": "Focusedrevision; providerREADY is separatefrom demanded broker-authmetadatafailure with actualHTTPSsignedexpiredtoken condition and positivebaseline/recovery. No newlive execution.",
+  "execution": "helduntilrootGO afterAvrolease",
+  "free_bytes": 1379901440
+}

@@ -1,0 +1,27 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "approved_manifest_sha256": "90c2aafa580a2d894c4cee172c27d112f5d4e2232f44797e4eb1d1466c7b14a2",
+  "config_sha256": "2ca85767c92c4097be8c08c315cd91f856abf803c8ad0c51662bbf9627365d4a",
+  "runtime_inputs_rehashed": 68,
+  "runtime_bytes_fullmodes_match": true,
+  "normal700_matches": true,
+  "loader_JVM_overrides_empty": true,
+  "fresh_output_private": true,
+  "free_before": 1386598400,
+  "48MiB_reserve_projected_free": 1336266752,
+  "execution_rootGO": true,
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+    "--config",
+    "/workspace/work/broker-oidc/live-configs-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01.json",
+    "--output",
+    "/workspace/work/broker-oidc/live-runs-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01",
+    "--private-scratch",
+    "/workspace/work/broker-oidc/private-live-fcac9d1d-expired-focused-01/expired-stable-java-4-1-2-focused-01"
+  ],
+  "scope": "immediate launch preflight only; no private bytes read"
+}

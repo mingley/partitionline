@@ -1,0 +1,49 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "actual_steps": 12,
+  "elapsed_seconds": 19.557227227007388,
+  "broker_verdict": "actual Java metadata query rejected with SaslAuthenticationException; public Admin and Consumer failed-authentication counters each 1",
+  "provider_verdict": "all three fresh Java peers READY/token_success=1; local constructor accepts the expired token, separately from broker rejection",
+  "positive_baseline_and_recovery": true,
+  "negative_rejection_layer": "broker-authentication",
+  "expired_authority_metadata": {
+    "token_sha256": "0150aa7291e5553a19387ad723f0729063ac5517c87a3fa658a383e2b482a6b7",
+    "issued_epoch": 1791045505,
+    "expires_epoch": 1791045565,
+    "subject": "issuer-probe",
+    "policy": "expired",
+    "generation": 0
+  },
+  "expired_acquisition_public_event": {
+    "ordinal": 57,
+    "endpoint": "/issuer/token",
+    "status": 200,
+    "epoch": 1791045625
+  },
+  "expired_seconds_before_actual_acquisition": 60,
+  "authority_link_limit": "Token hashes are public metadata only. Endpoint events omit token hashes; the unique expired row is linked by fixed issuer policy, sequential fresh-peer issuance boundaries, and one-second timestamp granularity. No private token was read or hashed for this evidence.",
+  "source_whole_files_before_after": 73196,
+  "runtime_inputs_rehashed_after": 68,
+  "runtime_bindings_match_original": true,
+  "original_32_config_hashes_unchanged": true,
+  "processes_joined_unforced": 4,
+  "logical_broker_issuer_joined": true,
+  "outer_confirmed_identities": 6,
+  "outer_remaining": [],
+  "private_paths_only_audit": {
+    "passed": true,
+    "path_count": 23,
+    "sha256": "f5290672fe5983d31eb70aa19f56d0733d051188854186a21b4dfe47d28e06fb"
+  },
+  "complete_source_gzip_roundtrip": {
+    "passed": true,
+    "raw_bytes": 23229060,
+    "raw_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4"
+  },
+  "raw_source_mode_limit": "Raw JSON was serialized in memory and compressed directly. Restore mode600 is designated policy; source row full07777 is measured.",
+  "phase_dispatch_denial_proved": false,
+  "scope": "Focused actual HTTPS acquisition + metadata6 socket expiry denial/recovery on stable broker and official Java4.1.2. No other signed-policy/SDK/whole-Kafka/reauth claim.",
+  "original_failed_signed_cohort": "Original 32 recipes/configs and 3PASS1FAIL observations remain unchanged; the original constructor-expectation failure issued no expired query. This additive cohort closes that specific broker-verdict gap.",
+  "free_bytes_after": 1278443520
+}
