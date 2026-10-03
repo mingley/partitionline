@@ -1,0 +1,567 @@
+name: ci
+
+on:
+  # Tip (dev/**) pushes do not auto-queue CI while org runners are starved —
+  # each push was cancelling/re-queuing branch-lite and never finishing.
+  # Tip Verifiable proxy: `bash scripts/ci-branch-lite.sh`.
+  # Full matrix: pull_request, main push, or workflow_dispatch.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      live_broker:
+        description: 'Run explicit opt-in live broker conformance lane'
+        required: false
+        default: false
+        type: boolean
+
+# One CI group per ref. Always cancel superseded runs — including on main —
+# so a stuck queued job cannot hold the only org runner for hours (seen
+# org-wide during civilization). Prefer a fresh main matrix over an eternal
+# queue behind a dead predecessor.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fmt:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  clippy:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  # Strict documentation and doctest gate.
+  docs:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Documentation diagnostics negative tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_docs_diagnostics.py
+      - run: bash scripts/ci-docs.sh
+      - name: Upload strict documentation diagnostics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: docs-gate-${{ github.sha }}
+          path: target/docs-gate
+          if-no-files-found: error
+          retention-days: 30
+      - name: Markdown gate negative tests
+        run: python3 -B -m unittest discover -s tests/docs -p 'test_*.py'
+      - name: Install MSRV for the packed-crate feature matrix
+        run: rustup toolchain install 1.85.0 --profile minimal
+      - name: Compile public Markdown and operator examples from the extracted package
+        env:
+          PL_PACKAGE_TOOLCHAINS: stable 1.85.0
+        run: bash scripts/ci-crate-consumer.sh
+
+  # Default fast path: mock / unit tests, no Docker.
+  test:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ["1.85", "stable"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      # Mock TLS fixtures shell out to openssl (no rcgen/time in the graph).
+      - run: openssl version
+      # verifiable_contract launches standalone examples, not test harnesses.
+      - run: cargo build --locked --example verifiable_producer --example verifiable_consumer
+      - run: cargo test --locked --all-targets
+
+  # KL08-05: native macOS arm64 runtime + actual packed-consumer evidence.
+  # The driver rejects Intel/Rosetta hosts and a nonnative Rust compiler.
+  macos-arm64:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+    defaults:
+      run:
+        shell: bash
+    env:
+      PL_MACOS_TOOLCHAIN: ${{ matrix.rust }}
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Select Bash 5 and OpenSSL 3 test prerequisites
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          test "$(uname -s)" = Darwin
+          brew list bash >/dev/null || brew install bash
+          echo "$(brew --prefix bash)/bin" >> "$GITHUB_PATH"
+          brew list openssl@3 >/dev/null || brew install openssl@3
+          echo "$(brew --prefix openssl@3)/bin" >> "$GITHUB_PATH"
+      - id: capture
+        name: Verify native host and retain exact versions
+        run: bash scripts/ci-macos-arm64.sh capture
+      - name: Native default-feature mock and public API runtime
+        run: bash scripts/ci-macos-arm64.sh default
+      - name: Native tracing mock and public API runtime
+        run: bash scripts/ci-macos-arm64.sh tracing
+      - name: Strict stable Clippy
+        if: matrix.rust == 'stable'
+        run: bash scripts/ci-macos-arm64.sh clippy
+      - name: Strict native Rustdoc and doctests
+        run: bash scripts/ci-macos-arm64.sh docs
+      - name: Actual packed-crate default and tracing consumers
+        run: bash scripts/ci-macos-arm64.sh package
+      - id: report
+        name: Validate complete platform and package provenance
+        run: bash scripts/ci-macos-arm64.sh report
+      - name: Retain platform versions, full test logs and package reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('macos-arm64-{0}-failed-{1}', matrix.rust, github.sha) }}
+          path: target/macos-arm64/${{ matrix.rust }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  # KL08-14: native Windows MSVC runtime and exact extracted-package evidence.
+  windows:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: windows-2025
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+    defaults:
+      run:
+        shell: bash
+    env:
+      PL_WINDOWS_TOOLCHAIN: ${{ matrix.rust }}
+      PYTHONUTF8: '1'
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Select an actual OpenSSL 3 certificate-tool executable
+        shell: pwsh
+        run: |
+          $candidates = @(
+            "$env:ProgramFiles\OpenSSL\bin\openssl.exe",
+            "$env:ProgramFiles\OpenSSL-Win64\bin\openssl.exe",
+            "$env:ProgramFiles\Git\usr\bin\openssl.exe"
+          )
+          $selected = $null
+          foreach ($candidate in $candidates) {
+            if (Test-Path $candidate) {
+              $version = (& $candidate version | Out-String).Trim()
+              if ($LASTEXITCODE -eq 0 -and $version -match '^OpenSSL 3\.') {
+                $selected = $candidate
+                break
+              }
+            }
+          }
+          if (-not $selected) { throw 'OpenSSL 3 fixture prerequisite unavailable; Windows remains unqualified' }
+          Split-Path $selected -Parent | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          & $selected version
+      - id: capture
+        name: Verify native Windows MSVC host and exact prerequisites
+        run: bash scripts/ci-windows.sh capture
+      - name: Native default-feature mock and public API runtime
+        run: bash scripts/ci-windows.sh default
+      - name: Native tracing mock and public API runtime
+        run: bash scripts/ci-windows.sh tracing
+      - name: Strict stable Clippy
+        if: matrix.rust == 'stable'
+        run: bash scripts/ci-windows.sh clippy
+      - name: Strict native Rustdoc and doctests
+        run: bash scripts/ci-windows.sh docs
+      - name: Actual packed-crate default and tracing consumers
+        run: bash scripts/ci-windows.sh package
+      - id: report
+        name: Validate complete native runtime and package provenance
+        run: bash scripts/ci-windows.sh report
+      - name: Retain native versions, full logs and package reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.report.outputs.artifact_name || steps.capture.outputs.artifact_name || format('windows-{0}-failed-{1}', matrix.rust, github.sha) }}
+          path: target/windows/${{ matrix.rust }}/
+          if-no-files-found: error
+          retention-days: 30
+
+  audit:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: rustsec/audit-check@v2.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  release-rehearsal:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Release gate and recovery negative tests
+        run: python3 -B -m unittest discover -s tests/release -p 'test_*.py'
+      - name: Exact-source offline release recovery rehearsal
+        run: bash scripts/rehearse-partial-release.sh --run target/release-rehearsal
+      - name: Retain all scenario outputs and substituted commands
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-rehearsal-${{ github.sha }}
+          path: target/release-rehearsal/
+          if-no-files-found: error
+          retention-days: 30
+
+  # cargo-deny: advisories + licenses + no-C bans + crates.io-only sources.
+  deny:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories licenses bans sources
+
+  # KL09-04 ratcheted allocation-budget gate for the codecs. Stable only:
+  # the bench crate's criterion dev-dependency requires rustc 1.86+.
+  alloc-budget:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Allocation gate failure-preservation tests
+        run: python3 -B -m unittest discover -s tests/ci -p test_alloc_gate.py
+      - name: Both serial allocation census tests (unchanged budgets)
+        run: bash scripts/ci-alloc-budget.sh
+      - name: Retain compiler identity and complete allocation failure
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: alloc-budget-${{ github.sha }}
+          path: artifacts/alloc-budget/
+          if-no-files-found: error
+          retention-days: 30
+
+  # KL09-05 deterministic instruction-count gate. Linux-only (valgrind);
+  # on PRs it runs only when codec-adjacent paths changed, on main and
+  # manual dispatches it always runs.
+  perf-gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - id: filter
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            git fetch --depth=1 origin "${{ github.event.pull_request.base.sha }}"
+            if git diff --name-only "${{ github.event.pull_request.base.sha }}" HEAD \
+              | grep -qE '^(src/protocol/|src/producer\.rs|src/consumer\.rs|src/net\.rs|benchmarks/codec/)'; then
+              echo "run=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "run=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+      - if: steps.filter.outputs.run == 'true'
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+      - if: steps.filter.outputs.run == 'true'
+        run: cargo install iai-callgrind-runner --version 0.14.2 --locked
+      - if: steps.filter.outputs.run == 'true'
+        run: bash scripts/ci-perf-gate.sh
+
+  # crates.io packaging + publish dry-run (does not publish).
+  package:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo package
+      - name: List crate contents
+        run: tar -tzf target/package/partitionline-*.crate | head -80
+      - name: Packed-crate adopter consumer
+        # Operator surface must compile against the packed .crate (not only workspace path).
+        run: bash scripts/ci-crate-consumer.sh
+      - name: Publish dry-run
+        run: cargo publish --dry-run --allow-dirty
+
+  # Optional-feature compile gate (tracing spans).
+  features:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo clippy --all-targets --features tracing -- -D warnings
+      - run: cargo build --locked --features tracing --example verifiable_producer --example verifiable_consumer
+      - run: cargo test --locked --all-targets --features tracing
+      # gzip fallback without the default zlib-rs feature (docs/gzip-backend.md).
+      - run: cargo test --locked --no-default-features --lib --test protocol_oracles --test fuzz_decode_smoke --test fetch_buffer_budget
+
+  # libFuzzer smoke (nightly). Short wall-clock per target.
+  fuzz-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rust-src
+      - name: Install C++ toolchain for libFuzzer
+        run: sudo apt-get update && sudo apt-get install -y g++
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz --locked
+      - name: Fuzz smoke
+        env:
+          FUZZ_SECONDS: "15"
+          CXX: g++
+        run: bash scripts/ci-fuzz-smoke.sh
+
+  # Real Apache Kafka broker smoke (separate from mock suite).
+  # Matrix: Kafka 3.9.x and 4.x KRaft images.
+  broker-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # WP-1.3: one 3.9 and one 4.x broker image (4.1 for KIP-932 share.version=1)
+        kafka_image: ["apache/kafka:3.9.1", "apache/kafka:4.1.0"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Broker smoke
+        env:
+          CI: "true"
+          KAFKA_IMAGE: ${{ matrix.kafka_image }}
+        run: bash scripts/ci-broker-smoke.sh
+
+  # KL01-10: current versions qualify exact histories, not progress strings.
+  broker-current:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['4.1.2', '4.2.1', '4.3.1']
+    env:
+      PL_CURRENT_BROKER_CELL: ${{ matrix.version }}
+      PL_COMPAT_RUN_VERIFIABLE: '1'
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Fail-closed broker report negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py
+      - name: Complete verifiable event history negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_verifiable_scenario.py
+      - name: Observed Fetch recovery report negative tests
+        run: python3 -B -m unittest discover -s tests/conformance -p test_fetch_session_recovery.py
+      - id: qualified
+        name: Fresh digest-pinned broker and complete required histories
+        run: bash scripts/ci-broker-smoke.sh
+      - name: Observe 32-partition Fetch reset and independent Java records
+        if: matrix.version == '4.1.2'
+        run: bash scripts/ci-fetch-session-recovery.sh
+      - name: Retain identity, all startup attempts and complete histories
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: broker-current-${{ matrix.version }}-${{ github.sha }}-rust${{ steps.qualified.outputs.rust }}-scenarios${{ steps.qualified.outputs.scenarios }}-records${{ steps.qualified.outputs.records }}-${{ steps.qualified.outputs.features }}-${{ steps.qualified.outputs.digest }}
+          path: |
+            target/broker-compatibility/${{ matrix.version }}/
+            target/fetch-session-recovery/
+          if-no-files-found: error
+          retention-days: 30
+
+  # Produce-ack p99 relative gate (unsigned, not vs C).
+  latency-gate:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: []
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Start Kafka
+        run: |
+          docker run -d --name pl-lat -p 9092:9092 apache/kafka:3.9.1
+          for i in $(seq 1 90); do
+            if docker exec pl-lat /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+          docker exec pl-lat /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 \
+            --create --if-not-exists --topic pl-ci-latency --partitions 1 --replication-factor 1
+      - name: Latency gate
+        env:
+          KAFKA_BOOTSTRAP: "127.0.0.1:9092"
+          KAFKA_TOPIC: "pl-ci-latency"
+          COUNT: "2000"
+          WARMUP: "200"
+          LATENCY_SLACK_PCT: "100"
+          # Absolute ceiling for GHA+Docker noise (local native is tens of µs).
+          # Catches catastrophic regressions; not a Lab A / vs-C claim.
+          LATENCY_LIMIT_US: "5000"
+        run: bash scripts/ci-latency-gate.sh
+      - name: Stop Kafka
+        if: always()
+        run: docker rm -f pl-lat || true
+
+  # TLS + SASL_SSL PLAIN/SCRAM/OAUTHBEARER/OIDC + mTLS (fail-closed).
+  # Requires Java; downloads Apache Kafka binaries when missing.
+  auth-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Java (Kafka broker)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Auth smoke
+        env:
+          CI: "true"
+          REQUIRE_AUTH: "1"
+        run: bash scripts/ci-auth-smoke.sh
+
+  # Lab A integrity (HW==acked, consumed==seeded). Not a Suite HOLD lift.
+  # Unsigned latency is the dedicated latency-gate job (GHA-noise ceiling).
+  # Nested latency inside integrity-smoke uses local/native 750µs relative
+  # limits and flakes under shared runners when REQUIRE_INTEGRITY=1 — skip it
+  # here so this job stays an integrity (HW) bar, not a duplicate latency bar.
+  integrity-smoke:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Integrity smoke
+        env:
+          CI: "true"
+          REQUIRE_INTEGRITY: "1"
+          SKIP_LATENCY_GATE: "1"
+          COUNT: "2000"
+        run: bash scripts/ci-integrity-smoke.sh
+
+  # KL01-08: Required conformance fixture lane with durable result artifacts.
+  # Fails closed on missing Java prerequisites, missing artifacts, or wrong peers.
+  conformance-fixtures:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Setup Java (Kafka fixture verification)
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Conformance harness self-test
+        run: bash scripts/ci-protocol-oracles.sh --self-test
+      - name: Run conformance fixture lane
+        env:
+          CI: "true"
+          REQUIRE_JAVA: "1"
+        run: |
+          mkdir -p target/conformance
+          bash scripts/ci-protocol-oracles.sh --report target/conformance/fixture-report.json
+      - name: Upload conformance fixture artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: conformance-fixture-artifacts
+          path: target/conformance/*
+
+  # KL01-08: Explicit opt-in live broker conformance lane with durable result artifacts.
+  # Fails closed on missing broker prerequisites or peer substitution.
+  conformance-live:
+    if: (github.event_name == 'workflow_dispatch' && inputs.live_broker == true) || contains(github.event.pull_request.labels.*.name, 'live-broker')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        kafka_image: ["apache/kafka:3.9.1", "apache/kafka:4.1.0"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run live broker conformance lane
+        env:
+          CI: "true"
+          KAFKA_IMAGE: ${{ matrix.kafka_image }}
+          REQUIRE_BROKER: "1"
+        run: |
+          mkdir -p target/conformance
+          slug="$(echo "${{ matrix.kafka_image }}" | tr '/:' '-')"
+          bash scripts/ci-protocol-oracles.sh --live --report "target/conformance/live-report-${slug}.json"
+      - name: Upload conformance live artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: conformance-live-artifacts
+          path: target/conformance/*

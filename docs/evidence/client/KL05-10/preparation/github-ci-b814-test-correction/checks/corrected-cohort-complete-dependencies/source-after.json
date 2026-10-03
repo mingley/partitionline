@@ -1,0 +1,320 @@
+[
+  {
+    "bytes": 4129,
+    "mode_07777": "0o600",
+    "path": "Cargo.toml",
+    "sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13"
+  },
+  {
+    "bytes": 1765,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-12/final/validation.json",
+    "sha256": "e3f12d5890cedba5e8b845ad0856dd70a1f9c5c6357a053a54b6bd3795f7b84d"
+  },
+  {
+    "bytes": 12538,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-14/three-sdk/manifest.json",
+    "sha256": "011c551590478a8a13b5361ae8d9085fe027426e2f92219d2de95cf49f667600"
+  },
+  {
+    "bytes": 3748,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json",
+    "sha256": "9c767c3701c99d2cbdc7cf243980cbffe3a608b59cf49a32e1ca0f7823a16088"
+  },
+  {
+    "bytes": 147583,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+    "sha256": "e1fc7decbeb6dc172ec6ac643492fb92a7b9f9951fa200ee6ce9abe50f3ca1bb"
+  },
+  {
+    "bytes": 7809,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json",
+    "sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8"
+  },
+  {
+    "bytes": 8116,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json",
+    "sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3"
+  },
+  {
+    "bytes": 8116,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json",
+    "sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe"
+  },
+  {
+    "bytes": 11538,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json",
+    "sha256": "36bbd99f75026505e37ce184c066f5d112e7afd9d87068a48bffecac0a82d31d"
+  },
+  {
+    "bytes": 1732,
+    "mode_07777": "0o600",
+    "path": "docs/evidence/conformance/KL01-13/run-02/summary.json",
+    "sha256": "270f7a666802ad26619d41aefe4cdacbe0cc560f4cb459844dbbf58cb2ea1195"
+  },
+  {
+    "bytes": 40157,
+    "mode_07777": "0o600",
+    "path": "docs/plan/evidence/KL01-17.json",
+    "sha256": "857240d89d2258c1b9f0a9fbc24366e3adeb48a4592a9f70c674442bfd01f9e6"
+  },
+  {
+    "bytes": 52540,
+    "mode_07777": "0o600",
+    "path": "docs/plan/evidence/KL05-15.json",
+    "sha256": "b4971a1b3279f5e93d67389861d49aafd7a285e8f36530d19938d5f9524f3ed6"
+  },
+  {
+    "bytes": 3508505,
+    "mode_07777": "0o600",
+    "path": "docs/plan/tasks.json",
+    "sha256": "7a3b03480844448a33463903042105ae01c93a2e4b0240b33acb22a05f351bb6"
+  },
+  {
+    "bytes": 13233,
+    "mode_07777": "0o600",
+    "path": "scripts/bench-record-history.py",
+    "sha256": "dea1869f5fffe2c3188060dd6163594ad003c406313ef89c9d43265349e50b17"
+  },
+  {
+    "bytes": 40596,
+    "mode_07777": "0o700",
+    "path": "scripts/benchmark-report.py",
+    "sha256": "c0bf3662a57a8489506c6fffd461027db14f80240e5fee378cb1246647090a49"
+  },
+  {
+    "bytes": 19163,
+    "mode_07777": "0o600",
+    "path": "scripts/broker-interop.py",
+    "sha256": "358ca765b718c5db4d42b4c8a8525630b41663dc9cb52723e9a1d67fd5923a20"
+  },
+  {
+    "bytes": 93367,
+    "mode_07777": "0o600",
+    "path": "scripts/check-broker-api-matrix.py",
+    "sha256": "7c4d4d6577609659d7468be83a6498230ca329ef6da61e4eaf8b5557fb2e5388"
+  },
+  {
+    "bytes": 12254,
+    "mode_07777": "0o600",
+    "path": "scripts/check-doc-examples.py",
+    "sha256": "19901427bfc2f7c36ad98fe484f37d3302757225629faca2c05aa591ca14de26"
+  },
+  {
+    "bytes": 3917,
+    "mode_07777": "0o600",
+    "path": "scripts/check-package-docs.py",
+    "sha256": "dbf28256b53d8f8437e9a7adbec169980d8241a87c2edb062cece3f95824ba53"
+  },
+  {
+    "bytes": 80307,
+    "mode_07777": "0o700",
+    "path": "scripts/check-protocol-coverage.py",
+    "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6"
+  },
+  {
+    "bytes": 38858,
+    "mode_07777": "0o700",
+    "path": "scripts/check-record-history.py",
+    "sha256": "539a379a4fa605f578b60f3686a22a1bf92d1cd67645b99d4e0a27ea247a03fe"
+  },
+  {
+    "bytes": 4651,
+    "mode_07777": "0o700",
+    "path": "scripts/ci-perf-gate-extract.py",
+    "sha256": "2fae2ece698fe9c7f77f6992825ba34726e4c62217bb1194afdb444ab3d68f86"
+  },
+  {
+    "bytes": 39264,
+    "mode_07777": "0o700",
+    "path": "scripts/conformance-report.py",
+    "sha256": "14c46a6e80c01bb8ebc07bffe0546836392d16fdb5f12d24bebb6afbc0e95bd1"
+  },
+  {
+    "bytes": 2428,
+    "mode_07777": "0o700",
+    "path": "scripts/oidc-token-stub.py",
+    "sha256": "0cb1090150ffb3fabe97ad9610c968c08ec1ff21d2aadeceedfc673256e22be3"
+  },
+  {
+    "bytes": 12493,
+    "mode_07777": "0o600",
+    "path": "scripts/report-broker-compatibility.py",
+    "sha256": "269f195da645248ddabe49a4648581601c9023fa2de72088ef1ed667bc1f72a5"
+  },
+  {
+    "bytes": 9420,
+    "mode_07777": "0o600",
+    "path": "scripts/report-fetch-session-recovery.py",
+    "sha256": "ec23d5dfabb86f37af8114b1da1423f939ae43bf7efd70165054f9dfc69be512"
+  },
+  {
+    "bytes": 8998,
+    "mode_07777": "0o600",
+    "path": "scripts/report-macos-arm64.py",
+    "sha256": "15c73ecec34b519d9cdd258c056abac7dd1552cf86ce5de51141a48fec4e094a"
+  },
+  {
+    "bytes": 15526,
+    "mode_07777": "0o700",
+    "path": "scripts/report-release-rehearsal.py",
+    "sha256": "79a5ba7a139e4f277251f9d40f7f0f5990f513ce76d61e60d32124f4fa989513"
+  },
+  {
+    "bytes": 12670,
+    "mode_07777": "0o700",
+    "path": "scripts/report-verifiable-scenario.py",
+    "sha256": "6d844725b03a58dec5e3869b04c53ceb2bdb47019664c8133834e833ea5cf3ee"
+  },
+  {
+    "bytes": 7587,
+    "mode_07777": "0o600",
+    "path": "scripts/report-windows.py",
+    "sha256": "2f4d03f11472bdc9624cfb97f55d50c07a9d7d109cca6c066cc9e26f543b4daf"
+  },
+  {
+    "bytes": 17336,
+    "mode_07777": "0o600",
+    "path": "src/protocol/api_keys.rs",
+    "sha256": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa"
+  },
+  {
+    "bytes": 380411,
+    "mode_07777": "0o600",
+    "path": "tests/common/mod.rs",
+    "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113"
+  },
+  {
+    "bytes": 664586,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/api-matrix.json",
+    "sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685"
+  },
+  {
+    "bytes": 140222,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/features.json",
+    "sha256": "7c5c0612ace951ebb6c517a194fcf48f6249618b541d79dd46167c923951b443"
+  },
+  {
+    "bytes": 592268,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/implemented-api-versions.json",
+    "sha256": "9ada336ff4d8afe0b9e021f09f19181cb55374ad6615486864a95d4964a21b3f"
+  },
+  {
+    "bytes": 70116,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/upstream/apache-kafka-4.1.2-protocol.tar.gz",
+    "sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8"
+  },
+  {
+    "bytes": 70799,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/upstream/apache-kafka-4.2.1-protocol.tar.gz",
+    "sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff"
+  },
+  {
+    "bytes": 71283,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/broker/upstream/apache-kafka-4.3.1-protocol.tar.gz",
+    "sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332"
+  },
+  {
+    "bytes": 176992,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/cases.json",
+    "sha256": "c85fa2e7bd83f641e561f27334484c8ed9a62666d7d253bef67ff6c6a57f4c15"
+  },
+  {
+    "bytes": 2480,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/current-broker-cells.json",
+    "sha256": "866061efe403b90bae22571d4e2c82fca913214995ad2f0a7c717f7adc4dc4c1"
+  },
+  {
+    "bytes": 83674,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/features.json",
+    "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67"
+  },
+  {
+    "bytes": 54738,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/fetch-v18-delta.json",
+    "sha256": "fb93e1af929f3559aa690b5c0d55e82655f489a836f99ca2b8d5ebb3e565e170"
+  },
+  {
+    "bytes": 52285,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/produce-v13-delta.json",
+    "sha256": "c5776b6d309ccf19248193d55044435fb32bb61fe3051391b4781f38ea738c0d"
+  },
+  {
+    "bytes": 9153,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/test_broker_compatibility.py",
+    "sha256": "0961c02e37f1f1da2c96823d37824826f7e00279d04eeda4cef39e7bb9afb058"
+  },
+  {
+    "bytes": 39373,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/test_check_protocol_coverage.py",
+    "sha256": "e9823d1213b6a238cfcebc6a00da87a52aaef48230ef00f21ca547ab8612e809"
+  },
+  {
+    "bytes": 6848,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/test_fetch_session_recovery.py",
+    "sha256": "f9438f49527738f59ae9b22779d5deb5596a226a45a157d18e10cfbfeb1f31de"
+  },
+  {
+    "bytes": 33951,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/test_report.py",
+    "sha256": "3621df1ef0056ea40854048b797d08ff72933cf8ae1397e79a810275f16f66d8"
+  },
+  {
+    "bytes": 12673,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/test_verifiable_scenario.py",
+    "sha256": "7b9b681b3b4211b9266ec6059abde25d551b61564a9d52bd04e9184db684a79f"
+  },
+  {
+    "bytes": 2470,
+    "mode_07777": "0o600",
+    "path": "tests/conformance/verifiable-live-profile.json",
+    "sha256": "9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01"
+  },
+  {
+    "bytes": 3768,
+    "mode_07777": "0o600",
+    "path": "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+    "sha256": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227"
+  },
+  {
+    "bytes": 5332,
+    "mode_07777": "0o600",
+    "path": "tests/fixtures/protocol_oracles/matrix.json",
+    "sha256": "f665abebfdc948e3869d0fad393a74038d38aef35b2fedcc60c79962442f9805"
+  },
+  {
+    "bytes": 3007,
+    "mode_07777": "0o600",
+    "path": "tests/fixtures/protocol_oracles/produce_v13_manifest.json",
+    "sha256": "aaf63422fecad7319bf31128ef75d084a61b3d0853ef2f383bb2bae9b1602428"
+  },
+  {
+    "bytes": 37628,
+    "mode_07777": "0o600",
+    "path": "tests/sticky_partitioner.rs",
+    "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71"
+  }
+]

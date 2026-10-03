@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "full_git_tree_oid": "df753b8a7dda15d47fd2caf21e1198d4ef8ec650",
+  "complete_tree_index": {
+    "path": "/workspace/work/github-ci-b814-review-01/source-tree-index.z.gz",
+    "bytes": 1220378,
+    "full_mode": 384,
+    "sha256": "45d48064d6032ccf4f2bce9cdb02215bf68899946eaa69a418ab8fc0040a08a2"
+  },
+  "uncompressed_index_sha256": "5e340f307cfe992a6c7c58a836bd254245f6b26bf81d40572b2f9c17cad69e14",
+  "uncompressed_index_bytes": 13302317,
+  "complete_tree_records": 75693,
+  "selected_exact_git_blob_copies": [
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/src/admin.rs",
+      "bytes": 590487,
+      "full_mode": 384,
+      "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8",
+      "repository_path": "src/admin.rs",
+      "git_mode": "100644",
+      "git_blob_oid": "07e5f77f59df2d56d86d533d89bfa8592709b889",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/tests/sticky_partitioner.rs",
+      "bytes": 37620,
+      "full_mode": 384,
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "repository_path": "tests/sticky_partitioner.rs",
+      "git_mode": "100644",
+      "git_blob_oid": "e634ddf481c95ebc23d7a5ed1a862aad3ce2da75",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/tests/conformance/test_verifiable_scenario.py",
+      "bytes": 11368,
+      "full_mode": 384,
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982",
+      "repository_path": "tests/conformance/test_verifiable_scenario.py",
+      "git_mode": "100644",
+      "git_blob_oid": "bc568b2d6bf94fd1db5a781671595f96a71b6e89",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/partitionline-broker/src/raft/runtime.rs",
+      "bytes": 96127,
+      "full_mode": 384,
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+      "repository_path": "partitionline-broker/src/raft/runtime.rs",
+      "git_mode": "100644",
+      "git_blob_oid": "8f2b0afdf43f33cd11b0d96b7a22c7b538a2dc05",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/partitionline-broker/tests/raft_runtime.rs",
+      "bytes": 196,
+      "full_mode": 384,
+      "sha256": "53308755744ab1d075a31a97928bcc6a990f536087eb2d600be576370bbb2dd6",
+      "repository_path": "partitionline-broker/tests/raft_runtime.rs",
+      "git_mode": "100644",
+      "git_blob_oid": "53e893e274d7f2066c464c9097d0a78f0b305b44",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/.github/workflows/ci.yml",
+      "bytes": 23527,
+      "full_mode": 384,
+      "sha256": "a40da8aa064adb8bcf7a49fec68971a84162927f4e37781d1cba3fcf6f915281",
+      "repository_path": ".github/workflows/ci.yml",
+      "git_mode": "100644",
+      "git_blob_oid": "06bfe527f3fa89bbc7f5ea7039c04da68691ecba",
+      "git_blob_hash_verified": true
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/source-b814/.github/workflows/broker.yml",
+      "bytes": 3251,
+      "full_mode": 384,
+      "sha256": "541522f434016108df4e12070fd63d3082f857e3766623913a36bd43aed315b9",
+      "repository_path": ".github/workflows/broker.yml",
+      "git_mode": "100644",
+      "git_blob_oid": "0759a4637bfad3cfcd3ac6bfa20b5d68af4cca02",
+      "git_blob_hash_verified": true
+    }
+  ],
+  "scope": "Full immutable Git tree/path/mode/blob index plus exact relevant source copies, not a full filesystem checkout or remote runner filesystem mode observation."
+}

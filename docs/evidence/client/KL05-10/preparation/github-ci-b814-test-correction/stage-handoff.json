@@ -1,0 +1,481 @@
+{
+  "ci_raw_logs": "Retained unchanged in c-peer packet; exact13 SHA/fullmode binding in staged reference.",
+  "dependency_copy": "53 exact input paths retained WORK-only, with original/actual command before/after full byte and07777 guards.",
+  "directories": [
+    {
+      "mode_07777": "0o700",
+      "path": "docs"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/history"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/conformance"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "tests"
+    },
+    {
+      "mode_07777": "0o700",
+      "path": "tests/conformance"
+    }
+  ],
+  "executed": "113 offline Python unit methods and stable/MSRV source-only format checks.",
+  "files": [
+    {
+      "bytes": 2387,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/apply_python.py",
+      "sha256": "33fabd0f447b11d5a64204a535b8a4b62e62cdb906f2ffc383c7dc6ae27656a8",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/apply_python.py"
+    },
+    {
+      "bytes": 722,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/command.json",
+      "sha256": "76ce14b678de614536107ff3016d4b3522f80fb97ab755b486d83ec2f8c0164f",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/command.json"
+    },
+    {
+      "bytes": 351,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/receipt.json",
+      "sha256": "6cabcbfa04174bdd58fd4f3773c984b11b7bc4a82f4ee9e267e68eebcecbfdea",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/receipt.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-after.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-after.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-before.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-before.json"
+    },
+    {
+      "bytes": 21444,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stderr.log",
+      "sha256": "59641cfa1e592be2e730e2be769c519122c933549df9cebc165ab9786672f569",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stdout.log"
+    },
+    {
+      "bytes": 722,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/command.json",
+      "sha256": "76ce14b678de614536107ff3016d4b3522f80fb97ab755b486d83ec2f8c0164f",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/command.json"
+    },
+    {
+      "bytes": 351,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/receipt.json",
+      "sha256": "0dd2b3f1a07dca7164ef0509fbf4cbdfadc00384a50a6aa11b0f0f3911f4a720",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/receipt.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-after.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-before.json"
+    },
+    {
+      "bytes": 20735,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stderr.log",
+      "sha256": "f09e8918d294899661bd38a5165a1049ac055024188d11e017839ecfbc255b09",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stdout.log"
+    },
+    {
+      "bytes": 764,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/command.json",
+      "sha256": "ac452b3bfdf0bba14fc143fb782324a812904fb430bd79923c8948a7f9b11d75",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/command.json"
+    },
+    {
+      "bytes": 349,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/receipt.json",
+      "sha256": "0f4c71a7f29b5a835045bc1dc68f6073e94e5e4f0e2ee4c2f64b7befe5c89958",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/receipt.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-after.json",
+      "sha256": "605dcfcc11c7240609563bffd3b440c621bdedd8039d732a1270cfb46a6c384c",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-after.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-before.json",
+      "sha256": "605dcfcc11c7240609563bffd3b440c621bdedd8039d732a1270cfb46a6c384c",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-before.json"
+    },
+    {
+      "bytes": 1666,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stderr.log",
+      "sha256": "a224b20c7cf84ca1885e87f9b4e242862a9c608c8986b1250761355fbe14b03e",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stdout.log"
+    },
+    {
+      "bytes": 746,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/command.json",
+      "sha256": "16b7e8076acc9beaab284f083e495cb16fafcac87a25093c5a26557773c97b59",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/command.json"
+    },
+    {
+      "bytes": 348,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/receipt.json",
+      "sha256": "086de512eea7e70eadbf70b6019d2bbe59e3ad5a928546bf6658cccec60eb8a2",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/receipt.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-after.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-before.json"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stdout.log"
+    },
+    {
+      "bytes": 746,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/command.json",
+      "sha256": "75407a2c044468a25dfa6b54cae62bbce78404645ea8a75b53aeb04fbb2d6f70",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/command.json"
+    },
+    {
+      "bytes": 349,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/receipt.json",
+      "sha256": "1d01d6aba341046864a4c5786f725c98d68d949e652cc25378840ecf4059fba4",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/receipt.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-after.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-after.json"
+    },
+    {
+      "bytes": 9949,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-before.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-before.json"
+    },
+    {
+      "bytes": 139,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stderr.log",
+      "sha256": "44e133fcbca29d2ae1ab51e412eaf3a43e270a3782024c145c83d64c0ce77adb",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stdout.log"
+    },
+    {
+      "bytes": 746,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/command.json",
+      "sha256": "75407a2c044468a25dfa6b54cae62bbce78404645ea8a75b53aeb04fbb2d6f70",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/command.json"
+    },
+    {
+      "bytes": 349,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/receipt.json",
+      "sha256": "0dc6998cc1eb26f3191a7f9e7b560a170b8b483cdc0cdad2140f106e623b8788",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/receipt.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-after.json"
+    },
+    {
+      "bytes": 10306,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-before.json"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stderr.log"
+    },
+    {
+      "bytes": 0,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stdout.log"
+    },
+    {
+      "bytes": 4141,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/ci-evidence-reference.json",
+      "sha256": "f5102a5b1e4eca379b2541f1ae3b4be604ac52bd4d0ac4041fbba8064a3374e6",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/ci-evidence-reference.json"
+    },
+    {
+      "bytes": 751,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-closure-addition.json",
+      "sha256": "6959bcaac3368042b5b98551e4a1ad186bbf49e530e85403fa4f3adbcc875430",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-closure-addition.json"
+    },
+    {
+      "bytes": 15563,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-source-before.json",
+      "sha256": "b68a98e8a2b01b7faf1f0884f0442c4baae51c5ac8312a2b54fed665830bbef2",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-source-before.json"
+    },
+    {
+      "bytes": 4566,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/history/run_checks-before-attempt-label.py",
+      "sha256": "bc108f7ce7ccebc6e1b73984045c4892ed135c09016abee6fe5e45f7f54ac025",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/history/run_checks-before-attempt-label.py"
+    },
+    {
+      "bytes": 11368,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/conformance/test_verifiable_scenario.py",
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/conformance/test_verifiable_scenario.py"
+    },
+    {
+      "bytes": 37620,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/sticky_partitioner.rs",
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/sticky_partitioner.rs"
+    },
+    {
+      "bytes": 766,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-two-sources.json",
+      "sha256": "288b102fa3fa2fd8895ee4af769f901e548c941200d7c7b2c6c2a7a91a90c872",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-two-sources.json"
+    },
+    {
+      "bytes": 5363,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepare.py",
+      "sha256": "c811c6be01e929c6d17227f8b02d1af7cc03499a094c149a7592a250787710ba",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepare.py"
+    },
+    {
+      "bytes": 508,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepared-source-scope.json",
+      "sha256": "3f782d9e8502aab45b857ccc8d88daa0ceb2922de6f88a5b143267fde1bbb305",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepared-source-scope.json"
+    },
+    {
+      "bytes": 1350,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-after.json",
+      "sha256": "299f010a70a07ef6eefe8fded3cb229d039e0e1e94eb845383ad895afe85e4fc",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-after.json"
+    },
+    {
+      "bytes": 1300,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-before.json",
+      "sha256": "1229023483d72cba9ecd3ba662ba57dfac3127924c3e25a3e6def0ff96c04257",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-before.json"
+    },
+    {
+      "bytes": 4606,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/run_checks.py",
+      "sha256": "bf7a4f9089a7ad23e045f8600d86bb31adf23492bab8a90f70a8705991f957b1",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/run_checks.py"
+    },
+    {
+      "bytes": 8371,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/seal.py",
+      "sha256": "6ca6744ec27631638894760fbffa3ebbdadf5f7a50b79ba4e82d11001b3b5bca",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/seal.py"
+    },
+    {
+      "bytes": 2615,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/two-test-source.patch",
+      "sha256": "da5feb97b722e2ca9d62914536131a08cebcd8530aaee2792d2e8320eb78e669",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/two-test-source.patch"
+    },
+    {
+      "bytes": 12900,
+      "mode_07777": "0o600",
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/validation.json",
+      "sha256": "5c8478ae5671de4f9f550a1221e511323b3202a4f8a0387bd4add3dde8cd2187",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/validation.json"
+    },
+    {
+      "bytes": 12673,
+      "mode_07777": "0o600",
+      "path": "tests/conformance/test_verifiable_scenario.py",
+      "sha256": "7b9b681b3b4211b9266ec6059abde25d551b61564a9d52bd04e9184db684a79f",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/tests/conformance/test_verifiable_scenario.py"
+    },
+    {
+      "bytes": 37628,
+      "mode_07777": "0o600",
+      "path": "tests/sticky_partitioner.rs",
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/tests/sticky_partitioner.rs"
+    }
+  ],
+  "not_executed": [
+    "Cargo",
+    "Rust sticky test",
+    "JVM",
+    "SDK",
+    "broker",
+    "benchmark"
+  ],
+  "payload_bytes": 336533,
+  "payload_count": 54,
+  "proof_prefix": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction",
+  "safe_to_claim_qualified": false,
+  "safe_to_stage": true,
+  "source_installation": "Root only: overlay the two named test files; production and registry unchanged.",
+  "write_paths": [
+    "tests/sticky_partitioner.rs",
+    "tests/conformance/test_verifiable_scenario.py"
+  ]
+}

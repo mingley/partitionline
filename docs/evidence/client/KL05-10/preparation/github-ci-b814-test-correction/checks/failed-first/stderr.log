@@ -1,0 +1,19 @@
+test_single_case_cannot_pass_full_primary_registry (test_verifiable_scenario.VerifiableScenario.test_single_case_cannot_pass_full_primary_registry) ... FAIL
+
+======================================================================
+FAIL: test_single_case_cannot_pass_full_primary_registry (test_verifiable_scenario.VerifiableScenario.test_single_case_cannot_pass_full_primary_registry)
+----------------------------------------------------------------------
+primary_report.ConformanceValidationError: Missing 183 required conformance case(s) (showing 5 of 183: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/work/client-ci-b814-correction-01/candidate/tests/conformance/test_verifiable_scenario.py", line 186, in test_single_case_cannot_pass_full_primary_registry
+    with self.assertRaisesRegex(primary.ConformanceValidationError, 'Missing 105 required'):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "Missing 105 required" does not match "Missing 183 required conformance case(s) (showing 5 of 183: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)"
+
+----------------------------------------------------------------------
+Ran 1 test in 0.015s
+
+FAILED (failures=1)

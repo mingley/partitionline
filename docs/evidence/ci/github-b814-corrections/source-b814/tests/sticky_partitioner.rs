@@ -234,7 +234,7 @@ async fn pressure_singletons_are_not_merged_and_ledger_is_bounded() {
         vec![2, 1, 1]
     );
     assert_eq!(producer.__test_sticky_state().unwrap().1, 0);
-    producer.clone().close().await.unwrap();
+    producer.close().await.unwrap();
     let state = producer.__test_sticky_state().unwrap();
     assert_eq!((state.0, state.1, state.2), (0, 0, 0));
 }

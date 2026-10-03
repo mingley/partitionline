@@ -7260,12 +7260,7 @@ impl Admin {
             .map(|broker| broker.node_id)
             .collect();
         nodes.sort_unstable();
-        if nodes.iter().any(|id| *id < 0)
-            || nodes
-                .iter()
-                .zip(nodes.iter().skip(1))
-                .any(|(left, right)| left == right)
-        {
+        if nodes.iter().any(|id| *id < 0) || nodes.iter().zip(nodes.iter().skip(1)).any(|(left, right)| left == right) {
             return Err(Error::protocol(
                 "invalid or duplicate ListTransactions broker ID",
             ));

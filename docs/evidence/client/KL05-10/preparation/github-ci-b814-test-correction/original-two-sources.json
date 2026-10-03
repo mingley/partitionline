@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "bytes": 37620,
+      "ci_source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+      "current_equals_ci": true,
+      "current_source_sha": "a85b241765981a21cf2b3161ae6eac155200a441",
+      "mode_07777": "0o600",
+      "path": "tests/sticky_partitioner.rs",
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+    },
+    {
+      "bytes": 11368,
+      "ci_source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+      "current_equals_ci": true,
+      "current_source_sha": "a85b241765981a21cf2b3161ae6eac155200a441",
+      "mode_07777": "0o600",
+      "path": "tests/conformance/test_verifiable_scenario.py",
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982"
+    }
+  ]
+}

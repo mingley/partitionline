@@ -1,0 +1,13 @@
+{
+  "candidate_files": [
+    "tests/sticky_partitioner.rs",
+    "tests/conformance/test_verifiable_scenario.py"
+  ],
+  "ci_source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "dependency_bytes": 6320137,
+  "dependency_files": 51,
+  "python_change_pending": true,
+  "rust_change": "Clone the public shared producer handle before consuming close; preserve post-close state assertions.",
+  "rust_compilation": "Not executed; no Cargo lease.",
+  "source_sha": "a85b241765981a21cf2b3161ae6eac155200a441"
+}

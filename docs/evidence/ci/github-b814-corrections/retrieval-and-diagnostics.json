@@ -1,0 +1,1959 @@
+{
+  "schema_version": 1,
+  "repository": "mingley/partitionline",
+  "requested_source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "tool": "mcp__codex_apps__github_fetch_workflow_job_logs",
+  "jobs": [
+    {
+      "label": "broker-current-java-a",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.tool-result.json",
+        "bytes": 48866,
+        "full_mode": 384,
+        "sha256": "d881b37bcdf897db659cd315b458a6d67d30a1a82f6e69ade494487ae8bb6bd5"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.decoded.log",
+        "bytes": 47232,
+        "full_mode": 384,
+        "sha256": "31ac5056460b41bbc6f5416c8adbb40c8d7a0771cb49feff7c1391169311e058"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 127,
+          "text": "2026-10-03T21:06:44.2679007Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 129,
+          "text": "2026-10-03T21:06:49.6163817Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 133,
+          "text": "2026-10-03T21:06:49.6218157Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 208,
+          "text": "2026-10-03T21:06:53.0755518Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 555,
+          "text": "2026-10-03T21:07:01.8135419Z   name: broker-current-4.3.1-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 537,
+          "text": "2026-10-03T21:07:01.8017184Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 538,
+          "text": "2026-10-03T21:07:01.8017904Z primary_report.ConformanceValidationError: Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)"
+        },
+        {
+          "line": 539,
+          "text": "2026-10-03T21:07:01.8018511Z "
+        },
+        {
+          "line": 540,
+          "text": "2026-10-03T21:07:01.8018610Z During handling of the above exception, another exception occurred:"
+        },
+        {
+          "line": 541,
+          "text": "2026-10-03T21:07:01.8018752Z "
+        },
+        {
+          "line": 542,
+          "text": "2026-10-03T21:07:01.8018814Z Traceback (most recent call last):"
+        },
+        {
+          "line": 543,
+          "text": "2026-10-03T21:07:01.8022378Z   File \"/home/runner/work/partitionline/partitionline/tests/conformance/test_verifiable_scenario.py\", line 186, in test_single_case_cannot_pass_full_primary_registry"
+        },
+        {
+          "line": 544,
+          "text": "2026-10-03T21:07:01.8022866Z     with self.assertRaisesRegex(primary.ConformanceValidationError, 'Missing 105 required'):"
+        },
+        {
+          "line": 545,
+          "text": "2026-10-03T21:07:01.8023148Z          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        },
+        {
+          "line": 546,
+          "text": "2026-10-03T21:07:01.8023859Z AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 547,
+          "text": "2026-10-03T21:07:01.8024464Z "
+        },
+        {
+          "line": 548,
+          "text": "2026-10-03T21:07:01.8024549Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 549,
+          "text": "2026-10-03T21:07:01.8024729Z Ran 9 tests in 0.046s"
+        },
+        {
+          "line": 550,
+          "text": "2026-10-03T21:07:01.8024804Z "
+        },
+        {
+          "line": 551,
+          "text": "2026-10-03T21:07:01.8024851Z FAILED (failures=1)"
+        },
+        {
+          "line": 552,
+          "text": "2026-10-03T21:07:01.8080847Z ##[error]Process completed with exit code 1."
+        },
+        {
+          "line": 553,
+          "text": "2026-10-03T21:07:01.8135045Z ##[group]Run actions/upload-artifact@v7"
+        },
+        {
+          "line": 554,
+          "text": "2026-10-03T21:07:01.8135194Z with:"
+        },
+        {
+          "line": 555,
+          "text": "2026-10-03T21:07:01.8135419Z   name: broker-current-4.3.1-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        },
+        {
+          "line": 556,
+          "text": "2026-10-03T21:07:01.8135843Z   path: target/broker-compatibility/4.3.1/"
+        },
+        {
+          "line": 557,
+          "text": "target/fetch-session-recovery/"
+        },
+        {
+          "line": 558,
+          "text": ""
+        },
+        {
+          "line": 582,
+          "text": "2026-10-03T21:07:01.9010956Z The least common ancestor is /home/runner/work/partitionline/partitionline/target. This will be the root directory of the artifact"
+        },
+        {
+          "line": 583,
+          "text": "2026-10-03T21:07:01.9097448Z ##[error]No files were found with the provided path: target/broker-compatibility/4.3.1/"
+        },
+        {
+          "line": 584,
+          "text": "target/fetch-session-recovery/. No artifacts will be uploaded."
+        },
+        {
+          "line": 585,
+          "text": "2026-10-03T21:07:01.9191304Z Post job cleanup."
+        },
+        {
+          "line": 586,
+          "text": "2026-10-03T21:07:01.9722716Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 587,
+          "text": "2026-10-03T21:07:01.9754316Z git version 2.55.0"
+        },
+        {
+          "line": 588,
+          "text": "2026-10-03T21:07:01.9780591Z Temporarily overriding HOME='/home/runner/work/_temp/c1ce594c-67fa-47ad-83c4-b8e1cdabfb98' before making global git config changes"
+        },
+        {
+          "line": 589,
+          "text": "2026-10-03T21:07:01.9781214Z Adding repository directory to the temporary git global config as a safe directory"
+        }
+      ]
+    },
+    {
+      "label": "broker-current-java-b",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.tool-result.json",
+        "bytes": 49464,
+        "full_mode": 384,
+        "sha256": "646aa8c0af88c38ae458d957d36a76b8ee0966730dae7eeeabd13be6416f7512"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.decoded.log",
+        "bytes": 47821,
+        "full_mode": 384,
+        "sha256": "f0bb8189a401ff0bfcecf2d2d94dab0616bfa21d33fd48fe6589e219ee8ff9af"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 127,
+          "text": "2026-10-03T21:07:11.7110909Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 129,
+          "text": "2026-10-03T21:07:18.4874331Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 133,
+          "text": "2026-10-03T21:07:18.4943746Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 217,
+          "text": "2026-10-03T21:07:23.6132405Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 564,
+          "text": "2026-10-03T21:07:35.1048621Z   name: broker-current-4.1.2-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 546,
+          "text": "2026-10-03T21:07:35.0891258Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 547,
+          "text": "2026-10-03T21:07:35.0892344Z primary_report.ConformanceValidationError: Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)"
+        },
+        {
+          "line": 548,
+          "text": "2026-10-03T21:07:35.0893251Z "
+        },
+        {
+          "line": 549,
+          "text": "2026-10-03T21:07:35.0893415Z During handling of the above exception, another exception occurred:"
+        },
+        {
+          "line": 550,
+          "text": "2026-10-03T21:07:35.0893623Z "
+        },
+        {
+          "line": 551,
+          "text": "2026-10-03T21:07:35.0893718Z Traceback (most recent call last):"
+        },
+        {
+          "line": 552,
+          "text": "2026-10-03T21:07:35.0899445Z   File \"/home/runner/work/partitionline/partitionline/tests/conformance/test_verifiable_scenario.py\", line 186, in test_single_case_cannot_pass_full_primary_registry"
+        },
+        {
+          "line": 553,
+          "text": "2026-10-03T21:07:35.0900212Z     with self.assertRaisesRegex(primary.ConformanceValidationError, 'Missing 105 required'):"
+        },
+        {
+          "line": 554,
+          "text": "2026-10-03T21:07:35.0900647Z          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        },
+        {
+          "line": 555,
+          "text": "2026-10-03T21:07:35.0901694Z AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 556,
+          "text": "2026-10-03T21:07:35.0902836Z "
+        },
+        {
+          "line": 557,
+          "text": "2026-10-03T21:07:35.0902967Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 558,
+          "text": "2026-10-03T21:07:35.0903235Z Ran 9 tests in 0.061s"
+        },
+        {
+          "line": 559,
+          "text": "2026-10-03T21:07:35.0903343Z "
+        },
+        {
+          "line": 560,
+          "text": "2026-10-03T21:07:35.0903419Z FAILED (failures=1)"
+        },
+        {
+          "line": 561,
+          "text": "2026-10-03T21:07:35.0983742Z ##[error]Process completed with exit code 1."
+        },
+        {
+          "line": 562,
+          "text": "2026-10-03T21:07:35.1048051Z ##[group]Run actions/upload-artifact@v7"
+        },
+        {
+          "line": 563,
+          "text": "2026-10-03T21:07:35.1048291Z with:"
+        },
+        {
+          "line": 564,
+          "text": "2026-10-03T21:07:35.1048621Z   name: broker-current-4.1.2-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        },
+        {
+          "line": 565,
+          "text": "2026-10-03T21:07:35.1049087Z   path: target/broker-compatibility/4.1.2/"
+        },
+        {
+          "line": 566,
+          "text": "target/fetch-session-recovery/"
+        },
+        {
+          "line": 567,
+          "text": ""
+        },
+        {
+          "line": 591,
+          "text": "2026-10-03T21:07:35.2159058Z The least common ancestor is /home/runner/work/partitionline/partitionline/target. This will be the root directory of the artifact"
+        },
+        {
+          "line": 592,
+          "text": "2026-10-03T21:07:35.2173514Z ##[error]No files were found with the provided path: target/broker-compatibility/4.1.2/"
+        },
+        {
+          "line": 593,
+          "text": "target/fetch-session-recovery/. No artifacts will be uploaded."
+        },
+        {
+          "line": 594,
+          "text": "2026-10-03T21:07:35.2303045Z Post job cleanup."
+        },
+        {
+          "line": 595,
+          "text": "2026-10-03T21:07:35.2990824Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 596,
+          "text": "2026-10-03T21:07:35.3033656Z git version 2.55.0"
+        },
+        {
+          "line": 597,
+          "text": "2026-10-03T21:07:35.3064363Z Temporarily overriding HOME='/home/runner/work/_temp/0ce638df-e56b-4a17-9161-e1e8cadbc4ae' before making global git config changes"
+        },
+        {
+          "line": 598,
+          "text": "2026-10-03T21:07:35.3065321Z Adding repository directory to the temporary git global config as a safe directory"
+        }
+      ]
+    },
+    {
+      "label": "broker-current-java-c",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.tool-result.json",
+        "bytes": 49652,
+        "full_mode": 384,
+        "sha256": "237a114b013d9a09565b06e01f27b9e5cde87c21e0458933094eaedb7753bbcd"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.decoded.log",
+        "bytes": 48006,
+        "full_mode": 384,
+        "sha256": "00117655648090b15cea66b8253a85fd5d9c703e229f13ef6390db5918029a5f"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 127,
+          "text": "2026-10-03T21:06:57.1924918Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 129,
+          "text": "2026-10-03T21:07:00.2569326Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 133,
+          "text": "2026-10-03T21:07:00.2647284Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 220,
+          "text": "2026-10-03T21:07:04.6067474Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 567,
+          "text": "2026-10-03T21:07:16.4195828Z   name: broker-current-4.2.1-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 549,
+          "text": "2026-10-03T21:07:16.4001118Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 550,
+          "text": "2026-10-03T21:07:16.4003229Z primary_report.ConformanceValidationError: Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)"
+        },
+        {
+          "line": 551,
+          "text": "2026-10-03T21:07:16.4005292Z "
+        },
+        {
+          "line": 552,
+          "text": "2026-10-03T21:07:16.4005587Z During handling of the above exception, another exception occurred:"
+        },
+        {
+          "line": 553,
+          "text": "2026-10-03T21:07:16.4005999Z "
+        },
+        {
+          "line": 554,
+          "text": "2026-10-03T21:07:16.4006160Z Traceback (most recent call last):"
+        },
+        {
+          "line": 555,
+          "text": "2026-10-03T21:07:16.4013511Z   File \"/home/runner/work/partitionline/partitionline/tests/conformance/test_verifiable_scenario.py\", line 186, in test_single_case_cannot_pass_full_primary_registry"
+        },
+        {
+          "line": 556,
+          "text": "2026-10-03T21:07:16.4015125Z     with self.assertRaisesRegex(primary.ConformanceValidationError, 'Missing 105 required'):"
+        },
+        {
+          "line": 557,
+          "text": "2026-10-03T21:07:16.4015885Z          ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+        },
+        {
+          "line": 558,
+          "text": "2026-10-03T21:07:16.4017970Z AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 559,
+          "text": "2026-10-03T21:07:16.4020284Z "
+        },
+        {
+          "line": 560,
+          "text": "2026-10-03T21:07:16.4020533Z ----------------------------------------------------------------------"
+        },
+        {
+          "line": 561,
+          "text": "2026-10-03T21:07:16.4021082Z Ran 9 tests in 0.093s"
+        },
+        {
+          "line": 562,
+          "text": "2026-10-03T21:07:16.4021319Z "
+        },
+        {
+          "line": 563,
+          "text": "2026-10-03T21:07:16.4021454Z FAILED (failures=1)"
+        },
+        {
+          "line": 564,
+          "text": "2026-10-03T21:07:16.4118167Z ##[error]Process completed with exit code 1."
+        },
+        {
+          "line": 565,
+          "text": "2026-10-03T21:07:16.4195111Z ##[group]Run actions/upload-artifact@v7"
+        },
+        {
+          "line": 566,
+          "text": "2026-10-03T21:07:16.4195410Z with:"
+        },
+        {
+          "line": 567,
+          "text": "2026-10-03T21:07:16.4195828Z   name: broker-current-4.2.1-b8148087f08b205d7d19fd0be10994ebcd1fcc3a-rust-scenarios-records--"
+        },
+        {
+          "line": 568,
+          "text": "2026-10-03T21:07:16.4196430Z   path: target/broker-compatibility/4.2.1/"
+        },
+        {
+          "line": 569,
+          "text": "target/fetch-session-recovery/"
+        },
+        {
+          "line": 570,
+          "text": ""
+        },
+        {
+          "line": 594,
+          "text": "2026-10-03T21:07:16.5598340Z The least common ancestor is /home/runner/work/partitionline/partitionline/target. This will be the root directory of the artifact"
+        },
+        {
+          "line": 595,
+          "text": "2026-10-03T21:07:16.5616423Z ##[error]No files were found with the provided path: target/broker-compatibility/4.2.1/"
+        },
+        {
+          "line": 596,
+          "text": "target/fetch-session-recovery/. No artifacts will be uploaded."
+        },
+        {
+          "line": 597,
+          "text": "2026-10-03T21:07:16.5791305Z Post job cleanup."
+        },
+        {
+          "line": 598,
+          "text": "2026-10-03T21:07:16.6677875Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 599,
+          "text": "2026-10-03T21:07:16.6731898Z git version 2.55.0"
+        },
+        {
+          "line": 600,
+          "text": "2026-10-03T21:07:16.6771132Z Temporarily overriding HOME='/home/runner/work/_temp/9f0696f3-5b32-4244-8ad5-e81a5794dd44' before making global git config changes"
+        },
+        {
+          "line": 601,
+          "text": "2026-10-03T21:07:16.6772332Z Adding repository directory to the temporary git global config as a safe directory"
+        }
+      ]
+    },
+    {
+      "label": "broker-msrv",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-msrv.tool-result.json",
+        "bytes": 80093,
+        "full_mode": 384,
+        "sha256": "7230cada6a40fa96205b83f9221ee407c82e5b8f1839bfe680d7a657eb17f39b"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-msrv.decoded.log",
+        "bytes": 78121,
+        "full_mode": 384,
+        "sha256": "fc4acd031224073f63a2ed6c6d9eab27fcecc355494eded0b0f00045cb8bded4"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 106,
+          "text": "2026-10-03T21:06:40.9732815Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 108,
+          "text": "2026-10-03T21:06:49.7045195Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 112,
+          "text": "2026-10-03T21:06:49.7101876Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 187,
+          "text": "2026-10-03T21:06:53.1146003Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 901,
+          "text": "2026-10-03T21:07:44.7172313Z test actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok"
+        },
+        {
+          "line": 902,
+          "text": "2026-10-03T21:07:53.4782738Z test actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... FAILED"
+        },
+        {
+          "line": 903,
+          "text": "2026-10-03T21:07:53.4783086Z "
+        },
+        {
+          "line": 904,
+          "text": "2026-10-03T21:07:53.4783162Z failures:"
+        },
+        {
+          "line": 905,
+          "text": "2026-10-03T21:07:53.4783263Z "
+        },
+        {
+          "line": 906,
+          "text": "2026-10-03T21:07:53.4783491Z ---- actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal stdout ----"
+        },
+        {
+          "line": 907,
+          "text": "2026-10-03T21:07:53.4783874Z Error: \"commit deadline\""
+        },
+        {
+          "line": 908,
+          "text": "2026-10-03T21:07:53.4784000Z "
+        },
+        {
+          "line": 909,
+          "text": "2026-10-03T21:07:53.4784003Z "
+        },
+        {
+          "line": 910,
+          "text": "2026-10-03T21:07:53.4784072Z failures:"
+        },
+        {
+          "line": 911,
+          "text": "2026-10-03T21:07:53.4784341Z     actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal"
+        },
+        {
+          "line": 912,
+          "text": "2026-10-03T21:07:53.4784588Z "
+        },
+        {
+          "line": 913,
+          "text": "2026-10-03T21:07:53.4784974Z test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.16s"
+        },
+        {
+          "line": 914,
+          "text": "2026-10-03T21:07:53.4785212Z "
+        },
+        {
+          "line": 915,
+          "text": "2026-10-03T21:07:53.4787566Z error: test failed, to rerun pass `--test raft_runtime`"
+        },
+        {
+          "line": 916,
+          "text": "2026-10-03T21:07:53.4826980Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 917,
+          "text": "2026-10-03T21:07:53.4921059Z Post job cleanup."
+        },
+        {
+          "line": 918,
+          "text": "2026-10-03T21:07:53.5487158Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 919,
+          "text": "2026-10-03T21:07:53.5518241Z git version 2.55.0"
+        },
+        {
+          "line": 920,
+          "text": "2026-10-03T21:07:53.5545652Z Temporarily overriding HOME='/home/runner/work/_temp/ef978ce2-6768-49a7-995c-a6c7c1cf067f' before making global git config changes"
+        },
+        {
+          "line": 921,
+          "text": "2026-10-03T21:07:53.5546389Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 922,
+          "text": "2026-10-03T21:07:53.5548451Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "broker-stable",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-stable.tool-result.json",
+        "bytes": 115310,
+        "full_mode": 384,
+        "sha256": "ecb1de2979cfac4ee3171026d344d6ea34ca6ba7d85b279fc6590fcddda9cfc7"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-stable.decoded.log",
+        "bytes": 112904,
+        "full_mode": 384,
+        "sha256": "b8a9a4bbd4950f36987f7ec872f30bf65ee82c758c6584720d884bf369d5f41c"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 106,
+          "text": "2026-10-03T21:06:41.9186122Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 108,
+          "text": "2026-10-03T21:06:48.2320052Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 112,
+          "text": "2026-10-03T21:06:48.2403027Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 200,
+          "text": "2026-10-03T21:06:52.6788138Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 1223,
+          "text": "2026-10-03T21:08:43.1429125Z test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok"
+        },
+        {
+          "line": 1224,
+          "text": "2026-10-03T21:08:43.1769763Z test raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation ... FAILED"
+        },
+        {
+          "line": 1225,
+          "text": "2026-10-03T21:08:43.2111351Z test raft::runtime::ownership_tests::configured_route_does_not_authorize_unknown_configuration_leader_over_tcp ... ok"
+        },
+        {
+          "line": 1226,
+          "text": "2026-10-03T21:08:43.2117299Z test raft::runtime::ownership_tests::reliable_stop_waits_for_saturated_owner_even_after_command_deadline ... ok"
+        },
+        {
+          "line": 1227,
+          "text": "2026-10-03T21:08:43.3193975Z test raft::runtime::tests::canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok"
+        },
+        {
+          "line": 1228,
+          "text": "2026-10-03T21:08:43.3195429Z test raft::runtime::tests::runtime_child_process ... ok"
+        },
+        {
+          "line": 1229,
+          "text": "2026-10-03T21:08:43.3256771Z test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok"
+        },
+        {
+          "line": 1230,
+          "text": "2026-10-03T21:08:43.3280689Z "
+        },
+        {
+          "line": 1329,
+          "text": "2026-10-03T21:08:48.9859664Z "
+        },
+        {
+          "line": 1330,
+          "text": "2026-10-03T21:08:48.9859814Z failures:"
+        },
+        {
+          "line": 1331,
+          "text": "2026-10-03T21:08:48.9860006Z "
+        },
+        {
+          "line": 1332,
+          "text": "2026-10-03T21:08:48.9860617Z ---- raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation stdout ----"
+        },
+        {
+          "line": 1333,
+          "text": "2026-10-03T21:08:48.9861543Z Error: Deadline"
+        },
+        {
+          "line": 1334,
+          "text": "2026-10-03T21:08:48.9861760Z "
+        },
+        {
+          "line": 1335,
+          "text": "2026-10-03T21:08:48.9861765Z "
+        },
+        {
+          "line": 1336,
+          "text": "2026-10-03T21:08:48.9861897Z failures:"
+        },
+        {
+          "line": 1337,
+          "text": "2026-10-03T21:08:48.9862616Z     raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation"
+        },
+        {
+          "line": 1338,
+          "text": "2026-10-03T21:08:48.9863284Z "
+        },
+        {
+          "line": 1339,
+          "text": "2026-10-03T21:08:48.9863734Z test result: FAILED. 99 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.01s"
+        },
+        {
+          "line": 1340,
+          "text": "2026-10-03T21:08:48.9864249Z "
+        },
+        {
+          "line": 1341,
+          "text": "2026-10-03T21:08:48.9873243Z error: test failed, to rerun pass `--lib`"
+        },
+        {
+          "line": 1342,
+          "text": "2026-10-03T21:08:48.9918554Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 1343,
+          "text": "2026-10-03T21:08:49.0068955Z Post job cleanup."
+        },
+        {
+          "line": 1344,
+          "text": "2026-10-03T21:08:49.0995393Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 1345,
+          "text": "2026-10-03T21:08:49.1052733Z git version 2.55.0"
+        },
+        {
+          "line": 1346,
+          "text": "2026-10-03T21:08:49.1092288Z Temporarily overriding HOME='/home/runner/work/_temp/9bb89565-0c6b-4875-b455-91da19ecdb70' before making global git config changes"
+        },
+        {
+          "line": 1347,
+          "text": "2026-10-03T21:08:49.1093765Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 1348,
+          "text": "2026-10-03T21:08:49.1101120Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "client-clippy",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-clippy.tool-result.json",
+        "bytes": 51781,
+        "full_mode": 384,
+        "sha256": "c6fa63d3b8b95a4754f34dd803cd7fb0210add5f1a287714ff43c4e4559ec520"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-clippy.decoded.log",
+        "bytes": 47352,
+        "full_mode": 384,
+        "sha256": "b10ffee75c06725f0421859cbd38051c74e9f8cad5ff792a29e988ebc65b8231"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 118,
+          "text": "2026-10-03T21:07:39.7462962Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 120,
+          "text": "2026-10-03T21:07:42.1960105Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 124,
+          "text": "2026-10-03T21:07:42.2013423Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 190,
+          "text": "2026-10-03T21:07:44.7453318Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 551,
+          "text": "2026-10-03T21:08:11.7250607Z "
+        },
+        {
+          "line": 552,
+          "text": "2026-10-03T21:08:12.2547027Z \u001b[1m\u001b[91merror\u001b[0m: could not compile `partitionline` (lib) due to 3 previous errors"
+        },
+        {
+          "line": 553,
+          "text": "2026-10-03T21:08:12.2547704Z \u001b[1m\u001b[33mwarning\u001b[0m: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 554,
+          "text": "2026-10-03T21:08:16.9873193Z \u001b[1m\u001b[91merror\u001b[0m: could not compile `partitionline` (lib test) due to 3 previous errors"
+        },
+        {
+          "line": 555,
+          "text": "2026-10-03T21:08:17.0091739Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 556,
+          "text": "2026-10-03T21:08:17.0203835Z Post job cleanup."
+        },
+        {
+          "line": 557,
+          "text": "2026-10-03T21:08:17.0812924Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 558,
+          "text": "2026-10-03T21:08:17.0840060Z git version 2.55.0"
+        },
+        {
+          "line": 559,
+          "text": "2026-10-03T21:08:17.0869471Z Temporarily overriding HOME='/home/runner/work/_temp/de71f5b7-3988-4a4b-a3fe-da5117f891ae' before making global git config changes"
+        },
+        {
+          "line": 560,
+          "text": "2026-10-03T21:08:17.0870384Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 561,
+          "text": "2026-10-03T21:08:17.0873769Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "client-features",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-features.tool-result.json",
+        "bytes": 52888,
+        "full_mode": 384,
+        "sha256": "58d1ea2fe1f9b64e80a5bca28cef800270c0063feab22585d2eb6875ef86ed2d"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-features.decoded.log",
+        "bytes": 48442,
+        "full_mode": 384,
+        "sha256": "971a53ed7d247bc80af6237721905a0020d8254419b40c316b6396795c706b70"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 118,
+          "text": "2026-10-03T21:06:44.2385997Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 120,
+          "text": "2026-10-03T21:06:51.4246781Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 124,
+          "text": "2026-10-03T21:06:51.4323479Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 208,
+          "text": "2026-10-03T21:06:56.1692557Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 568,
+          "text": "2026-10-03T21:07:27.8589778Z "
+        },
+        {
+          "line": 569,
+          "text": "2026-10-03T21:07:28.3732685Z \u001b[1m\u001b[91merror\u001b[0m: could not compile `partitionline` (lib) due to 3 previous errors"
+        },
+        {
+          "line": 570,
+          "text": "2026-10-03T21:07:28.3733064Z \u001b[1m\u001b[33mwarning\u001b[0m: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 571,
+          "text": "2026-10-03T21:07:32.3809900Z \u001b[1m\u001b[91merror\u001b[0m: could not compile `partitionline` (lib test) due to 3 previous errors"
+        },
+        {
+          "line": 572,
+          "text": "2026-10-03T21:07:32.4044039Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 573,
+          "text": "2026-10-03T21:07:32.4152242Z Post job cleanup."
+        },
+        {
+          "line": 574,
+          "text": "2026-10-03T21:07:32.4738907Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 575,
+          "text": "2026-10-03T21:07:32.4766135Z git version 2.55.0"
+        },
+        {
+          "line": 576,
+          "text": "2026-10-03T21:07:32.4795984Z Temporarily overriding HOME='/home/runner/work/_temp/0fb6e37b-bf17-449c-ae9b-d8dd98cb3ea7' before making global git config changes"
+        },
+        {
+          "line": 577,
+          "text": "2026-10-03T21:07:32.4796635Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 578,
+          "text": "2026-10-03T21:07:32.4799589Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "client-macos-a",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-a.tool-result.json",
+        "bytes": 66707,
+        "full_mode": 384,
+        "sha256": "73feb41133b7699bf969a8e819985bda1e8d065568af32046d541947879de4fa"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-a.decoded.log",
+        "bytes": 64466,
+        "full_mode": 384,
+        "sha256": "dde05006a773faf26f0c22509d85b1d5bec9f4a218c60908b3bc49a29833ed29"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 129,
+          "text": "2026-10-03T21:06:55.3466670Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 131,
+          "text": "2026-10-03T21:07:03.5318360Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 135,
+          "text": "2026-10-03T21:07:03.5476370Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 252,
+          "text": "2026-10-03T21:07:17.3986740Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 622,
+          "text": "2026-10-03T21:07:34.8373770Z   \"source_sha\": \"b8148087f08b205d7d19fd0be10994ebcd1fcc3a\""
+        },
+        {
+          "line": 798,
+          "text": "2026-10-03T21:08:46.0262210Z   name: macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 831,
+          "text": "2026-10-03T21:08:47.3785940Z Artifact macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11284059956"
+        },
+        {
+          "line": 832,
+          "text": "2026-10-03T21:08:47.3789440Z Artifact macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 2484 bytes. Artifact ID is 11284059956"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 571,
+          "text": "2026-10-03T21:07:27.3046200Z ##[endgroup]"
+        },
+        {
+          "line": 572,
+          "text": "2026-10-03T21:07:30.7502200Z ##[error]No such keg: /opt/homebrew/Cellar/bash"
+        },
+        {
+          "line": 573,
+          "text": "2026-10-03T21:07:31.8874200Z \u001b[32m==>\u001b[0m \u001b[1mDownloading bottle manifests\u001b[0m"
+        },
+        {
+          "line": 574,
+          "text": "2026-10-03T21:07:31.9028840Z ✔︎ Bottle Manifest bash (5.3.15)"
+        },
+        {
+          "line": 575,
+          "text": "2026-10-03T21:07:31.9031440Z \u001b[34m==>\u001b[0m \u001b[1mWould install 1 formula:\u001b[0m"
+        },
+        {
+          "line": 576,
+          "text": "2026-10-03T21:07:31.9032120Z bash"
+        },
+        {
+          "line": 577,
+          "text": "2026-10-03T21:07:31.9702390Z \u001b[34m==>\u001b[0m \u001b[1mWould install 1 dependency for bash:\u001b[0m"
+        },
+        {
+          "line": 578,
+          "text": "2026-10-03T21:07:31.9703200Z ncurses"
+        },
+        {
+          "line": 769,
+          "text": "2026-10-03T21:08:08.5971860Z    Compiling partitionline v0.1.0 (/Users/runner/work/partitionline/partitionline)"
+        },
+        {
+          "line": 770,
+          "text": "2026-10-03T21:08:43.2546050Z error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 771,
+          "text": "2026-10-03T21:08:43.2583370Z     --> tests/sticky_partitioner.rs:238:17"
+        },
+        {
+          "line": 772,
+          "text": "2026-10-03T21:08:43.2584130Z      |"
+        },
+        {
+          "line": 773,
+          "text": "2026-10-03T21:08:43.2585980Z  206 |     let producer = Producer::new("
+        },
+        {
+          "line": 774,
+          "text": "2026-10-03T21:08:43.2587180Z      |         -------- move occurs because `producer` has type `Producer`, which does not implement the `Copy` trait"
+        },
+        {
+          "line": 775,
+          "text": "2026-10-03T21:08:43.2587950Z ..."
+        },
+        {
+          "line": 776,
+          "text": "2026-10-03T21:08:43.2588370Z  237 |     producer.close().await.unwrap();"
+        },
+        {
+          "line": 791,
+          "text": "2026-10-03T21:08:43.4069580Z For more information about this error, try `rustc --explain E0382`."
+        },
+        {
+          "line": 792,
+          "text": "2026-10-03T21:08:43.4111910Z error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 793,
+          "text": "2026-10-03T21:08:43.4112630Z warning: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 794,
+          "text": "2026-10-03T21:08:45.9992850Z ##[error]default-tests exited 101: error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 795,
+          "text": "2026-10-03T21:08:46.0054240Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 796,
+          "text": "2026-10-03T21:08:46.0260560Z ##[group]Run actions/upload-artifact@v4"
+        },
+        {
+          "line": 797,
+          "text": "2026-10-03T21:08:46.0261110Z with:"
+        },
+        {
+          "line": 798,
+          "text": "2026-10-03T21:08:46.0262210Z   name: macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 799,
+          "text": "2026-10-03T21:08:46.0263310Z   path: target/macos-arm64/stable/"
+        },
+        {
+          "line": 800,
+          "text": "2026-10-03T21:08:46.0263770Z   if-no-files-found: error"
+        },
+        {
+          "line": 801,
+          "text": "2026-10-03T21:08:46.0264210Z   retention-days: 30"
+        },
+        {
+          "line": 819,
+          "text": "2026-10-03T21:08:46.0282620Z ##[endgroup]"
+        },
+        {
+          "line": 820,
+          "text": "2026-10-03T21:08:46.5396260Z (node:4651) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead."
+        },
+        {
+          "line": 821,
+          "text": "2026-10-03T21:08:46.5397990Z (Use `node --trace-deprecation ...` to show where the warning was created)"
+        },
+        {
+          "line": 822,
+          "text": "2026-10-03T21:08:46.5458030Z With the provided path, there will be 4 files uploaded"
+        },
+        {
+          "line": 823,
+          "text": "2026-10-03T21:08:46.5470030Z Artifact name is valid!"
+        },
+        {
+          "line": 824,
+          "text": "2026-10-03T21:08:46.5470740Z Root directory input is valid!"
+        },
+        {
+          "line": 825,
+          "text": "2026-10-03T21:08:46.8602320Z Beginning upload of artifact content to blob storage"
+        },
+        {
+          "line": 826,
+          "text": "2026-10-03T21:08:46.8843020Z (node:4651) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+        },
+        {
+          "line": 827,
+          "text": "2026-10-03T21:08:47.0339180Z Uploaded bytes 2484"
+        },
+        {
+          "line": 828,
+          "text": "2026-10-03T21:08:47.0821480Z Finished uploading artifact content to blob storage!"
+        },
+        {
+          "line": 829,
+          "text": "2026-10-03T21:08:47.0822870Z SHA256 digest of uploaded artifact zip is 2e3eb93c6d5ae070954f3a6d809246bbb6e5d346f00ac853335f2ab1c4859099"
+        },
+        {
+          "line": 830,
+          "text": "2026-10-03T21:08:47.0824030Z Finalizing artifact upload"
+        },
+        {
+          "line": 831,
+          "text": "2026-10-03T21:08:47.3785940Z Artifact macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11284059956"
+        },
+        {
+          "line": 832,
+          "text": "2026-10-03T21:08:47.3789440Z Artifact macos-arm64-stable-rust1.99.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 2484 bytes. Artifact ID is 11284059956"
+        }
+      ]
+    },
+    {
+      "label": "client-macos-b",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-b.tool-result.json",
+        "bytes": 65958,
+        "full_mode": 384,
+        "sha256": "eb306f89202e2892b8801e4e5fd2976d4381048ab8362cc570827acbb667635e"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-b.decoded.log",
+        "bytes": 63727,
+        "full_mode": 384,
+        "sha256": "485ab220ed68b7dac5bffac5f6c047eebdaaf972f107ccc3339a21e4f79e4ca0"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 129,
+          "text": "2026-10-03T21:07:11.3629450Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 131,
+          "text": "2026-10-03T21:07:19.2504520Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 135,
+          "text": "2026-10-03T21:07:19.2626700Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 247,
+          "text": "2026-10-03T21:07:28.0565330Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 612,
+          "text": "2026-10-03T21:07:38.2269220Z   \"source_sha\": \"b8148087f08b205d7d19fd0be10994ebcd1fcc3a\""
+        },
+        {
+          "line": 788,
+          "text": "2026-10-03T21:08:26.2549970Z   name: macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 821,
+          "text": "2026-10-03T21:08:27.2589370Z Artifact macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11285202245"
+        },
+        {
+          "line": 822,
+          "text": "2026-10-03T21:08:27.2594650Z Artifact macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 2485 bytes. Artifact ID is 11285202245"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 561,
+          "text": "2026-10-03T21:07:33.7725960Z ##[endgroup]"
+        },
+        {
+          "line": 562,
+          "text": "2026-10-03T21:07:35.4873760Z ##[error]No such keg: /opt/homebrew/Cellar/bash"
+        },
+        {
+          "line": 563,
+          "text": "2026-10-03T21:07:36.1694400Z \u001b[32m==>\u001b[0m \u001b[1mDownloading bottle manifests\u001b[0m"
+        },
+        {
+          "line": 564,
+          "text": "2026-10-03T21:07:36.1761920Z ✔︎ Bottle Manifest bash (5.3.15)"
+        },
+        {
+          "line": 565,
+          "text": "2026-10-03T21:07:36.1763320Z \u001b[34m==>\u001b[0m \u001b[1mWould install 1 formula:\u001b[0m"
+        },
+        {
+          "line": 566,
+          "text": "2026-10-03T21:07:36.1763610Z bash"
+        },
+        {
+          "line": 567,
+          "text": "2026-10-03T21:07:36.2162080Z \u001b[34m==>\u001b[0m \u001b[1mWould install 1 dependency for bash:\u001b[0m"
+        },
+        {
+          "line": 568,
+          "text": "2026-10-03T21:07:36.2162470Z ncurses"
+        },
+        {
+          "line": 759,
+          "text": "2026-10-03T21:08:01.7243340Z    Compiling partitionline v0.1.0 (/Users/runner/work/partitionline/partitionline)"
+        },
+        {
+          "line": 760,
+          "text": "2026-10-03T21:08:25.5832440Z error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 761,
+          "text": "2026-10-03T21:08:25.5834240Z     --> tests/sticky_partitioner.rs:238:17"
+        },
+        {
+          "line": 762,
+          "text": "2026-10-03T21:08:25.5834650Z      |"
+        },
+        {
+          "line": 763,
+          "text": "2026-10-03T21:08:25.5835110Z 206  |     let producer = Producer::new("
+        },
+        {
+          "line": 764,
+          "text": "2026-10-03T21:08:25.5835630Z      |         -------- move occurs because `producer` has type `Producer`, which does not implement the `Copy` trait"
+        },
+        {
+          "line": 765,
+          "text": "2026-10-03T21:08:25.5836130Z ..."
+        },
+        {
+          "line": 766,
+          "text": "2026-10-03T21:08:25.5836390Z 237  |     producer.close().await.unwrap();"
+        },
+        {
+          "line": 781,
+          "text": "2026-10-03T21:08:25.9479670Z For more information about this error, try `rustc --explain E0382`."
+        },
+        {
+          "line": 782,
+          "text": "2026-10-03T21:08:25.9526970Z error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 783,
+          "text": "2026-10-03T21:08:25.9527780Z warning: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 784,
+          "text": "2026-10-03T21:08:26.2457710Z ##[error]default-tests exited 101: error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 785,
+          "text": "2026-10-03T21:08:26.2491760Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 786,
+          "text": "2026-10-03T21:08:26.2549400Z ##[group]Run actions/upload-artifact@v4"
+        },
+        {
+          "line": 787,
+          "text": "2026-10-03T21:08:26.2549600Z with:"
+        },
+        {
+          "line": 788,
+          "text": "2026-10-03T21:08:26.2549970Z   name: macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 789,
+          "text": "2026-10-03T21:08:26.2550400Z   path: target/macos-arm64/1.85.0/"
+        },
+        {
+          "line": 790,
+          "text": "2026-10-03T21:08:26.2550590Z   if-no-files-found: error"
+        },
+        {
+          "line": 791,
+          "text": "2026-10-03T21:08:26.2550740Z   retention-days: 30"
+        },
+        {
+          "line": 809,
+          "text": "2026-10-03T21:08:26.2554480Z ##[endgroup]"
+        },
+        {
+          "line": 810,
+          "text": "2026-10-03T21:08:26.4440780Z (node:3086) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead."
+        },
+        {
+          "line": 811,
+          "text": "2026-10-03T21:08:26.4441400Z (Use `node --trace-deprecation ...` to show where the warning was created)"
+        },
+        {
+          "line": 812,
+          "text": "2026-10-03T21:08:26.4472470Z With the provided path, there will be 4 files uploaded"
+        },
+        {
+          "line": 813,
+          "text": "2026-10-03T21:08:26.4474650Z Artifact name is valid!"
+        },
+        {
+          "line": 814,
+          "text": "2026-10-03T21:08:26.4475070Z Root directory input is valid!"
+        },
+        {
+          "line": 815,
+          "text": "2026-10-03T21:08:26.7830880Z Beginning upload of artifact content to blob storage"
+        },
+        {
+          "line": 816,
+          "text": "2026-10-03T21:08:26.8063280Z (node:3086) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+        },
+        {
+          "line": 817,
+          "text": "2026-10-03T21:08:26.9760370Z Uploaded bytes 2485"
+        },
+        {
+          "line": 818,
+          "text": "2026-10-03T21:08:27.0202430Z Finished uploading artifact content to blob storage!"
+        },
+        {
+          "line": 819,
+          "text": "2026-10-03T21:08:27.0203560Z SHA256 digest of uploaded artifact zip is 6139a37a02a4a8334c2709cc191d7de9d0787f501179c981f25620dd3e9a2e2a"
+        },
+        {
+          "line": 820,
+          "text": "2026-10-03T21:08:27.0204420Z Finalizing artifact upload"
+        },
+        {
+          "line": 821,
+          "text": "2026-10-03T21:08:27.2589370Z Artifact macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11285202245"
+        },
+        {
+          "line": 822,
+          "text": "2026-10-03T21:08:27.2594650Z Artifact macos-arm64-1.85.0-rust1.85.0-os15.7.9-ssl3.6.4-py3.13.15-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 2485 bytes. Artifact ID is 11285202245"
+        }
+      ]
+    },
+    {
+      "label": "client-msrv",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-msrv.tool-result.json",
+        "bytes": 52403,
+        "full_mode": 384,
+        "sha256": "2a44a910ee588cb289db7a27b1f296a34a33fd4e765cd9b35a38ff12ec04cb77"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-msrv.decoded.log",
+        "bytes": 47807,
+        "full_mode": 384,
+        "sha256": "03c8541d6b9ae47db209c2282ac8e56a28e7e68e672042bb00952b31e1026288"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 118,
+          "text": "2026-10-03T21:06:44.0772334Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 120,
+          "text": "2026-10-03T21:06:50.4180582Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 124,
+          "text": "2026-10-03T21:06:50.4260972Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 212,
+          "text": "2026-10-03T21:06:54.8079713Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 540,
+          "text": "2026-10-03T21:07:37.0330840Z \u001b[1m\u001b[32m   Compiling\u001b[0m partitionline v0.1.0 (/home/runner/work/partitionline/partitionline)"
+        },
+        {
+          "line": 541,
+          "text": "2026-10-03T21:07:44.6029272Z \u001b[0m\u001b[1m\u001b[38;5;9merror[E0382]\u001b[0m\u001b[0m\u001b[1m: borrow of moved value: `producer`\u001b[0m"
+        },
+        {
+          "line": 542,
+          "text": "2026-10-03T21:07:44.6048152Z \u001b[0m    \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m--> \u001b[0m\u001b[0mtests/sticky_partitioner.rs:238:17\u001b[0m"
+        },
+        {
+          "line": 543,
+          "text": "2026-10-03T21:07:44.6048907Z \u001b[0m     \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m|\u001b[0m"
+        },
+        {
+          "line": 544,
+          "text": "2026-10-03T21:07:44.6056195Z \u001b[0m\u001b[1m\u001b[38;5;12m206\u001b[0m\u001b[0m  \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m|\u001b[0m\u001b[0m \u001b[0m\u001b[0m    let producer = Producer::new(\u001b[0m"
+        },
+        {
+          "line": 545,
+          "text": "2026-10-03T21:07:44.6058328Z \u001b[0m     \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m|\u001b[0m\u001b[0m         \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m--------\u001b[0m\u001b[0m \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12mmove occurs because `producer` has type `Producer`, which does not implement the `Copy` trait\u001b[0m"
+        },
+        {
+          "line": 546,
+          "text": "2026-10-03T21:07:44.6059982Z \u001b[0m\u001b[1m\u001b[38;5;12m...\u001b[0m"
+        },
+        {
+          "line": 547,
+          "text": "2026-10-03T21:07:44.6060817Z \u001b[0m\u001b[1m\u001b[38;5;12m237\u001b[0m\u001b[0m  \u001b[0m\u001b[0m\u001b[1m\u001b[38;5;12m|\u001b[0m\u001b[0m \u001b[0m\u001b[0m    producer.close().await.unwrap();\u001b[0m"
+        },
+        {
+          "line": 562,
+          "text": "2026-10-03T21:07:45.5288777Z \u001b[0m\u001b[1mFor more information about this error, try `rustc --explain E0382`.\u001b[0m"
+        },
+        {
+          "line": 563,
+          "text": "2026-10-03T21:07:45.5330614Z \u001b[1m\u001b[31merror\u001b[0m\u001b[1m:\u001b[0m could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 564,
+          "text": "2026-10-03T21:07:45.5332757Z \u001b[1m\u001b[33mwarning\u001b[0m\u001b[1m:\u001b[0m build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 565,
+          "text": "2026-10-03T21:08:05.1870618Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 566,
+          "text": "2026-10-03T21:08:05.2001859Z Post job cleanup."
+        },
+        {
+          "line": 567,
+          "text": "2026-10-03T21:08:05.2831454Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 568,
+          "text": "2026-10-03T21:08:05.2875834Z git version 2.55.0"
+        },
+        {
+          "line": 569,
+          "text": "2026-10-03T21:08:05.2921978Z Temporarily overriding HOME='/home/runner/work/_temp/144acdaa-f753-436e-bd7a-2aee217c60c2' before making global git config changes"
+        },
+        {
+          "line": 570,
+          "text": "2026-10-03T21:08:05.2925296Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 571,
+          "text": "2026-10-03T21:08:05.2929067Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "client-stable",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-stable.tool-result.json",
+        "bytes": 51658,
+        "full_mode": 384,
+        "sha256": "3510ac93b1b2e62d5ee1d420e0075dd40afda68c0b7162b26b7918d5fd3813b9"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-stable.decoded.log",
+        "bytes": 47637,
+        "full_mode": 384,
+        "sha256": "f22cec18abf0da83e3d5c602728eca3e30c0b41718b511ea7eab402a5bd4e084"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 118,
+          "text": "2026-10-03T21:08:03.7969566Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 120,
+          "text": "2026-10-03T21:08:10.0707076Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 124,
+          "text": "2026-10-03T21:08:10.0777059Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 212,
+          "text": "2026-10-03T21:08:14.6151133Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 545,
+          "text": "2026-10-03T21:08:47.0554834Z \u001b[1m\u001b[92m   Compiling\u001b[0m partitionline v0.1.0 (/home/runner/work/partitionline/partitionline)"
+        },
+        {
+          "line": 546,
+          "text": "2026-10-03T21:08:48.6981407Z \u001b[1m\u001b[91merror[E0382]\u001b[0m\u001b[1m: borrow of moved value: `producer`\u001b[0m"
+        },
+        {
+          "line": 547,
+          "text": "2026-10-03T21:08:48.7011287Z     \u001b[1m\u001b[94m--> \u001b[0mtests/sticky_partitioner.rs:238:17"
+        },
+        {
+          "line": 548,
+          "text": "2026-10-03T21:08:48.7040892Z      \u001b[1m\u001b[94m|\u001b[0m"
+        },
+        {
+          "line": 549,
+          "text": "2026-10-03T21:08:48.7057442Z \u001b[1m\u001b[94m 206\u001b[0m \u001b[1m\u001b[94m|\u001b[0m     let producer = Producer::new("
+        },
+        {
+          "line": 550,
+          "text": "2026-10-03T21:08:48.7059257Z      \u001b[1m\u001b[94m|\u001b[0m         \u001b[1m\u001b[94m--------\u001b[0m \u001b[1m\u001b[94mmove occurs because `producer` has type `Producer`, which does not implement the `Copy` trait\u001b[0m"
+        },
+        {
+          "line": 551,
+          "text": "2026-10-03T21:08:48.7100660Z \u001b[1m\u001b[94m...\u001b[0m"
+        },
+        {
+          "line": 552,
+          "text": "2026-10-03T21:08:48.7111693Z \u001b[1m\u001b[94m 237\u001b[0m \u001b[1m\u001b[94m|\u001b[0m     producer.close().await.unwrap();"
+        },
+        {
+          "line": 567,
+          "text": "2026-10-03T21:08:48.8791417Z \u001b[1mFor more information about this error, try `rustc --explain E0382`.\u001b[0m"
+        },
+        {
+          "line": 568,
+          "text": "2026-10-03T21:08:48.8856537Z \u001b[1m\u001b[91merror\u001b[0m: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 569,
+          "text": "2026-10-03T21:08:48.8858145Z \u001b[1m\u001b[33mwarning\u001b[0m: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 570,
+          "text": "2026-10-03T21:09:08.6056675Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 571,
+          "text": "2026-10-03T21:09:08.6192648Z Post job cleanup."
+        },
+        {
+          "line": 572,
+          "text": "2026-10-03T21:09:08.7023463Z [command]/usr/bin/git version"
+        },
+        {
+          "line": 573,
+          "text": "2026-10-03T21:09:08.7073178Z git version 2.55.0"
+        },
+        {
+          "line": 574,
+          "text": "2026-10-03T21:09:08.7113088Z Temporarily overriding HOME='/home/runner/work/_temp/9b786c10-7372-4c6d-9f6b-fb3054019aae' before making global git config changes"
+        },
+        {
+          "line": 575,
+          "text": "2026-10-03T21:09:08.7114640Z Adding repository directory to the temporary git global config as a safe directory"
+        },
+        {
+          "line": 576,
+          "text": "2026-10-03T21:09:08.7127331Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline"
+        }
+      ]
+    },
+    {
+      "label": "client-windows-a",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-a.tool-result.json",
+        "bytes": 69096,
+        "full_mode": 384,
+        "sha256": "7235163aa21d77d320950b4d15096385d35d1bf41d6a8baf4611d95ade00a076"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-a.decoded.log",
+        "bytes": 65518,
+        "full_mode": 384,
+        "sha256": "03b1a6ededb0fc6c7ac79a3866b4dbadb2abb099440ef6b52d4f7f9deae0bb4e"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 116,
+          "text": "2026-10-03T21:06:47.7634043Z [command]\"C:\\Program Files\\Git\\bin\\git.exe\" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 118,
+          "text": "2026-10-03T21:06:50.7470964Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 122,
+          "text": "2026-10-03T21:06:50.8263055Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 249,
+          "text": "2026-10-03T21:07:10.5208292Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 627,
+          "text": "2026-10-03T21:07:26.1453883Z   \"source_sha\": \"b8148087f08b205d7d19fd0be10994ebcd1fcc3a\","
+        },
+        {
+          "line": 628,
+          "text": "2026-10-03T21:07:26.1454623Z   \"artifact_name\": \"windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a\""
+        },
+        {
+          "line": 803,
+          "text": "2026-10-03T21:10:07.9056940Z   name: windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 837,
+          "text": "2026-10-03T21:10:08.7829020Z Artifact windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11285222626"
+        },
+        {
+          "line": 838,
+          "text": "2026-10-03T21:10:08.7832430Z Artifact windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 3280 bytes. Artifact ID is 11285222626"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 774,
+          "text": "2026-10-03T21:08:21.1961429Z    Compiling partitionline v0.1.0 (D:\\a\\partitionline\\partitionline)"
+        },
+        {
+          "line": 775,
+          "text": "2026-10-03T21:10:03.1057862Z error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 776,
+          "text": "2026-10-03T21:10:03.1058882Z     --> tests\\sticky_partitioner.rs:238:17"
+        },
+        {
+          "line": 777,
+          "text": "2026-10-03T21:10:03.1059394Z      |"
+        },
+        {
+          "line": 778,
+          "text": "2026-10-03T21:10:03.1059825Z 206  |     let producer = Producer::new("
+        },
+        {
+          "line": 779,
+          "text": "2026-10-03T21:10:03.1060898Z      |         -------- move occurs because `producer` has type `Producer`, which does not implement the `Copy` trait"
+        },
+        {
+          "line": 780,
+          "text": "2026-10-03T21:10:03.1061766Z ..."
+        },
+        {
+          "line": 781,
+          "text": "2026-10-03T21:10:03.1062115Z 237  |     producer.close().await.unwrap();"
+        },
+        {
+          "line": 796,
+          "text": "2026-10-03T21:10:03.9168307Z For more information about this error, try `rustc --explain E0382`."
+        },
+        {
+          "line": 797,
+          "text": "2026-10-03T21:10:03.9327274Z error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 798,
+          "text": "2026-10-03T21:10:03.9328206Z warning: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 799,
+          "text": "2026-10-03T21:10:07.8695229Z ##[error]default-tests exited 101: error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 800,
+          "text": "2026-10-03T21:10:07.8811035Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 801,
+          "text": "2026-10-03T21:10:07.9055843Z ##[group]Run actions/upload-artifact@v4"
+        },
+        {
+          "line": 802,
+          "text": "2026-10-03T21:10:07.9056178Z with:"
+        },
+        {
+          "line": 803,
+          "text": "2026-10-03T21:10:07.9056940Z   name: windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 804,
+          "text": "2026-10-03T21:10:07.9057760Z   path: target/windows/1.85.0/"
+        },
+        {
+          "line": 805,
+          "text": "2026-10-03T21:10:07.9058158Z   if-no-files-found: error"
+        },
+        {
+          "line": 806,
+          "text": "2026-10-03T21:10:07.9058420Z   retention-days: 30"
+        },
+        {
+          "line": 825,
+          "text": "2026-10-03T21:10:07.9063406Z ##[endgroup]"
+        },
+        {
+          "line": 826,
+          "text": "2026-10-03T21:10:08.1104828Z (node:1360) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead."
+        },
+        {
+          "line": 827,
+          "text": "2026-10-03T21:10:08.1106354Z (Use `node --trace-deprecation ...` to show where the warning was created)"
+        },
+        {
+          "line": 828,
+          "text": "2026-10-03T21:10:08.1202643Z With the provided path, there will be 5 files uploaded"
+        },
+        {
+          "line": 829,
+          "text": "2026-10-03T21:10:08.1209779Z Artifact name is valid!"
+        },
+        {
+          "line": 830,
+          "text": "2026-10-03T21:10:08.1211720Z Root directory input is valid!"
+        },
+        {
+          "line": 831,
+          "text": "2026-10-03T21:10:08.4074874Z Beginning upload of artifact content to blob storage"
+        },
+        {
+          "line": 832,
+          "text": "2026-10-03T21:10:08.4404280Z (node:1360) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+        },
+        {
+          "line": 833,
+          "text": "2026-10-03T21:10:08.5282195Z Uploaded bytes 3280"
+        },
+        {
+          "line": 834,
+          "text": "2026-10-03T21:10:08.5594312Z Finished uploading artifact content to blob storage!"
+        },
+        {
+          "line": 835,
+          "text": "2026-10-03T21:10:08.5595754Z SHA256 digest of uploaded artifact zip is b65cc7e9770117ad7a12705e1936192141118cc7e052245af7462e694c660656"
+        },
+        {
+          "line": 836,
+          "text": "2026-10-03T21:10:08.5598622Z Finalizing artifact upload"
+        },
+        {
+          "line": 837,
+          "text": "2026-10-03T21:10:08.7829020Z Artifact windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11285222626"
+        },
+        {
+          "line": 838,
+          "text": "2026-10-03T21:10:08.7832430Z Artifact windows-1.85.0-rust1.85.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 3280 bytes. Artifact ID is 11285222626"
+        }
+      ]
+    },
+    {
+      "label": "client-windows-b",
+      "structured_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-b.tool-result.json",
+        "bytes": 69900,
+        "full_mode": 384,
+        "sha256": "bbdb2a0bedda4adce21f20eb8a96ff94e0e85a9b9da95d3f54faf8735ab7f140"
+      },
+      "decoded_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-b.decoded.log",
+        "bytes": 66308,
+        "full_mode": 384,
+        "sha256": "f5314d9e243ced1f466bb230c50d5c3acc1a39ca4fc8625d5d30ea1ea0edffea"
+      },
+      "retrieval_scope": "Complete decoded tool string preserved as UTF8, including BOM and original newlines; not original GitHub archive or HTTP response bytes.",
+      "checkout_source_sha_present": true,
+      "checkout_evidence": [
+        {
+          "line": 116,
+          "text": "2026-10-03T21:08:01.3960270Z [command]\"C:\\Program Files\\Git\\bin\\git.exe\" -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main"
+        },
+        {
+          "line": 118,
+          "text": "2026-10-03T21:08:11.7461127Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main"
+        },
+        {
+          "line": 122,
+          "text": "2026-10-03T21:08:11.8481055Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 251,
+          "text": "2026-10-03T21:08:32.4093785Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 636,
+          "text": "2026-10-03T21:08:57.9062593Z   \"source_sha\": \"b8148087f08b205d7d19fd0be10994ebcd1fcc3a\","
+        },
+        {
+          "line": 637,
+          "text": "2026-10-03T21:08:57.9063299Z   \"artifact_name\": \"windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a\""
+        },
+        {
+          "line": 812,
+          "text": "2026-10-03T21:10:53.9298111Z   name: windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 846,
+          "text": "2026-10-03T21:10:55.2378538Z Artifact windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11284554848"
+        },
+        {
+          "line": 847,
+          "text": "2026-10-03T21:10:55.2381543Z Artifact windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 3276 bytes. Artifact ID is 11284554848"
+        }
+      ],
+      "diagnostics": [
+        {
+          "line": 783,
+          "text": "2026-10-03T21:09:51.7867673Z    Compiling partitionline v0.1.0 (D:\\a\\partitionline\\partitionline)"
+        },
+        {
+          "line": 784,
+          "text": "2026-10-03T21:10:50.3367966Z error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 785,
+          "text": "2026-10-03T21:10:50.3370453Z     --> tests\\sticky_partitioner.rs:238:17"
+        },
+        {
+          "line": 786,
+          "text": "2026-10-03T21:10:50.3370976Z      |"
+        },
+        {
+          "line": 787,
+          "text": "2026-10-03T21:10:50.3371324Z  206 |     let producer = Producer::new("
+        },
+        {
+          "line": 788,
+          "text": "2026-10-03T21:10:50.3372159Z      |         -------- move occurs because `producer` has type `Producer`, which does not implement the `Copy` trait"
+        },
+        {
+          "line": 789,
+          "text": "2026-10-03T21:10:50.3373185Z ..."
+        },
+        {
+          "line": 790,
+          "text": "2026-10-03T21:10:50.3373521Z  237 |     producer.close().await.unwrap();"
+        },
+        {
+          "line": 805,
+          "text": "2026-10-03T21:10:50.5586581Z For more information about this error, try `rustc --explain E0382`."
+        },
+        {
+          "line": 806,
+          "text": "2026-10-03T21:10:50.5745357Z error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 807,
+          "text": "2026-10-03T21:10:50.5746409Z warning: build failed, waiting for other jobs to finish..."
+        },
+        {
+          "line": 808,
+          "text": "2026-10-03T21:10:53.8893366Z ##[error]default-tests exited 101: error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 809,
+          "text": "2026-10-03T21:10:53.9030843Z ##[error]Process completed with exit code 101."
+        },
+        {
+          "line": 810,
+          "text": "2026-10-03T21:10:53.9296686Z ##[group]Run actions/upload-artifact@v4"
+        },
+        {
+          "line": 811,
+          "text": "2026-10-03T21:10:53.9297190Z with:"
+        },
+        {
+          "line": 812,
+          "text": "2026-10-03T21:10:53.9298111Z   name: windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a"
+        },
+        {
+          "line": 813,
+          "text": "2026-10-03T21:10:53.9299190Z   path: target/windows/stable/"
+        },
+        {
+          "line": 814,
+          "text": "2026-10-03T21:10:53.9299579Z   if-no-files-found: error"
+        },
+        {
+          "line": 815,
+          "text": "2026-10-03T21:10:53.9299949Z   retention-days: 30"
+        },
+        {
+          "line": 834,
+          "text": "2026-10-03T21:10:53.9308716Z ##[endgroup]"
+        },
+        {
+          "line": 835,
+          "text": "2026-10-03T21:10:54.1520872Z (node:2664) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead."
+        },
+        {
+          "line": 836,
+          "text": "2026-10-03T21:10:54.1521605Z (Use `node --trace-deprecation ...` to show where the warning was created)"
+        },
+        {
+          "line": 837,
+          "text": "2026-10-03T21:10:54.1602112Z With the provided path, there will be 5 files uploaded"
+        },
+        {
+          "line": 838,
+          "text": "2026-10-03T21:10:54.1607806Z Artifact name is valid!"
+        },
+        {
+          "line": 839,
+          "text": "2026-10-03T21:10:54.1610226Z Root directory input is valid!"
+        },
+        {
+          "line": 840,
+          "text": "2026-10-03T21:10:54.5876042Z Beginning upload of artifact content to blob storage"
+        },
+        {
+          "line": 841,
+          "text": "2026-10-03T21:10:54.6220910Z (node:2664) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities."
+        },
+        {
+          "line": 842,
+          "text": "2026-10-03T21:10:54.8987407Z Uploaded bytes 3276"
+        },
+        {
+          "line": 843,
+          "text": "2026-10-03T21:10:54.9772232Z Finished uploading artifact content to blob storage!"
+        },
+        {
+          "line": 844,
+          "text": "2026-10-03T21:10:54.9773270Z SHA256 digest of uploaded artifact zip is 0aa92fb9e71a5c995e1ba1a6ebb382fa99ef44d99f718e17c0e03bae4e493a97"
+        },
+        {
+          "line": 845,
+          "text": "2026-10-03T21:10:54.9775875Z Finalizing artifact upload"
+        },
+        {
+          "line": 846,
+          "text": "2026-10-03T21:10:55.2378538Z Artifact windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a.zip successfully finalized. Artifact ID 11284554848"
+        },
+        {
+          "line": 847,
+          "text": "2026-10-03T21:10:55.2381543Z Artifact windows-stable-rust1.99.0-os10.0.26100-ssl3.5.7-py3.13.15-utf81-bash5.3.15-partial-b8148087f08b205d7d19fd0be10994ebcd1fcc3a has been successfully uploaded! Final size is 3276 bytes. Artifact ID is 11284554848"
+        }
+      ]
+    }
+  ],
+  "preserved_log_count": 13,
+  "scope": "Decoded UTF8 strings and complete structured tool results, not raw download archives. No source mutations or local compiler/test/SDK runs."
+}

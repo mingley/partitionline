@@ -1,0 +1,23 @@
+--- a/src/admin.rs
++++ b/src/admin.rs
+@@ -7260,7 +7260,7 @@
+             .map(|broker| broker.node_id)
+             .collect();
+         nodes.sort_unstable();
+-        if nodes.iter().any(|id| *id < 0) || nodes.windows(2).any(|pair| pair[0] == pair[1]) {
++        if nodes.iter().any(|id| *id < 0) || nodes.iter().zip(nodes.iter().skip(1)).any(|(left, right)| left == right) {
+             return Err(Error::protocol(
+                 "invalid or duplicate ListTransactions broker ID",
+             ));
+@@ -7326,10 +7326,7 @@
+                         deadline.saturating_duration_since(Instant::now()),
+                     )
+                     .await?;
+-                budget.response_bytes = budget
+-                    .response_bytes
+-                    .checked_add(body.len())
+-                    .unwrap_or(usize::MAX);
++                budget.response_bytes = budget.response_bytes.saturating_add(body.len());
+                 if budget.response_bytes > 16 * 1024 * 1024 {
+                     budget.exhausted = true;
+                     return Err(Error::protocol(

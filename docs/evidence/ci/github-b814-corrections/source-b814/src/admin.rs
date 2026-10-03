@@ -7260,12 +7260,7 @@ impl Admin {
             .map(|broker| broker.node_id)
             .collect();
         nodes.sort_unstable();
-        if nodes.iter().any(|id| *id < 0)
-            || nodes
-                .iter()
-                .zip(nodes.iter().skip(1))
-                .any(|(left, right)| left == right)
-        {
+        if nodes.iter().any(|id| *id < 0) || nodes.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(Error::protocol(
                 "invalid or duplicate ListTransactions broker ID",
             ));
@@ -7331,7 +7326,10 @@ impl Admin {
                         deadline.saturating_duration_since(Instant::now()),
                     )
                     .await?;
-                budget.response_bytes = budget.response_bytes.saturating_add(body.len());
+                budget.response_bytes = budget
+                    .response_bytes
+                    .checked_add(body.len())
+                    .unwrap_or(usize::MAX);
                 if budget.response_bytes > 16 * 1024 * 1024 {
                     budget.exhausted = true;
                     return Err(Error::protocol(

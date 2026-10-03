@@ -1,0 +1,751 @@
+{
+  "source_parent": "a85b241765981a21cf2b3161ae6eac155200a441",
+  "source_before": {
+    "src/admin.rs": {
+      "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8",
+      "bytes": 590487,
+      "full_mode": 384
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "bytes": 37620,
+      "full_mode": 384
+    },
+    "tests/conformance/test_verifiable_scenario.py": {
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982",
+      "bytes": 11368,
+      "full_mode": 384
+    }
+  },
+  "source_after": {
+    "src/admin.rs": {
+      "sha256": "10bc276939b42486dd40bb889bff802f33237086219b59410bac2cdc514da668",
+      "bytes": 590502,
+      "full_mode": 384
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full_mode": 384
+    },
+    "tests/conformance/test_verifiable_scenario.py": {
+      "sha256": "7b9b681b3b4211b9266ec6059abde25d551b61564a9d52bd04e9184db684a79f",
+      "bytes": 12673,
+      "full_mode": 384
+    }
+  },
+  "held_before_after_identical": {
+    "src/protocol/records.rs": {
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "bytes": 171836,
+      "full_mode": 384
+    },
+    "src/protocol/buf.rs": {
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "full_mode": 384
+    }
+  },
+  "actual_commands": [
+    {
+      "argv": [
+        "rustup",
+        "run",
+        "stable",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "/workspace/work/integration/ci-b814-fixes-01/formatted/src/admin.rs"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "rustup",
+        "run",
+        "1.85.0",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/integration/ci-b814-fixes-01/formatted/src/admin.rs"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "scope": "Three CI source corrections. Actual failed CI logs, source and original candidates retained. Client packet contains actual113 Python methods and format checks. Root formatting only; no new Rust compilation, Clippy, SDK or behavioral qualification claimed.",
+  "installed": [
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-a.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.decoded.log",
+      "sha256": "31ac5056460b41bbc6f5416c8adbb40c8d7a0771cb49feff7c1391169311e058",
+      "bytes": 47232,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-a.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.tool-result.json",
+      "sha256": "d881b37bcdf897db659cd315b458a6d67d30a1a82f6e69ade494487ae8bb6bd5",
+      "bytes": 48866,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-b.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.decoded.log",
+      "sha256": "f0bb8189a401ff0bfcecf2d2d94dab0616bfa21d33fd48fe6589e219ee8ff9af",
+      "bytes": 47821,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-b.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.tool-result.json",
+      "sha256": "646aa8c0af88c38ae458d957d36a76b8ee0966730dae7eeeabd13be6416f7512",
+      "bytes": 49464,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-c.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.decoded.log",
+      "sha256": "00117655648090b15cea66b8253a85fd5d9c703e229f13ef6390db5918029a5f",
+      "bytes": 48006,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-current-java-c.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.tool-result.json",
+      "sha256": "237a114b013d9a09565b06e01f27b9e5cde87c21e0458933094eaedb7753bbcd",
+      "bytes": 49652,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-msrv.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-msrv.decoded.log",
+      "sha256": "fc4acd031224073f63a2ed6c6d9eab27fcecc355494eded0b0f00045cb8bded4",
+      "bytes": 78121,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-msrv.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-msrv.tool-result.json",
+      "sha256": "7230cada6a40fa96205b83f9221ee407c82e5b8f1839bfe680d7a657eb17f39b",
+      "bytes": 80093,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-stable.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-stable.decoded.log",
+      "sha256": "b8a9a4bbd4950f36987f7ec872f30bf65ee82c758c6584720d884bf369d5f41c",
+      "bytes": 112904,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/broker-stable.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/broker-stable.tool-result.json",
+      "sha256": "ecb1de2979cfac4ee3171026d344d6ea34ca6ba7d85b279fc6590fcddda9cfc7",
+      "bytes": 115310,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-clippy.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-clippy.decoded.log",
+      "sha256": "b10ffee75c06725f0421859cbd38051c74e9f8cad5ff792a29e988ebc65b8231",
+      "bytes": 47352,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-clippy.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-clippy.tool-result.json",
+      "sha256": "c6fa63d3b8b95a4754f34dd803cd7fb0210add5f1a287714ff43c4e4559ec520",
+      "bytes": 51781,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-features.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-features.decoded.log",
+      "sha256": "971a53ed7d247bc80af6237721905a0020d8254419b40c316b6396795c706b70",
+      "bytes": 48442,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-features.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-features.tool-result.json",
+      "sha256": "58d1ea2fe1f9b64e80a5bca28cef800270c0063feab22585d2eb6875ef86ed2d",
+      "bytes": 52888,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-macos-a.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-macos-a.decoded.log",
+      "sha256": "dde05006a773faf26f0c22509d85b1d5bec9f4a218c60908b3bc49a29833ed29",
+      "bytes": 64466,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-macos-a.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-macos-a.tool-result.json",
+      "sha256": "73feb41133b7699bf969a8e819985bda1e8d065568af32046d541947879de4fa",
+      "bytes": 66707,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-macos-b.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-macos-b.decoded.log",
+      "sha256": "485ab220ed68b7dac5bffac5f6c047eebdaaf972f107ccc3339a21e4f79e4ca0",
+      "bytes": 63727,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-macos-b.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-macos-b.tool-result.json",
+      "sha256": "eb306f89202e2892b8801e4e5fd2976d4381048ab8362cc570827acbb667635e",
+      "bytes": 65958,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-msrv.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-msrv.decoded.log",
+      "sha256": "03c8541d6b9ae47db209c2282ac8e56a28e7e68e672042bb00952b31e1026288",
+      "bytes": 47807,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-msrv.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-msrv.tool-result.json",
+      "sha256": "2a44a910ee588cb289db7a27b1f296a34a33fd4e765cd9b35a38ff12ec04cb77",
+      "bytes": 52403,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-stable.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-stable.decoded.log",
+      "sha256": "f22cec18abf0da83e3d5c602728eca3e30c0b41718b511ea7eab402a5bd4e084",
+      "bytes": 47637,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-stable.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-stable.tool-result.json",
+      "sha256": "3510ac93b1b2e62d5ee1d420e0075dd40afda68c0b7162b26b7918d5fd3813b9",
+      "bytes": 51658,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-windows-a.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-windows-a.decoded.log",
+      "sha256": "03b1a6ededb0fc6c7ac79a3866b4dbadb2abb099440ef6b52d4f7f9deae0bb4e",
+      "bytes": 65518,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-windows-a.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-windows-a.tool-result.json",
+      "sha256": "7235163aa21d77d320950b4d15096385d35d1bf41d6a8baf4611d95ade00a076",
+      "bytes": 69096,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-windows-b.decoded.log",
+      "source": "/workspace/work/github-ci-b814-review-01/client-windows-b.decoded.log",
+      "sha256": "f5314d9e243ced1f466bb230c50d5c3acc1a39ca4fc8625d5d30ea1ea0edffea",
+      "bytes": 66308,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/client-windows-b.tool-result.json",
+      "source": "/workspace/work/github-ci-b814-review-01/client-windows-b.tool-result.json",
+      "sha256": "bbdb2a0bedda4adce21f20eb8a96ff94e0e85a9b9da95d3f54faf8735ab7f140",
+      "bytes": 69900,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/publication-inventory.json",
+      "source": "/workspace/work/github-ci-b814-review-01/publication-inventory.json",
+      "sha256": "530d4ea55d4ff3873cc35dcd8fca8b0df48f46391ff8352761306c49886da5ec",
+      "bytes": 33156,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/retrieval-and-diagnostics.json",
+      "source": "/workspace/work/github-ci-b814-review-01/retrieval-and-diagnostics.json",
+      "sha256": "bc3850d518dfc5b0e33158c85c247ed724f85066f66080f3c0476717ef3d0b47",
+      "bytes": 80782,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/.github/workflows/broker.yml",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/.github/workflows/broker.yml",
+      "sha256": "541522f434016108df4e12070fd63d3082f857e3766623913a36bd43aed315b9",
+      "bytes": 3251,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/.github/workflows/ci.yml",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/.github/workflows/ci.yml",
+      "sha256": "a40da8aa064adb8bcf7a49fec68971a84162927f4e37781d1cba3fcf6f915281",
+      "bytes": 23527,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/partitionline-broker/src/raft/runtime.rs",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+      "bytes": 96127,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/partitionline-broker/tests/raft_runtime.rs",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/partitionline-broker/tests/raft_runtime.rs",
+      "sha256": "53308755744ab1d075a31a97928bcc6a990f536087eb2d600be576370bbb2dd6",
+      "bytes": 196,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/src/admin.rs",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/src/admin.rs",
+      "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8",
+      "bytes": 590487,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/tests/conformance/test_verifiable_scenario.py",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/tests/conformance/test_verifiable_scenario.py",
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982",
+      "bytes": 11368,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-b814/tests/sticky_partitioner.rs",
+      "source": "/workspace/work/github-ci-b814-review-01/source-b814/tests/sticky_partitioner.rs",
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "bytes": 37620,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-provenance.json",
+      "source": "/workspace/work/github-ci-b814-review-01/source-provenance.json",
+      "sha256": "8ab7a9faac2645e0a7611b9afc7ad4383f98ddb1ae6a633b0b1f3f7196142139",
+      "bytes": 3827,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/source-tree-index.z.gz",
+      "source": "/workspace/work/github-ci-b814-review-01/source-tree-index.z.gz",
+      "sha256": "45d48064d6032ccf4f2bce9cdb02215bf68899946eaa69a418ab8fc0040a08a2",
+      "bytes": 1220378,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/strict-lint-proposal/admin-strict-lints.diff",
+      "source": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/admin-strict-lints.diff",
+      "sha256": "38a14ea223d0759ee799965fd158990aa6a20dba2b256afa495b78ce4420dc87",
+      "bytes": 1082,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/strict-lint-proposal/installation-manifest.json",
+      "source": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/installation-manifest.json",
+      "sha256": "5202f5b460538b500c377fd174ba7c6e81ff43e49faf6496ddbeb53c17479704",
+      "bytes": 3132,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-b814-corrections/strict-lint-proposal/src/admin.rs",
+      "source": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/src/admin.rs",
+      "sha256": "fd56de2a4933cd90d82152a7e10deb39675e975eb7aafb1053e2cc76ee38bb9b",
+      "bytes": 590431,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/apply_python.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/apply_python.py",
+      "sha256": "33fabd0f447b11d5a64204a535b8a4b62e62cdb906f2ffc383c7dc6ae27656a8",
+      "bytes": 2387,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/command.json",
+      "sha256": "76ce14b678de614536107ff3016d4b3522f80fb97ab755b486d83ec2f8c0164f",
+      "bytes": 722,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/receipt.json",
+      "sha256": "6cabcbfa04174bdd58fd4f3773c984b11b7bc4a82f4ee9e267e68eebcecbfdea",
+      "bytes": 351,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-after.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/source-before.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stderr.log",
+      "sha256": "59641cfa1e592be2e730e2be769c519122c933549df9cebc165ab9786672f569",
+      "bytes": 21444,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/command.json",
+      "sha256": "76ce14b678de614536107ff3016d4b3522f80fb97ab755b486d83ec2f8c0164f",
+      "bytes": 722,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/receipt.json",
+      "sha256": "0dd2b3f1a07dca7164ef0509fbf4cbdfadc00384a50a6aa11b0f0f3911f4a720",
+      "bytes": 351,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stderr.log",
+      "sha256": "f09e8918d294899661bd38a5165a1049ac055024188d11e017839ecfbc255b09",
+      "bytes": 20735,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/corrected-cohort-complete-dependencies/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/command.json",
+      "sha256": "ac452b3bfdf0bba14fc143fb782324a812904fb430bd79923c8948a7f9b11d75",
+      "bytes": 764,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/receipt.json",
+      "sha256": "0f4c71a7f29b5a835045bc1dc68f6073e94e5e4f0e2ee4c2f64b7befe5c89958",
+      "bytes": 349,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-after.json",
+      "sha256": "605dcfcc11c7240609563bffd3b440c621bdedd8039d732a1270cfb46a6c384c",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/source-before.json",
+      "sha256": "605dcfcc11c7240609563bffd3b440c621bdedd8039d732a1270cfb46a6c384c",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stderr.log",
+      "sha256": "a224b20c7cf84ca1885e87f9b4e242862a9c608c8986b1250761355fbe14b03e",
+      "bytes": 1666,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/failed-first/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/command.json",
+      "sha256": "16b7e8076acc9beaab284f083e495cb16fafcac87a25093c5a26557773c97b59",
+      "bytes": 746,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/receipt.json",
+      "sha256": "086de512eea7e70eadbf70b6019d2bbe59e3ad5a928546bf6658cccec60eb8a2",
+      "bytes": 348,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/msrv-format/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/command.json",
+      "sha256": "75407a2c044468a25dfa6b54cae62bbce78404645ea8a75b53aeb04fbb2d6f70",
+      "bytes": 746,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/receipt.json",
+      "sha256": "1d01d6aba341046864a4c5786f725c98d68d949e652cc25378840ecf4059fba4",
+      "bytes": 349,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-after.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/source-before.json",
+      "sha256": "2b02a26484e8a0182f54be99fde527d0a9849b4b537e15b2e32f5c7e4f367bd0",
+      "bytes": 9949,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stderr.log",
+      "sha256": "44e133fcbca29d2ae1ab51e412eaf3a43e270a3782024c145c83d64c0ce77adb",
+      "bytes": 139,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/command.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/command.json",
+      "sha256": "75407a2c044468a25dfa6b54cae62bbce78404645ea8a75b53aeb04fbb2d6f70",
+      "bytes": 746,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/receipt.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/receipt.json",
+      "sha256": "0dc6998cc1eb26f3191a7f9e7b560a170b8b483cdc0cdad2140f106e623b8788",
+      "bytes": 349,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-after.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/source-before.json",
+      "sha256": "93bca7e261cf289b2f6dd4430007bf16e088c99abad1187b9025b5439c8d9bee",
+      "bytes": 10306,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stderr.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stdout.log",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/checks/stable-format-complete-dependencies/stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/ci-evidence-reference.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/ci-evidence-reference.json",
+      "sha256": "f5102a5b1e4eca379b2541f1ae3b4be604ac52bd4d0ac4041fbba8064a3374e6",
+      "bytes": 4141,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-closure-addition.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-closure-addition.json",
+      "sha256": "6959bcaac3368042b5b98551e4a1ad186bbf49e530e85403fa4f3adbcc875430",
+      "bytes": 751,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-source-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/dependency-source-before.json",
+      "sha256": "b68a98e8a2b01b7faf1f0884f0442c4baae51c5ac8312a2b54fed665830bbef2",
+      "bytes": 15563,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/history/run_checks-before-attempt-label.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/history/run_checks-before-attempt-label.py",
+      "sha256": "bc108f7ce7ccebc6e1b73984045c4892ed135c09016abee6fe5e45f7f54ac025",
+      "bytes": 4566,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/conformance/test_verifiable_scenario.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/conformance/test_verifiable_scenario.py",
+      "sha256": "1092df0d9174b8b06712c6e34b1cc5c1ae323c76015407a2bfe30293af23c982",
+      "bytes": 11368,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/sticky_partitioner.rs",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-b814/tests/sticky_partitioner.rs",
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "bytes": 37620,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-two-sources.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/original-two-sources.json",
+      "sha256": "288b102fa3fa2fd8895ee4af769f901e548c941200d7c7b2c6c2a7a91a90c872",
+      "bytes": 766,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepare.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepare.py",
+      "sha256": "c811c6be01e929c6d17227f8b02d1af7cc03499a094c149a7592a250787710ba",
+      "bytes": 5363,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepared-source-scope.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/prepared-source-scope.json",
+      "sha256": "3f782d9e8502aab45b857ccc8d88daa0ceb2922de6f88a5b143267fde1bbb305",
+      "bytes": 508,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-after.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-after.json",
+      "sha256": "299f010a70a07ef6eefe8fded3cb229d039e0e1e94eb845383ad895afe85e4fc",
+      "bytes": 1350,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-before.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/repository-before.json",
+      "sha256": "1229023483d72cba9ecd3ba662ba57dfac3127924c3e25a3e6def0ff96c04257",
+      "bytes": 1300,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/run_checks.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/run_checks.py",
+      "sha256": "bf7a4f9089a7ad23e045f8600d86bb31adf23492bab8a90f70a8705991f957b1",
+      "bytes": 4606,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/seal.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/seal.py",
+      "sha256": "6ca6744ec27631638894760fbffa3ebbdadf5f7a50b79ba4e82d11001b3b5bca",
+      "bytes": 8371,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/two-test-source.patch",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/two-test-source.patch",
+      "sha256": "da5feb97b722e2ca9d62914536131a08cebcd8530aaee2792d2e8320eb78e669",
+      "bytes": 2615,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/validation.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/validation.json",
+      "sha256": "5c8478ae5671de4f9f550a1221e511323b3202a4f8a0387bd4add3dde8cd2187",
+      "bytes": 12900,
+      "full_mode": 384
+    },
+    {
+      "path": "tests/conformance/test_verifiable_scenario.py",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/tests/conformance/test_verifiable_scenario.py",
+      "sha256": "7b9b681b3b4211b9266ec6059abde25d551b61564a9d52bd04e9184db684a79f",
+      "bytes": 12673,
+      "full_mode": 384
+    },
+    {
+      "path": "tests/sticky_partitioner.rs",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage/tests/sticky_partitioner.rs",
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full_mode": 384
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/stage-handoff.json",
+      "source": "/workspace/work/client-ci-b814-correction-01/stage-handoff.json",
+      "sha256": "0ca35ab7f484e75732cc16cc7b9900a81291f97d3c7afff310abe3d9032fd21b",
+      "bytes": 27395,
+      "full_mode": 384
+    },
+    {
+      "path": "src/admin.rs",
+      "source": "/workspace/work/integration/ci-b814-fixes-01/formatted/src/admin.rs",
+      "sha256": "10bc276939b42486dd40bb889bff802f33237086219b59410bac2cdc514da668",
+      "bytes": 590502,
+      "full_mode": 384
+    }
+  ]
+}

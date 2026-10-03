@@ -1,0 +1,949 @@
+﻿2026-10-03T21:06:40.1380366Z Current runner version: '2.337.0'
+2026-10-03T21:06:40.1396371Z ##[group]Runner Image Provisioner
+2026-10-03T21:06:40.1396967Z Hosted Compute Agent
+2026-10-03T21:06:40.1397341Z Version: 20260901.588
+2026-10-03T21:06:40.1397761Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-03T21:06:40.1398264Z Build Date: 2026-09-01T19:56:44Z
+2026-10-03T21:06:40.1398673Z Worker ID: {ea840b38-5ffb-40ee-bc97-bc69ad8bbbab}
+2026-10-03T21:06:40.1399127Z Azure Region: centralus
+2026-10-03T21:06:40.1399494Z ##[endgroup]
+2026-10-03T21:06:40.1400336Z ##[group]Operating System
+2026-10-03T21:06:40.1401030Z Ubuntu
+2026-10-03T21:06:40.1401350Z 24.04.5
+2026-10-03T21:06:40.1401654Z LTS
+2026-10-03T21:06:40.1402014Z ##[endgroup]
+2026-10-03T21:06:40.1402381Z ##[group]Runner Image
+2026-10-03T21:06:40.1402798Z Image: ubuntu-24.04
+2026-10-03T21:06:40.1403139Z Version: 20260927.320.1
+2026-10-03T21:06:40.1403916Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-03T21:06:40.1404967Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-03T21:06:40.1405562Z ##[endgroup]
+2026-10-03T21:06:40.1406202Z ##[group]GITHUB_TOKEN Permissions
+2026-10-03T21:06:40.1407452Z Contents: read
+2026-10-03T21:06:40.1407836Z Metadata: read
+2026-10-03T21:06:40.1408162Z ##[endgroup]
+2026-10-03T21:06:40.1409448Z Secret source: Actions
+2026-10-03T21:06:40.1409995Z Cache mode: write
+2026-10-03T21:06:40.1410498Z Prepare workflow directory
+2026-10-03T21:06:40.1781677Z Prepare all required actions
+2026-10-03T21:06:40.1813842Z Getting action download info
+2026-10-03T21:06:40.4096095Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-03T21:06:40.4927957Z Download action repository 'dtolnay/rust-toolchain@master' (SHA:7e38f4b43b4db5c8dd498af069a4f6196df1d067)
+2026-10-03T21:06:40.7426133Z Complete job name: broker (1.85.0)
+2026-10-03T21:06:40.7840552Z ##[group]Run actions/checkout@v7
+2026-10-03T21:06:40.7840958Z with:
+2026-10-03T21:06:40.7841206Z   repository: mingley/partitionline
+2026-10-03T21:06:40.7843488Z   token: ***
+2026-10-03T21:06:40.7843721Z   ssh-strict: true
+2026-10-03T21:06:40.7843960Z   ssh-user: git
+2026-10-03T21:06:40.7844203Z   persist-credentials: true
+2026-10-03T21:06:40.7844468Z   clean: true
+2026-10-03T21:06:40.7844899Z   sparse-checkout-cone-mode: true
+2026-10-03T21:06:40.7845181Z   fetch-depth: 1
+2026-10-03T21:06:40.7845415Z   fetch-tags: false
+2026-10-03T21:06:40.7845657Z   show-progress: true
+2026-10-03T21:06:40.7845902Z   lfs: false
+2026-10-03T21:06:40.7846128Z   submodules: false
+2026-10-03T21:06:40.7846373Z   set-safe-directory: true
+2026-10-03T21:06:40.7846650Z   allow-unsafe-pr-checkout: false
+2026-10-03T21:06:40.7846999Z env:
+2026-10-03T21:06:40.7847220Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:40.7847500Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:40.7847825Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:40.7848071Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:40.7848323Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:40.7848574Z ##[endgroup]
+2026-10-03T21:06:40.8499741Z Syncing repository: mingley/partitionline
+2026-10-03T21:06:40.8501183Z ##[group]Getting Git version info
+2026-10-03T21:06:40.8501825Z Working directory is '/home/runner/work/partitionline/partitionline'
+2026-10-03T21:06:40.8502756Z [command]/usr/bin/git version
+2026-10-03T21:06:40.8576110Z git version 2.55.0
+2026-10-03T21:06:40.8588180Z ##[endgroup]
+2026-10-03T21:06:40.8595764Z Temporarily overriding HOME='/home/runner/work/_temp/be8291d4-c759-4b70-a1ee-44f6f05c9a2b' before making global git config changes
+2026-10-03T21:06:40.8601545Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T21:06:40.8617331Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-10-03T21:06:40.8659790Z Deleting the contents of '/home/runner/work/partitionline/partitionline'
+2026-10-03T21:06:40.8661893Z ##[group]Determining repository object format
+2026-10-03T21:06:40.8662907Z ##[endgroup]
+2026-10-03T21:06:40.8663528Z ##[group]Initializing the repository
+2026-10-03T21:06:40.8665711Z [command]/usr/bin/git init /home/runner/work/partitionline/partitionline
+2026-10-03T21:06:40.8755066Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-03T21:06:40.8756034Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-03T21:06:40.8756923Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-03T21:06:40.8757791Z hint: call:
+2026-10-03T21:06:40.8758304Z hint:
+2026-10-03T21:06:40.8758872Z hint: 	git config --global init.defaultBranch <name>
+2026-10-03T21:06:40.8760869Z hint:
+2026-10-03T21:06:40.8761513Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-03T21:06:40.8762543Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-03T21:06:40.8763370Z hint:
+2026-10-03T21:06:40.8763844Z hint: 	git branch -m <name>
+2026-10-03T21:06:40.8764390Z hint:
+2026-10-03T21:06:40.8765307Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-03T21:06:40.8765946Z Initialized empty Git repository in /home/runner/work/partitionline/partitionline/.git/
+2026-10-03T21:06:40.8766948Z [command]/usr/bin/git remote add origin https://github.com/mingley/partitionline
+2026-10-03T21:06:40.8815885Z ##[endgroup]
+2026-10-03T21:06:40.8816612Z ##[group]Disabling automatic garbage collection
+2026-10-03T21:06:40.8818379Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-03T21:06:40.8847982Z ##[endgroup]
+2026-10-03T21:06:40.8848701Z ##[group]Setting up auth
+2026-10-03T21:06:40.8849134Z Removing SSH command configuration
+2026-10-03T21:06:40.8853112Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T21:06:40.8881617Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-03T21:06:40.9178182Z Removing HTTP extra header
+2026-10-03T21:06:40.9181824Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T21:06:40.9209163Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-03T21:06:40.9375306Z Removing includeIf entries pointing to credentials config files
+2026-10-03T21:06:40.9379321Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T21:06:40.9411374Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-03T21:06:40.9586842Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-03T21:06:40.9617041Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git.path /home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:06:40.9644391Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:06:40.9674391Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:06:40.9702352Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:06:40.9727975Z ##[endgroup]
+2026-10-03T21:06:40.9728632Z ##[group]Fetching the repository
+2026-10-03T21:06:40.9732815Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +b8148087f08b205d7d19fd0be10994ebcd1fcc3a:refs/remotes/origin/main
+2026-10-03T21:06:49.7043548Z From https://github.com/mingley/partitionline
+2026-10-03T21:06:49.7045195Z  * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main
+2026-10-03T21:06:49.7049290Z [command]/usr/bin/git branch --list --remote origin/main
+2026-10-03T21:06:49.7075098Z   origin/main
+2026-10-03T21:06:49.7080730Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-10-03T21:06:49.7101876Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a
+2026-10-03T21:06:49.7105343Z ##[endgroup]
+2026-10-03T21:06:49.7106402Z ##[group]Determining the checkout info
+2026-10-03T21:06:49.7107662Z ##[endgroup]
+2026-10-03T21:06:49.7108414Z [command]/usr/bin/git sparse-checkout disable
+2026-10-03T21:06:49.7152943Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-03T21:06:49.7181739Z ##[group]Checking out the ref
+2026-10-03T21:06:49.7183955Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-10-03T21:06:50.7691611Z Updating files:  41% (31438/75693)
+2026-10-03T21:06:50.7904613Z Updating files:  42% (31792/75693)
+2026-10-03T21:06:50.8138890Z Updating files:  43% (32548/75693)
+2026-10-03T21:06:50.8397858Z Updating files:  44% (33305/75693)
+2026-10-03T21:06:50.8726986Z Updating files:  45% (34062/75693)
+2026-10-03T21:06:50.9166888Z Updating files:  46% (34819/75693)
+2026-10-03T21:06:50.9382326Z Updating files:  47% (35576/75693)
+2026-10-03T21:06:51.0543323Z Updating files:  48% (36333/75693)
+2026-10-03T21:06:51.1803046Z Updating files:  49% (37090/75693)
+2026-10-03T21:06:51.2169551Z Updating files:  50% (37847/75693)
+2026-10-03T21:06:51.2384118Z Updating files:  51% (38604/75693)
+2026-10-03T21:06:51.2803605Z Updating files:  52% (39361/75693)
+2026-10-03T21:06:51.3087064Z Updating files:  53% (40118/75693)
+2026-10-03T21:06:51.3281268Z Updating files:  54% (40875/75693)
+2026-10-03T21:06:51.3472098Z Updating files:  55% (41632/75693)
+2026-10-03T21:06:51.3654542Z Updating files:  56% (42389/75693)
+2026-10-03T21:06:51.3838174Z Updating files:  57% (43146/75693)
+2026-10-03T21:06:51.4900028Z Updating files:  58% (43902/75693)
+2026-10-03T21:06:51.5078673Z Updating files:  59% (44659/75693)
+2026-10-03T21:06:51.5362223Z Updating files:  60% (45416/75693)
+2026-10-03T21:06:51.5729879Z Updating files:  61% (46173/75693)
+2026-10-03T21:06:51.5938910Z Updating files:  62% (46930/75693)
+2026-10-03T21:06:51.6232090Z Updating files:  63% (47687/75693)
+2026-10-03T21:06:51.6442482Z Updating files:  64% (48444/75693)
+2026-10-03T21:06:51.6647162Z Updating files:  65% (49201/75693)
+2026-10-03T21:06:51.6837816Z Updating files:  66% (49958/75693)
+2026-10-03T21:06:51.7111582Z Updating files:  67% (50715/75693)
+2026-10-03T21:06:51.7291960Z Updating files:  68% (51472/75693)
+2026-10-03T21:06:51.7484191Z Updating files:  69% (52229/75693)
+2026-10-03T21:06:51.7587332Z Updating files:  70% (52986/75693)
+2026-10-03T21:06:51.7687259Z Updating files:  70% (53308/75693)
+2026-10-03T21:06:51.7866920Z Updating files:  71% (53743/75693)
+2026-10-03T21:06:51.8045653Z Updating files:  72% (54499/75693)
+2026-10-03T21:06:51.8223117Z Updating files:  73% (55256/75693)
+2026-10-03T21:06:51.8539349Z Updating files:  74% (56013/75693)
+2026-10-03T21:06:51.8838223Z Updating files:  75% (56770/75693)
+2026-10-03T21:06:51.9145059Z Updating files:  76% (57527/75693)
+2026-10-03T21:06:51.9350986Z Updating files:  77% (58284/75693)
+2026-10-03T21:06:51.9597772Z Updating files:  78% (59041/75693)
+2026-10-03T21:06:52.0064586Z Updating files:  79% (59798/75693)
+2026-10-03T21:06:52.0357497Z Updating files:  80% (60555/75693)
+2026-10-03T21:06:52.0559324Z Updating files:  81% (61312/75693)
+2026-10-03T21:06:52.1232349Z Updating files:  82% (62069/75693)
+2026-10-03T21:06:52.1683102Z Updating files:  83% (62826/75693)
+2026-10-03T21:06:52.2012323Z Updating files:  84% (63583/75693)
+2026-10-03T21:06:52.2357671Z Updating files:  85% (64340/75693)
+2026-10-03T21:06:52.2668020Z Updating files:  86% (65096/75693)
+2026-10-03T21:06:52.3348485Z Updating files:  87% (65853/75693)
+2026-10-03T21:06:52.3804148Z Updating files:  88% (66610/75693)
+2026-10-03T21:06:52.4099509Z Updating files:  89% (67367/75693)
+2026-10-03T21:06:52.4456399Z Updating files:  90% (68124/75693)
+2026-10-03T21:06:52.4675005Z Updating files:  91% (68881/75693)
+2026-10-03T21:06:52.4896405Z Updating files:  92% (69638/75693)
+2026-10-03T21:06:52.5193590Z Updating files:  93% (70395/75693)
+2026-10-03T21:06:52.5380480Z Updating files:  94% (71152/75693)
+2026-10-03T21:06:52.9441313Z Updating files:  95% (71909/75693)
+2026-10-03T21:06:52.9445283Z Updating files:  95% (72654/75693)
+2026-10-03T21:06:52.9632102Z Updating files:  96% (72666/75693)
+2026-10-03T21:06:52.9820139Z Updating files:  97% (73423/75693)
+2026-10-03T21:06:53.0045930Z Updating files:  98% (74180/75693)
+2026-10-03T21:06:53.0435866Z Updating files:  99% (74937/75693)
+2026-10-03T21:06:53.0436171Z Updating files: 100% (75693/75693)
+2026-10-03T21:06:53.0436423Z Updating files: 100% (75693/75693), done.
+2026-10-03T21:06:53.0984547Z Switched to a new branch 'main'
+2026-10-03T21:06:53.0988212Z branch 'main' set up to track 'origin/main'.
+2026-10-03T21:06:53.1044293Z ##[endgroup]
+2026-10-03T21:06:53.1082461Z [command]/usr/bin/git log -1 --format=%H
+2026-10-03T21:06:53.1146003Z b8148087f08b205d7d19fd0be10994ebcd1fcc3a
+2026-10-03T21:06:53.1337715Z ##[group]Run dtolnay/rust-toolchain@master
+2026-10-03T21:06:53.1337886Z with:
+2026-10-03T21:06:53.1338000Z   toolchain: 1.85.0
+2026-10-03T21:06:53.1338127Z   components: rustfmt, clippy
+2026-10-03T21:06:53.1338263Z env:
+2026-10-03T21:06:53.1338375Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.1338519Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.1338674Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.1338802Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.1338926Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.1339052Z ##[endgroup]
+2026-10-03T21:06:53.1379308Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+2026-10-03T21:06:53.1403688Z ##[group]Run if [[ -z $toolchain ]]; then
+2026-10-03T21:06:53.1403934Z [36;1mif [[ -z $toolchain ]]; then[0m
+2026-10-03T21:06:53.1404236Z [36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070[0m
+2026-10-03T21:06:53.1404585Z [36;1m  echo "'toolchain' is a required input" >&2[0m
+2026-10-03T21:06:53.1404993Z [36;1m  exit 1[0m
+2026-10-03T21:06:53.1405190Z [36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then[0m
+2026-10-03T21:06:53.1405422Z [36;1m  if [[ Linux == macOS ]]; then[0m
+2026-10-03T21:06:53.1405719Z [36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1405998Z [36;1m  else[0m
+2026-10-03T21:06:53.1406226Z [36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1406475Z [36;1m  fi[0m
+2026-10-03T21:06:53.1406647Z [36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then[0m
+2026-10-03T21:06:53.1406936Z [36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1407192Z [36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then[0m
+2026-10-03T21:06:53.1407479Z [36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1407744Z [36;1melse[0m
+2026-10-03T21:06:53.1407888Z [36;1m  echo "toolchain=$toolchain" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1408054Z [36;1mfi[0m
+2026-10-03T21:06:53.1624197Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:53.1624390Z env:
+2026-10-03T21:06:53.1624510Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.1624658Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.1624967Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.1625240Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.1625366Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.1625493Z   toolchain: 1.85.0
+2026-10-03T21:06:53.1625612Z ##[endgroup]
+2026-10-03T21:06:53.1724982Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=34]
+2026-10-03T21:06:53.1732363Z ##[start-action display=Construct rustup command line;id=__dtolnay_rust-toolchain.flags]
+2026-10-03T21:06:53.1750301Z ##[group]Run echo "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT
+2026-10-03T21:06:53.1750656Z [36;1mecho "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1750995Z [36;1mecho "components=$(for c in ${components//,/ }; do echo -n ' --component' $c; done)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1751256Z [36;1mecho "downgrade=" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:53.1796570Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:53.1796755Z env:
+2026-10-03T21:06:53.1796870Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.1797020Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.1797175Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.1797293Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.1797417Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.1797557Z   targets: 
+2026-10-03T21:06:53.1797841Z   components: rustfmt, clippy
+2026-10-03T21:06:53.1797979Z ##[endgroup]
+2026-10-03T21:06:53.1868407Z ##[end-action id=__dtolnay_rust-toolchain.flags;outcome=success;conclusion=success;duration_ms=13]
+2026-10-03T21:06:53.1869713Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+2026-10-03T21:06:53.1881214Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+2026-10-03T21:06:53.1881475Z [36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV[0m
+2026-10-03T21:06:53.1927643Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:53.1927832Z env:
+2026-10-03T21:06:53.1927948Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.1928092Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.1928247Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.1928367Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.1928489Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.1928615Z ##[endgroup]
+2026-10-03T21:06:53.1993368Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=12]
+2026-10-03T21:06:53.1994667Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+2026-10-03T21:06:53.2009750Z ##[group]Run if ! command -v rustup &>/dev/null; then
+2026-10-03T21:06:53.2009954Z [36;1mif ! command -v rustup &>/dev/null; then[0m
+2026-10-03T21:06:53.2010368Z [36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y[0m
+2026-10-03T21:06:53.2010757Z [36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH[0m
+2026-10-03T21:06:53.2010928Z [36;1mfi[0m
+2026-10-03T21:06:53.2055885Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:53.2056068Z env:
+2026-10-03T21:06:53.2056184Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.2056331Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.2056485Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.2056613Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.2056736Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.2056868Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:53.2057005Z ##[endgroup]
+2026-10-03T21:06:53.2118658Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=12]
+2026-10-03T21:06:53.2120010Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+2026-10-03T21:06:53.2123698Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-03T21:06:53.2130224Z ##[start-action display=rustup toolchain install 1.85.0;id=__dtolnay_rust-toolchain.__run_4]
+2026-10-03T21:06:53.2142318Z ##[group]Run log=$(mktemp)
+2026-10-03T21:06:53.2142480Z [36;1mlog=$(mktemp)[0m
+2026-10-03T21:06:53.2142617Z [36;1mtrap 'rm -f "$log"' EXIT[0m
+2026-10-03T21:06:53.2142766Z [36;1mfor attempt in 1 2 3 4 5; do[0m
+2026-10-03T21:06:53.2143128Z [36;1m  if rustup toolchain install 1.85.0 --component rustfmt --component clippy --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then[0m
+2026-10-03T21:06:53.2143472Z [36;1m    break[0m
+2026-10-03T21:06:53.2143591Z [36;1m  else[0m
+2026-10-03T21:06:53.2143706Z [36;1m    status=$?[0m
+2026-10-03T21:06:53.2143825Z [36;1m  fi[0m
+2026-10-03T21:06:53.2143994Z [36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \[0m
+2026-10-03T21:06:53.2144296Z [36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then[0m
+2026-10-03T21:06:53.2144547Z [36;1m    exit "$status"[0m
+2026-10-03T21:06:53.2144674Z [36;1m  fi[0m
+2026-10-03T21:06:53.2145058Z [36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2[0m
+2026-10-03T21:06:53.2145286Z [36;1m  sleep 30[0m
+2026-10-03T21:06:53.2145401Z [36;1mdone[0m
+2026-10-03T21:06:53.2191390Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:53.2191573Z env:
+2026-10-03T21:06:53.2191813Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:53.2191960Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:53.2192116Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:53.2192238Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:53.2192362Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:53.2192496Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:53.2192640Z   RUSTUP_PERMIT_COPY_RENAME: 1
+2026-10-03T21:06:53.2192776Z ##[endgroup]
+2026-10-03T21:06:53.2657270Z info: syncing channel updates for 1.85.0-x86_64-unknown-linux-gnu
+2026-10-03T21:06:53.6765154Z info: latest update on 2025-02-20 for version 1.85.0 (4d91de4e4 2025-02-17)
+2026-10-03T21:06:53.6765545Z info: downloading 5 components
+2026-10-03T21:06:59.8414066Z 
+2026-10-03T21:06:59.8476014Z   1.85.0-x86_64-unknown-linux-gnu installed - rustc 1.85.0 (4d91de4e4 2025-02-17)
+2026-10-03T21:06:59.8476242Z 
+2026-10-03T21:06:59.8732895Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=6660]
+2026-10-03T21:06:59.8739185Z ##[start-action display=rustup default 1.85.0;id=__dtolnay_rust-toolchain.__run_5]
+2026-10-03T21:06:59.8754381Z ##[group]Run rustup default 1.85.0 --force-non-host
+2026-10-03T21:06:59.8754603Z [36;1mrustup default 1.85.0 --force-non-host[0m
+2026-10-03T21:06:59.8809586Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:59.8809771Z env:
+2026-10-03T21:06:59.8809888Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:59.8810038Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:59.8810194Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:59.8810319Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:59.8810441Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:59.8810587Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:59.8810727Z ##[endgroup]
+2026-10-03T21:06:59.8958519Z info: using existing install for 1.85.0-x86_64-unknown-linux-gnu
+2026-10-03T21:06:59.9012758Z info: default toolchain set to 1.85.0-x86_64-unknown-linux-gnu
+2026-10-03T21:06:59.9013004Z 
+2026-10-03T21:06:59.9068781Z info: note that the toolchain '1.85.0-x86_64-unknown-linux-gnu' is currently in use (overridden by environment variable RUSTUP_TOOLCHAIN)
+2026-10-03T21:06:59.9069172Z   1.85.0-x86_64-unknown-linux-gnu unchanged - rustc 1.85.0 (4d91de4e4 2025-02-17)
+2026-10-03T21:06:59.9069340Z 
+2026-10-03T21:06:59.9081723Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=34]
+2026-10-03T21:06:59.9083586Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+2026-10-03T21:06:59.9115688Z ##[group]Run DATE=$(rustc +1.85.0 --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+2026-10-03T21:06:59.9116310Z [36;1mDATE=$(rustc +1.85.0 --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')[0m
+2026-10-03T21:06:59.9116650Z [36;1mHASH=$(rustc +1.85.0 --version --verbose | sed -ne 's/^commit-hash: //p')[0m
+2026-10-03T21:06:59.9116919Z [36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:06:59.9168741Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:59.9168929Z env:
+2026-10-03T21:06:59.9169047Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:59.9169193Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:59.9169348Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:59.9169469Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:59.9169595Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:59.9169728Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:59.9169869Z ##[endgroup]
+2026-10-03T21:06:59.9540778Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=45]
+2026-10-03T21:06:59.9542941Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+2026-10-03T21:06:59.9557166Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+2026-10-03T21:06:59.9557395Z [36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then[0m
+2026-10-03T21:06:59.9557721Z [36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV[0m
+2026-10-03T21:06:59.9557879Z [36;1mfi[0m
+2026-10-03T21:06:59.9613253Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:59.9613439Z env:
+2026-10-03T21:06:59.9613556Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:59.9613704Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:59.9613861Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:59.9613987Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:59.9614111Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:59.9614245Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:59.9614385Z ##[endgroup]
+2026-10-03T21:06:59.9725059Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=18]
+2026-10-03T21:06:59.9726456Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+2026-10-03T21:06:59.9738756Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+2026-10-03T21:06:59.9738968Z [36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then[0m
+2026-10-03T21:06:59.9739164Z [36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV[0m
+2026-10-03T21:06:59.9739328Z [36;1mfi[0m
+2026-10-03T21:06:59.9787469Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:59.9787655Z env:
+2026-10-03T21:06:59.9787776Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:59.9787924Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:59.9788080Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:59.9788203Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:59.9788327Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:59.9788468Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:59.9788608Z ##[endgroup]
+2026-10-03T21:06:59.9921899Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=19]
+2026-10-03T21:06:59.9923220Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+2026-10-03T21:06:59.9936295Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+2026-10-03T21:06:59.9936601Z [36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70[0m
+2026-10-03T21:06:59.9936982Z [36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then[0m
+2026-10-03T21:06:59.9937370Z [36;1m  if rustc +1.85.0 --version --verbose | grep -q '^release: 1\.6[89]\.'; then[0m
+2026-10-03T21:06:59.9937683Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-03T21:06:59.9937977Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV[0m
+2026-10-03T21:06:59.9938243Z [36;1m  elif rustc +1.85.0 --version --verbose | grep -q '^release: 1\.6[67]\.'; then[0m
+2026-10-03T21:06:59.9938648Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-03T21:06:59.9938930Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV[0m
+2026-10-03T21:06:59.9939121Z [36;1m  fi[0m
+2026-10-03T21:06:59.9939232Z [36;1mfi[0m
+2026-10-03T21:06:59.9986443Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:06:59.9986621Z env:
+2026-10-03T21:06:59.9986737Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:06:59.9986882Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:06:59.9987041Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:06:59.9987164Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:06:59.9987288Z   CARGO_TERM_COLOR: never
+2026-10-03T21:06:59.9987420Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:06:59.9987560Z ##[endgroup]
+2026-10-03T21:07:00.0308687Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=38]
+2026-10-03T21:07:00.0310739Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+2026-10-03T21:07:00.0326320Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+2026-10-03T21:07:00.0326887Z [36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation[0m
+2026-10-03T21:07:00.0327220Z [36;1mif rustc +1.85.0 --version --verbose | grep -q '^release: 1\.7[01]\.'; then[0m
+2026-10-03T21:07:00.0327471Z [36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV[0m
+2026-10-03T21:07:00.0327644Z [36;1mfi[0m
+2026-10-03T21:07:00.0381121Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:07:00.0381309Z env:
+2026-10-03T21:07:00.0381427Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:07:00.0381577Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:07:00.0381734Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:07:00.0381858Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:07:00.0381986Z   CARGO_TERM_COLOR: never
+2026-10-03T21:07:00.0382120Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:07:00.0382258Z ##[endgroup]
+2026-10-03T21:07:00.0569655Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=25]
+2026-10-03T21:07:00.0572578Z ##[start-action display=rustc +1.85.0 --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+2026-10-03T21:07:00.0586001Z ##[group]Run rustc +1.85.0 --version --verbose
+2026-10-03T21:07:00.0586198Z [36;1mrustc +1.85.0 --version --verbose[0m
+2026-10-03T21:07:00.0637604Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:07:00.0637791Z env:
+2026-10-03T21:07:00.0637913Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:07:00.0638062Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:07:00.0638221Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:07:00.0638348Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:07:00.0638474Z   CARGO_TERM_COLOR: never
+2026-10-03T21:07:00.0638611Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:07:00.0638762Z ##[endgroup]
+2026-10-03T21:07:00.0806950Z rustc 1.85.0 (4d91de4e4 2025-02-17)
+2026-10-03T21:07:00.0807396Z binary: rustc
+2026-10-03T21:07:00.0807915Z commit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688
+2026-10-03T21:07:00.0808390Z commit-date: 2025-02-17
+2026-10-03T21:07:00.0808782Z host: x86_64-unknown-linux-gnu
+2026-10-03T21:07:00.0809172Z release: 1.85.0
+2026-10-03T21:07:00.0809523Z LLVM version: 19.1.7
+2026-10-03T21:07:00.0821370Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=24]
+2026-10-03T21:07:00.0854561Z ##[group]Run openssl version
+2026-10-03T21:07:00.0855004Z [36;1mopenssl version[0m
+2026-10-03T21:07:00.0906047Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:07:00.0906232Z env:
+2026-10-03T21:07:00.0906374Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:07:00.0906522Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:07:00.0906679Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:07:00.0906805Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:07:00.0907070Z   CARGO_TERM_COLOR: never
+2026-10-03T21:07:00.0907204Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:07:00.0907344Z ##[endgroup]
+2026-10-03T21:07:00.0988675Z OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)
+2026-10-03T21:07:00.1009363Z ##[group]Run cargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check
+2026-10-03T21:07:00.1009676Z [36;1mcargo fmt --manifest-path partitionline-broker/Cargo.toml -- --check[0m
+2026-10-03T21:07:00.1057530Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:07:00.1057714Z env:
+2026-10-03T21:07:00.1057832Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:07:00.1057980Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:07:00.1058137Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:07:00.1058257Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:07:00.1058381Z   CARGO_TERM_COLOR: never
+2026-10-03T21:07:00.1058513Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:07:00.1058649Z ##[endgroup]
+2026-10-03T21:07:00.5105084Z ##[group]Run cargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets
+2026-10-03T21:07:00.5105480Z [36;1mcargo test --locked --manifest-path partitionline-broker/Cargo.toml --all-targets[0m
+2026-10-03T21:07:00.5157983Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:07:00.5158166Z env:
+2026-10-03T21:07:00.5158282Z   RUSTUP_TOOLCHAIN: 1.85.0
+2026-10-03T21:07:00.5158428Z   CARGO_TARGET_DIR: target/broker-ci/1.85.0
+2026-10-03T21:07:00.5158585Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:07:00.5158707Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:07:00.5158831Z   CARGO_TERM_COLOR: never
+2026-10-03T21:07:00.5158964Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:07:00.5159103Z ##[endgroup]
+2026-10-03T21:07:00.5460598Z     Updating crates.io index
+2026-10-03T21:07:00.7971773Z  Downloading crates ...
+2026-10-03T21:07:00.9033072Z   Downloaded cfg-if v1.0.5
+2026-10-03T21:07:00.9306372Z   Downloaded pin-project-lite v0.2.17
+2026-10-03T21:07:00.9354122Z   Downloaded bytes v1.12.1
+2026-10-03T21:07:00.9385094Z   Downloaded proc-macro2 v1.0.107
+2026-10-03T21:07:00.9409748Z   Downloaded crc32c v0.6.8
+2026-10-03T21:07:00.9518855Z   Downloaded rustc_version v0.4.1
+2026-10-03T21:07:00.9609976Z   Downloaded tokio-macros v2.7.2
+2026-10-03T21:07:00.9622653Z   Downloaded quote v1.0.47
+2026-10-03T21:07:00.9693694Z   Downloaded semver v1.0.28
+2026-10-03T21:07:00.9715277Z   Downloaded unicode-ident v1.0.26
+2026-10-03T21:07:00.9740115Z   Downloaded socket2 v0.6.5
+2026-10-03T21:07:00.9757668Z   Downloaded getrandom v0.4.3
+2026-10-03T21:07:00.9829592Z   Downloaded mio v1.2.3
+2026-10-03T21:07:01.0025626Z   Downloaded syn v3.0.6
+2026-10-03T21:07:01.0280605Z   Downloaded libc v0.2.189
+2026-10-03T21:07:01.0655867Z   Downloaded tokio v1.53.1
+2026-10-03T21:07:01.1183030Z    Compiling proc-macro2 v1.0.107
+2026-10-03T21:07:01.1190979Z    Compiling libc v0.2.189
+2026-10-03T21:07:01.2834161Z    Compiling quote v1.0.47
+2026-10-03T21:07:01.3127409Z    Compiling unicode-ident v1.0.26
+2026-10-03T21:07:01.5950181Z    Compiling semver v1.0.28
+2026-10-03T21:07:01.6984137Z    Compiling rustc_version v0.4.1
+2026-10-03T21:07:01.8013762Z    Compiling crc32c v0.6.8
+2026-10-03T21:07:01.8794554Z    Compiling syn v3.0.6
+2026-10-03T21:07:01.9118127Z    Compiling getrandom v0.4.3
+2026-10-03T21:07:02.0098899Z    Compiling socket2 v0.6.5
+2026-10-03T21:07:02.2126496Z    Compiling mio v1.2.3
+2026-10-03T21:07:02.4131400Z    Compiling pin-project-lite v0.2.17
+2026-10-03T21:07:02.4310020Z    Compiling cfg-if v1.0.5
+2026-10-03T21:07:02.4439080Z    Compiling bytes v1.12.1
+2026-10-03T21:07:03.2006728Z    Compiling tokio-macros v2.7.2
+2026-10-03T21:07:03.4897405Z    Compiling tokio v1.53.1
+2026-10-03T21:07:05.0171606Z    Compiling partitionline-broker v0.1.0 (/home/runner/work/partitionline/partitionline/partitionline-broker)
+2026-10-03T21:07:22.6748251Z     Finished `test` profile [unoptimized + debuginfo] target(s) in 22.14s
+2026-10-03T21:07:22.6901621Z      Running unittests src/lib.rs (target/broker-ci/1.85.0/debug/deps/partitionline_broker-3426f68463952a5c)
+2026-10-03T21:07:22.6913678Z 
+2026-10-03T21:07:22.6913758Z running 65 tests
+2026-10-03T21:07:22.6923751Z test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+2026-10-03T21:07:22.6924460Z test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+2026-10-03T21:07:22.6925659Z test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+2026-10-03T21:07:22.6926326Z test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+2026-10-03T21:07:22.6927203Z test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+2026-10-03T21:07:22.6927843Z test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+2026-10-03T21:07:22.6928502Z test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+2026-10-03T21:07:22.6929412Z test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+2026-10-03T21:07:22.6930049Z test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+2026-10-03T21:07:22.6930677Z test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+2026-10-03T21:07:22.6931320Z test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+2026-10-03T21:07:22.6931958Z test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+2026-10-03T21:07:22.6932618Z test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+2026-10-03T21:07:22.6992979Z test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+2026-10-03T21:07:22.6996558Z test metadata::tests::canceled_sweep_and_shared_full_admission_never_retire ... ok
+2026-10-03T21:07:22.7013611Z test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+2026-10-03T21:07:22.7016183Z test metadata::tests::canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement ... ok
+2026-10-03T21:07:22.7020651Z test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+2026-10-03T21:07:22.7045309Z test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+2026-10-03T21:07:22.7046752Z test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+2026-10-03T21:07:22.7107672Z test metadata::tests::canceled_compaction_skips_rewrite_and_releases_shared_slot ... ok
+2026-10-03T21:07:22.7124114Z test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+2026-10-03T21:07:22.7141585Z test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+2026-10-03T21:07:22.7143538Z test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+2026-10-03T21:07:22.7146325Z test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+2026-10-03T21:07:22.7155289Z test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+2026-10-03T21:07:22.7156527Z test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+2026-10-03T21:07:22.7162689Z test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+2026-10-03T21:07:22.7165172Z test raft::peer_codec::tests::every_prefix_crc_version_reserved_unknown_and_trailing_mutation_rejects ... ok
+2026-10-03T21:07:22.7165768Z test raft::peer_codec::tests::response_echo_must_match_original_request_and_directory ... ok
+2026-10-03T21:07:22.7209886Z test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+2026-10-03T21:07:22.7222288Z test metadata::tests::unconsumed_sweep_receipt_holds_shared_admission ... ok
+2026-10-03T21:07:22.7223289Z test raft::replication::tests::snapshot_install_process_cut_helper ... ok
+2026-10-03T21:07:22.7237128Z test metadata::tests::compaction_shutdown_rejects_queued_rewrite_and_keeps_join ... ok
+2026-10-03T21:07:22.7269787Z test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+2026-10-03T21:07:22.7292247Z test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+2026-10-03T21:07:22.7308906Z test metadata::tests::unconsumed_compaction_receipt_holds_shared_slot_after_publication ... ok
+2026-10-03T21:07:22.7438147Z test raft::replication::tests::snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote ... ok
+2026-10-03T21:07:22.7499362Z test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok
+2026-10-03T21:07:22.7602567Z test raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation ... ok
+2026-10-03T21:07:22.8006059Z test raft::runtime::ownership_tests::reliable_stop_waits_for_saturated_owner_even_after_command_deadline ... ok
+2026-10-03T21:07:22.8037743Z test raft::runtime::tests::canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+2026-10-03T21:07:22.8164370Z test raft::runtime::ownership_tests::configured_route_does_not_authorize_unknown_configuration_leader_over_tcp ... ok
+2026-10-03T21:07:22.8164978Z test raft::runtime::tests::runtime_child_process ... ok
+2026-10-03T21:07:22.8205377Z test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok
+2026-10-03T21:07:22.8221295Z 
+2026-10-03T21:07:22.8221439Z running 1 test
+2026-10-03T21:07:22.8252675Z 
+2026-10-03T21:07:22.8252801Z running 1 test
+2026-10-03T21:07:22.8280255Z 
+2026-10-03T21:07:22.8280362Z running 1 test
+2026-10-03T21:07:22.8293382Z test raft::snapshot::tests::inner_publication_process_exits_preserve_previous_complete_image ... ok
+2026-10-03T21:07:22.8293950Z test raft::snapshot::tests::inner_publication_process_helper ... ok
+2026-10-03T21:07:22.8496743Z test raft::snapshot::tests::node_inner_publication_io_failures_replay_previous_receipt_and_committed_suffix ... ok
+2026-10-03T21:07:22.8505904Z 
+2026-10-03T21:07:22.8506035Z running 1 test
+2026-10-03T21:07:22.8594852Z test raft::runtime::tests::incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+2026-10-03T21:07:22.8595376Z test raft::snapshot::tests::node_inner_publication_process_helper ... ok
+2026-10-03T21:07:22.8599366Z 
+2026-10-03T21:07:22.8599598Z running 1 test
+2026-10-03T21:07:22.8705394Z 
+2026-10-03T21:07:22.8705544Z running 1 test
+2026-10-03T21:07:22.8765566Z test segments::tests::checksum_valid_impossible_victim_descriptor_is_rejected_before_unlink ... ok
+2026-10-03T21:07:22.8799685Z test raft::snapshot::tests::node_inner_publication_process_exits_replay_previous_receipt_and_committed_suffix ... ok
+2026-10-03T21:07:22.8863231Z test segments::tests::compaction_one_byte_cap_rejects_before_loading_a_large_payload ... ok
+2026-10-03T21:07:22.8879734Z 
+2026-10-03T21:07:22.8880106Z running 1 test
+2026-10-03T21:07:22.8910252Z test segments::tests::compaction_one_record_cap_rejects_before_parsing_any_large_entry_body ... ok
+2026-10-03T21:07:22.9078308Z 
+2026-10-03T21:07:22.9079256Z running 1 test
+2026-10-03T21:07:22.9277194Z 
+2026-10-03T21:07:22.9277347Z running 1 test
+2026-10-03T21:07:22.9489815Z 
+2026-10-03T21:07:22.9490028Z running 1 test
+2026-10-03T21:07:22.9743416Z 
+2026-10-03T21:07:22.9743640Z running 1 test
+2026-10-03T21:07:22.9944315Z 
+2026-10-03T21:07:22.9944626Z running 1 test
+2026-10-03T21:07:23.0192784Z 
+2026-10-03T21:07:23.0193073Z running 1 test
+2026-10-03T21:07:23.0421951Z 
+2026-10-03T21:07:23.0422452Z running 1 test
+2026-10-03T21:07:23.0668405Z 
+2026-10-03T21:07:23.0668749Z running 1 test
+2026-10-03T21:07:23.1048843Z 
+2026-10-03T21:07:23.1049167Z running 1 test
+2026-10-03T21:07:23.1506570Z 
+2026-10-03T21:07:23.1506856Z running 1 test
+2026-10-03T21:07:23.1745736Z 
+2026-10-03T21:07:23.1746083Z running 1 test
+2026-10-03T21:07:23.2025848Z 
+2026-10-03T21:07:23.2026106Z running 1 test
+2026-10-03T21:07:23.2262331Z 
+2026-10-03T21:07:23.2262919Z running 1 test
+2026-10-03T21:07:23.2514146Z 
+2026-10-03T21:07:23.2515262Z running 1 test
+2026-10-03T21:07:23.2586447Z test segments::tests::compaction_publication_partial_cleanup_io_errors_recover_one_complete_selected_round ... ok
+2026-10-03T21:07:23.2736667Z 
+2026-10-03T21:07:23.2736890Z running 1 test
+2026-10-03T21:07:23.2968719Z test segments::tests::compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round ... ok
+2026-10-03T21:07:23.3081759Z test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... ok
+2026-10-03T21:07:23.3572336Z test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... ok
+2026-10-03T21:07:23.6963715Z test segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases ... ok
+2026-10-03T21:07:23.7882320Z test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... ok
+2026-10-03T21:07:23.8346349Z test segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor ... ok
+2026-10-03T21:07:23.8610100Z test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... ok
+2026-10-03T21:07:24.2001412Z test segments::tests::retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor ... ok
+2026-10-03T21:07:25.8994170Z test raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+2026-10-03T21:07:27.6205328Z test raft::runtime::tests::actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+2026-10-03T21:07:27.6205739Z 
+2026-10-03T21:07:27.6206023Z test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.93s
+2026-10-03T21:07:27.6206331Z 
+2026-10-03T21:07:27.6218122Z      Running tests/catalog.rs (target/broker-ci/1.85.0/debug/deps/catalog-938df36db23354a8)
+2026-10-03T21:07:27.6229775Z 
+2026-10-03T21:07:27.6229977Z running 14 tests
+2026-10-03T21:07:27.6250898Z test changed_file_poisoning_keeps_confirmed_state_and_recovery_repairs_tail ... ok
+2026-10-03T21:07:27.6259800Z test atomic_create_delete_tombstone_and_name_recreation_survive_restart ... ok
+2026-10-03T21:07:27.6269297Z test complete_journal_corruption_and_interior_byte_loss_fail_closed ... ok
+2026-10-03T21:07:27.6272231Z test deleted_collision_name_is_released_but_identity_is_not ... ok
+2026-10-03T21:07:27.6273686Z test independent_apache_name_vectors_match_and_reserved_ids_are_rejected ... ok
+2026-10-03T21:07:27.6274976Z test invalid_limits_and_tightened_journal_bounds_are_explicit ... ok
+2026-10-03T21:07:27.6293803Z test invalid_names_partitions_duplicate_names_ids_and_collisions_do_not_mutate ... ok
+2026-10-03T21:07:27.6298878Z test deletes_count_against_operation_replay_and_journal_budgets ... ok
+2026-10-03T21:07:27.6317508Z test oversized_persisted_entry_and_duplicate_owner_are_rejected ... ok
+2026-10-03T21:07:27.6347907Z test stricter_restart_budgets_fail_without_rewriting_complete_history ... ok
+2026-10-03T21:07:27.6366425Z test process_exit_without_destructors_preserves_durable_history_and_reports_tails ... ok
+2026-10-03T21:07:27.6423155Z test topic_identity_partition_operation_and_replay_budgets_hold_before_append ... ok
+2026-10-03T21:07:27.6513957Z test checksummed_malformed_operations_and_conflicting_histories_fail_closed ... ok
+2026-10-03T21:07:27.6989651Z test every_torn_tombstone_tail_prefix_recovers_whole_previous_catalog ... ok
+2026-10-03T21:07:27.6989856Z 
+2026-10-03T21:07:27.6990210Z test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+2026-10-03T21:07:27.6990504Z 
+2026-10-03T21:07:27.6993568Z      Running tests/codecs.rs (target/broker-ci/1.85.0/debug/deps/codecs-735fff156daed86c)
+2026-10-03T21:07:27.7003023Z 
+2026-10-03T21:07:27.7003146Z running 0 tests
+2026-10-03T21:07:27.7003394Z 
+2026-10-03T21:07:27.7003679Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-03T21:07:27.7003918Z 
+2026-10-03T21:07:27.7005721Z      Running tests/compaction.rs (target/broker-ci/1.85.0/debug/deps/compaction-45986a586dc5ddc3)
+2026-10-03T21:07:27.7013803Z 
+2026-10-03T21:07:27.7013945Z running 9 tests
+2026-10-03T21:07:27.7103057Z test corrupted_sealed_source_poison_preserves_selected_manifest_and_confirmed_offsets ... ok
+2026-10-03T21:07:27.7152326Z test every_round_budget_and_invalid_clock_fails_before_any_file_change ... ok
+2026-10-03T21:07:27.7222806Z test horizon_varint_growth_exceeds_entry_ceiling_before_creating_a_generation ... ok
+2026-10-03T21:07:27.7223989Z test carried_empty_batch_maximum_allows_guarded_age_reclamation_without_timestamp_records ... ok
+2026-10-03T21:07:27.7261774Z test monolithic_storage_and_strict_sparse_admission_remain_unchanged ... ok
+2026-10-03T21:07:27.7471148Z test zero_horizon_window_never_resurrects_old_values_and_segment_cap_is_atomic ... ok
+2026-10-03T21:07:27.7690018Z test independently_protected_sealed_and_active_suffixes_never_enter_key_map ... ok
+2026-10-03T21:07:27.8136841Z test genuine_apache_cleaner_horizons_exact_bytes_offsets_and_restart ... ok
+2026-10-03T21:07:27.8250420Z test genuine_empty_last_batch_and_deleted_intermediate_batch_preserve_logical_span ... ok
+2026-10-03T21:07:27.8250661Z 
+2026-10-03T21:07:27.8250849Z test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+2026-10-03T21:07:27.8251075Z 
+2026-10-03T21:07:27.8263160Z      Running tests/fetch.rs (target/broker-ci/1.85.0/debug/deps/fetch-c264f436f2ad28b0)
+2026-10-03T21:07:27.8275298Z 
+2026-10-03T21:07:27.8275457Z running 25 tests
+2026-10-03T21:07:27.8313645Z test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+2026-10-03T21:07:27.8352959Z test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+2026-10-03T21:07:27.8618147Z test absolute_wait_cap_and_minimum_clamping ... ok
+2026-10-03T21:07:27.8619184Z test invalid_local_read_limits_are_rejected_before_io ... ok
+2026-10-03T21:07:27.8697164Z test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+2026-10-03T21:07:27.8750058Z test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+2026-10-03T21:07:27.9142973Z test compacted_fetch_preserves_apache_bytes_holes_timestamps_and_restart ... ok
+2026-10-03T21:07:27.9182520Z test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+2026-10-03T21:07:27.9232696Z test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+2026-10-03T21:07:28.2973585Z test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+2026-10-03T21:07:28.3051223Z test rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss ... ok
+2026-10-03T21:07:28.3180810Z test rolling_lost_append_receipt_and_delete_wake_without_blocking_actor ... ok
+2026-10-03T21:07:28.7597872Z test rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules ... ok
+2026-10-03T21:07:28.7651276Z test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+2026-10-03T21:07:28.7652377Z test serve_live_probe ... ok
+2026-10-03T21:07:28.7731632Z test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+2026-10-03T21:07:28.9606188Z test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+2026-10-03T21:07:28.9638092Z test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+2026-10-03T21:07:28.9677325Z test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+2026-10-03T21:07:28.9702631Z test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+2026-10-03T21:07:28.9736548Z test waiting_read_does_not_block_append_and_delete_wakes ... ok
+2026-10-03T21:07:28.9762868Z test independent_apache_read_goldens ... ok
+2026-10-03T21:07:28.9770758Z test wake_between_snapshot_and_receipt_is_not_lost ... ok
+2026-10-03T21:07:30.6373090Z test rolling_real_router_replays_all_independent_read_goldens ... ok
+2026-10-03T21:07:32.7933016Z test authentic_apache_rolled_records_match_real_tcp_timestamp_and_whole_batch_seeks ... ok
+2026-10-03T21:07:32.7933757Z 
+2026-10-03T21:07:32.7934089Z test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.97s
+2026-10-03T21:07:32.7934495Z 
+2026-10-03T21:07:32.7942988Z      Running tests/journal.rs (target/broker-ci/1.85.0/debug/deps/journal-07a3e4829b41f09f)
+2026-10-03T21:07:32.7954871Z 
+2026-10-03T21:07:32.7955039Z running 15 tests
+2026-10-03T21:07:32.7973655Z test actual_file_matches_documented_checksums_and_can_be_retained_for_oracle ... ok
+2026-10-03T21:07:32.7983770Z test durable_restart_preserves_explicit_record_counts_and_logical_ranges ... ok
+2026-10-03T21:07:32.7993991Z test external_file_growth_poisons_append_without_offset_advance ... ok
+2026-10-03T21:07:32.8003320Z test failed_open_releases_ownership_and_positive_limits_are_validated ... ok
+2026-10-03T21:07:32.8006079Z test complete_payload_and_header_corruption_never_truncate ... ok
+2026-10-03T21:07:32.8016572Z test fetch_output_charges_entry_storage_and_never_returns_partial_failure ... ok
+2026-10-03T21:07:32.8041220Z test interior_missing_payload_with_later_entry_is_not_a_torn_final_entry ... ok
+2026-10-03T21:07:32.8043895Z test file_header_identity_and_partial_prefix_damage_fail_closed ... ok
+2026-10-03T21:07:32.8049956Z test file_and_index_budgets_hold_on_append_and_recovery ... ok
+2026-10-03T21:07:32.8062583Z test invalid_append_and_offset_overflow_leave_committed_state_unchanged ... ok
+2026-10-03T21:07:32.8072025Z test live_inode_aliases_are_rejected_and_guard_releases_after_drop ... ok
+2026-10-03T21:07:32.8089018Z test simultaneous_new_file_open_rejects_a_second_live_handle ... ok
+2026-10-03T21:07:32.8109412Z test process_exit_without_destructors_recovers_durable_and_incomplete_entries ... ok
+2026-10-03T21:07:32.8110591Z test protected_invalid_lengths_counts_and_offset_gaps_fail_closed ... ok
+2026-10-03T21:07:32.8480525Z test every_incomplete_tail_prefix_repairs_to_last_complete_entry ... ok
+2026-10-03T21:07:32.8480823Z 
+2026-10-03T21:07:32.8481129Z test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+2026-10-03T21:07:32.8481378Z 
+2026-10-03T21:07:32.8483338Z      Running tests/metadata.rs (target/broker-ci/1.85.0/debug/deps/metadata-8a2401a315e9d6a4)
+2026-10-03T21:07:32.8492242Z 
+2026-10-03T21:07:32.8492369Z running 8 tests
+2026-10-03T21:07:32.8515181Z test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+2026-10-03T21:07:32.8524925Z test native_null_array_compatibility_is_exact_and_read_only ... ok
+2026-10-03T21:07:32.8526163Z test serve_live_probe ... ok
+2026-10-03T21:07:32.8535801Z test persistent_create_validate_delete_and_fresh_identity ... ok
+2026-10-03T21:07:32.8543377Z test shutdown_is_joined_idempotent_and_stops_admission ... ok
+2026-10-03T21:07:32.8547496Z test resource_bounds_and_response_preflight_are_non_mutating ... ok
+2026-10-03T21:07:32.8551918Z test validation_errors_timeout_and_no_peer_paths ... ok
+2026-10-03T21:07:33.5134457Z test independent_apache_metadata_admin_goldens ... ok
+2026-10-03T21:07:33.5134679Z 
+2026-10-03T21:07:33.5135137Z test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.66s
+2026-10-03T21:07:33.5135384Z 
+2026-10-03T21:07:33.5138758Z      Running tests/oidc_http.rs (target/broker-ci/1.85.0/debug/deps/oidc_http-2282b806193f9a80)
+2026-10-03T21:07:33.5150066Z 
+2026-10-03T21:07:33.5150381Z running 0 tests
+2026-10-03T21:07:33.5150638Z 
+2026-10-03T21:07:33.5150933Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-03T21:07:33.5151248Z 
+2026-10-03T21:07:33.5152274Z      Running tests/oidc_sessions.rs (target/broker-ci/1.85.0/debug/deps/oidc_sessions-27454b78d0238741)
+2026-10-03T21:07:33.5160824Z 
+2026-10-03T21:07:33.5161009Z running 0 tests
+2026-10-03T21:07:33.5161164Z 
+2026-10-03T21:07:33.5161429Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-03T21:07:33.5161728Z 
+2026-10-03T21:07:33.5163165Z      Running tests/oidc_validation.rs (target/broker-ci/1.85.0/debug/deps/oidc_validation-f5153913e9a3f308)
+2026-10-03T21:07:33.5171692Z 
+2026-10-03T21:07:33.5172122Z running 0 tests
+2026-10-03T21:07:33.5172300Z 
+2026-10-03T21:07:33.5172459Z test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+2026-10-03T21:07:33.5172685Z 
+2026-10-03T21:07:33.5174205Z      Running tests/partition.rs (target/broker-ci/1.85.0/debug/deps/partition-3f65fddb92e181ef)
+2026-10-03T21:07:33.5182404Z 
+2026-10-03T21:07:33.5182525Z running 10 tests
+2026-10-03T21:07:33.5201739Z test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+2026-10-03T21:07:33.5202919Z test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+2026-10-03T21:07:33.5215240Z test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+2026-10-03T21:07:33.5215982Z test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+2026-10-03T21:07:33.5260171Z test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+2026-10-03T21:07:33.5329138Z test retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor ... ok
+2026-10-03T21:07:33.5349782Z test signed_offset_end_bound_is_checked_before_any_write ... ok
+2026-10-03T21:07:33.5388601Z test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+2026-10-03T21:07:33.5400870Z test partition_retention_preserves_protected_records_and_synchronized_end ... ok
+2026-10-03T21:07:33.5829151Z test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+2026-10-03T21:07:33.5829404Z 
+2026-10-03T21:07:33.5830876Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+2026-10-03T21:07:33.5831240Z 
+2026-10-03T21:07:33.5832390Z      Running tests/produce.rs (target/broker-ci/1.85.0/debug/deps/produce-7508f8e9927934ff)
+2026-10-03T21:07:33.5842162Z 
+2026-10-03T21:07:33.5842273Z running 9 tests
+2026-10-03T21:07:33.5884863Z test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+2026-10-03T21:07:33.5901627Z test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+2026-10-03T21:07:33.5943041Z test malformed_entire_body_never_appends ... ok
+2026-10-03T21:07:33.5967030Z test response_and_normalized_budgets_fail_before_append ... ok
+2026-10-03T21:07:33.5969140Z test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+2026-10-03T21:07:33.5969969Z test serve_live_probe ... ok
+2026-10-03T21:07:33.6035443Z test rolling_store_preserves_offsets_historical_budget_and_rejects_wrong_layout ... ok
+2026-10-03T21:07:33.6285151Z test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+2026-10-03T21:07:34.6549900Z test independent_apache_produce_goldens ... ok
+2026-10-03T21:07:34.6550148Z 
+2026-10-03T21:07:34.6550315Z test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.07s
+2026-10-03T21:07:34.6550562Z 
+2026-10-03T21:07:34.6555391Z      Running tests/protocol.rs (target/broker-ci/1.85.0/debug/deps/protocol-a1f8dbe8d65542e5)
+2026-10-03T21:07:34.6566563Z 
+2026-10-03T21:07:34.6566703Z running 9 tests
+2026-10-03T21:07:34.6572415Z test classic_and_flexible_headers_borrow_classic_client_id ... ok
+2026-10-03T21:07:34.6573012Z test all_supported_request_truncations_fail_without_panicking ... ok
+2026-10-03T21:07:34.6575534Z test compiled_registry_and_all_apache_goldens ... ok
+2026-10-03T21:07:34.6576507Z test software_utf8_null_string_length_and_tag_faults_fail_closed ... ok
+2026-10-03T21:07:34.6577122Z test unsupported_api_versions_ignore_unknown_body_and_echo_signed_correlation ... ok
+2026-10-03T21:07:34.6577646Z test semantic_software_validation_matches_apache_pattern ... ok
+2026-10-03T21:07:34.6578258Z test validated_limits_bound_frame_and_tag_work ... ok
+2026-10-03T21:07:34.7398063Z test malformed_or_unimplemented_connection_closes_while_peer_continues ... ok
+2026-10-03T21:07:35.0669339Z test real_tcp_pipeline_success_semantic_error_and_unsupported_fallback ... ok
+2026-10-03T21:07:35.0669650Z 
+2026-10-03T21:07:35.0669901Z test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+2026-10-03T21:07:35.0670664Z 
+2026-10-03T21:07:35.0673104Z      Running tests/raft_election.rs (target/broker-ci/1.85.0/debug/deps/raft_election-5ccfbcbbb649e787)
+2026-10-03T21:07:35.0685263Z 
+2026-10-03T21:07:35.0685474Z running 10 tests
+2026-10-03T21:07:35.0705105Z test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+2026-10-03T21:07:35.0719300Z test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+2026-10-03T21:07:35.0721658Z test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+2026-10-03T21:07:35.0728597Z test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+2026-10-03T21:07:35.0749791Z test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+2026-10-03T21:07:35.0757703Z test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+2026-10-03T21:07:35.0759322Z test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+2026-10-03T21:07:35.0797185Z test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+2026-10-03T21:07:35.0917072Z test tagged_owner_reconciliation_replay_validates_complete_checksums_and_state_invariants ... ok
+2026-10-03T21:07:35.3457830Z test deterministic_seeded_losing_partition_and_restart_histories ... ok
+2026-10-03T21:07:35.3458056Z 
+2026-10-03T21:07:35.3458204Z test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+2026-10-03T21:07:35.3458396Z 
+2026-10-03T21:07:35.3461909Z      Running tests/raft_membership.rs (target/broker-ci/1.85.0/debug/deps/raft_membership-541d3c784de2adc6)
+2026-10-03T21:07:35.3473748Z 
+2026-10-03T21:07:35.3473837Z running 31 tests
+2026-10-03T21:07:35.3481696Z test all_truncations_and_reserved_count_utf8_identity_mutations_reject ... ok
+2026-10-03T21:07:35.3482390Z test arbitrary_set_jumps_same_size_replacements_and_descriptor_updates_reject ... ok
+2026-10-03T21:07:35.3483047Z test bootstrap_genesis_is_immutable_and_a_new_directory_starts_as_an_observer ... ok
+2026-10-03T21:07:35.3483643Z test configuration_epoch_and_authoritative_position_cannot_be_forged ... ok
+2026-10-03T21:07:35.3488923Z 
+2026-10-03T21:07:35.3489241Z running 1 test
+2026-10-03T21:07:35.3510291Z test dynamic_membership_history_child ... test complete_maximum_configuration_and_overlimit_counts_remain_bounded ... ok
+2026-10-03T21:07:35.3512069Z test dynamic_membership_history_child ... ok
+2026-10-03T21:07:35.3711743Z test durable_addition_activates_new_set_old_majority_cannot_commit_and_restart_preserves_it ... ok
+2026-10-03T21:07:35.3808719Z test dynamic_snapshot_replays_voters_and_suffix_without_importing_local_vote ... ok
+2026-10-03T21:07:35.3915143Z test exact_vote_cancellation_preserves_real_campaign_grants_and_all_durable_bytes ... ok
+2026-10-03T21:07:35.3957978Z test feature_preparation_has_explicit_cancel_and_deadline_without_reverting_voters ... ok
+2026-10-03T21:07:35.4096432Z test checksum_valid_equal_view_source_ordinal_forgery_rejects_even_when_final_context_matches ... ok
+2026-10-03T21:07:35.4114633Z test five_voter_campaign_preserves_remaining_correlations_after_denial_and_first_grant ... ok
+2026-10-03T21:07:35.4292216Z test incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_finish ... ok
+2026-10-03T21:07:35.4347308Z test incoming_dynamic_image_old_offer_cannot_survive_a_real_higher_term_known_leader ... ok
+2026-10-03T21:07:35.4347814Z test last_voter_and_unsupported_features_are_rejected_before_changes ... ok
+2026-10-03T21:07:35.4348610Z test listener_endpoint_and_feature_range_validation_is_explicit ... ok
+2026-10-03T21:07:35.4491632Z test malformed_or_uncommitted_multiple_configs_cannot_advance_epoch_or_truncate ... ok
+2026-10-03T21:07:35.4493566Z test native_recent_catchup_admission_is_not_redefined_as_current_end_equality ... ok
+2026-10-03T21:07:35.4494009Z test noncanonical_order_and_duplicate_voters_do_not_decode ... ok
+2026-10-03T21:07:35.4642318Z test observer_feature_mismatch_directory_forgery_and_unqualified_legacy_paths_reject ... ok
+2026-10-03T21:07:35.4642857Z test one_added_voter_uses_new_majority_and_preserves_exact_existing_descriptors ... ok
+2026-10-03T21:07:35.4738203Z test incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen ... ok
+2026-10-03T21:07:35.4738803Z test prior_fetch_end_catchup_uses_previous_contact_and_time_zero_is_insufficient ... ok
+2026-10-03T21:07:35.4885223Z test pending_addition_can_elect_known_directory_across_configuration_epochs_and_commit ... ok
+2026-10-03T21:07:35.4937533Z test incoming_dynamic_image_rejects_changed_offer_and_abort_or_expiry_cannot_revive_it ... ok
+2026-10-03T21:07:35.4938267Z test removed_leader_identity_is_absent_from_new_voters_and_both_survivors_are_needed ... ok
+2026-10-03T21:07:35.4938819Z test same_id_with_stale_directory_cannot_remove_or_replace_an_existing_voter ... ok
+2026-10-03T21:07:35.5076725Z test removed_leader_counts_no_self_vote_and_fences_after_commit_even_without_caller ... ok
+2026-10-03T21:07:35.5128125Z test removed_id_rejoins_new_directory_without_old_progress_or_reinterpreting_saved_vote ... ok
+2026-10-03T21:07:35.5147417Z test unknown_added_leader_laggard_refuses_before_mutation_then_known_history_allows_it ... ok
+2026-10-03T21:07:35.6576605Z 
+2026-10-03T21:07:35.6576858Z running 1 test
+2026-10-03T21:07:36.1195109Z test dynamic_membership_history_child ... test actual_three_and_five_voter_membership_fault_restart_histories ... ok
+2026-10-03T21:07:36.1195415Z 
+2026-10-03T21:07:36.1195563Z test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+2026-10-03T21:07:36.1195760Z 
+2026-10-03T21:07:36.1202688Z      Running tests/raft_protocol.rs (target/broker-ci/1.85.0/debug/deps/raft_protocol-60e563fa29b18a35)
+2026-10-03T21:07:36.1214328Z 
+2026-10-03T21:07:36.1214406Z running 11 tests
+2026-10-03T21:07:36.1220195Z test configured_request_queue_and_identity_budgets_validate ... ok
+2026-10-03T21:07:36.1252912Z test cross_peer_wire_votes_count_distinct_members_and_fence_correlations ... ok
+2026-10-03T21:07:36.1561028Z test dynamic_directory_owner_closes_fixed_v0_wire_before_persistent_changes ... ok
+2026-10-03T21:07:36.1562797Z test end_rank_timers_are_exact_and_invalid_successors_cannot_mutate ... ok
+2026-10-03T21:07:36.1594399Z test initial_epoch_zero_nonempty_log_and_restart_preserve_vote ... ok
+2026-10-03T21:07:36.1696991Z test malformed_prefixes_tags_and_counts_are_bounded_before_mutation ... ok
+2026-10-03T21:07:36.1950934Z test semantic_errors_and_stale_epochs_do_not_rewrite_state ... ok
+2026-10-03T21:07:36.2000654Z test wire_overflow_and_storage_exhaustion_fail_without_affirmative_reply ... ok
+2026-10-03T21:07:36.2114648Z test actual_transport_dispatch_advertises_controller_profile_and_joins ... ok
+2026-10-03T21:07:36.2226725Z test independent_controller_goldens_cross_actual_tcp_transport ... ok
+2026-10-03T21:07:37.1542363Z test independent_apache_controller_goldens_and_registry ... ok
+2026-10-03T21:07:37.1542611Z 
+2026-10-03T21:07:37.1542762Z test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.03s
+2026-10-03T21:07:37.1542949Z 
+2026-10-03T21:07:37.1547490Z      Running tests/raft_replication.rs (target/broker-ci/1.85.0/debug/deps/raft_replication-7ba612a7cb08176b)
+2026-10-03T21:07:37.1559135Z 
+2026-10-03T21:07:37.1559215Z running 29 tests
+2026-10-03T21:07:37.1694967Z test actor_serializes_controller_and_typed_storage_and_joins_shutdown ... ok
+2026-10-03T21:07:37.2014837Z test actual_three_node_process_history ... ok
+2026-10-03T21:07:37.2059850Z test bounds_queue_envelope_fetch_and_fixed_membership_are_explicit ... ok
+2026-10-03T21:07:37.2122205Z test changed_external_file_poison_prevents_reply_and_known_torn_tail_can_reopen ... ok
+2026-10-03T21:07:37.2191647Z test checksummed_authority_term_regression_fails_recovery_even_for_an_older_entry ... ok
+2026-10-03T21:07:37.2248946Z test checksummed_follower_commit_cannot_authorize_a_newer_entry_term ... ok
+2026-10-03T21:07:37.2255905Z test actual_five_node_process_history ... ok
+2026-10-03T21:07:37.2295668Z test committed_prefix_and_same_term_payload_conflicts_fail_before_wal_mutation ... ok
+2026-10-03T21:07:37.2420388Z test complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read ... ok
+2026-10-03T21:07:37.2624472Z test five_voters_need_three_distinct_durable_positions_and_reject_forged_replies ... ok
+2026-10-03T21:07:37.2634637Z test actual_three_node_snapshot_process_history ... ok
+2026-10-03T21:07:37.2670780Z test checksummed_snapshot_install_receipt_mutations_fail_replay ... ok
+2026-10-03T21:07:37.2682255Z test foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes ... ok
+2026-10-03T21:07:37.2731991Z test partial_request_does_not_commit_an_unverified_old_suffix ... ok
+2026-10-03T21:07:37.2865950Z test minority_partition_expiry_and_lost_ack_cannot_commit ... ok
+2026-10-03T21:07:37.2893164Z test higher_term_repairs_only_uncommitted_suffix_and_preserves_vote_after_restart ... ok
+2026-10-03T21:07:37.2938748Z test actual_five_node_snapshot_process_history ... ok
+2026-10-03T21:07:37.2953227Z test selected_snapshot_file_corruption_fences_the_owner_before_transfer ... ok
+2026-10-03T21:07:37.2993678Z test snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay ... ok
+2026-10-03T21:07:37.3015630Z test snapshot_owner_rejects_nonidle_foreign_and_overbudget_stores ... ok
+2026-10-03T21:07:37.3021773Z test snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert ... ok
+2026-10-03T21:07:37.3079846Z test snapshot_exact_overlap_retains_suffix_and_higher_term_repair_drops_only_uncommitted_bytes ... ok
+2026-10-03T21:07:37.3087879Z test snapshot_actor_checkpoint_and_joined_partial_cleanup_are_owner_local ... ok
+2026-10-03T21:07:37.3108669Z test snapshot_publication_before_failed_wal_sync_is_inert_and_poisoned_until_reopen ... ok
+2026-10-03T21:07:37.3148181Z test unowned_legacy_log_summary_is_not_silently_replaced_by_an_empty_new_wal ... ok
+2026-10-03T21:07:37.3148645Z test snapshot_transfer_deadline_reordered_chunks_and_changed_epoch_cannot_select ... ok
+2026-10-03T21:07:37.3169200Z test snapshot_receipt_catchup_reconciles_from_the_proven_preinstall_commit_floor ... ok
+2026-10-03T21:07:37.3190862Z test wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation ... ok
+2026-10-03T21:07:37.3195875Z test strict_majority_barrier_and_committed_visibility_survive_reopen ... ok
+2026-10-03T21:07:37.3196138Z 
+2026-10-03T21:07:37.3196339Z test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.16s
+2026-10-03T21:07:37.3196606Z 
+2026-10-03T21:07:37.3203255Z      Running tests/raft_runtime.rs (target/broker-ci/1.85.0/debug/deps/raft_runtime-1499564e2d4e4298)
+2026-10-03T21:07:37.3215095Z 
+2026-10-03T21:07:37.3215176Z running 5 tests
+2026-10-03T21:07:37.3283681Z test canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+2026-10-03T21:07:37.3283953Z test runtime_child_process ... ok
+2026-10-03T21:07:37.3845340Z test incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+2026-10-03T21:07:44.7172313Z test actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+2026-10-03T21:07:53.4782738Z test actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... FAILED
+2026-10-03T21:07:53.4783086Z 
+2026-10-03T21:07:53.4783162Z failures:
+2026-10-03T21:07:53.4783263Z 
+2026-10-03T21:07:53.4783491Z ---- actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal stdout ----
+2026-10-03T21:07:53.4783874Z Error: "commit deadline"
+2026-10-03T21:07:53.4784000Z 
+2026-10-03T21:07:53.4784003Z 
+2026-10-03T21:07:53.4784072Z failures:
+2026-10-03T21:07:53.4784341Z     actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal
+2026-10-03T21:07:53.4784588Z 
+2026-10-03T21:07:53.4784974Z test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.16s
+2026-10-03T21:07:53.4785212Z 
+2026-10-03T21:07:53.4787566Z error: test failed, to rerun pass `--test raft_runtime`
+2026-10-03T21:07:53.4826980Z ##[error]Process completed with exit code 101.
+2026-10-03T21:07:53.4921059Z Post job cleanup.
+2026-10-03T21:07:53.5487158Z [command]/usr/bin/git version
+2026-10-03T21:07:53.5518241Z git version 2.55.0
+2026-10-03T21:07:53.5545652Z Temporarily overriding HOME='/home/runner/work/_temp/ef978ce2-6768-49a7-995c-a6c7c1cf067f' before making global git config changes
+2026-10-03T21:07:53.5546389Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T21:07:53.5548451Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-10-03T21:07:53.5574998Z Removing SSH command configuration
+2026-10-03T21:07:53.5578832Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T21:07:53.5605794Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-03T21:07:53.5849911Z Removing HTTP extra header
+2026-10-03T21:07:53.5860780Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T21:07:53.5900431Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-03T21:07:53.6135432Z Removing includeIf entries pointing to credentials config files
+2026-10-03T21:07:53.6140841Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T21:07:53.6172246Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-10-03T21:07:53.6172687Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-10-03T21:07:53.6173146Z includeif.gitdir:/github/workspace/.git.path
+2026-10-03T21:07:53.6173511Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T21:07:53.6189735Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-10-03T21:07:53.6203729Z /home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:07:53.6211397Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-2cfc7ab1\-e0e2\-451e\-9bc9\-187095667f92\.config
+2026-10-03T21:07:53.6243805Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-10-03T21:07:53.6265104Z /home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:07:53.6277794Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-2cfc7ab1\-e0e2\-451e\-9bc9\-187095667f92\.config
+2026-10-03T21:07:53.6307610Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-03T21:07:53.6333413Z /github/runner_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:07:53.6340963Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-2cfc7ab1\-e0e2\-451e\-9bc9\-187095667f92\.config
+2026-10-03T21:07:53.6427063Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T21:07:53.6448167Z /github/runner_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config
+2026-10-03T21:07:53.6454482Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-2cfc7ab1\-e0e2\-451e\-9bc9\-187095667f92\.config
+2026-10-03T21:07:53.6503971Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-03T21:07:53.6734269Z Removing credentials config '/home/runner/work/_temp/git-credentials-2cfc7ab1-e0e2-451e-9bc9-187095667f92.config'
+2026-10-03T21:07:53.6862751Z Cleaning up orphan processes

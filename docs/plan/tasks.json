@@ -3274,7 +3274,9 @@
         "cargo test --locked --test client_api partition",
         "Run matched partitioning cells from the benchmark contract."
       ],
-      "evidence": [],
+      "evidence": [
+        "docs/evidence/client/KL05-10/preparation/github-ci-b814-test-correction/stage-handoff.json"
+      ],
       "write_set": [
         "src/partitioner.rs",
         "src/producer.rs",
@@ -50472,7 +50474,8 @@
           "full_protocol_complete": false,
           "core_protocol_complete": false,
           "evidence_prefix": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/"
-        }
+        },
+        "docs/evidence/ci/github-b814-corrections/root-installation.json"
       ],
       "write_set": [
         "src/admin.rs",
@@ -50508,7 +50511,8 @@
       ],
       "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
       "proposal_key": "Q-FIX-ListTransactionsRouting",
-      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+      "integration_coordinator": " Actual b814 hosted CI strict-lint failures are preserved under docs/evidence/ci/github-b814-corrections/. Source-only adjacent-iterator and saturating-add fixes are installed with stable/MSRV format checks; new compiler/behavioral qualification remains outstanding."
     },
     {
       "id": "KL05-39",
@@ -51787,11 +51791,11 @@
     },
     {
       "id": "KL06-11",
-      "title": "Integrate SASL session reauthentication into Producer workers",
+      "title": "Integrate SASL session reauthentication across Producer connections",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-c-peer-20261003",
       "depends_on": [
         "KL06-03",
         "KL06-04",
@@ -51804,11 +51808,12 @@
         "tests/producer_sasl_reauthentication.rs",
         "docs/evidence/client/producer-sasl-reauthentication/"
       ],
-      "deliverable": "Producer worker connections and their existing accepted/in-flight requests Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
+      "deliverable": "All actual Producer connections honor supported SaslAuthenticate session lifetimes, quiesce and drain application requests before Kafka Handshake→Authenticate renewal, and close owned work within caller deadlines.",
       "acceptance": [
         "Use actual caller connections to honor supported SaslAuthenticate session lifetimes before dispatch/expiry; standalone BrokerPipeline tests do not satisfy this caller claim.",
         "Quiesce accepted traffic without mixing SASL/application correlations, preserving original deadlines, outcomes, cancellation and bounded close.",
-        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback."
+        "Authenticate with the current shared OIDC provider when applicable; classify unsupported peers and failed/expired reauth explicitly; no plaintext fallback.",
+        "Cover Producer bootstrap/metadata and transaction RPC connections as well as workers, using Kafka SaslHandshake then SaslAuthenticate for renewal and preserving unsupported/expired/failure outcomes."
       ],
       "validation": [
         "Run bounded exact-source stable/Rust1.85 default/all-feature checks appropriate to the changed implementation and its independent peer cohort.",
@@ -51820,7 +51825,9 @@
         "src/protocol/sasl.rs",
         "src/net.rs",
         "tests/producer_sasl_reauthentication.rs",
-        "docs/evidence/client/producer-sasl-reauthentication/"
+        "docs/evidence/client/producer-sasl-reauthentication/",
+        "tests/auth_lifecycle.rs",
+        "tests/common/mod.rs"
       ],
       "read_only_held": [
         "src/protocol/records.rs",
@@ -51836,9 +51843,12 @@
       "proposal_key": "Q-IMPL-ProducerReauth",
       "initial_registered_case_ids": [],
       "caller_scopes": [
+        "Producer bootstrap/metadata connections",
+        "Producer transaction RPC connections",
         "Producer worker connections and their existing accepted/in-flight requests"
       ],
-      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required."
+      "qualification_limit": "Current source/accepted tool does not prove caller integration, physical backing ownership, or full schema semantics. New independent exact-source qualification required.",
+      "integration_coordinator": "Root serializes shared net/SASL helper installation. Producer bootstrap/metadata and transaction calls are included alongside workers so no Producer RPC auth-lifetime scope remains unowned. Preserve the inherited handshake-free helper/test as superseded evidence; genuine pinned Apache clients use SaslHandshake before SaslAuthenticate during reauthentication. Existing broker pipeline foundation tests do not qualify these Producer callers. Implement one absolute auth/delivery deadline, exact in-flight accounting, and owned worker closure; no detached renewal tasks."
     },
     {
       "id": "KL06-12",

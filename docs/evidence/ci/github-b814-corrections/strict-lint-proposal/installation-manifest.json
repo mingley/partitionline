@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "source_only": true,
+  "coordinator_install_target": "src/admin.rs",
+  "source_before": {
+    "path": "/workspace/work/github-ci-b814-review-01/source-b814/src/admin.rs",
+    "bytes": 590487,
+    "full_mode": 384,
+    "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8"
+  },
+  "candidate": {
+    "path": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/src/admin.rs",
+    "bytes": 590431,
+    "full_mode": 384,
+    "sha256": "fd56de2a4933cd90d82152a7e10deb39675e975eb7aafb1053e2cc76ee38bb9b"
+  },
+  "diff": {
+    "path": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/admin-strict-lints.diff",
+    "bytes": 1082,
+    "full_mode": 384,
+    "sha256": "38a14ea223d0759ee799965fd158990aa6a20dba2b256afa495b78ce4420dc87"
+  },
+  "source_git_blob_oid": "07e5f77f59df2d56d86d533d89bfa8592709b889",
+  "actual_failure_inputs": [
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/client-clippy.decoded.log",
+      "bytes": 47352,
+      "full_mode": 384,
+      "sha256": "b10ffee75c06725f0421859cbd38051c74e9f8cad5ff792a29e988ebc65b8231"
+    },
+    {
+      "path": "/workspace/work/github-ci-b814-review-01/client-features.decoded.log",
+      "bytes": 48442,
+      "full_mode": 384,
+      "sha256": "971a53ed7d247bc80af6237721905a0020d8254419b40c316b6396795c706b70"
+    }
+  ],
+  "changes": [
+    {
+      "diagnostics": [
+        "src/admin.rs:7263:74 indexing_slicing",
+        "src/admin.rs:7263:85 indexing_slicing"
+      ],
+      "change": "Use iterator zip with one-element skip to compare adjacent sorted broker IDs without indexing.",
+      "semantics": "For a sorted slice of n broker IDs, both iterators compare exactly pairs (0,1) through (n-2,n-1); zero/one-element cases yield no duplicate. Existing negative-ID predicate and sort remain unchanged. No allocation or error-policy change."
+    },
+    {
+      "diagnostics": [
+        "src/admin.rs:7329:41 manual_saturating_arithmetic"
+      ],
+      "change": "Use saturating_add directly for cumulative response-body bytes.",
+      "semantics": "For unsigned usize operands, checked_add(y).unwrap_or(usize::MAX) and saturating_add(y) yield the same min(x+y,usize::MAX). The existing greater-than16MiB fail-closed check and exhausted state are unchanged."
+    }
+  ],
+  "runtime_or_compiler_validation": {
+    "Cargo": 0,
+    "Rust_compiler": 0,
+    "Clippy": 0,
+    "Rustfmt": 0,
+    "SDK": 0
+  },
+  "limitations": [
+    "This addresses three exact remote strict-lint diagnostics only. It does not establish that subsequent Clippy/test targets are clean.",
+    "No CI/local passing gate is claimed. New actual Git source pin and requalification are required before the corrected source is used.",
+    "Other remote sticky/conformance/runtime failures remain independently assigned."
+  ],
+  "source_before_preserved": {
+    "path": "/workspace/work/github-ci-b814-review-01/source-b814/src/admin.rs",
+    "bytes": 590487,
+    "full_mode": 384,
+    "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8"
+  }
+}

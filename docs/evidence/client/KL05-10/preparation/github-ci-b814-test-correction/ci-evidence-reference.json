@@ -1,0 +1,105 @@
+{
+  "ci_source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "compiled_rust_fix_not_yet_executed": true,
+  "files": [
+    {
+      "bytes": 47232,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.decoded.log",
+      "sha256": "31ac5056460b41bbc6f5416c8adbb40c8d7a0771cb49feff7c1391169311e058"
+    },
+    {
+      "bytes": 47821,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.decoded.log",
+      "sha256": "f0bb8189a401ff0bfcecf2d2d94dab0616bfa21d33fd48fe6589e219ee8ff9af"
+    },
+    {
+      "bytes": 48006,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.decoded.log",
+      "sha256": "00117655648090b15cea66b8253a85fd5d9c703e229f13ef6390db5918029a5f"
+    },
+    {
+      "bytes": 78121,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/broker-msrv.decoded.log",
+      "sha256": "fc4acd031224073f63a2ed6c6d9eab27fcecc355494eded0b0f00045cb8bded4"
+    },
+    {
+      "bytes": 112904,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/broker-stable.decoded.log",
+      "sha256": "b8a9a4bbd4950f36987f7ec872f30bf65ee82c758c6584720d884bf369d5f41c"
+    },
+    {
+      "bytes": 47352,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-clippy.decoded.log",
+      "sha256": "b10ffee75c06725f0421859cbd38051c74e9f8cad5ff792a29e988ebc65b8231"
+    },
+    {
+      "bytes": 48442,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-features.decoded.log",
+      "sha256": "971a53ed7d247bc80af6237721905a0020d8254419b40c316b6396795c706b70"
+    },
+    {
+      "bytes": 64466,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-macos-a.decoded.log",
+      "sha256": "dde05006a773faf26f0c22509d85b1d5bec9f4a218c60908b3bc49a29833ed29"
+    },
+    {
+      "bytes": 63727,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-macos-b.decoded.log",
+      "sha256": "485ab220ed68b7dac5bffac5f6c047eebdaaf972f107ccc3339a21e4f79e4ca0"
+    },
+    {
+      "bytes": 47807,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-msrv.decoded.log",
+      "sha256": "03c8541d6b9ae47db209c2282ac8e56a28e7e68e672042bb00952b31e1026288"
+    },
+    {
+      "bytes": 47637,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-stable.decoded.log",
+      "sha256": "f22cec18abf0da83e3d5c602728eca3e30c0b41718b511ea7eab402a5bd4e084"
+    },
+    {
+      "bytes": 65518,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-windows-a.decoded.log",
+      "sha256": "03b1a6ededb0fc6c7ac79a3866b4dbadb2abb099440ef6b52d4f7f9deae0bb4e"
+    },
+    {
+      "bytes": 66308,
+      "mode_07777": "0o600",
+      "path": "/workspace/work/github-ci-b814-review-01/client-windows-b.decoded.log",
+      "sha256": "f5314d9e243ced1f466bb230c50d5c3acc1a39ca4fc8625d5d30ea1ea0edffea"
+    }
+  ],
+  "publication_inventory": {
+    "bytes": 33156,
+    "mode_07777": "0o600",
+    "path": "/workspace/work/github-ci-b814-review-01/publication-inventory.json",
+    "sha256": "530d4ea55d4ff3873cc35dcd8fca8b0df48f46391ff8352761306c49886da5ec"
+  },
+  "raw_logs_retained_in": "/workspace/work/github-ci-b814-review-01",
+  "raw_publication_owner": "codex-c-peer",
+  "retrieval_and_diagnostics": {
+    "bytes": 80782,
+    "mode_07777": "0o600",
+    "path": "/workspace/work/github-ci-b814-review-01/retrieval-and-diagnostics.json",
+    "sha256": "bc3850d518dfc5b0e33158c85c247ed724f85066f66080f3c0476717ef3d0b47"
+  },
+  "scope": "All 13 exact tool-decoded UTF-8 logs, including original BOM/newlines; not original HTTP/GitHub archive byte claims.",
+  "source_provenance": {
+    "bytes": 3827,
+    "mode_07777": "0o600",
+    "path": "/workspace/work/github-ci-b814-review-01/source-provenance.json",
+    "sha256": "8ab7a9faac2645e0a7611b9afc7ad4383f98ddb1ae6a633b0b1f3f7196142139"
+  }
+}

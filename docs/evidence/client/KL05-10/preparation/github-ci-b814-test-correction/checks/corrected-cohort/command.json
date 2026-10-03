@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-v",
+    "-s",
+    "tests/conformance",
+    "-p",
+    "test_*.py"
+  ],
+  "cpu_set": "2,4",
+  "cwd": "/workspace/work/client-ci-b814-correction-01/candidate",
+  "deadline_seconds": 120,
+  "disk_floor_bytes": 367001600,
+  "env_overrides": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "TMPDIR": "/workspace/work/client-ci-b814-correction-01/temporary"
+  },
+  "runtime_scope": "Offline Python unit fixtures and syntax formatting only; no Cargo/JVM/SDK/broker."
+}

@@ -1,0 +1,19 @@
+{
+  "reason": "Initial closure omitted canonical share evidence existence dependency and common module needed for rustfmt traversal. Original attempts retained; no source correction prompted by either preparation failure.",
+  "files": [
+    {
+      "path": "docs/plan/evidence/KL05-15.json",
+      "sha256": "b4971a1b3279f5e93d67389861d49aafd7a285e8f36530d19938d5f9524f3ed6",
+      "bytes": 52540,
+      "mode_07777": "0o600",
+      "git_source": "a85b241765981a21cf2b3161ae6eac155200a441"
+    },
+    {
+      "path": "tests/common/mod.rs",
+      "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113",
+      "bytes": 380411,
+      "mode_07777": "0o600",
+      "git_source": "a85b241765981a21cf2b3161ae6eac155200a441"
+    }
+  ]
+}

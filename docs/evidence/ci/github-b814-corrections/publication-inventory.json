@@ -1,0 +1,854 @@
+{
+  "schema_version": 1,
+  "source_sha": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+  "repository": "mingley/partitionline",
+  "retrieval_tool": "mcp__codex_apps__github_fetch_workflow_job_logs",
+  "fetches_parallel_all_settled": 13,
+  "fulfilled_tool_fetches": 13,
+  "failed_tool_fetches": 0,
+  "jobs": [
+    {
+      "label": "client-stable",
+      "run_id": 37153928344,
+      "job_id": 111293341622,
+      "tool_args": {
+        "job_id": 111293341622,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-stable.tool-result.json",
+        "bytes": 51658,
+        "full_mode": 384,
+        "sha256": "3510ac93b1b2e62d5ee1d420e0075dd40afda68c0b7162b26b7918d5fd3813b9"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-stable.decoded.log",
+        "bytes": 47637,
+        "full_mode": 384,
+        "sha256": "f22cec18abf0da83e3d5c602728eca3e30c0b41718b511ea7eab402a5bd4e084"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 124,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 212,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 546,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 568,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 570,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "client-msrv",
+      "run_id": 37153928344,
+      "job_id": 111293341617,
+      "tool_args": {
+        "job_id": 111293341617,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-msrv.tool-result.json",
+        "bytes": 52403,
+        "full_mode": 384,
+        "sha256": "2a44a910ee588cb289db7a27b1f296a34a33fd4e765cd9b35a38ff12ec04cb77"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-msrv.decoded.log",
+        "bytes": 47807,
+        "full_mode": 384,
+        "sha256": "03c8541d6b9ae47db209c2282ac8e56a28e7e68e672042bb00952b31e1026288"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 124,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 212,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 541,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 563,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 565,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "client-clippy",
+      "run_id": 37153928344,
+      "job_id": 111293341607,
+      "tool_args": {
+        "job_id": 111293341607,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-clippy.tool-result.json",
+        "bytes": 51781,
+        "full_mode": 384,
+        "sha256": "c6fa63d3b8b95a4754f34dd803cd7fb0210add5f1a287714ff43c4e4559ec520"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-clippy.decoded.log",
+        "bytes": 47352,
+        "full_mode": 384,
+        "sha256": "b10ffee75c06725f0421859cbd38051c74e9f8cad5ff792a29e988ebc65b8231"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 124,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 190,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 514,
+          "text": "error: indexing may panic"
+        },
+        {
+          "line": 524,
+          "text": "error: indexing may panic"
+        },
+        {
+          "line": 533,
+          "text": "error: manual saturating arithmetic"
+        },
+        {
+          "line": 552,
+          "text": "error: could not compile `partitionline` (lib) due to 3 previous errors"
+        },
+        {
+          "line": 554,
+          "text": "error: could not compile `partitionline` (lib test) due to 3 previous errors"
+        },
+        {
+          "line": 555,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "ListTransactions_three_strict_lints",
+      "assigned_owner": "root/c_peer source-only proposal",
+      "observed_scope": "Clippy lib/lib-test failed before later target checking; no passing strict suite"
+    },
+    {
+      "label": "client-features",
+      "run_id": 37153928344,
+      "job_id": 111293341558,
+      "tool_args": {
+        "job_id": 111293341558,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-features.tool-result.json",
+        "bytes": 52888,
+        "full_mode": 384,
+        "sha256": "58d1ea2fe1f9b64e80a5bca28cef800270c0063feab22585d2eb6875ef86ed2d"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-features.decoded.log",
+        "bytes": 48442,
+        "full_mode": 384,
+        "sha256": "971a53ed7d247bc80af6237721905a0020d8254419b40c316b6396795c706b70"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 124,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 208,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 531,
+          "text": "error: indexing may panic"
+        },
+        {
+          "line": 541,
+          "text": "error: indexing may panic"
+        },
+        {
+          "line": 550,
+          "text": "error: manual saturating arithmetic"
+        },
+        {
+          "line": 569,
+          "text": "error: could not compile `partitionline` (lib) due to 3 previous errors"
+        },
+        {
+          "line": 571,
+          "text": "error: could not compile `partitionline` (lib test) due to 3 previous errors"
+        },
+        {
+          "line": 572,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "ListTransactions_three_strict_lints",
+      "assigned_owner": "root/c_peer source-only proposal",
+      "observed_scope": "Clippy lib/lib-test failed before later target checking; no passing strict suite"
+    },
+    {
+      "label": "client-windows-a",
+      "run_id": 37153928344,
+      "job_id": 111293341537,
+      "tool_args": {
+        "job_id": 111293341537,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-a.tool-result.json",
+        "bytes": 69096,
+        "full_mode": 384,
+        "sha256": "7235163aa21d77d320950b4d15096385d35d1bf41d6a8baf4611d95ade00a076"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-a.decoded.log",
+        "bytes": 65518,
+        "full_mode": 384,
+        "sha256": "03b1a6ededb0fc6c7ac79a3866b4dbadb2abb099440ef6b52d4f7f9deae0bb4e"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 122,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" branch --list --remote origin/main",
+            "  origin/main",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 249,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 775,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 797,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 800,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "client-windows-b",
+      "run_id": 37153928344,
+      "job_id": 111293341687,
+      "tool_args": {
+        "job_id": 111293341687,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-b.tool-result.json",
+        "bytes": 69900,
+        "full_mode": 384,
+        "sha256": "bbdb2a0bedda4adce21f20eb8a96ff94e0e85a9b9da95d3f54faf8735ab7f140"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-windows-b.decoded.log",
+        "bytes": 66308,
+        "full_mode": 384,
+        "sha256": "f5314d9e243ced1f466bb230c50d5c3acc1a39ca4fc8625d5d30ea1ea0edffea"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 122,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" branch --list --remote origin/main",
+            "  origin/main",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 251,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]\"C:\\Program Files\\Git\\bin\\git.exe\" log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 784,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 806,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 809,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "client-macos-a",
+      "run_id": 37153928344,
+      "job_id": 111293341573,
+      "tool_args": {
+        "job_id": 111293341573,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-a.tool-result.json",
+        "bytes": 66707,
+        "full_mode": 384,
+        "sha256": "73feb41133b7699bf969a8e819985bda1e8d065568af32046d541947879de4fa"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-a.decoded.log",
+        "bytes": 64466,
+        "full_mode": 384,
+        "sha256": "dde05006a773faf26f0c22509d85b1d5bec9f4a218c60908b3bc49a29833ed29"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 135,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/opt/homebrew/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 252,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/opt/homebrew/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 770,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 792,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 795,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "client-macos-b",
+      "run_id": 37153928344,
+      "job_id": 111293341608,
+      "tool_args": {
+        "job_id": 111293341608,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-b.tool-result.json",
+        "bytes": 65958,
+        "full_mode": 384,
+        "sha256": "eb306f89202e2892b8801e4e5fd2976d4381048ab8362cc570827acbb667635e"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/client-macos-b.decoded.log",
+        "bytes": 63727,
+        "full_mode": 384,
+        "sha256": "485ab220ed68b7dac5bffac5f6c047eebdaaf972f107ccc3339a21e4f79e4ca0"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 135,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/opt/homebrew/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/opt/homebrew/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 247,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/opt/homebrew/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 760,
+          "text": "error[E0382]: borrow of moved value: `producer`"
+        },
+        {
+          "line": 782,
+          "text": "error: could not compile `partitionline` (test \"sticky_partitioner\") due to 1 previous error"
+        },
+        {
+          "line": 785,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "sticky_test_borrow_after_consuming_close",
+      "assigned_owner": "client_share",
+      "observed_scope": "Rust test-target compilation failed; no passing platform behavioral suite"
+    },
+    {
+      "label": "broker-current-java-a",
+      "run_id": 37153928344,
+      "job_id": 111293341604,
+      "tool_args": {
+        "job_id": 111293341604,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.tool-result.json",
+        "bytes": 48866,
+        "full_mode": 384,
+        "sha256": "d881b37bcdf897db659cd315b458a6d67d30a1a82f6e69ade494487ae8bb6bd5"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-a.decoded.log",
+        "bytes": 47232,
+        "full_mode": 384,
+        "sha256": "31ac5056460b41bbc6f5416c8adbb40c8d7a0771cb49feff7c1391169311e058"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 133,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 208,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 546,
+          "text": "AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 552,
+          "text": "##[error]Process completed with exit code 1."
+        }
+      ],
+      "category": "stale_primary_registry_missing_count_assertion",
+      "assigned_owner": "client_share",
+      "observed_scope": "Python verifiable scenario test failed before compatibility SDK peers; downstream artifact absence"
+    },
+    {
+      "label": "broker-current-java-b",
+      "run_id": 37153928344,
+      "job_id": 111293341612,
+      "tool_args": {
+        "job_id": 111293341612,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.tool-result.json",
+        "bytes": 49464,
+        "full_mode": 384,
+        "sha256": "646aa8c0af88c38ae458d957d36a76b8ee0966730dae7eeeabd13be6416f7512"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-b.decoded.log",
+        "bytes": 47821,
+        "full_mode": 384,
+        "sha256": "f0bb8189a401ff0bfcecf2d2d94dab0616bfa21d33fd48fe6589e219ee8ff9af"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 133,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 217,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 555,
+          "text": "AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 561,
+          "text": "##[error]Process completed with exit code 1."
+        }
+      ],
+      "category": "stale_primary_registry_missing_count_assertion",
+      "assigned_owner": "client_share",
+      "observed_scope": "Python verifiable scenario test failed before compatibility SDK peers; downstream artifact absence"
+    },
+    {
+      "label": "broker-current-java-c",
+      "run_id": 37153928344,
+      "job_id": 111293341633,
+      "tool_args": {
+        "job_id": 111293341633,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.tool-result.json",
+        "bytes": 49652,
+        "full_mode": 384,
+        "sha256": "237a114b013d9a09565b06e01f27b9e5cde87c21e0458933094eaedb7753bbcd"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-current-java-c.decoded.log",
+        "bytes": 48006,
+        "full_mode": 384,
+        "sha256": "00117655648090b15cea66b8253a85fd5d9c703e229f13ef6390db5918029a5f"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 133,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 220,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 558,
+          "text": "AssertionError: \"Missing 105 required\" does not match \"Missing 168 required conformance case(s) (showing 5 of 168: api-broker-internal-004-leader-and-isr, api-broker-internal-005-stop-replica, api-broker-internal-006-update-metadata, api-broker-internal-007-controlled-shutdown, api-broker-internal-027-write-txn-markers)\""
+        },
+        {
+          "line": 564,
+          "text": "##[error]Process completed with exit code 1."
+        }
+      ],
+      "category": "stale_primary_registry_missing_count_assertion",
+      "assigned_owner": "client_share",
+      "observed_scope": "Python verifiable scenario test failed before compatibility SDK peers; downstream artifact absence"
+    },
+    {
+      "label": "broker-stable",
+      "run_id": 37153928332,
+      "job_id": 111293335438,
+      "tool_args": {
+        "job_id": 111293335438,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-stable.tool-result.json",
+        "bytes": 115310,
+        "full_mode": 384,
+        "sha256": "ecb1de2979cfac4ee3171026d344d6ea34ca6ba7d85b279fc6590fcddda9cfc7"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-stable.decoded.log",
+        "bytes": 112904,
+        "full_mode": 384,
+        "sha256": "b8a9a4bbd4950f36987f7ec872f30bf65ee82c758c6584720d884bf369d5f41c"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 112,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 200,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 1333,
+          "text": "Error: Deadline"
+        },
+        {
+          "line": 1341,
+          "text": "error: test failed, to rerun pass `--lib`"
+        },
+        {
+          "line": 1342,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "raft_ownership_deadline",
+      "assigned_owner": "rpc_reuse/open_loop",
+      "observed_scope": "Default all-targets command passed; allfeature lib failed99passed/1failed; later strict gates not executed"
+    },
+    {
+      "label": "broker-msrv",
+      "run_id": 37153928332,
+      "job_id": 111293335325,
+      "tool_args": {
+        "job_id": 111293335325,
+        "repo_full_name": "mingley/partitionline"
+      },
+      "tool_success": true,
+      "complete_decoded_UTF8_not_raw_archive": true,
+      "structured_tool_result": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-msrv.tool-result.json",
+        "bytes": 80093,
+        "full_mode": 384,
+        "sha256": "7230cada6a40fa96205b83f9221ee407c82e5b8f1839bfe680d7a657eb17f39b"
+      },
+      "decoded_UTF8_log": {
+        "path": "/workspace/work/github-ci-b814-review-01/broker-msrv.decoded.log",
+        "bytes": 78121,
+        "full_mode": 384,
+        "sha256": "fc4acd031224073f63a2ed6c6d9eab27fcecc355494eded0b0f00045cb8bded4"
+      },
+      "checkout_Git_output_evidence": [
+        {
+          "line": 112,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            " * [new ref]           b8148087f08b205d7d19fd0be10994ebcd1fcc3a -> origin/main",
+            "[command]/usr/bin/git branch --list --remote origin/main",
+            "  origin/main",
+            "[command]/usr/bin/git rev-parse refs/remotes/origin/main"
+          ]
+        },
+        {
+          "line": 187,
+          "source_sha_output": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+          "preceding_command_context": [
+            "Switched to a new branch 'main'",
+            "branch 'main' set up to track 'origin/main'.",
+            "##[endgroup]",
+            "[command]/usr/bin/git log -1 --format=%H"
+          ]
+        }
+      ],
+      "diagnostics_ANSI_stripped_for_index_only": [
+        {
+          "line": 907,
+          "text": "Error: \"commit deadline\""
+        },
+        {
+          "line": 915,
+          "text": "error: test failed, to rerun pass `--test raft_runtime`"
+        },
+        {
+          "line": 916,
+          "text": "##[error]Process completed with exit code 101."
+        }
+      ],
+      "category": "raft_five_node_commit_deadline",
+      "assigned_owner": "rpc_reuse/open_loop",
+      "observed_scope": "Default suite stopped in raft_runtime:4passed/1failed; no full default/allfeature qualification"
+    }
+  ],
+  "preserved_original_retrieval_receipt": {
+    "path": "/workspace/work/github-ci-b814-review-01/retrieval-and-diagnostics.json",
+    "bytes": 80782,
+    "full_mode": 384,
+    "sha256": "bc3850d518dfc5b0e33158c85c247ed724f85066f66080f3c0476717ef3d0b47"
+  },
+  "exact_Git_source_provenance_receipt": {
+    "path": "/workspace/work/github-ci-b814-review-01/source-provenance.json",
+    "bytes": 3827,
+    "full_mode": 384,
+    "sha256": "8ab7a9faac2645e0a7611b9afc7ad4383f98ddb1ae6a633b0b1f3f7196142139"
+  },
+  "Admin_source_only_proposal": {
+    "path": "/workspace/work/github-ci-b814-review-01/strict-lint-proposal/installation-manifest.json",
+    "bytes": 3132,
+    "full_mode": 384,
+    "sha256": "5202f5b460538b500c377fd174ba7c6e81ff43e49faf6496ddbeb53c17479704"
+  },
+  "scope": [
+    "Complete decoded Unicode tool strings are retained as UTF8; raw GitHub HTTP/download archives are not exposed by this tool.",
+    "Original BOM, ANSI sequences and platform newlines remain in decoded.log bytes. Only diagnostic indexes remove ANSI/timestamp presentation.",
+    "The complete immutable Git tree index and exact relevant blobs bind source/provenance. Remote runner filesystem modes were not observed.",
+    "No main/taskbook/source staging or mutations; no local Cargo/Rustfmt/compiler/SDK/socket executions.",
+    "Actual CI failures are preserved; source-only proposals and prior qualified sources are not passing CI or new-source qualification."
+  ]
+}

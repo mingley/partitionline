@@ -1,0 +1,13 @@
+{
+  "compiled_rust": false,
+  "elapsed_seconds": 8.223001212012605,
+  "exit_code": 0,
+  "minimum_observed_free_bytes": 728219648,
+  "phase": "corrected-cohort",
+  "real_sdk_or_broker": false,
+  "source_files": 53,
+  "source_unchanged": true,
+  "termination": null,
+  "wall_finished_ns": 1791063389487292917,
+  "wall_started_ns": 1791063381264295861
+}
