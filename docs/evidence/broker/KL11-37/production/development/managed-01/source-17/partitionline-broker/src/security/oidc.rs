@@ -9,6 +9,7 @@ mod cache;
 mod http;
 mod introspection;
 mod jwt;
+pub(crate) mod sasl;
 pub use cache::{Config, KeySource, Lease, RuntimeLimits, Service};
 pub use http::{HttpLimits, HttpsTrust};
 pub use introspection::Introspection;

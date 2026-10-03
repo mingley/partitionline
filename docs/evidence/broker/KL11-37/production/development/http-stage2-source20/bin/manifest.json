@@ -1,0 +1,164 @@
+{
+  "scope": "actual standalone HTTP checkpoint test paths, other current source20 developer socket test binaries retained without whole-cache source attribution, and both deliberately regressed/corrected controls",
+  "source_manifest": "../overlay-source.json",
+  "archive_path": "/workspace/work/broker-oidc/http-stage2-retention/test-executables.tar.gz",
+  "archive_sha256": "3af95d760165c6a709d4023773da004d8d26ae3937828a6898ece501c49564fb",
+  "byte_and_full_mode_roundtrip": true,
+  "files": [
+    {
+      "path": "cache/debug/deps/oidc_http-2238d440fe769608",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-2238d440fe769608",
+      "bytes": 10236096,
+      "mode": 448,
+      "sha256": "e58cc87c156cebcc9009eafd3618036ce4aec35f64a53c131f05a0561b029a62"
+    },
+    {
+      "path": "cache/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f"
+    },
+    {
+      "path": "cache/debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_sessions-96eeaa8677ba4b40",
+      "bytes": 14383688,
+      "mode": 448,
+      "sha256": "13ea49657e32116d6ad5096f842803a5e15618d1205fc6e03273974022c39080"
+    },
+    {
+      "path": "cache/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "bytes": 3664040,
+      "mode": 448,
+      "sha256": "2d4c540b5052b657dfc3e798b72752ac5b155c7c6900359740a1c250b9a105db"
+    },
+    {
+      "path": "cache/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "bytes": 4212960,
+      "mode": 448,
+      "sha256": "32db4b7767f7f9bf6457058f38b18f5ccf76f978b29aee1ba199ace82c5909f6"
+    },
+    {
+      "path": "cache/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "bytes": 20244328,
+      "mode": 448,
+      "sha256": "a7ff65535c1c5d479a0195af937886eeec650600a1cafa76892694f65e6434d2"
+    },
+    {
+      "path": "cache/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "bytes": 16272368,
+      "mode": 448,
+      "sha256": "dd6f3557d0bc0e19f96f1ebce75f875c1e0d5d3b406200916227fde118a8a067"
+    },
+    {
+      "path": "cache/debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/sasl_sessions-aa46d068459e7a6c",
+      "bytes": 13171880,
+      "mode": 448,
+      "sha256": "58e0b973ed7ce23275b66ba529a5d7ef3d8363294bd4a1f4621ea0131381367a"
+    },
+    {
+      "path": "controls/overdue-refresh-starvation-oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11959640,
+      "mode": 448,
+      "sha256": "d39359233cc2e5741ae4e515616da1e743e9d1c6b427acddfe16afaa9755e2ab",
+      "deliberately_regressed": true,
+      "command_label": "overdue-refresh-starvation"
+    },
+    {
+      "path": "controls/closed-status-stale-health-oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961144,
+      "mode": 448,
+      "sha256": "ff8e9b59c9d30d1352a2af8974de0e2b3b24168d5f02f29d03af3dab878f69c1",
+      "deliberately_regressed": true,
+      "command_label": "closed-status-stale-health"
+    },
+    {
+      "path": "controls/overdue-refresh-starvation-corrected-oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-corrected-oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f",
+      "deliberately_regressed": false,
+      "command_label": "overdue-refresh-starvation-corrected"
+    },
+    {
+      "path": "controls/closed-status-stale-health-corrected-oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-corrected-oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f",
+      "deliberately_regressed": false,
+      "command_label": "closed-status-stale-health-corrected"
+    }
+  ],
+  "positive_test_executable_paths": [
+    {
+      "command": "stable-tests",
+      "log": "stable-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01",
+      "bytes": 20244328,
+      "mode": 448,
+      "sha256": "a7ff65535c1c5d479a0195af937886eeec650600a1cafa76892694f65e6434d2"
+    },
+    {
+      "command": "stable-tests",
+      "log": "stable-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+      "bytes": 11961864,
+      "mode": 448,
+      "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f"
+    },
+    {
+      "command": "stable-tests",
+      "log": "stable-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85",
+      "bytes": 4212960,
+      "mode": 448,
+      "sha256": "32db4b7767f7f9bf6457058f38b18f5ccf76f978b29aee1ba199ace82c5909f6"
+    },
+    {
+      "command": "1.85.0-tests",
+      "log": "1.85.0-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6",
+      "bytes": 16272368,
+      "mode": 448,
+      "sha256": "dd6f3557d0bc0e19f96f1ebce75f875c1e0d5d3b406200916227fde118a8a067"
+    },
+    {
+      "command": "1.85.0-tests",
+      "log": "1.85.0-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/oidc_http-2238d440fe769608",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-2238d440fe769608",
+      "bytes": 10236096,
+      "mode": 448,
+      "sha256": "e58cc87c156cebcc9009eafd3618036ce4aec35f64a53c131f05a0561b029a62"
+    },
+    {
+      "command": "1.85.0-tests",
+      "log": "1.85.0-tests.log",
+      "tested_source": "complete005+sevenfrozenHTTPcheckpointpaths",
+      "path": "cache/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "restore_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_validation-e9aae352142f1dcf",
+      "bytes": 3664040,
+      "mode": 448,
+      "sha256": "2d4c540b5052b657dfc3e798b72752ac5b155c7c6900359740a1c250b9a105db"
+    }
+  ],
+  "negative_control_receipts": "../negative-controls/results.json"
+}

@@ -1,0 +1,51 @@
+{
+  "stage": "standalone managed HTTPS checkpoint proposal; not yet pushed or immutable qualified",
+  "foundation_base_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "developer_test_reference": "../development/managed-01/focused-20.json",
+  "checkpoint_delta": "omit unused private OAUTHBEARER parser module declaration until actual socket stage; all seven HTTP bodies identical to passing source20",
+  "source": [
+    {
+      "path": "partitionline-broker/src/security/oidc.rs",
+      "checkpoint_sha256": "f40ed40ea80704007abcfeeebc3099eb6b25122169e0a30c9cd10f584635219d",
+      "working_source20_sha256": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/jwt.rs",
+      "checkpoint_sha256": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+      "working_source20_sha256": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/cache.rs",
+      "checkpoint_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09",
+      "working_source20_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/http.rs",
+      "checkpoint_sha256": "222cd2f31562796b571e4cb2e91bce46ffe74aa5c7d7e2dd6f0bfea1d5a5eddc",
+      "working_source20_sha256": "222cd2f31562796b571e4cb2e91bce46ffe74aa5c7d7e2dd6f0bfea1d5a5eddc",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/introspection.rs",
+      "checkpoint_sha256": "3db692d142611b7aa40674cab9c4aafca3c95708deace9e93cfd1e5ae0c418f2",
+      "working_source20_sha256": "3db692d142611b7aa40674cab9c4aafca3c95708deace9e93cfd1e5ae0c418f2",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_http.rs",
+      "checkpoint_sha256": "4bc9f6e6dc1dd4bc0cd1faf6ee5db804c5a6708b003b2b54a863b1b2729862d7",
+      "working_source20_sha256": "4bc9f6e6dc1dd4bc0cd1faf6ee5db804c5a6708b003b2b54a863b1b2729862d7",
+      "mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_support/mod.rs",
+      "checkpoint_sha256": "037bf30e0e86e22b4fe59768f8b91144bcb75eb94f38c18f5e5112926b53031a",
+      "working_source20_sha256": "037bf30e0e86e22b4fe59768f8b91144bcb75eb94f38c18f5e5112926b53031a",
+      "mode": "0o600"
+    }
+  ],
+  "full_oidc_qualification": false
+}

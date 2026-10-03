@@ -1,0 +1,7 @@
+{
+  "corrected_cache_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09",
+  "mutant_cache_sha256": "3979583d273a1ee99fc1eb0f65b67503aa7eac6c7807a63459e3f2f9fddbcbb8",
+  "test": "shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh",
+  "change": "deliberately remove only the independently reviewed fix",
+  "will_execute": true
+}

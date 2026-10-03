@@ -1,0 +1,13 @@
+{
+  "stage": "development managed overlay 09",
+  "foundation_base_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "f40ed40ea80704007abcfeeebc3099eb6b25122169e0a30c9cd10f584635219d",
+    "partitionline-broker/src/security/oidc/jwt.rs": "9f6866b91e13954379b02cb79e889516b97a26bc9683a0f7ebbfc5e6b81d358b",
+    "partitionline-broker/src/security/oidc/cache.rs": "4f4a4eb25337b1e62fecfafc9a24229090b45608ff5f85c27d70b9df3c9a03f8",
+    "partitionline-broker/src/security/oidc/http.rs": "19f86cc16f05bee9c6f6a875c2fefdf75172afefb31205c1dfd590c82fc60490",
+    "partitionline-broker/src/security/oidc/introspection.rs": "34c0d738b18382fbe0cf84f13bf90b249bb6c83f2e0d95dde5120b7918c1f4dc",
+    "partitionline-broker/tests/oidc_http.rs": "edb54dd6a7bc8726a0fe408c44c7e42392bfe40e09f4ffe5e78cc257fd2611a7"
+  },
+  "production_qualification": false
+}

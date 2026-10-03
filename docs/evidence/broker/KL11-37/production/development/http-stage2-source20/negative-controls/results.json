@@ -1,0 +1,159 @@
+{
+  "scope": "two independently reviewed source17 defects reproduced by removing each source20 fix separately; same actual HTTPS regression harness",
+  "baseline_Git_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "production_qualification": false,
+  "commands": [
+    {
+      "label": "overdue-refresh-starvation",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--test",
+        "oidc_http",
+        "slow_successful_periodic_refresh_cannot_starve_queued_lease_work",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "duration_s": 7.649153439000656,
+      "log": "overdue-refresh-starvation.log",
+      "log_sha256": "151c5e31fdee081a85a88c0633c9af59b0f1f75995b79f3e4244daf3d4df4dd0",
+      "executables": [
+        {
+          "actual_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+          "retained_path": "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-oidc_http-a8a5a8e24c6a6f8b",
+          "sha256": "d39359233cc2e5741ae4e515616da1e743e9d1c6b427acddfe16afaa9755e2ab",
+          "mode": "0o700",
+          "deliberately_regressed": true
+        }
+      ],
+      "corrected_cache_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09"
+    },
+    {
+      "label": "closed-status-stale-health",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--test",
+        "oidc_http",
+        "shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "duration_s": 4.514678013001685,
+      "log": "closed-status-stale-health.log",
+      "log_sha256": "80196dde0d5c0b47899e6357cb441cd47c1df81b46f9b7b1620ff49cc4ca424e",
+      "executables": [
+        {
+          "actual_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+          "retained_path": "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-oidc_http-a8a5a8e24c6a6f8b",
+          "sha256": "ff8e9b59c9d30d1352a2af8974de0e2b3b24168d5f02f29d03af3dab878f69c1",
+          "mode": "0o700",
+          "deliberately_regressed": true
+        }
+      ],
+      "corrected_cache_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09"
+    },
+    {
+      "label": "overdue-refresh-starvation-corrected",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--test",
+        "oidc_http",
+        "slow_successful_periodic_refresh_cannot_starve_queued_lease_work",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "duration_s": 5.002993204005179,
+      "log": "overdue-refresh-starvation-corrected.log",
+      "log_sha256": "3fa647daa6b5452169f5a9fefc1d5095789ae96c025219e89ee9ce0979dd4b3c",
+      "executables": [
+        {
+          "actual_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+          "retained_path": "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-corrected-oidc_http-a8a5a8e24c6a6f8b",
+          "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f",
+          "mode": "0o700",
+          "deliberately_regressed": false
+        }
+      ],
+      "corrected_cache_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09"
+    },
+    {
+      "label": "closed-status-stale-health-corrected",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--test",
+        "oidc_http",
+        "shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh",
+        "--",
+        "--exact"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "duration_s": 0.18231812799785985,
+      "log": "closed-status-stale-health-corrected.log",
+      "log_sha256": "8c44b39ed3c35563286c00faf318bf775e15470a854d59132eb277059da199da",
+      "executables": [
+        {
+          "actual_path": "/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b",
+          "retained_path": "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-corrected-oidc_http-a8a5a8e24c6a6f8b",
+          "sha256": "62fdb6b2655d55bc29a116f18b8a01fa09af54670a5f118cb38c8aca53e7ac7f",
+          "mode": "0o700",
+          "deliberately_regressed": false
+        }
+      ],
+      "corrected_cache_sha256": "4f8ab2f5d0513bbf67674de6a5358c67ae5ab3fb4e0f918a8051487506cdab09"
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "scope": "development overlay only; no immutable production qualification",
+  "source_manifest": "source-overlay-20.json",
+  "commands": [
+    {
+      "command": "check",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "check",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 7.639135986995825,
+      "log": "stable-check-20.log",
+      "sha256": "098a1e30b293efd12e3d17f556c81bbec9b2440bb7f0ee9c3330863b9b0e4015",
+      "source12_before_after": true
+    },
+    {
+      "command": "tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--lib",
+        "--test",
+        "oidc_http",
+        "--test",
+        "oidc_sessions",
+        "--test",
+        "sasl_sessions"
+      ],
+      "exit_code": 0,
+      "duration_s": 33.67826285600313,
+      "log": "stable-tests-20.log",
+      "sha256": "51dfb585624d506bd5e45ef5090c5144e213c40fb39d79aa602a63f1e2c9c520",
+      "source12_before_after": true,
+      "totals": {
+        "passed": 101,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "command": "clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-Dwarnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 7.863185517999227,
+      "log": "stable-clippy-20.log",
+      "sha256": "c4531b3a31efbc234529f1e858d2c11f83eb40b18d8bcca6aa5c07ad867819d4",
+      "source12_before_after": true
+    }
+  ]
+}

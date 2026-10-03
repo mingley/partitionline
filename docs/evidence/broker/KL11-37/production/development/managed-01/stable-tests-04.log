@@ -1,0 +1,22 @@
+error: no test target named `oidc_http` in default-run packages
+help: available test targets:
+    catalog
+    codecs
+    fetch
+    journal
+    metadata
+    oidc_validation
+    partition
+    produce
+    protocol
+    raft_election
+    raft_protocol
+    raft_replication
+    raft_snapshot
+    records
+    sasl
+    sasl_credentials
+    sasl_sessions
+    segments
+    tls
+    transport

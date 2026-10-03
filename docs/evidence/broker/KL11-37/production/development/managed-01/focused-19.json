@@ -1,0 +1,67 @@
+{
+  "scope": "development overlay only; no immutable production qualification",
+  "source_manifest": "source-overlay-19.json",
+  "commands": [
+    {
+      "command": "check",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "check",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 7.754827099000977,
+      "log": "stable-check-19.log",
+      "sha256": "270dbdaa55b79e62a4d82a82edeaee52ebcd490a9c7703f6db93db756e02d54b",
+      "source12_before_after": true
+    },
+    {
+      "command": "tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--lib",
+        "--test",
+        "oidc_http",
+        "--test",
+        "oidc_sessions",
+        "--test",
+        "sasl_sessions"
+      ],
+      "exit_code": 101,
+      "duration_s": 17.58425500899466,
+      "log": "stable-tests-19.log",
+      "sha256": "40aadecfb6920558d7042df69dfb34900539d71476db9e0f644ed68f25e49a56",
+      "source12_before_after": true,
+      "totals": {
+        "passed": 66,
+        "failed": 1,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "only_inactive_own_package_cache_cleaned": true,
+  "active_reference_checks": [
+    "exe",
+    "cwd",
+    "cmdline",
+    "environ"
+  ],
+  "active_references": [],
+  "argv": [
+    "cargo",
+    "+stable",
+    "clean",
+    "--manifest-path",
+    "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+    "--package",
+    "partitionline-broker"
+  ],
+  "exit_code": 0,
+  "verified_lossless_archive": "/workspace/work/broker-oidc/http-stage2-retention/test-executables.tar.gz",
+  "archive_sha256": "3af95d760165c6a709d4023773da004d8d26ae3937828a6898ece501c49564fb",
+  "removed_duplicate_control_build_executables": [
+    "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-oidc_http-a8a5a8e24c6a6f8b",
+    "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-oidc_http-a8a5a8e24c6a6f8b",
+    "/workspace/work/broker-oidc/http-negative-control-executables/overdue-refresh-starvation-corrected-oidc_http-a8a5a8e24c6a6f8b",
+    "/workspace/work/broker-oidc/http-negative-control-executables/closed-status-stale-health-corrected-oidc_http-a8a5a8e24c6a6f8b"
+  ],
+  "source_rawlogs_WAL_unchanged": true
+}

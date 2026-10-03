@@ -1,0 +1,24 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.36s
+     Running tests/oidc_http.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b)
+
+running 1 test
+test shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh ... FAILED
+
+failures:
+
+---- shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh stdout ----
+
+thread 'shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh' (978868) panicked at tests/oidc_http.rs:331:5:
+assertion `left == right` failed
+  left: None
+ right: Some(Unavailable)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    shutdown_invalidates_a_lease_queued_behind_stalled_key_refresh
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `--test oidc_http`

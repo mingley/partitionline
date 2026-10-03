@@ -1,0 +1,31 @@
+{
+  "method": "deliberate premature HTTP-admission release; actual production counted blocking closure with deterministic stalled lookup",
+  "not_a_kernel_getaddrinfo_stall": true,
+  "production_shutdown_does_not_promise_forced_kernel_DNS_cancellation": true,
+  "unmodified_http_sha256": "19f86cc16f05bee9c6f6a875c2fefdf75172afefb31205c1dfd590c82fc60490",
+  "mutant_http_sha256": "d9bb7222ea42db08a721de7c2691be57c65e427f588a2a6d1c5c1570e37ba2cf",
+  "argv": [
+    "taskset",
+    "-c",
+    "0,1",
+    "cargo",
+    "+stable",
+    "test",
+    "--manifest-path",
+    "/workspace/work/broker-oidc/managed-overlay-01/partitionline-broker/Cargo.toml",
+    "--locked",
+    "--offline",
+    "--no-default-features",
+    "--features",
+    "oidc",
+    "--lib",
+    "security::oidc::http::tests::cancelled_resolution_keeps_http_admission_and_is_joined",
+    "--",
+    "--exact"
+  ],
+  "exit_code": 101,
+  "expected_exit_code": 101,
+  "guard_detected": true,
+  "log_sha256": "c74dc4cacb86c96c62376218d4790dac3890c19b48c564325ff093cdd42b0a0f",
+  "production_qualification": false
+}

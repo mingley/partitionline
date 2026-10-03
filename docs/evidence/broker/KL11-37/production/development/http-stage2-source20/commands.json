@@ -1,0 +1,193 @@
+{
+  "baseline_source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "scope": "complete baseline Git tree plus seven explicitly declared managed HTTPS checkpoint paths; no socket WIP",
+  "production_qualification": false,
+  "commands": [
+    {
+      "label": "stable-rustc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "rustc",
+        "+stable",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.012393955999868922,
+      "log": "stable-rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    {
+      "label": "stable-fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.3844637220026925,
+      "log": "stable-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "stable-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--lib",
+        "--test",
+        "oidc_http",
+        "--test",
+        "oidc_validation"
+      ],
+      "exit_code": 0,
+      "duration_s": 17.445344115003536,
+      "log": "stable-tests.log",
+      "sha256": "be341b10591077277c8a97c16db5fe597dd700a19a29a910bcdcf2dbb50f82db",
+      "test_totals": {
+        "passed": 96,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "label": "stable-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-Dwarnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 8.777933189005125,
+      "log": "stable-clippy.log",
+      "sha256": "5a93b7b3cf3ef06000b4bbb6e1695f5b8aa0b7214f65e899f0aa5c38aad54e15"
+    },
+    {
+      "label": "1.85.0-rustc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "rustc",
+        "+1.85.0",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.012880095004220493,
+      "log": "1.85.0-rustc.log",
+      "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a"
+    },
+    {
+      "label": "1.85.0-fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.41263041899946984,
+      "log": "1.85.0-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "label": "1.85.0-tests",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--lib",
+        "--test",
+        "oidc_http",
+        "--test",
+        "oidc_validation"
+      ],
+      "exit_code": 0,
+      "duration_s": 22.542849813995417,
+      "log": "1.85.0-tests.log",
+      "sha256": "4505e3dc1e7efcfaeca0155f92416cae3053645926c3f2fc08551c3daeef417a",
+      "test_totals": {
+        "passed": 96,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "label": "1.85.0-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/http-stage2-source20/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-Dwarnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 14.104733681000653,
+      "log": "1.85.0-clippy.log",
+      "sha256": "d820eb7785e64516d06fd45c414492bada55f504915c625216b1c4798b5e8a31"
+    }
+  ]
+}

@@ -57,18 +57,6 @@ impl KeySet {
         hash.finish().as_ref().try_into().ok()
     }
     pub(super) fn parse(bytes: &[u8], policy: &Policy) -> Result<Self, Error> {
-        Self::parse_inner(bytes, policy, false)
-    }
-    pub(super) fn fingerprints(&self) -> impl Iterator<Item = (&str, [u8; 32])> {
-        self.0.keys().filter_map(|kid| {
-            self.fingerprint(kid)
-                .map(|fingerprint| (kid.as_str(), fingerprint))
-        })
-    }
-    pub(super) fn parse_authority(bytes: &[u8], policy: &Policy) -> Result<Self, Error> {
-        Self::parse_inner(bytes, policy, true)
-    }
-    fn parse_inner(bytes: &[u8], policy: &Policy, allow_empty: bool) -> Result<Self, Error> {
         let root = parse_json(
             bytes,
             policy.limits.document_bytes,
@@ -80,7 +68,7 @@ impl KeySet {
             .and_then(|o| o.get("keys"))
             .and_then(Value::as_array)
             .ok_or(Error::InvalidConfiguration)?;
-        if (!allow_empty && keys.is_empty()) || keys.len() > policy.limits.keys {
+        if keys.is_empty() || keys.len() > policy.limits.keys {
             return Err(Error::InvalidConfiguration);
         }
         let mut public = HashMap::new();
@@ -158,7 +146,7 @@ impl KeySet {
             };
             public.insert(kid.to_owned(), key);
         }
-        if !allow_empty && public.is_empty() {
+        if public.is_empty() {
             return Err(Error::InvalidConfiguration);
         }
         Ok(Self(public))
@@ -495,14 +483,11 @@ mod tests {
         bytes
     }
     fn sha(bytes: &[u8]) -> String {
-        const HEX: &[u8; 16] = b"0123456789abcdef";
-        let digest = ring::digest::digest(&ring::digest::SHA256, bytes);
-        let mut output = String::with_capacity(64);
-        for byte in digest.as_ref() {
-            output.push(char::from(HEX[usize::from(byte >> 4)]));
-            output.push(char::from(HEX[usize::from(byte & 15)]));
-        }
-        output
+        ring::digest::digest(&ring::digest::SHA256, bytes)
+            .as_ref()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
     }
     #[test]
     fn independent_openssl_controlled_epoch_matrix() {

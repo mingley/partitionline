@@ -1,0 +1,41 @@
+{
+  "reviewer": "/root/consumer_lookups/oidc_review",
+  "scope": "independent read-only frozen development checkpoint17, no edits/Cargo; not production OIDC qualification",
+  "source_checkpoint_sha256": "fe7442ad31c6b57ad848cdc7b25200b2d560bc8e1ff63b54589108455259488c",
+  "source_files_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "540cf7ced55e0a74676bb9808836f02942e5e35fd4694d4e310c14c7aa59c5ab",
+    "partitionline-broker/src/security/oidc/jwt.rs": "289a8e346e4e42f33668d077c6a4f119d2776b1c6788faf944aaf4b3f740a536",
+    "partitionline-broker/src/security/oidc/cache.rs": "147a082d1e67166a7e1f49a99d57b82cfbefab88ac45effb2fbe13f50eb3ca7e",
+    "partitionline-broker/src/security/oidc/http.rs": "222cd2f31562796b571e4cb2e91bce46ffe74aa5c7d7e2dd6f0bfea1d5a5eddc",
+    "partitionline-broker/src/security/oidc/introspection.rs": "34c0d738b18382fbe0cf84f13bf90b249bb6c83f2e0d95dde5120b7918c1f4dc",
+    "partitionline-broker/tests/oidc_http.rs": "cf60ea227a4b727aa898ccd6bd7cf5eaec39a7d4f6bb9146565a1cee2acf05c1",
+    "partitionline-broker/tests/oidc_support/mod.rs": "a4be2d73494befe3c32985e1a40e2166d34c95d7c1fd296c900630866fadf49c",
+    "partitionline-broker/tests/oidc_sessions.rs": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+    "partitionline-broker/src/security/oidc/sasl.rs": "e46212f5522f0751759446e981d2d777902f49ad24a281ae3d81703c7ac2ee78",
+    "partitionline-broker/src/security/sasl.rs": "dbd72a443485e67f5ebb5cbe59d48cfca9439f9eefae013e91076cdc724caf1e",
+    "partitionline-broker/src/security/session.rs": "0f56347ce4c64304926aaa10830c68cee41aada9f37f521ce3b2e41477e3e4c2",
+    "partitionline-broker/src/transport.rs": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+  },
+  "findings": [
+    {
+      "id": "refresh-queue-starvation",
+      "location": "oidc/cache.rs manager periodic select",
+      "impact": "availability: slow successful refresh can starve queued Lease tasks and fill bounded queue",
+      "fix": "schedule next periodic tick after refresh completes",
+      "status": "source correction18, runtime verification pending"
+    },
+    {
+      "id": "queued-lease-shutdown-health",
+      "location": "oidc/cache.rs manager shutdown drain / Lease::failure",
+      "impact": "public synchronous lease health may stay None after shutdown drops an unstarted queued lease; transport invalidated already observes channel closure",
+      "fix": "treat closed status producer as terminal Unavailable",
+      "status": "source correction18, runtime verification pending"
+    }
+  ],
+  "reviewed_without_confirmed_bypass": [
+    "typed credential/OIDC administrator authority matching",
+    "synchronous key epochs and replacement/removal/readd",
+    "RFC7628 error challenge ACK state",
+    "transport read/permit/handler/write lease guards"
+  ]
+}

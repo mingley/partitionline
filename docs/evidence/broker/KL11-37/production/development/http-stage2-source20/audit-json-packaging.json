@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "reason": "actual GitHub MCP request-body limit16MiB rejected before tree/ref update; only large audit JSON packaging changed",
+  "only_source_audit_JSON_changed": true,
+  "original_restore_checksum_manifest": "SHA256SUMS.restorable-raw",
+  "original_restore_checksum_manifest_sha256": "6c4a8c6f480aa481cfdda62f4d956c1f078cbc0309d13098510052643223f797",
+  "working_bearers_privatekeys_clientsecrets_not_present": true,
+  "originals": [
+    {
+      "original_path": "docs/evidence/broker/KL11-37/production/development/http-stage2-source20/overlay-source.json",
+      "original_bytes": 20260567,
+      "original_full_mode": "0o600",
+      "original_sha256": "d9d5df5c978d0ee89cd5865660940e564d68bc07d67aa0adc664b91078e74b92",
+      "compressed_path": "docs/evidence/broker/KL11-37/production/development/http-stage2-source20/overlay-source.json.gz",
+      "compressed_bytes": 2151807,
+      "compressed_sha256": "456d02e936fb13215a3ed95d67a07475eebc115080fff1014981c627a6194c5a",
+      "compressed_full_mode": "0o600",
+      "sealed_original_scratch_path": "/workspace/work/broker-oidc/http-source-audit-retention-0057972d/overlay-source.json",
+      "byte_and_full_mode_roundtrip_verified": true,
+      "restore": "gzip-decode compressed bytes to original_path; restore original_full_mode"
+    },
+    {
+      "original_path": "docs/evidence/broker/KL11-37/production/development/http-stage2-source20/source-before.json",
+      "original_bytes": 20258855,
+      "original_full_mode": "0o600",
+      "original_sha256": "2901efba8ad60553049961713262da665fd9f98325032c0c4fd6f884ed353a9a",
+      "compressed_path": "docs/evidence/broker/KL11-37/production/development/http-stage2-source20/source-before.json.gz",
+      "compressed_bytes": 2151276,
+      "compressed_sha256": "2e9d076bb144dfae7c6c58ceba44eb06465b4351e5aa5968d970e0cc5bcc4af8",
+      "compressed_full_mode": "0o600",
+      "sealed_original_scratch_path": "/workspace/work/broker-oidc/http-source-audit-retention-0057972d/source-before.json",
+      "byte_and_full_mode_roundtrip_verified": true,
+      "restore": "gzip-decode compressed bytes to original_path; restore original_full_mode"
+    }
+  ],
+  "source7_manifest_sha256": "fd3d985a2b0850087a1102224be17b9e5043e026eb6217e2263f64c2e7393168",
+  "unchanged_runtime_validation_sha256": "93da80d82c018c6b1e7983a7956caf3ed9aee7d088b4096577be332429977961",
+  "unchanged_commands_sha256": "731cd8e7d3fa83bf0daf4a9998334c7e6a4f14c865298f517e114904378f7c70",
+  "new_runtime_commands": 0
+}

@@ -241,7 +241,6 @@ impl std::error::Error for Error {}
 pub struct Verified {
     issuer: String,
     subject: String,
-    audiences: Vec<String>,
     token_id: Option<String>,
     key_id: String,
     expires_at: SystemTime,

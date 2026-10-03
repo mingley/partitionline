@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "stage": "managed HTTPS source checkpoint prepared for push; whole OIDC37 remains open",
+  "baseline_Git_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "source_checkpoint": "../../http-checkpoint-source20/manifest.json",
+  "source_checkpoint_sha256": "fd3d985a2b0850087a1102224be17b9e5043e026eb6217e2263f64c2e7393168",
+  "standalone_paths": 7,
+  "private_socket_parser_excluded": true,
+  "whole_WORK_socket_files_excluded": true,
+  "commands": 8,
+  "all_commands_pass": true,
+  "behavior": {
+    "passed": 192,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 0
+  },
+  "complete_baseline_Git_blobs": 59379,
+  "input_paths": 59384,
+  "per_command_full_byte_mode_checks": 16,
+  "compiled_review_controls": {
+    "deliberate_failed_cases": 2,
+    "corrected_passed_cases": 2,
+    "negative_filtered_cases": 16,
+    "positive_filtered_cases": 16,
+    "filtered_out_per_selected_control_command": 8,
+    "all_original_failures_preserved": true,
+    "actual_test_ELFs_preserved": true
+  },
+  "source_restored": true,
+  "already_retained_failures": [
+    "../managed-01/focused-19.json",
+    "../managed-01/reviews/source17-independent.json"
+  ],
+  "qualified_full_online_OIDC": false,
+  "remaining_gates": [
+    "push exact seven-path checkpoint and immutable source verification",
+    "root independent actual HTTPS issuer/service proofs",
+    "push actual TLS OAuth socket source and immutable full feature/MSRV matrix",
+    "genuine Java/C/Rust token acquisition, reconnect, expiry, rotation, outage and authority-isolation peers"
+  ]
+}

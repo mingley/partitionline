@@ -1,0 +1,6 @@
+{
+  "stage": "managed shadow type checks, not immutable final production qualification",
+  "foundation_source_sha": "837cd3178eb8f86f7a73117483c9f7c1580e8187",
+  "retained_failure": "managed-check-01.log: local http module shadowed http::Uri dependency; explicit ::http qualification corrected",
+  "qualification": false
+}

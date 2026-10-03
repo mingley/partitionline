@@ -495,14 +495,11 @@ mod tests {
         bytes
     }
     fn sha(bytes: &[u8]) -> String {
-        const HEX: &[u8; 16] = b"0123456789abcdef";
-        let digest = ring::digest::digest(&ring::digest::SHA256, bytes);
-        let mut output = String::with_capacity(64);
-        for byte in digest.as_ref() {
-            output.push(char::from(HEX[usize::from(byte >> 4)]));
-            output.push(char::from(HEX[usize::from(byte & 15)]));
-        }
-        output
+        ring::digest::digest(&ring::digest::SHA256, bytes)
+            .as_ref()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect()
     }
     #[test]
     fn independent_openssl_controlled_epoch_matrix() {
