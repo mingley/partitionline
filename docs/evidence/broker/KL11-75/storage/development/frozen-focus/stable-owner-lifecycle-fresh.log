@@ -1,0 +1,52 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+error[E0599]: no method named `records` found for enum `std::result::Result<T, E>` in the current scope
+    --> src/metadata.rs:2455:41
+     |
+2455 |                     for record in batch.records() {
+     |                                         ^^^^^^^ method not found in `std::result::Result<Batch<'_>, records::Error>`
+     |
+note: the method `records` exists on the type `Batch<'_>`
+    --> src/records.rs:281:5
+     |
+ 281 |     pub fn records(&self) -> Records<'a> {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: use the `?` operator to extract the `Batch<'_>` value, propagating a `Result::Err` value to the caller
+     |
+2455 |                     for record in batch?.records() {
+     |                                        +
+
+error[E0277]: `?` couldn't convert the error to `metadata::Error`
+    --> src/metadata.rs:2422:52
+     |
+2418 |     ) -> Result<(Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf, TopicId), Error> {
+     |          --------------------------------------------------------------------------- expected `metadata::Error` because of this
+...
+2422 |         Ok((router, release, path, TopicId::new(id)?))
+     |                                    ----------------^ the trait `From<catalog::Error>` is not implemented for `metadata::Error`
+     |                                    |
+     |                                    this can't be annotated with `?` because it has type `Result<_, catalog::Error>`
+     |
+note: `metadata::Error` needs to implement `From<catalog::Error>`
+    --> src/metadata.rs:128:1
+     |
+ 128 | pub enum Error {
+     | ^^^^^^^^^^^^^^
+     = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+help: `metadata::Error` implements trait `From<T>`
+    --> src/metadata.rs:168:1
+     |
+ 168 | impl From<protocol::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<protocol::Error>`
+...
+ 173 | impl From<produce::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<produce::Error>`
+...
+ 178 | impl From<fetch::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<fetch::Error>`
+...
+ 183 | impl From<retention::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<retention::Error>`
+
+Some errors have detailed explanations: E0277, E0599.
+For more information about an error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (lib test) due to 2 previous errors

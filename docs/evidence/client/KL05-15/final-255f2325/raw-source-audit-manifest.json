@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "raw_relative_path": "source-verification.json",
+  "raw_sha256": "82ea54efa416c6b64f53c98870e2776d3981a642cc9063287b68eef77a4be65e",
+  "raw_bytes": 21804584,
+  "raw_full_mode": 384,
+  "raw_git_blob_sha1": "b8ba5523fc601bc9faf97b5ded0f99ce5c7a5184",
+  "sealed_work_copy": "/workspace/work/client-share-assessment/sealed-source-audit-255f2325/source-verification.json",
+  "original_work_copy": "/workspace/work/client-share-assessment/final-255f2325/source-verification.json",
+  "audited_git_blobs_and_modes": 66820,
+  "preserved_exact_bytes_full_mode": true
+}

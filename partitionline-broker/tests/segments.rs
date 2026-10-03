@@ -84,6 +84,89 @@ fn write_file(path: impl AsRef<std::path::Path>, bytes: impl AsRef<[u8]>) -> std
 }
 
 #[test]
+fn v3_zero_payload_extents_rebuild_derived_indexes_and_reject_unrecorded_obsolete_files() -> Result
+{
+    use partitionline_broker::compaction;
+    let temp = Temp::new()?;
+    let path = temp.log();
+    let (mut log, _) = open(path.clone(), 16)?;
+    for n in 0..4 {
+        log.append(1, &payload(n, 1000))?;
+    }
+    let old = files(&path, ".journal")?[0].clone();
+    let old_bytes = read_file(&old)?;
+    let policy = compaction::Policy::new(1000, compaction::Limits::default())?;
+    log.compact(2000, policy, segments::DeletionGuard::new(4, 4)?)?;
+    assert_eq!(log.fetch(0, 4, 4096)?[0].payload.len(), 0);
+    assert_eq!(log.fetch(1, 4, 4096)?[0].payload.len(), 0);
+    assert_eq!(log.fetch(2, 4, 4096)?[0].payload, payload(2, 1000));
+    assert!(log.retained_index_bytes() <= limits(16)?.max_index_bytes());
+    let seek = files(&path, ".seek")?[0].clone();
+    let mut bytes = read_file(&seek)?;
+    assert_eq!(&bytes[..8], b"PLSEEK02");
+    bytes[..8].copy_from_slice(b"PLSEEK01");
+    let end = bytes.len() - 4;
+    let crc = crc32c::crc32c(&bytes[..end]);
+    bytes[end..].copy_from_slice(&crc.to_be_bytes());
+    write_file(seek, bytes)?;
+    drop(log);
+    let (mut log, recovery) = open(path.clone(), 16)?;
+    assert_eq!(recovery.rebuilt_indexes, 1);
+    assert_eq!(log.fetch(0, 1, 4096)?[0].record_count, 1);
+    drop(log);
+    // V3 permits deletion of exactly its recorded obsolete names, not arbitrary
+    // older generations that happen to have the same base offset.
+    write_file(&old, old_bytes)?;
+    assert!(matches!(
+        open(path, 16),
+        Err(segments::Error::InvalidLayout)
+    ));
+    Ok(())
+}
+
+#[test]
+fn sparse_zero_count_and_sparse_kind_in_legacy_manifest_fail_closed() -> Result {
+    use partitionline_broker::compaction;
+    for damage in ["zero-span", "legacy"] {
+        let temp = Temp::new()?;
+        let path = temp.log();
+        let (mut log, _) = open(path.clone(), 16)?;
+        for n in 0..3 {
+            log.append(1, &payload(n, 1000))?;
+        }
+        log.compact(
+            2000,
+            compaction::Policy::default(),
+            segments::DeletionGuard::new(3, 3)?,
+        )?;
+        drop(log);
+        if damage == "zero-span" {
+            let file = files(&path, ".journal")?[0].clone();
+            let mut b = read_file(&file)?;
+            assert_eq!(&b[..8], b"PLSPRS01");
+            b[44..48].copy_from_slice(&0u32.to_be_bytes());
+            let crc = crc32c::crc32c(&b[24..52]);
+            b[52..56].copy_from_slice(&crc.to_be_bytes());
+            write_file(file, b)?;
+        } else {
+            let file = path.join("manifest");
+            let mut b = read_file(&file)?;
+            assert_eq!(&b[..8], b"PLSEGM03");
+            b[..8].copy_from_slice(b"PLSEGM02");
+            // Explicitly reinterpret a V3 record as a V2 record with its old
+            // header size: the kind must still be rejected after a valid CRC.
+            b.drain(64..72);
+            let end = b.len() - 4;
+            let crc = crc32c::crc32c(&b[..end]);
+            b[end..].copy_from_slice(&crc.to_be_bytes());
+            write_file(file, b)?;
+        }
+        assert!(open(path, 16).is_err(), "{damage}");
+    }
+    Ok(())
+}
+
+#[test]
 fn rolls_and_physical_offset_timestamp_seeks_survive_restart() -> Result {
     let temp = Temp::new()?;
     let times = [1000, 1007, 1003, 1007, 999, 1010];

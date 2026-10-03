@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "base_oracle_sha256": "783b4b5f3d877fade6086aa1869531806a00c0411dbbaedd8d56414160ecac54",
+  "candidate_source_sha256": {
+    "tests/protocol_oracles.rs": "0bbe21185275a6eec21f34cb088737cb41e194bfba64bc966dd02a4afcc5794f"
+  },
+  "scope": "OnlyexistingShare responseoracleloop uses typedfixturetable retainingdistinctv1/v2 include_bytes paths, decodeversions andallassertions; nofixture, productionorheld changes.",
+  "first_failure": "Actual255 MSRVdefaultalltargetstrictClippy if_same_then_else because both independentlygeneratedlegal responsebodiesexpandidentically. No lintwaiver."
+}

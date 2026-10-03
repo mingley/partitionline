@@ -1,0 +1,8 @@
+{
+  "classification": "exact committed prerequisite copied to partial development archive after missing include failure; not full source proof",
+  "source_sha": "9fb69ad8c9efff517de09d0774bb6f64cf5e203b",
+  "path": "tests/conformance/broker/implemented-api-versions.json",
+  "git_blob": "cb6cfc820ddad27e8b917087794ec7f4e6654939",
+  "sha256": "92969ca3c357a5fc4ccab544a0d41e89e05006dc200c4757471fcec4a5f10e7b",
+  "bytes": 592268
+}

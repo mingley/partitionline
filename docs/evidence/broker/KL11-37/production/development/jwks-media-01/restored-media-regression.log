@@ -1,0 +1,8 @@
+    Finished `test` profile [unoptimized] target(s) in 0.05s
+     Running tests/oidc_http.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b)
+
+running 1 test
+test registered_jwks_media_is_accepted_only_for_signing_keys ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.02s
+

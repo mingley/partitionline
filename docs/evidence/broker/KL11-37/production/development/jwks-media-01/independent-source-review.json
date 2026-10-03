@@ -1,0 +1,25 @@
+{
+  "reviewer": "/root/c_peer",
+  "record_type": "reviewer message retained by implementing worker; reviewer performed no edits or runtime commands",
+  "reviewed_files": {
+    "partitionline-broker/src/security/oidc/http.rs": "bfc60d9fde04eaff23c729c5b89ff9ed756eea5ed4bce7245536c87a147ed0fe",
+    "partitionline-broker/src/security/oidc/cache.rs": "87f7ead09a741e6b95546fcb54ed237ef88e6955963e8c27fab1fea4227eb011",
+    "partitionline-broker/tests/oidc_support/mod.rs": "53e022b4ac87d273cea1cc7cb7a6d0c68277da0fd9b2338045c7e37b0359c959",
+    "partitionline-broker/tests/oidc_http.rs": "57c9f4d0a96a3be078df5e9722879ed3339f5a7f288bc55d46957eb295094b0d"
+  },
+  "comparison_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "blocking_findings": [],
+  "reported_checks": [
+    "WORK and frozen copies match preparation hashes",
+    "discovery uses JSON get; only final JWKS uses get_jwks; introspection post remains JSON",
+    "Accept and permitted response media share the same private enum",
+    "TLS/origin/status/redirect/encoding/header/body/deadline/admission paths and request-start freshness remain unchanged",
+    "actual TLS fixture rejects JWK-set type for discovery/introspection, accepts keys with dual Accept assertion, and validates through JSON introspection",
+    "existing JSON/size/trust regressions retained"
+  ],
+  "limitations": [
+    "read-only source review",
+    "no Cargo or runtime execution",
+    "baseline and matrix validation pending"
+  ]
+}

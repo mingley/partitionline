@@ -1,0 +1,51 @@
+{
+  "base_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "source_scope": "complete pushed Git base plus exactly four authorized JWKS media followup paths; excludes six draft OAuth socket paths",
+  "snapshot": "/workspace/work/broker-oidc/jwks-media-overlay-01",
+  "files": 64610,
+  "immutable_hardlinks": 64606,
+  "all_linked_git_bytes_and_full_modes_verified": true,
+  "changed_source": [
+    {
+      "path": "partitionline-broker/src/security/oidc/http.rs",
+      "sha256": "bfc60d9fde04eaff23c729c5b89ff9ed756eea5ed4bce7245536c87a147ed0fe",
+      "working_mode": "0o600",
+      "snapshot_mode": "0o644"
+    },
+    {
+      "path": "partitionline-broker/src/security/oidc/cache.rs",
+      "sha256": "87f7ead09a741e6b95546fcb54ed237ef88e6955963e8c27fab1fea4227eb011",
+      "working_mode": "0o600",
+      "snapshot_mode": "0o644"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_support/mod.rs",
+      "sha256": "53e022b4ac87d273cea1cc7cb7a6d0c68277da0fd9b2338045c7e37b0359c959",
+      "working_mode": "0o600",
+      "snapshot_mode": "0o644"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_http.rs",
+      "sha256": "57c9f4d0a96a3be078df5e9722879ed3339f5a7f288bc55d46957eb295094b0d",
+      "working_mode": "0o600",
+      "snapshot_mode": "0o644"
+    }
+  ],
+  "six_socket_files_unchanged": true,
+  "audit": {
+    "stored_path": "source-before.json.gz",
+    "original_scratch": "/workspace/work/broker-oidc/jwks-media-audit-retention/source-before.json",
+    "original_sha256": "d28eab8f2d6e9d05575cbc1439e57b35ec7846d48a0e5a38028f7b88eeb0b0e5",
+    "original_mode": "0o600",
+    "original_bytes": 24311198,
+    "gzip_sha256": "3a5ef330110007f4961d2af8d07ec842ec39d8a5e2fb9c6eaea86a98ab145859",
+    "lossless_roundtrip": true
+  },
+  "planned_commands": [
+    "stable baseline regression with old http/cache and new test/helper, expected failure",
+    "stable rustc/fmt/OIDC library+HTTP+validation tests/all-target strict",
+    "MSRV rustc/fmt/OIDC library+HTTP+validation tests/all-target strict",
+    "stable restored focused regression, expected pass"
+  ],
+  "qualification": "development overlay only; not a pushed candidate or socket/live peer qualification"
+}

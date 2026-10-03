@@ -1,0 +1,209 @@
+{
+  "base_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "checks": [
+    {
+      "command": "baseline-media-regression",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "ba909a0fa716620e8f36637a1ef62f6f58a2b01e30f7d16c108206982c7a3777",
+      "intentional_baseline_overrides": [
+        "partitionline-broker/src/security/oidc/cache.rs",
+        "partitionline-broker/src/security/oidc/http.rs"
+      ]
+    },
+    {
+      "command": "baseline-media-regression",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "ba909a0fa716620e8f36637a1ef62f6f58a2b01e30f7d16c108206982c7a3777",
+      "intentional_baseline_overrides": [
+        "partitionline-broker/src/security/oidc/cache.rs",
+        "partitionline-broker/src/security/oidc/http.rs"
+      ]
+    },
+    {
+      "command": "stable-rustc",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-rustc",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-fmt",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-oidc-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "stable-oidc-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-rustc",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-fmt",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-oidc-tests",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "1.85.0-oidc-clippy",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "restored-media-regression",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "restored-media-regression",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "baseline-media-regression-reproduced-for-retention",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "ba909a0fa716620e8f36637a1ef62f6f58a2b01e30f7d16c108206982c7a3777",
+      "intentional_baseline_overrides": [
+        "partitionline-broker/src/security/oidc/cache.rs",
+        "partitionline-broker/src/security/oidc/http.rs"
+      ]
+    },
+    {
+      "command": "baseline-media-regression-reproduced-for-retention",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "ba909a0fa716620e8f36637a1ef62f6f58a2b01e30f7d16c108206982c7a3777",
+      "intentional_baseline_overrides": [
+        "partitionline-broker/src/security/oidc/cache.rs",
+        "partitionline-broker/src/security/oidc/http.rs"
+      ]
+    },
+    {
+      "command": "restored-media-regression-after-retention",
+      "phase": "before",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    },
+    {
+      "command": "restored-media-regression-after-retention",
+      "phase": "after",
+      "files": 64610,
+      "bytes_and_full_modes_identical": true,
+      "aggregate_sha256": "034cc182e4dfd4303ddbfb2898548a314fe2d929a199249c7d7f7ab9bbc066dc",
+      "intentional_baseline_overrides": []
+    }
+  ]
+}

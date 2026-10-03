@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "publication": "source-verification.json.gz",
+  "publication_sha256": "6114e79c6ddf0622251407f5877199d7a70a87d0f818def6a40191c57277e8d8",
+  "publication_bytes": 2327504,
+  "encoding": "gzip level9, mtime0, emptyfilename; twoencodings identical",
+  "restore_relative_path": "source-verification.json",
+  "restored_sha256": "82ea54efa416c6b64f53c98870e2776d3981a642cc9063287b68eef77a4be65e",
+  "restored_bytes": 21804584,
+  "restored_full_mode": 384,
+  "raw_manifest": "raw-source-audit-manifest.json",
+  "scope": "Losslessauditpublication only; actualsource-check archive_receipt_sha256 references originalrawchecksum. RestorebyverifygzipSHA, decompress, verifyrawSHAandlength, writepath/chmodmode; derivedrawrestore isoutsidecurrentcanonicalGitfilelist.",
+  "actual_restored_write_bytes_mode_verified": true
+}

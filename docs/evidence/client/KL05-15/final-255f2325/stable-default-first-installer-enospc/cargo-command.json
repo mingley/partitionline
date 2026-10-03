@@ -1,0 +1,10 @@
+{
+  "phase": "cargo",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "-V"
+  ],
+  "cpuset": "0,1"
+}

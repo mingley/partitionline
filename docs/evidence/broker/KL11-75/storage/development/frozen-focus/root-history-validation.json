@@ -1,0 +1,2206 @@
+{
+  "passed": true,
+  "histories": 32,
+  "states": 64,
+  "results": [
+    {
+      "kind": "io-error",
+      "phase": "CompactionCleanupSynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "CompactionCleanupSynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "a8b0bd986b47715cd21caa3376d56e6395515069c5d0d6634a55b745dc5a4a82",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "CompactionCleanupSynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "5185927945fd78351e1331a8f5f385832957df76e1aca0a9dfda3c7949cef72f",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "CompactionDataRemoved",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "CompactionDataRemoved",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "31de716927fe02b2b9d6c506a5bef407a5a95a920baae4442f47d4a8ed594015",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "CompactionDataRemoved",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "41420e658ce2b91caca89299a320fb14af0a81073f70cfc1587d658f31e286e3",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "CompactionEntrySynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "CompactionEntrySynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "3b8e600675ca00fd1e8e15a79d039c4d2057ba0458fa4b594567559c834ca6c9",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "CompactionEntrySynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "df978b935f3d4681f62b2fd9f6027a62b3e4f5a480913bee9b14c30ae22ad21e",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "CompactionHeaderSynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "CompactionHeaderSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "2c681ae2b6ca44f098ef4613b9670b437fc2ac62972ee4f17d3f481384c0e16c",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "1135f91aa8f777c78532c9d2f2bfe6444a4aba84dbe85440fc4972fb48cea862",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "CompactionHeaderSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "3ed76f76200ed15e556fac42a4353fea6cac737fd932bf51ea8cfa7475720b13",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "CompactionIndexRemoved",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "CompactionIndexRemoved",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2ee9937ab4f619c1318ec8e41c1ccae68d460b7f96c1eac3bd6349b7938c49be",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "CompactionIndexRemoved",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "eab667e21e147af6e3cd5502f79b5659594cf19ef38b7f7fd91ec9c652abcb4a",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "DirectorySynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "DirectorySynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "e65a7205ecca2f16d06650f1490c7ae75a8a9b32408ce6f8c185f03515efc14f",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "DirectorySynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "5b991a01afa51c63a20ae6dfe831d6d25fc120e55eb39fe884bcb1251062efd5",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "IndexRenamed",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "IndexRenamed",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "d018385d54414cd9f3db54459d1e271ce6b898ab8cca55a1633da7679d9172a4",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "IndexRenamed",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "087472db30cd53799281595eb3c9da0075675dcbb6549015eccbde04250a6682",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "IndexSynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "IndexSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek.tmp": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "54b737aeaaf79c615eb0adf7064d2d8ca30797c9e450c6d80d2fdae16cf23117",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "IndexSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "e673e1cd0ffd1b4a5a6b12925f45888f5d9749c926a7dc3d0bcefbf17e07f191",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "IndexWritten",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "IndexWritten",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek.tmp": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2040c447409d357244e5c4df5c57f8a4cef85e8c7af5def324885d9ef0b13fa5",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "IndexWritten",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "f1baa36491b05a04e20dcaabb4a1e7479e3f79acbec235d562026c1292a5cdad",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "ManifestRenamed",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "ManifestRenamed",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "b7af19b592e298e524b8202a91375fdfe9ce89a451c0fb6625d654c61b9a8327",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "ManifestRenamed",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "3f963301ba2e77249b85afd9a263f9f449af984dc3f40198761c95276c593ef6",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "ManifestSynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "ManifestSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "d7189bf43391de83babe51a6227167389b108b7cbd35b5b595ab409421c2a8a2",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a",
+            "manifest.tmp": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "ManifestSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "53822f1acbba669683601ea92fde4f55b660e9f4477bb75adc600095da48f6ab",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "ManifestWritten",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "ManifestWritten",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "8f027da85746943932d111a0fe150997e18d72ea53aebb6d1876e12a13f649bc",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a",
+            "manifest.tmp": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "ManifestWritten",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "7fb54f2cd7ecc68500ed10ecf985c0500a53a8f5b15ca422269c6ddd6e4433d6",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "RetentionClearDirectorySynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearDirectorySynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "1de857ba199066b9046da6ad1020f7e9340e2cc0a6c6fa5fba1afcc347ba38a8",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearDirectorySynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "0a48cca90d489dabe23d16339970c56a72b5737aab343c76a3cbe04d577f7af8",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "RetentionClearRenamed",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearRenamed",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "76c7ad8659ba5210800ea3cb77d35b08a20307f3cce99585a5711686b8e1787c",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearRenamed",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "c3d6248465183026635ef76971a8903e2bd50be4bd4df2ea4ea82546d5d41b4d",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "RetentionClearSynced",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearSynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "4ae2a438ab83e6fe365d4cef0b9f7994bd4cfa95eddd4523294ec1f782dbbb0c",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237",
+            "manifest.tmp": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearSynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "3c1f51d0f4ead5160b409ad2c0fa210724b2b44a9ca1661bb32b47f61c4f607a",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "io-error",
+      "phase": "RetentionClearWritten",
+      "states": [
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearWritten",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2980e2a26d90ed197c208213174d703d7c25231a8fc643fa693b0f071866b0ec",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237",
+            "manifest.tmp": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "io-error",
+          "phase": "RetentionClearWritten",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "6c724402fb7a8d2e562010ba3bc6100f2b7a3d0e2a1c60b33b1a7a4320c8f2ba",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "CompactionCleanupSynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "CompactionCleanupSynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2b5863af10ffa6b6109a74b372752795d08314985c2b339410c0f8b6db0e6378",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "CompactionCleanupSynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "6607b6fdf1224c2be765c1794d20bd6e08758d07c3f5c2b845e573ab749cf525",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "CompactionDataRemoved",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "CompactionDataRemoved",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "c9470b4b65eb77caa77410efa17e050c0e09481e50f9ef1cf6d2be963eeee2c2",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "CompactionDataRemoved",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "55952ee7c96ec2fb8adb06814d78e27af59ece61b11f96f0fa63b2779452fbb0",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "CompactionEntrySynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "CompactionEntrySynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "a29bc3c785bea6962f17a8b168a465917a65bd9b31b9ea7e4916b3c14a2ea8e1",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "CompactionEntrySynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "b55775810644ffd988cd44c306ebb8839889b7624fd4bf60108c3d3f9b4112be",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "CompactionHeaderSynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "CompactionHeaderSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "2c681ae2b6ca44f098ef4613b9670b437fc2ac62972ee4f17d3f481384c0e16c",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "3d72c258b7a6f5fb3f95232853dc1e3635918e8695ae48e4d18ffab48d4901d9",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "CompactionHeaderSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "694f9775d041d2222cbb167e3d90dee260ac3d06e32485ad56c442396e64665e",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "CompactionIndexRemoved",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "CompactionIndexRemoved",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "560b6fbf7488eaa6a9e19a9d36b347e977b32a52223eef26244a15e36b091210",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "CompactionIndexRemoved",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "a2099ca6491d35c09fb7fef356d3d486ba1af737a5e808bb187701f718c6cfd0",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "DirectorySynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "DirectorySynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "41acbd956c844bf193b687abeb65e7812ef614dc05961089bb7c406dc6561973",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "DirectorySynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "5dfa1c0eedf6009090168908bd4fb4f1b579f1939d74fc1476ffcf71cf4a3142",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "IndexRenamed",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "IndexRenamed",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "7c7ee3763c9584d3684e5e7c1de748fcc4dc86ca910973d0ba359dcae59866ab",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "IndexRenamed",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2d175b50a5da89c8c4035715a8c3de2511510fe469f73d9916bab3c501a1de7e",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "IndexSynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "IndexSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek.tmp": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "529d81f69932808d436bdcba6784541ed4ebfd7bf49151bcb0bb03cd8f81bef4",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "IndexSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "a5c8fcda8c0f5a60b6e0d5fe8429e617f5df6dd91fc1a07080e96f26a2457eda",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "IndexWritten",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "IndexWritten",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek.tmp": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "4914d74548c235765ed0cce7664a96263c03ceb57db22935fdf93fb3797e76e4",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "IndexWritten",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "0f64d42d3dc2739179839bcc00516c56ffdd8e4db66ac6d68eda12236b2db3bb",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "ManifestRenamed",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "ManifestRenamed",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2363a5ccc9357a942bc6779eb7264af5476f7da6ee442f42e5900c9718113687",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "ManifestRenamed",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "15efbcda5395bd8b6ab26269d957f4ca36f2446e00634b3b06209f719e24993c",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "ManifestSynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "ManifestSynced",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "6e04740b017e23e8ffd6ea64c57c90fd2ae8f45d2623360cb101f08f592e8831",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a",
+            "manifest.tmp": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "ManifestSynced",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "ac9881de110888bd26ea2828c86a975c7fbe559592b0cae792a926cf06f118b1",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "ManifestWritten",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "ManifestWritten",
+          "stage": "interrupted",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "2c38f4b37c6b67000dbb1a27cd3e4e16853b0873793e47fef3585317a45e070b",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a",
+            "manifest.tmp": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "ManifestWritten",
+          "stage": "recovered",
+          "selected_revision": 3,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+            "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+            "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+            "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+            "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+            "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "6d59923579844305614ed9c2bf1028c6e9e370942559ca1522cb281f054ee17a",
+            "manifest": "25a30a6fdb6fd8ac7a99b94935a40b18b528f0a7894132f59dc48150e3b4093a"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "RetentionClearDirectorySynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearDirectorySynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "d40a346eec6cf7401859038e68172b4c1542493859b5a8d09fb6751d8dcced75",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearDirectorySynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "076ce06741ee728d8f5675246f99b21240d6a6c2fdb3bd8dba83952f98672d5a",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "RetentionClearRenamed",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearRenamed",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "347200e5f27e14f0dc32f63d79d6582ec1b152a579d5e205b1a3ecf7a84a2078",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearRenamed",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "65d2f38ea01bc934bd6fbcc6e4cf92b028ee40bf81a16309238a56df2c1cb4da",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "RetentionClearSynced",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearSynced",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "aa8c99fb7fa7e1e0de19d1835879fda8a49f7e91d8664569ca3def369ca7602e",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237",
+            "manifest.tmp": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearSynced",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "6a15866802baf9f6e6aecb9359b60a1f59b0f9953a77ec5c9a4b6b799cf7c8f8",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "process-exit",
+      "phase": "RetentionClearWritten",
+      "states": [
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearWritten",
+          "stage": "interrupted",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "922d70f59b8042ae665c0113456e0d633449c3cc7fb1eb1135f6c4c553be4613",
+            "manifest": "1ade9692bfc5e584902264b12757e520623b08db62794acfa45ea80f5f9f9237",
+            "manifest.tmp": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        },
+        {
+          "kind": "process-exit",
+          "phase": "RetentionClearWritten",
+          "stage": "recovered",
+          "selected_revision": 4,
+          "logical_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "retained_offsets": [
+            2,
+            3
+          ],
+          "floor": 0,
+          "end": 4,
+          "all_file_sha256": {
+            "0000000000000000-0000000000000004.journal": "a6f08d0dafe005105fa32af528d3b2082424313112c9649781a8c2e54649333d",
+            "0000000000000000-0000000000000004.seek": "0191ca779dfd92ca0e60e2e337e0afa441daeed98cbfae664ed0ecee2ed011c4",
+            "0000000000000001-0000000000000004.journal": "e00e237e666efe551e7af872e0eded300d5a9fa87857f939ebac4769be4e3c16",
+            "0000000000000001-0000000000000004.seek": "79ea8c28a948bddb5c0237db5f1abe0d9467aa0e9bbf542125574d6b21d41add",
+            "0000000000000002-0000000000000004.journal": "48c87678c224c6dd8ff1dd7b8555e628d3c8cfc8ada959d150dde6cdf639f3a6",
+            "0000000000000002-0000000000000004.seek": "a0944a1a8f0ece9904ae743a6337e9bd94aac9f93a44a6abd691862b3bf74499",
+            "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+            "case.json": "43a5d3f752b33f62f3f0e5905deebb4b002900ec151a766b2df89e6b3e0280d6",
+            "manifest": "9f5193ba7bbfd1f6c22fa0f8247316cde95455583761b1fed79e2759f74e662b"
+          }
+        }
+      ]
+    }
+  ],
+  "fixture_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28",
+  "scope": "Finite static ordinary-key local IO/process captures; no physical powerloss/global qualification",
+  "inputs_unchanged": true,
+  "raw_input_files": 666,
+  "checker_sha256": "3212ee22302707b9d02aaed35f9b964b60d52c4921c90a7dce0500a84dfee851"
+}

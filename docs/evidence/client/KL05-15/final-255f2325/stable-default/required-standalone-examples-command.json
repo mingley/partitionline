@@ -1,0 +1,16 @@
+{
+  "phase": "required-standalone-examples",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "build",
+    "--offline",
+    "--locked",
+    "--example",
+    "verifiable_producer",
+    "--example",
+    "verifiable_consumer"
+  ],
+  "cpuset": "0,1"
+}

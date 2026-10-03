@@ -1,0 +1,17 @@
+{
+  "classification": "root helper compile-only correction; owned code unchanged; all twelve overlay mtimes refreshed without changing other bytes",
+  "overlays": {
+    "partitionline-broker/src/compaction.rs": "864840ca1fb90256bb9078ac49782fec5aed03d54dbf71adaa66ed6fc5af6962",
+    "partitionline-broker/src/records.rs": "4db49c475de0e6d116d156b1c156c4ce24bfe100035a36d5c23cbfefbed65ff3",
+    "partitionline-broker/src/partition.rs": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca",
+    "partitionline-broker/src/segments.rs": "89513135d929fd0a65c4849acb8bc4c5c27fe7ff2085361834712085c26488f5",
+    "partitionline-broker/tests/compaction.rs": "9d2d6ac2002457c407934bc81b15a1917710bd9c749bbb3b754036ee626e492b",
+    "partitionline-broker/tests/records.rs": "776085812b15cf0a0a23278edee30446d4037347c379d36a70591fed12849672",
+    "partitionline-broker/tests/segments.rs": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
+    "partitionline-broker/src/lib.rs": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+    "partitionline-broker/src/metadata.rs": "430d6609971afd7659e042560af3642450763eb0a7c560a90579e145a8a7127e",
+    "partitionline-broker/src/produce.rs": "2d85a339af47a8a6732d5b3e5d98d3fff691e99e0fbfc280dddf53a384c673b7",
+    "partitionline-broker/src/fetch.rs": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8",
+    "partitionline-broker/tests/fetch.rs": "0070922cc6f395ec5fef28efd85c8dba8d9f15b745bfb9d8188a7845c61b8efa"
+  }
+}

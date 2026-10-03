@@ -1,0 +1,4 @@
+  File "/workspace/work/broker-oidc/prepare-jwks-media.py", line 8
+    fields,name=entry.split(b'\t',1); mode,kind,oid=fields.decode().split();name=name.decode();assert kind=='blob'and mode in('100644','100755');p=dest/name;p.parent.mkdir(parents=True,exist_ok=True); src=old/name;data=src.read_bytes();perm=0o755 if mode=='100755'else0o644
+                                                                                                                                                                                                                                                 ^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: expected 'else' after 'if' expression

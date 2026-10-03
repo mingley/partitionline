@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "captured_at": "2026-10-03T08:02:27.550493+00:00",
+  "free_bytes": 1778618368,
+  "required_bytes": 1205862400,
+  "cargo_launched": false,
+  "disposition": "ready",
+  "source_preparation": "Freshwhole66,820Gitblobs/modes and11frozenhashesverified; hardlinksource preparation consumedcurrentheadroom beforebuild.",
+  "required_cache_budget_mib": 800,
+  "additional_guard_mib": 350
+}

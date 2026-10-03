@@ -106,6 +106,109 @@ fn minimal(body: &[u8], base_time: i64, max_time: i64) -> Vec<u8> {
 }
 
 #[test]
+fn independently_generated_sparse_empty_and_hostile_apache_cases_separate_read_from_admission() {
+    use partitionline_broker::records::validate_read;
+    let mut total = 0;
+    for release in ["4.1.2", "4.2.1", "4.3.1"] {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/records-compacted")
+            .join(release);
+        let mut rows = String::new();
+        File::open(dir.join("cases.tsv"))
+            .unwrap()
+            .take(32769)
+            .read_to_string(&mut rows)
+            .unwrap();
+        assert!(rows.len() <= 32768);
+        for row in rows.lines() {
+            let fields: Vec<_> = row.split('\t').collect();
+            assert_eq!(fields.len(), 8);
+            let mut bytes = Vec::new();
+            File::open(dir.join(fields[1]))
+                .unwrap()
+                .take(4097)
+                .read_to_end(&mut bytes)
+                .unwrap();
+            assert!(bytes.len() <= 4096);
+            let result = validate_read(&bytes, Limits::default());
+            if fields[2].starts_with("reject_") {
+                assert!(result.is_err(), "{release}/{}", fields[0]);
+                assert!(validate(&bytes, Limits::default()).is_err());
+            } else {
+                let read = result.unwrap();
+                assert_eq!(read.batch_count(), fields[3].parse::<usize>().unwrap());
+                assert_eq!(read.record_count(), fields[4].parse::<usize>().unwrap());
+                let parse = |s: &str| {
+                    if s == "-" {
+                        None
+                    } else {
+                        Some(s.parse::<i64>().unwrap())
+                    }
+                };
+                assert_eq!(read.first_offset(), parse(fields[5]));
+                assert_eq!(read.next_offset(), parse(fields[6]));
+                let mut offsets = Vec::new();
+                for batch in read.batches() {
+                    for record in batch.unwrap().records() {
+                        offsets.push(record.unwrap().offset.to_string());
+                    }
+                }
+                assert_eq!(
+                    if offsets.is_empty() {
+                        "-".to_owned()
+                    } else {
+                        offsets.join(",")
+                    },
+                    fields[7]
+                );
+                assert_eq!(
+                    validate(&bytes, Limits::default()).is_ok(),
+                    fields[2] == "contiguous_produce_and_sparse_read",
+                    "{release}/{}",
+                    fields[0]
+                );
+            }
+            total += 1;
+        }
+    }
+    assert_eq!(total, 108);
+}
+
+#[test]
+fn empty_read_headers_require_canonical_no_horizon_base_time_and_full_consumption() {
+    use partitionline_broker::records::validate_read;
+    let original = include_bytes!("fixtures/records-compacted/4.3.1/cleaner-last-empty-61.bin");
+    assert_eq!(
+        validate_read(original, Limits::default())
+            .unwrap()
+            .record_count(),
+        0
+    );
+    let mut bad = original.to_vec();
+    bad[27..35].copy_from_slice(&0_i64.to_be_bytes());
+    crc(&mut bad);
+    assert!(matches!(
+        validate_read(&bad, Limits::default()),
+        Err(Error::Invalid {
+            kind: Invalid::Timestamp,
+            ..
+        })
+    ));
+    bad[21..23].copy_from_slice(&0x40_u16.to_be_bytes());
+    bad[27..35].copy_from_slice(&3000_i64.to_be_bytes());
+    crc(&mut bad);
+    assert!(matches!(
+        validate_read(&bad, Limits::default()),
+        Err(Error::Invalid {
+            kind: Invalid::Attributes,
+            ..
+        })
+    ));
+    // These are deliberately narrower structural rules, not a claim that
+    // Apache's low-level parser rejects either synthetic mutation.
+}
+
+#[test]
 fn apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes() {
     let mut cases = 0;
     let mut accepted = 0;

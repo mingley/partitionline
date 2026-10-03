@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "first_attempt": "/workspace/work/client-share-assessment/final-255f2325/stable-default-first-installer-enospc",
+  "first_exit": {
+    "phase": "strict-clippy",
+    "exit_code": 101
+  },
+  "classification": "Environmental transient ENOSPC during strictClippy; no lint/code outcome and initialfullQAunqualified.",
+  "root_correlated_environment": "Root08:06:38: independentformatterPID1030709 downloaded/temporarilyinstalled stableat08:04 usingdefaulthome, rolledbackENOSPC. Six158,622,012B archivesremoved08:05:31; nowdefault tmp/downloadsempty andinstallersheld. Compactionstoragefaulttests tinybounded/injectedIO, norealdiskfill.",
+  "original_artifact_sha256": {
+    "cargo-command.json": "c9a63d19217ddc3c6831ed6935be2af5ce9c6a03d5fff662c0a94e7bc2a1a629",
+    "cargo-source-after.json": "a5960e427001fc25c7567a274abfb3c93e6c0a12b694fc1688ad23ac4b5f657f",
+    "cargo-source-after.log": "7c2a234f9f0a4313bc61789803c50d5816df7369c0c3d2c5d6e4b35dd9672f96",
+    "cargo-source-before.json": "dbe2e5fa51bf08d6cbd417cda7bf9876fd44bbd8d9c30e5bef1961703f6b2317",
+    "cargo-source-before.log": "084e6a7e30a250b50db69237086d22b19f8d9b511bc1ee9a134c4660ea0af723",
+    "cargo.log": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+    "exit.json": "a6fb57b50af8138b07d7857f8682e69e99f2f6e1aa3eb60f549a8e524bf187b6",
+    "feature-graph-identity.json": "fef3bcd9175e0654b54314b3013ef19769c02968eec5bee227440860ea63e4c0",
+    "feature-metadata-command.json": "fbeb7296a1f585cbc19a3679cbaa1497a6aad62e9b9eb1d571bf162e8588c6e7",
+    "feature-metadata-source-after.json": "978ae72bb98a807e140009df674d81ee5bc53c10a1d4236c51d372c2bdd28b28",
+    "feature-metadata-source-after.log": "56f8cb84ee4ed2f4413ce221a6421ace54a6e1ed62c2b6e43c13ed5f7521fe15",
+    "feature-metadata-source-before.json": "36793379a126c3ccefda4ccd46303ffe011f807f9e29ca1b3ec467ede6a38639",
+    "feature-metadata-source-before.log": "a8d66793c8c61c5178f287018b81415be11ab26b37b7704d8b1ddb30bda59f98",
+    "feature-metadata.log": "46a5002a77cc667bb0baa8dcfb17e7c9cc419ae6623d92c3195224cd24429480",
+    "feature-tree-command.json": "ea072421c0f81a3d8bb02b473e0069cca01a22968bc9540d6de267f98b4de391",
+    "feature-tree-source-after.json": "7dbf5db87aa19342f08076c3cd7e3ea2f5ccd1ce8f511be2a5fccc855b548bd4",
+    "feature-tree-source-after.log": "fc54bc4695ed1e0945cfc49f67fb55ff34f39ce810f904f741d3f7d627412a61",
+    "feature-tree-source-before.json": "6070ecd862f20d3419ddf210ad28341d090d8e6c9e940690d7538fd4a2103c2c",
+    "feature-tree-source-before.log": "6dec1539b08a77e2913665bbae0ab06aaa933cf4b4fc218cecaa6a6ac937469d",
+    "feature-tree.log": "a0fbb73142700414c62210e7420cab8f07daa66b2a7618ab76d88b9a227eb978",
+    "format-command.json": "35a8eff14168a97a6cee1bea8cf572df7ea4e93fb70188345e57304c429c4eb2",
+    "format-source-after.json": "7ae847a7020d5e3f1f198f4cf7d02f9e5732535476141e020c5c96776928c8b0",
+    "format-source-after.log": "5f22e5d8ede4bfee73fce21d0adc1e8c4fe2a89190c09cdb417fc14b561a4768",
+    "format-source-before.json": "2d7080c1941613f8aca4f7db022753fe95379566ce3bbee005722dd369dbc85e",
+    "format-source-before.log": "dac77105b5d2dec9fe63a63e678ad710915c5d66c0a1d1ddd7c3da58a6940873",
+    "format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "launch-session.json": "fee866248d326ffc75a05ee30e558c40a1a860e0f93d54855db8d2309972db01",
+    "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+    "runner-source-identity.json": "75be1caf43d3676ec0ad1f8c367b1584f757fd1b469ed33f7ac1f9345278811f",
+    "rustc-command.json": "fdd0ec34d06943bfe818e531d6ec8fccc0ce74e90e88feafb81c2a768e1b2ca0",
+    "rustc-source-after.json": "e8134642b5c8984cf01498f222e762ebdce429947dc7d9362d84d1f3c0095094",
+    "rustc-source-after.log": "d10f0836e3e29c080cd83e24d6b4b299afbc8a777adbf17883b6afbe30657a0b",
+    "rustc-source-before.json": "de63300684d0919dd9ca51297e683f3b86da2e7ed8ac1035a3c531f5c07e040f",
+    "rustc-source-before.log": "d45656273d8aae16c7e20bdf5aaf1e829df2d8dd0c91d0bc258374217fbf76e1",
+    "rustc.log": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+    "strict-clippy-command.json": "4f3c76c0cddf0e6566fc82f2ab1f0a5a54260552e23d9aa347c785223f7f113e",
+    "strict-clippy-source-after.json": "07485fb27c7c102ed8414900ba3d21042b752c149924056fa7e27926c5261333",
+    "strict-clippy-source-after.log": "106eb977a694b988d3477820fa068632b2535a0307eae3d723762d0a81d9f0aa",
+    "strict-clippy-source-before.json": "48d5a300904c5491eda66c13ff9cc8f2f1c0a8c66cca0c38d6ccee872b730c3a",
+    "strict-clippy-source-before.log": "d27483f2bc01410965c2490ec2673071b1a5753a8dd488f0ef6ace8b2b9f088e",
+    "strict-clippy.log": "8e14775bba344ee8033aa8c7af39cff5115aaf55f07c519955e79f72ef99ff5c",
+    "verify-existing-source.py": "0de49faf33770a0cfa7f4ad394991d866d4af01edf788f6b1b260e0e531ab69d"
+  },
+  "retained_passing_commands": [
+    "rustc",
+    "cargo",
+    "feature-metadata",
+    "feature-tree",
+    "format"
+  ],
+  "commands_to_retry": [
+    "strict-clippy"
+  ],
+  "commands_not_executed": [
+    "required-standalone-examples",
+    "all-target-tests",
+    "doc-tests"
+  ],
+  "actual_full_source_after_failure": "66,820canonicalGitblobs/modes and11frozenhashes unchanged",
+  "recorded_at": "2026-10-03T08:08:46.503135+00:00"
+}

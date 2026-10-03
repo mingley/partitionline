@@ -1,0 +1,25 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/jwks-media-overlay-01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.51s
+     Running tests/oidc_http.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_http-a8a5a8e24c6a6f8b)
+
+running 1 test
+test registered_jwks_media_is_accepted_only_for_signing_keys ... FAILED
+
+failures:
+
+---- registered_jwks_media_is_accepted_only_for_signing_keys stdout ----
+
+thread 'registered_jwks_media_is_accepted_only_for_signing_keys' (1048421) panicked at tests/oidc_support/mod.rs:282:17:
+assertion `left == right` failed
+  left: Some("application/json")
+ right: Some("application/jwk-set+json, application/json")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+Error: Unavailable
+
+
+failures:
+    registered_jwks_media_is_accepted_only_for_signing_keys
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test oidc_http`

@@ -1,0 +1,141 @@
+{
+  "scope": "Exact12 frozen source bytes qualified by scoped5446-file development overlay; default focused behavior/strict only. Actual pushed full four-cell matrix and genuine public peers remain pending.",
+  "commands": [
+    {
+      "label": "stable-storage-final",
+      "receipt": "stable-storage-final.json",
+      "log_sha256": "57f448101fab6c0582ea3167050a45857efd8b83625afd109636c0b28feaedbb",
+      "passed": 56
+    },
+    {
+      "label": "stable-unit-final",
+      "receipt": "stable-unit-final.json",
+      "log_sha256": "8513244ad14110e65ffde95ab1348859a3b5f960d62d73f24310814f79a9c84d",
+      "passed": 7
+    },
+    {
+      "label": "stable-fetch-final",
+      "receipt": "stable-fetch-final.json",
+      "log_sha256": "58a06e8a68f4213490dd3bfaba9f94def4383128315b6f4de17f578be85488e0",
+      "passed": 1
+    },
+    {
+      "label": "stable-strict-final",
+      "receipt": "stable-strict-final.json",
+      "log_sha256": "6afed6fa2c9a8c53cbfb9e9b9cb117712651eb0e18356a89eee73ff0693c9971",
+      "passed": 0
+    },
+    {
+      "label": "stable-fmt-final",
+      "receipt": "stable-fmt-final.json",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passed": 0
+    },
+    {
+      "label": "msrv-storage-current",
+      "receipt": "msrv-storage-current.json",
+      "log_sha256": "5cfca6432c5b9bcf8c2049adcdb90c40f770c60ceabe47782e435d386f45301a",
+      "passed": 56
+    },
+    {
+      "label": "msrv-unit-current",
+      "receipt": "msrv-unit-current.json",
+      "log_sha256": "bfc4c936902b77825394eb7a9147ed865033b9409996895887e60447977e1881",
+      "passed": 7
+    },
+    {
+      "label": "msrv-fetch-current",
+      "receipt": "msrv-fetch-current.json",
+      "log_sha256": "9242c90ef9d91b2d113665f46a72bc46ce2662d0dfbe2e465e293658c70423bc",
+      "passed": 1
+    },
+    {
+      "label": "msrv-strict-current",
+      "receipt": "msrv-strict-current.json",
+      "log_sha256": "da1f0e5c03acbdc08fc56c5e1df462671d5601419a41ebfa037f03b690224c7c",
+      "passed": 0
+    }
+  ],
+  "passed_behavior": 128,
+  "stable_passed": 64,
+  "msrv_passed": 64,
+  "source_paths": {
+    "partitionline-broker/src/compaction.rs": {
+      "sha256": "864840ca1fb90256bb9078ac49782fec5aed03d54dbf71adaa66ed6fc5af6962",
+      "git_blob": "071879ac51420f95d9d067c83e8b6ae19796e3d7",
+      "bytes": 25367,
+      "mode": 384
+    },
+    "partitionline-broker/src/records.rs": {
+      "sha256": "150fa65d2b4ad3b7075bcc392af7e6e4ae1538abe4b1458c277db00ae3169cf1",
+      "git_blob": "11fa91668ec977597069af24936bfbe90db936e9",
+      "bytes": 30302,
+      "mode": 384
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca",
+      "git_blob": "dcd78f641e1fb6d9942ed3994d4a810c08873404",
+      "bytes": 18396,
+      "mode": 384
+    },
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "14998f8873bcf41ae9f5eabb40c7cd8932897e217b81c04eea31ff3f79dd8f3e",
+      "git_blob": "17be802a1977f436704b1a76c3a9c8f83c6639e6",
+      "bytes": 126373,
+      "mode": 384
+    },
+    "partitionline-broker/tests/compaction.rs": {
+      "sha256": "9d2d6ac2002457c407934bc81b15a1917710bd9c749bbb3b754036ee626e492b",
+      "git_blob": "83d97fadeb264d7dd221e64b6b03d3d5d12cd833",
+      "bytes": 21863,
+      "mode": 384
+    },
+    "partitionline-broker/tests/records.rs": {
+      "sha256": "b22db1437961a9b7fe599438f8dd88473da86c5975fd0aa7cfd94f356149bc7a",
+      "git_blob": "1194d9a73fe9ea5889e3183597b4ed96ed1a7572",
+      "bytes": 16789,
+      "mode": 384
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
+      "git_blob": "4c3e41351ea5275f52eea584b797f835fc71c55c",
+      "bytes": 32867,
+      "mode": 384
+    },
+    "partitionline-broker/src/lib.rs": {
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "git_blob": "9b129643b0bd4754918cc90be4c3633366332693",
+      "bytes": 848,
+      "mode": 384
+    },
+    "partitionline-broker/src/metadata.rs": {
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "git_blob": "e47d607e5c35995bdf0b409c9550a5a9143b0273",
+      "bytes": 99234,
+      "mode": 384
+    },
+    "partitionline-broker/src/produce.rs": {
+      "sha256": "2d85a339af47a8a6732d5b3e5d98d3fff691e99e0fbfc280dddf53a384c673b7",
+      "git_blob": "048bc0f205ef3502d067799e7f30c6d644b00af0",
+      "bytes": 40354,
+      "mode": 384
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "sha256": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8",
+      "git_blob": "05781f41e5897ec485c7acfee95bad7947013716",
+      "bytes": 24580,
+      "mode": 384
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "161d37e796e4120290a6de0698e5b2485210826c66a3273200fb633e336520b5",
+      "git_blob": "55d0d8435c82af90f92bd087adeb829901e778cd",
+      "bytes": 71757,
+      "mode": 384
+    }
+  },
+  "independent_raw_histories": 32,
+  "independent_raw_fault_states": 64,
+  "independent_raw_corpus_cases": 24,
+  "independent_raw_corpus_states": 48,
+  "full_production_qualified": false
+}

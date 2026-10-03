@@ -1,0 +1,17 @@
+{
+  "phase": "strict-owned-test",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--test",
+    "protocol_oracles",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cpuset": "0,1"
+}

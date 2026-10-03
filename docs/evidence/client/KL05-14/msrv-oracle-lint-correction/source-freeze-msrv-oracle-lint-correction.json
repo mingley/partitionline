@@ -1,0 +1,256 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "source_sha256": {
+    "tests/protocol_oracles.rs": "0bbe21185275a6eec21f34cb088737cb41e194bfba64bc966dd02a4afcc5794f"
+  },
+  "unchanged_eleven_runtime_and_held_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4"
+  },
+  "exclusive_change": "OnlyexistingShare responseoracle loop: typed(&[u8],i16)cells preserveboth independentv1/v2fixturepaths andall decode/roundtrip/TTL/acquisition/partialerror assertions. No fixture/production/held change orwaiver.",
+  "first_failure": "Actual255 MSRVdefaultalltargetstrictClippy if_same_then_else because both independentlygeneratedlegal responsebodiesexpandidentically. No lintwaiver.",
+  "supersedes_whole_file_oracle_hash": "Originalwire-stage783b4b5f oracle source proof retained; currenttesttable0bbe2118 replaces equivalentconditional only, wirecode/fixtures unchanged.",
+  "focused_preparation": {
+    "stable-default": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "share-response-oracle": {
+          "phase": "share-response-oracle",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_existing_oracle_passed": 1
+    },
+    "stable-all": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "share-response-oracle": {
+          "phase": "share-response-oracle",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--all-features",
+            "share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_existing_oracle_passed": 1
+    },
+    "msrv-default": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "share-response-oracle": {
+          "phase": "share-response-oracle",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_existing_oracle_passed": 1
+    },
+    "msrv-all": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "share-response-oracle": {
+          "phase": "share-response-oracle",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "protocol_oracles",
+            "--all-features",
+            "share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_existing_oracle_passed": 1
+    }
+  },
+  "scope": "FourfocusedfmtFIRST/strictentireownedprotocol_oracles/exactexistingcase cells,12commands/24full66820sourcechecks. Not final fullQA or livequalification.",
+  "next_required_gates": "Actualpushednewtestsource thenfreshallfourclientQA, freshgenuinepinned4.3.1 ShareDockerlifecycle androot3releasewholecompat.",
+  "frozen_at": "2026-10-03T08:43:31.297141+00:00",
+  "future_full_qa_runner": {
+    "scope": "Prepared only; NOT executed fullQA onuncommittedcandidate. Await actualcanonicalnewpin; CPU0,1/jobs1/debug0/incremental0.",
+    "sha256": {
+      "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+      "verify-existing-source.py": "af5a98cb489841488661a4d6f4e8a247e0c57d447c80d2d4b0849ca1185e4b3b"
+    },
+    "guard": "Eachcommand fullcanonicalGitblob/mode beforeafter plus10unchangedproduction/held, correctedfull_surface651 andlatestprotocol_oracles0bbe (12explicit). Historicalwholefilefreezes preserved; latestspecifictestfreezes choose currenthash."
+  }
+}

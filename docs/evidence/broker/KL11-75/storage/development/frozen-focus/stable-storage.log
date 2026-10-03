@@ -1,0 +1,82 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.01s
+     Running tests/compaction.rs (/workspace/work/target-broker-segments/debug/deps/compaction-db74215932b4c83c)
+
+running 9 tests
+test corrupted_sealed_source_poison_preserves_selected_manifest_and_confirmed_offsets ... ok
+test carried_empty_batch_maximum_allows_guarded_age_reclamation_without_timestamp_records ... ok
+test every_round_budget_and_invalid_clock_fails_before_any_file_change ... ok
+test genuine_empty_last_batch_and_deleted_intermediate_batch_preserve_logical_span ... ok
+test horizon_varint_growth_exceeds_entry_ceiling_before_creating_a_generation ... ok
+test genuine_apache_cleaner_horizons_exact_bytes_offsets_and_restart ... ok
+test monolithic_storage_and_strict_sparse_admission_remain_unchanged ... ok
+test zero_horizon_window_never_resurrects_old_values_and_segment_cap_is_atomic ... ok
+test independently_protected_sealed_and_active_suffixes_never_enter_key_map ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906)
+
+running 10 tests
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test partition_retention_preserves_protected_records_and_synchronized_end ... ok
+test retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor ... ok
+test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/records.rs (/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4)
+
+running 14 tests
+test borrowed_projection_preserves_input_and_independent_batch_bases ... ok
+test damaged_unsupported_batches_still_fail_checksum_first ... ok
+test apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes ... ok
+test each_protected_bit_flip_fails_checksum_before_record_parsing ... ok
+test empty_read_headers_require_canonical_no_horizon_base_time_and_full_consumption ... ok
+test every_independent_byte_and_work_budget_is_checked ... ok
+test every_truncation_and_incomplete_trailing_prefix_is_rejected ... ok
+test exact_byte_and_count_limits_admit_the_complete_batch ... ok
+test limits_are_positive_and_have_checked_hard_maxima ... ok
+test rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact ... ok
+test signed_timestamp_varlong_boundaries_are_checked_without_wrapping ... ok
+test variable_fields_cannot_read_beyond_the_enclosing_record ... ok
+test zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly ... ok
+test independently_generated_sparse_empty_and_hostile_apache_cases_separate_read_from_admission ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c)
+
+running 23 tests
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... ok
+test age_is_strict_prefix_ordered_and_size_keeps_whole_segment_target ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test deletion_guards_reject_unconfirmed_and_protected_ranges_before_mutation ... ok
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart ... ok
+test disk_and_staging_reservations_hold_before_mutation_and_after_restart ... ok
+test every_partial_index_and_valid_crc_stale_hint_is_rebuilt_from_checked_data ... ok
+test hidden_scan_exhaustion_cannot_return_a_successful_partial_fetch ... ok
+test logical_floor_preserves_containing_input_and_only_explicitly_migrates_layout ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test one_segment_limit_can_reclaim_active_and_continue_appending ... ok
+test every_active_entry_prefix_recovers_prior_acks_and_complete_ambiguous_append ... ok
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+test sweep_limit_and_protected_boundary_bound_physical_prefix_progress ... ok
+test unknown_negative_timestamps_have_no_age_clock_but_size_and_guarded_delete_work ... ok
+test v2_corrupt_floor_or_victim_descriptors_fail_closed_with_valid_checksum ... ok
+test sparse_zero_count_and_sparse_kind_in_legacy_manifest_fail_closed ... ok
+test v3_zero_payload_extents_rebuild_derived_indexes_and_reject_unrecorded_obsolete_files ... ok
+test valid_crc_generation_overflow_is_rejected_before_any_publication ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

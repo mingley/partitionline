@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "255f2325-plus-oracle-test-0bbe2118",
+  "cache_path": "/workspace/work/client-share-target",
+  "removed_generated_file_bytes": 359177384,
+  "removed_generated_files": 1093,
+  "retained_elf_archive_sha256": "fd1a11792be89ec48bca8c17246b6249f43439e1f0519e165e6b34f05efc822e",
+  "retained_elf_archive_verified": true,
+  "active_references": [],
+  "source_rawlogs_fixture_and_retained_binaries_untouched": true,
+  "free_bytes_after": 1190350848
+}

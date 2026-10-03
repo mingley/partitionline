@@ -1,0 +1,49 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.47s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-ea773fb32d16e69c)
+
+running 7 tests
+test metadata::tests::canceled_compaction_skips_rewrite_and_releases_shared_slot ... ok
+test metadata::tests::compaction_shutdown_rejects_queued_rewrite_and_keeps_join ... ok
+test metadata::tests::unconsumed_compaction_receipt_holds_shared_slot_after_publication ... ok
+tiny cleaner cap ScanBytes: loaded_payload_bytes=0, parsed_or_projected_record_bodies=0
+test segments::tests::compaction_one_byte_cap_rejects_before_loading_a_large_payload ... ok
+
+running 1 test
+tiny cleaner cap Records: loaded_payload_bytes=37888, parsed_or_projected_record_bodies=0
+test segments::tests::compaction_one_record_cap_rejects_before_parsing_any_large_entry_body ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test segments::tests::compaction_publication_partial_cleanup_io_errors_recover_one_complete_selected_round ... ok
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+
+running 1 test
+test segments::tests::compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.13s
+

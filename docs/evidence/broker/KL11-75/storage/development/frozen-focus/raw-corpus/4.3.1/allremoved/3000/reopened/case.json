@@ -1,0 +1,1 @@
+{"schema":1,"release":"4.3.1","scenario":"allremoved","clock_ms":3000,"phase":"reopened","expected_fixture":"cleaner-last-empty-61","active_fixture":"cleaner-allremoved-active-protected","logical_floor":0,"logical_end":4,"outcome":{"start_offset":0,"end_offset":3,"scanned_records":1,"retained_records":0,"rewritten_segments":1,"bytes_before":137,"bytes_after":117}}

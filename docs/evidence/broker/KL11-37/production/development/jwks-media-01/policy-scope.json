@@ -1,0 +1,25 @@
+{
+  "standard_reference": "https://www.rfc-editor.org/rfc/rfc7517.html",
+  "media_registration": "application/jwk-set+json",
+  "accepted_jwks_response_media": [
+    "application/jwk-set+json",
+    "application/json"
+  ],
+  "jwks_accept_header": "application/jwk-set+json, application/json",
+  "json_only_contexts": [
+    "OIDC discovery",
+    "RFC7662 introspection"
+  ],
+  "narrow_production_change": [
+    "private HTTP response/Accept selection",
+    "Source::fetch JWKS request only"
+  ],
+  "prior_qualification_preserved": {
+    "actual_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+    "selected_behavior_passed": 470,
+    "commands": 16,
+    "new_corrected_source_qualification": "pending"
+  },
+  "six_socket_proposal_unchanged": true,
+  "full_OIDC_and_live_peer_acceptance": "pending"
+}

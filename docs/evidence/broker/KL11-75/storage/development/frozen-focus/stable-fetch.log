@@ -1,0 +1,26 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+error[E0599]: no method named `records` found for enum `Result<T, E>` in the current scope
+   --> tests/fetch.rs:346:22
+    |
+342 |                   let record = active
+    |  ______________________________-
+343 | |                     .batches()
+344 | |                     .next()
+345 | |                     .ok_or("protected batch")?
+346 | |                     .records()
+    | |                     -^^^^^^^ method not found in `Result<Batch<'_>, partitionline_broker::records::Error>`
+    | |_____________________|
+    |
+    |
+note: the method `records` exists on the type `Batch<'_>`
+   --> src/records.rs:281:5
+    |
+281 |     pub fn records(&self) -> Records<'a> {
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: consider using `Result::expect` to unwrap the `Batch<'_>` value, panicking if the value is a `Result::Err`
+    |
+345 |                     .ok_or("protected batch")?.expect("REASON")
+    |                                               +++++++++++++++++
+
+For more information about this error, try `rustc --explain E0599`.
+error: could not compile `partitionline-broker` (test "fetch") due to 1 previous error

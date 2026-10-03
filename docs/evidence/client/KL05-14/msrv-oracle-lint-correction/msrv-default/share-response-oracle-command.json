@@ -1,0 +1,18 @@
+{
+  "phase": "share-response-oracle",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "test",
+    "--offline",
+    "--locked",
+    "--test",
+    "protocol_oracles",
+    "share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "cpuset": "0,1"
+}

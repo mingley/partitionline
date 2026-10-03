@@ -1,0 +1,345 @@
+partitionline v0.1.0 (/workspace/work/client-share-assessment/immutable-255f2325)
+├── base64 feature "default"
+│   ├── base64 v0.23.1
+│   ├── base64 feature "simd-unsafe"
+│   │   └── base64 v0.23.1
+│   └── base64 feature "std"
+│       ├── base64 v0.23.1
+│       └── base64 feature "alloc"
+│           └── base64 v0.23.1
+├── bytes feature "default"
+│   ├── bytes v1.12.1
+│   └── bytes feature "std"
+│       └── bytes v1.12.1
+├── crc32c feature "default"
+│   └── crc32c v0.6.8
+│       [build-dependencies]
+│       └── rustc_version feature "default"
+│           └── rustc_version v0.4.1
+│               └── semver feature "default"
+│                   ├── semver v1.0.28
+│                   └── semver feature "std"
+│                       └── semver v1.0.28
+├── flate2 feature "runtime_detection"
+│   ├── flate2 v1.1.10
+│   │   ├── crc32fast v1.5.1
+│   │   │   └── cfg-if feature "default"
+│   │   │       └── cfg-if v1.0.4
+│   │   ├── miniz_oxide feature "default"
+│   │   │   ├── miniz_oxide v0.9.1
+│   │   │   │   ├── adler2 v2.0.1
+│   │   │   │   └── simd-adler32 v0.3.10
+│   │   │   └── miniz_oxide feature "with-alloc"
+│   │   │       └── miniz_oxide v0.9.1 (*)
+│   │   ├── miniz_oxide feature "simd"
+│   │   │   ├── miniz_oxide v0.9.1 (*)
+│   │   │   └── miniz_oxide feature "simd-adler32"
+│   │   │       └── miniz_oxide v0.9.1 (*)
+│   │   └── zlib-rs feature "rust-allocator"
+│   │       └── zlib-rs v0.6.8
+│   ├── crc32fast feature "std"
+│   │   └── crc32fast v1.5.1 (*)
+│   └── zlib-rs feature "std"
+│       ├── zlib-rs v0.6.8
+│       └── zlib-rs feature "rust-allocator" (*)
+├── flate2 feature "rust_backend"
+│   ├── flate2 v1.1.10 (*)
+│   ├── flate2 feature "any_impl"
+│   │   └── flate2 v1.1.10 (*)
+│   └── flate2 feature "miniz_oxide"
+│       ├── flate2 v1.1.10 (*)
+│       └── flate2 feature "any_impl" (*)
+├── getrandom feature "default"
+│   └── getrandom v0.4.3
+│       ├── libc v0.2.189
+│       └── cfg-if feature "default" (*)
+├── hmac feature "default"
+│   └── hmac v0.13.0
+│       ├── digest feature "default"
+│       │   ├── digest v0.11.3
+│       │   │   ├── block-buffer feature "default"
+│       │   │   │   └── block-buffer v0.12.1
+│       │   │   │       └── hybrid-array feature "default"
+│       │   │   │           └── hybrid-array v0.4.14
+│       │   │   │               ├── typenum feature "const-generics"
+│       │   │   │               │   └── typenum v1.20.1
+│       │   │   │               └── typenum feature "default"
+│       │   │   │                   └── typenum v1.20.1
+│       │   │   ├── const-oid feature "default"
+│       │   │   │   └── const-oid v0.10.2
+│       │   │   ├── crypto-common feature "default"
+│       │   │   │   └── crypto-common v0.2.2
+│       │   │   │       └── hybrid-array feature "default" (*)
+│       │   │   └── ctutils feature "default"
+│       │   │       └── ctutils v0.4.2
+│       │   │           └── cmov feature "default"
+│       │   │               └── cmov v0.5.4
+│       │   └── digest feature "block-api"
+│       │       └── digest v0.11.3 (*)
+│       └── digest feature "mac"
+│           └── digest v0.11.3 (*)
+├── lz4_flex feature "default"
+│   ├── lz4_flex v0.14.0
+│   │   └── twox-hash feature "xxhash32"
+│   │       └── twox-hash v2.1.2
+│   ├── lz4_flex feature "checked-decode"
+│   │   └── lz4_flex v0.14.0 (*)
+│   ├── lz4_flex feature "frame"
+│   │   ├── lz4_flex v0.14.0 (*)
+│   │   └── lz4_flex feature "std"
+│   │       ├── lz4_flex v0.14.0 (*)
+│   │       └── lz4_flex feature "alloc"
+│   │           └── lz4_flex v0.14.0 (*)
+│   ├── lz4_flex feature "safe-decode"
+│   │   └── lz4_flex v0.14.0 (*)
+│   ├── lz4_flex feature "safe-encode"
+│   │   └── lz4_flex v0.14.0 (*)
+│   └── lz4_flex feature "std" (*)
+├── parking_lot feature "default"
+│   └── parking_lot v0.12.5
+│       ├── lock_api feature "default"
+│       │   ├── lock_api v0.4.14
+│       │   │   └── scopeguard v1.2.0
+│       │   └── lock_api feature "atomic_usize"
+│       │       └── lock_api v0.4.14 (*)
+│       └── parking_lot_core feature "default"
+│           └── parking_lot_core v0.9.12
+│               ├── cfg-if feature "default" (*)
+│               ├── libc feature "default"
+│               │   ├── libc v0.2.189
+│               │   └── libc feature "std"
+│               │       └── libc v0.2.189
+│               └── smallvec feature "default"
+│                   └── smallvec v1.15.2
+├── pbkdf2 feature "hmac"
+│   └── pbkdf2 v0.13.0
+│       ├── hmac v0.13.0 (*)
+│       ├── digest feature "default" (*)
+│       └── digest feature "mac" (*)
+├── rustls feature "ring"
+│   ├── rustls v0.23.45
+│   │   ├── subtle v2.6.1
+│   │   ├── once_cell feature "alloc"
+│   │   │   ├── once_cell v1.21.4
+│   │   │   └── once_cell feature "race"
+│   │   │       └── once_cell v1.21.4
+│   │   ├── once_cell feature "race" (*)
+│   │   ├── ring feature "default"
+│   │   │   ├── ring v0.17.14
+│   │   │   │   ├── cfg-if v1.0.4
+│   │   │   │   ├── getrandom feature "default"
+│   │   │   │   │   └── getrandom v0.2.17
+│   │   │   │   │       ├── libc v0.2.189
+│   │   │   │   │       └── cfg-if feature "default" (*)
+│   │   │   │   └── untrusted feature "default"
+│   │   │   │       └── untrusted v0.9.0
+│   │   │   │   [build-dependencies]
+│   │   │   │   └── cc v1.4.4
+│   │   │   │       ├── find-msvc-tools feature "default"
+│   │   │   │       │   └── find-msvc-tools v0.1.11
+│   │   │   │       └── shlex feature "default"
+│   │   │   │           ├── shlex v2.0.1
+│   │   │   │           └── shlex feature "std"
+│   │   │   │               └── shlex v2.0.1
+│   │   │   ├── ring feature "alloc"
+│   │   │   │   └── ring v0.17.14 (*)
+│   │   │   └── ring feature "dev_urandom_fallback"
+│   │   │       └── ring v0.17.14 (*)
+│   │   ├── rustls-pki-types feature "alloc"
+│   │   │   └── rustls-pki-types v1.15.1
+│   │   │       └── zeroize feature "default"
+│   │   │           ├── zeroize v1.9.0
+│   │   │           └── zeroize feature "alloc"
+│   │   │               └── zeroize v1.9.0
+│   │   ├── rustls-pki-types feature "default"
+│   │   │   ├── rustls-pki-types v1.15.1 (*)
+│   │   │   └── rustls-pki-types feature "alloc" (*)
+│   │   ├── zeroize feature "default" (*)
+│   │   └── rustls-webpki feature "alloc"
+│   │       ├── rustls-webpki v0.103.15
+│   │       │   ├── ring v0.17.14 (*)
+│   │       │   ├── rustls-pki-types v1.15.1 (*)
+│   │       │   └── untrusted feature "default" (*)
+│   │       ├── ring feature "alloc" (*)
+│   │       └── rustls-pki-types feature "alloc" (*)
+│   └── rustls-webpki feature "ring"
+│       └── rustls-webpki v0.103.15 (*)
+├── rustls feature "std"
+│   ├── rustls v0.23.45 (*)
+│   ├── once_cell feature "std"
+│   │   ├── once_cell v1.21.4
+│   │   └── once_cell feature "alloc" (*)
+│   ├── rustls-pki-types feature "std"
+│   │   ├── rustls-pki-types v1.15.1 (*)
+│   │   └── rustls-pki-types feature "alloc" (*)
+│   └── rustls-webpki feature "std"
+│       ├── rustls-webpki v0.103.15 (*)
+│       ├── rustls-pki-types feature "std" (*)
+│       └── rustls-webpki feature "alloc" (*)
+├── rustls feature "tls12"
+│   └── rustls v0.23.45 (*)
+├── sha2 feature "default"
+│   ├── sha2 v0.11.0
+│   │   ├── cfg-if feature "default" (*)
+│   │   ├── digest feature "default" (*)
+│   │   └── cpufeatures feature "default"
+│   │       └── cpufeatures v0.3.1
+│   ├── sha2 feature "alloc"
+│   │   ├── sha2 v0.11.0 (*)
+│   │   └── digest feature "alloc"
+│   │       └── digest v0.11.3 (*)
+│   └── sha2 feature "oid"
+│       ├── sha2 v0.11.0 (*)
+│       └── digest feature "oid"
+│           └── digest v0.11.3 (*)
+├── snap feature "default"
+│   └── snap v1.1.2
+├── tokio feature "default"
+│   └── tokio v1.53.1
+│       ├── mio v1.2.2
+│       │   └── libc feature "default" (*)
+│       ├── bytes feature "default" (*)
+│       ├── libc feature "default" (*)
+│       ├── pin-project-lite feature "default"
+│       │   └── pin-project-lite v0.2.17
+│       ├── signal-hook-registry feature "default"
+│       │   └── signal-hook-registry v1.4.8
+│       │       ├── libc feature "default" (*)
+│       │       └── errno feature "default"
+│       │           ├── errno v0.3.14
+│       │           │   └── libc v0.2.189
+│       │           └── errno feature "std"
+│       │               ├── errno v0.3.14 (*)
+│       │               └── libc feature "std" (*)
+│       ├── socket2 feature "all"
+│       │   └── socket2 v0.6.5
+│       │       └── libc feature "default" (*)
+│       ├── socket2 feature "default"
+│       │   └── socket2 v0.6.5 (*)
+│       └── tokio-macros feature "default"
+│           └── tokio-macros v2.7.2 (proc-macro)
+│               ├── proc-macro2 feature "default"
+│               │   ├── proc-macro2 v1.0.107
+│               │   │   └── unicode-ident feature "default"
+│               │   │       └── unicode-ident v1.0.24
+│               │   └── proc-macro2 feature "proc-macro"
+│               │       └── proc-macro2 v1.0.107 (*)
+│               ├── quote feature "default"
+│               │   ├── quote v1.0.47
+│               │   │   └── proc-macro2 v1.0.107 (*)
+│               │   └── quote feature "proc-macro"
+│               │       ├── quote v1.0.47 (*)
+│               │       └── proc-macro2 feature "proc-macro" (*)
+│               ├── syn feature "default"
+│               │   ├── syn v3.0.4
+│               │   │   ├── proc-macro2 v1.0.107 (*)
+│               │   │   ├── quote v1.0.47 (*)
+│               │   │   └── unicode-ident feature "default" (*)
+│               │   ├── syn feature "clone-impls"
+│               │   │   └── syn v3.0.4 (*)
+│               │   ├── syn feature "derive"
+│               │   │   └── syn v3.0.4 (*)
+│               │   ├── syn feature "parsing"
+│               │   │   └── syn v3.0.4 (*)
+│               │   ├── syn feature "printing"
+│               │   │   └── syn v3.0.4 (*)
+│               │   └── syn feature "proc-macro"
+│               │       ├── syn v3.0.4 (*)
+│               │       ├── proc-macro2 feature "proc-macro" (*)
+│               │       └── quote feature "proc-macro" (*)
+│               └── syn feature "full"
+│                   └── syn v3.0.4 (*)
+├── tokio feature "fs"
+│   └── tokio v1.53.1 (*)
+├── tokio feature "io-util"
+│   ├── tokio v1.53.1 (*)
+│   └── tokio feature "bytes"
+│       └── tokio v1.53.1 (*)
+├── tokio feature "macros"
+│   ├── tokio v1.53.1 (*)
+│   └── tokio feature "tokio-macros"
+│       └── tokio v1.53.1 (*)
+├── tokio feature "net"
+│   ├── tokio v1.53.1 (*)
+│   ├── tokio feature "libc"
+│   │   └── tokio v1.53.1 (*)
+│   ├── tokio feature "mio"
+│   │   └── tokio v1.53.1 (*)
+│   ├── tokio feature "socket2"
+│   │   └── tokio v1.53.1 (*)
+│   ├── mio feature "net"
+│   │   └── mio v1.2.2 (*)
+│   ├── mio feature "os-ext"
+│   │   ├── mio v1.2.2 (*)
+│   │   └── mio feature "os-poll"
+│   │       └── mio v1.2.2 (*)
+│   └── mio feature "os-poll" (*)
+├── tokio feature "rt"
+│   └── tokio v1.53.1 (*)
+├── tokio feature "rt-multi-thread"
+│   ├── tokio v1.53.1 (*)
+│   └── tokio feature "rt" (*)
+├── tokio feature "signal"
+│   ├── tokio v1.53.1 (*)
+│   ├── tokio feature "libc" (*)
+│   ├── tokio feature "mio" (*)
+│   ├── tokio feature "signal-hook-registry"
+│   │   └── tokio v1.53.1 (*)
+│   ├── mio feature "net" (*)
+│   ├── mio feature "os-ext" (*)
+│   └── mio feature "os-poll" (*)
+├── tokio feature "sync"
+│   └── tokio v1.53.1 (*)
+├── tokio feature "time"
+│   └── tokio v1.53.1 (*)
+├── tokio-rustls feature "ring"
+│   ├── tokio-rustls v0.26.5
+│   │   ├── rustls feature "std" (*)
+│   │   └── tokio feature "default" (*)
+│   └── rustls feature "ring" (*)
+├── tokio-rustls feature "tls12"
+│   ├── tokio-rustls v0.26.5 (*)
+│   └── rustls feature "tls12" (*)
+├── tracing feature "default"
+│   ├── tracing v0.1.44
+│   │   ├── tracing-core v0.1.36
+│   │   │   └── once_cell feature "default"
+│   │   │       ├── once_cell v1.21.4
+│   │   │       └── once_cell feature "std" (*)
+│   │   ├── pin-project-lite feature "default" (*)
+│   │   └── tracing-attributes feature "default"
+│   │       └── tracing-attributes v0.1.31 (proc-macro)
+│   │           ├── proc-macro2 feature "default" (*)
+│   │           ├── quote feature "default" (*)
+│   │           ├── syn feature "clone-impls"
+│   │           │   └── syn v2.0.119
+│   │           │       ├── proc-macro2 v1.0.107 (*)
+│   │           │       ├── quote v1.0.47 (*)
+│   │           │       └── unicode-ident feature "default" (*)
+│   │           ├── syn feature "extra-traits"
+│   │           │   └── syn v2.0.119 (*)
+│   │           ├── syn feature "full"
+│   │           │   └── syn v2.0.119 (*)
+│   │           ├── syn feature "parsing"
+│   │           │   └── syn v2.0.119 (*)
+│   │           ├── syn feature "printing"
+│   │           │   └── syn v2.0.119 (*)
+│   │           ├── syn feature "proc-macro"
+│   │           │   ├── syn v2.0.119 (*)
+│   │           │   ├── proc-macro2 feature "proc-macro" (*)
+│   │           │   └── quote feature "proc-macro" (*)
+│   │           └── syn feature "visit-mut"
+│   │               └── syn v2.0.119 (*)
+│   ├── tracing feature "attributes"
+│   │   ├── tracing v0.1.44 (*)
+│   │   └── tracing feature "tracing-attributes"
+│   │       └── tracing v0.1.44 (*)
+│   └── tracing feature "std"
+│       ├── tracing v0.1.44 (*)
+│       └── tracing-core feature "std"
+│           ├── tracing-core v0.1.36 (*)
+│           └── tracing-core feature "once_cell"
+│               └── tracing-core v0.1.36 (*)
+└── webpki-roots feature "default"
+    └── webpki-roots v1.0.9
+        └── rustls-pki-types v1.15.1 (*)

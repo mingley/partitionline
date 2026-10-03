@@ -1,0 +1,22 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+error: use of a disallowed method `std::fs::read`
+    --> src/metadata.rs:2434:25
+     |
+2434 |             let bytes = std::fs::read(directory.join("manifest")).map_err(produce::Error::Io)?;
+     |                         ^^^^^^^^^^^^^
+     |
+     = note: Blocking IO on an async runtime. Use tokio::fs.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+     = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+
+error: use of a disallowed method `std::fs::write`
+    --> src/segments.rs:2684:9
+     |
+2684 | ...   fs::write(out.join("case.json"),format!("{{\"schema\":1,\"kind\":\"{kind}\",\"phase\":\"{phase:?}\",\"stage\":\"{stage}\",\"...
+     |       ^^^^^^^^^
+     |
+     = note: Blocking IO on an async runtime. Use tokio::fs.
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: could not compile `partitionline-broker` (lib test) due to 2 previous errors

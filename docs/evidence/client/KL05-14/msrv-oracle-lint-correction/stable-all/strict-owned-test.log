@@ -1,0 +1,9 @@
+    Checking once_cell v1.21.4
+   Compiling syn v2.0.119
+    Checking rustls v0.23.45
+   Compiling tracing-attributes v0.1.31
+    Checking tracing-core v0.1.36
+    Checking tracing v0.1.44
+    Checking tokio-rustls v0.26.5
+    Checking partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-oracle-msrv-255f2325)
+    Finished `dev` profile [unoptimized] target(s) in 12.07s

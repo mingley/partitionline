@@ -283,21 +283,6 @@ impl<'a> Reader<'a> {
         }
         Ok(count)
     }
-    fn var(&mut self, width: u32) -> Result<i64, Error> {
-        let mut encoded = 0u64;
-        for shift in (0..width).step_by(7) {
-            let byte = self.byte()?;
-            if (width == 64 && shift == 63 && byte > 1) || (width == 32 && shift == 28 && byte > 15)
-            {
-                return Err(Error::StoredRecords);
-            }
-            encoded |= u64::from(byte & 127) << shift;
-            if byte & 128 == 0 {
-                return Ok((encoded >> 1) as i64 ^ -((encoded & 1) as i64));
-            }
-        }
-        Err(Error::StoredRecords)
-    }
 }
 
 struct Writer {
@@ -460,38 +445,32 @@ fn first_timestamp(
     if batch.max_timestamp < wanted {
         return Ok(None);
     }
-    let base_time = i64::from_be_bytes(
-        batch
-            .bytes
-            .get(27..35)
-            .ok_or(Error::StoredRecords)?
-            .try_into()
-            .map_err(|_| Error::StoredRecords)?,
-    );
-    let mut reader = Reader {
-        bytes: batch.bytes.get(61..).ok_or(Error::StoredRecords)?,
-    };
-    for _ in 0..batch.record_count {
+    for record in batch.records() {
         active()?;
-        let length = usize::try_from(reader.var(32)?).map_err(|_| Error::StoredRecords)?;
-        let mut record = Reader {
-            bytes: reader.take(length)?,
-        };
-        if record.byte()? != 0 {
-            return Err(Error::StoredRecords);
-        }
-        let timestamp = base_time
-            .checked_add(record.var(64)?)
-            .ok_or(Error::StoredRecords)?;
-        let offset = batch
-            .base_offset
-            .checked_add(record.var(32)?)
-            .ok_or(Error::StoredRecords)?;
-        if offset >= log_start && timestamp >= wanted {
-            return Ok(Some((timestamp, offset)));
+        let record = record.map_err(|_| Error::StoredRecords)?;
+        if record.offset >= log_start && record.timestamp >= wanted {
+            return Ok(Some((record.timestamp, record.offset)));
         }
     }
     Ok(None)
+}
+fn stored_records(
+    entry: &journal::Entry,
+    limits: records::Limits,
+) -> Result<(records::ReadSummary<'_>, i64), Error> {
+    let first = i64::try_from(entry.first_offset).map_err(|_| Error::StoredRecords)?;
+    let next = first
+        .checked_add(i64::from(entry.record_count))
+        .filter(|next| *next > first)
+        .ok_or(Error::StoredRecords)?;
+    let checked =
+        records::validate_read(&entry.payload, limits).map_err(|_| Error::StoredRecords)?;
+    if checked.first_offset().is_some_and(|offset| offset < first)
+        || checked.next_offset().is_some_and(|offset| offset > next)
+    {
+        return Err(Error::StoredRecords);
+    }
+    Ok((checked, next))
 }
 
 pub(crate) fn process(
@@ -578,8 +557,7 @@ pub(crate) fn process(
                                     break;
                                 }
                             };
-                            let checked = records::validate(&entry.payload, store.record_limits())
-                                .map_err(|_| Error::StoredRecords)?;
+                            let (checked, next) = stored_records(&entry, store.record_limits())?;
                             for batch in checked.batches() {
                                 active()?;
                                 let batch = batch.map_err(|_| Error::StoredRecords)?;
@@ -590,10 +568,10 @@ pub(crate) fn process(
                                     break 'scan;
                                 }
                             }
-                            cursor = i64::try_from(entry.first_offset)
-                                .ok()
-                                .and_then(|first| first.checked_add(i64::from(entry.record_count)))
-                                .ok_or(Error::StoredRecords)?;
+                            if next <= cursor {
+                                return Err(Error::StoredRecords);
+                            }
+                            cursor = next;
                         }
                     }
                 }
@@ -650,8 +628,7 @@ pub(crate) fn process(
                                 break;
                             }
                         };
-                        let checked = records::validate(&entry.payload, store.record_limits())
-                            .map_err(|_| Error::StoredRecords)?;
+                        let (checked, next) = stored_records(&entry, store.record_limits())?;
                         for batch in checked.batches() {
                             active()?;
                             let batch = batch.map_err(|_| Error::StoredRecords)?;
@@ -681,10 +658,6 @@ pub(crate) fn process(
                             cursor = batch.next_offset;
                         }
                         if cursor < watermark {
-                            let next = i64::try_from(entry.first_offset)
-                                .ok()
-                                .and_then(|first| first.checked_add(i64::from(entry.record_count)))
-                                .ok_or(Error::StoredRecords)?;
                             if next <= start {
                                 return Err(Error::StoredRecords);
                             }

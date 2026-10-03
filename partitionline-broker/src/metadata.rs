@@ -12,6 +12,8 @@
 //! and [`Router::open_with_read_store`] adds persisted Fetch/ListOffsets.
 //! [`Router::open_with_retention_store`] explicitly adds DeleteRecords and
 //! bounded policy sweeps to ordinary RF1 rolling storage.
+//! [`Router::open_with_compaction_store`] enables explicit ordinary keyed
+//! cleaning on that owner, retaining the ordinary read/write API advertisement.
 //!
 //! One bounded blocking actor owns the catalog and optional partition store.
 //! Read snapshots serialize with mutations; long polls wait outside that actor.
@@ -25,7 +27,7 @@
 
 use crate::{
     catalog::{self, Catalog, Topic, TopicId},
-    fetch, journal, produce,
+    compaction, fetch, journal, produce,
     protocol::{self, ApiVersionsHandler, RequestHeader},
     retention,
     transport::Handler,
@@ -199,11 +201,18 @@ enum Command {
     Request(Job),
     Data(DataJob),
     Sweep(SweepJob),
+    Compact(CompactJob),
     Stop,
 }
 struct SweepJob {
     now_ms: i64,
     reply: oneshot::Sender<Result<retention::SweepReport, Error>>,
+}
+struct CompactJob {
+    id: TopicId,
+    index: i32,
+    now_ms: i64,
+    reply: oneshot::Sender<Result<compaction::Outcome, Error>>,
 }
 #[derive(Clone, Copy)]
 struct DataOptions {
@@ -242,6 +251,7 @@ pub struct Router {
     reads: Option<fetch::Limits>,
     retention: Option<retention::Config>,
     changes: watch::Receiver<()>,
+    compaction: bool,
     wakeup: Weak<watch::Sender<()>>,
 }
 impl Router {
@@ -250,7 +260,7 @@ impl Router {
         path: impl Into<PathBuf>,
         config: Config,
     ) -> Result<(Self, journal::Recovery), Error> {
-        Self::open_inner(path.into(), config, None, None, None).await
+        Self::open_inner(path.into(), config, None, None, None, None).await
     }
     /// Open the ordinary data profile on the same exclusive blocking actor.
     ///
@@ -270,7 +280,7 @@ impl Router {
         {
             return Err(produce::Error::InvalidConfig.into());
         }
-        Self::open_inner(path.into(), config, Some(store), None, None).await
+        Self::open_inner(path.into(), config, Some(store), None, None, None).await
     }
     /// Open the separately advertised ordinary read/write data profile.
     ///
@@ -305,7 +315,7 @@ impl Router {
         {
             return Err(fetch::Error::InvalidLimits.into());
         }
-        Self::open_inner(path.into(), config, Some(store), Some(reads), None).await
+        Self::open_inner(path.into(), config, Some(store), Some(reads), None, None).await
     }
     /// Open the explicit rolling RF1 read/write/retention profile, adding API21.
     ///
@@ -343,6 +353,48 @@ impl Router {
             Some(store),
             Some(reads),
             Some(retention),
+            None,
+        )
+        .await
+    }
+    /// Open explicit bounded ordinary compaction on the rolling RF1 owner.
+    ///
+    /// The wire profile remains Produce3–13, Fetch4–6, ListOffsets1–3 and the
+    /// metadata APIs. Cleaning runs only through [`Self::compact_partition`];
+    /// no timer is started. Policy scratch covers the complete cleaner operation
+    /// including source and publication buffers. Internal coordination topics
+    /// and transactional/control/producer-state batches cannot be cleaned.
+    pub async fn open_with_compaction_store(
+        path: impl Into<PathBuf>,
+        config: Config,
+        store: produce::Config,
+        reads: fetch::Limits,
+        policy: compaction::Policy,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        store.validate_compaction(policy)?;
+        if config
+            .max_queued_requests
+            .saturating_mul(config.max_response_bytes)
+            > 512 * 1024 * 1024
+        {
+            return Err(produce::Error::InvalidConfig.into());
+        }
+        if config.max_queued_requests.saturating_mul(
+            config
+                .protocol_limits
+                .max_request_bytes()
+                .saturating_add(config.max_response_bytes),
+        ) > reads.max_retained_bytes()
+        {
+            return Err(fetch::Error::InvalidLimits.into());
+        }
+        Self::open_inner(
+            path.into(),
+            config,
+            Some(store),
+            Some(reads),
+            None,
+            Some(policy),
         )
         .await
     }
@@ -352,6 +404,7 @@ impl Router {
         store: Option<produce::Config>,
         reads: Option<fetch::Limits>,
         retention: Option<retention::Config>,
+        compaction: Option<compaction::Policy>,
     ) -> Result<(Self, journal::Recovery), Error> {
         config.validate()?;
         let data = store.is_some();
@@ -371,6 +424,9 @@ impl Router {
                             let mut store = produce::Store::open(config, &catalog)?;
                             if let Some(retention) = retention {
                                 store.enable_retention(retention)?;
+                            }
+                            if let Some(compaction) = compaction {
+                                store.enable_compaction(compaction)?;
                             }
                             Ok::<_, produce::Error>(store)
                         })
@@ -426,6 +482,7 @@ impl Router {
                 data_slots,
                 reads,
                 retention,
+                compaction: compaction.is_some(),
                 changes,
                 wakeup,
             },
@@ -452,6 +509,43 @@ impl Router {
         let (reply, receiver) = oneshot::channel();
         self.sender
             .try_send(Command::Sweep(SweepJob { now_ms, reply }))
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => Error::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => Error::Stopped,
+            })?;
+        receiver.await.map_err(|_| Error::ActorFailed)?
+    }
+    /// Serialize one bounded sealed-prefix cleaning round with reads/mutations.
+    ///
+    /// The UUID must identify a live ordinary topic and index. Cancellation
+    /// skips queued jobs; a rewrite already admitted to storage can complete
+    /// durably after cancellation. Reopen after an ambiguous storage failure.
+    /// Completed unconsumed receipts retain the same shared admission permit as
+    /// data requests, and shutdown joins the exclusive storage owner.
+    pub async fn compact_partition(
+        &self,
+        id: TopicId,
+        index: i32,
+        now_ms: i64,
+    ) -> Result<compaction::Outcome, Error> {
+        if self.stopping.load(Ordering::Acquire) {
+            return Err(Error::Stopped);
+        }
+        if !self.compaction || index < 0 || now_ms < 0 {
+            return Err(produce::Error::InvalidConfig.into());
+        }
+        let _slot = self
+            .data_slots
+            .try_acquire()
+            .map_err(|_| Error::QueueFull)?;
+        let (reply, receiver) = oneshot::channel();
+        self.sender
+            .try_send(Command::Compact(CompactJob {
+                id,
+                index,
+                now_ms,
+                reply,
+            }))
             .map_err(|error| match error {
                 mpsc::error::TrySendError::Full(_) => Error::QueueFull,
                 mpsc::error::TrySendError::Closed(_) => Error::Stopped,
@@ -768,6 +862,24 @@ fn actor(
                 }
                 let _ = job.reply.send(result);
             }
+            Command::Compact(job) => {
+                if job.reply.is_closed() {
+                    continue;
+                }
+                let result = if catalog.is_poisoned() {
+                    Err(Error::StoragePoisoned)
+                } else if let Some(store) = store.as_mut() {
+                    store
+                        .compact_partition(&catalog, job.id, job.index, job.now_ms)
+                        .map_err(Into::into)
+                } else {
+                    Err(produce::Error::InvalidConfig.into())
+                };
+                if store.as_mut().is_some_and(produce::Store::take_changed) {
+                    changes.send_replace(());
+                }
+                let _ = job.reply.send(result);
+            }
         }
     }
     receiver.close();
@@ -784,6 +896,9 @@ fn reject(command: Command) {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Sweep(job) => {
+            let _ = job.reply.send(Err(Error::Stopped));
+        }
+        Command::Compact(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Stop => {}
@@ -1867,6 +1982,13 @@ mod tests {
         data: bool,
         retention: Option<retention::Config>,
     ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
+        parked_maintenance(data, retention, false)
+    }
+    fn parked_maintenance(
+        data: bool,
+        retention: Option<retention::Config>,
+        compaction: bool,
+    ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         let path = std::env::temp_dir().join(format!(
             "partitionline-actor-{}-{}",
             std::process::id(),
@@ -1883,7 +2005,7 @@ mod tests {
         let (change_tx, changes) = watch::channel(());
         let change_tx = Arc::new(change_tx);
         let wakeup = Arc::downgrade(&change_tx);
-        let reads = retention.map(|_| fetch::Limits::default());
+        let reads = (retention.is_some() || compaction).then(fetch::Limits::default);
         let task = tokio::task::spawn_blocking(move || {
             if gate.recv().is_err() {
                 return;
@@ -1904,9 +2026,54 @@ mod tests {
                     if retention.is_some() {
                         store_config.segment_limits = Some(crate::segments::Limits::default());
                     }
+                    if compaction {
+                        let Ok(limits) = crate::segments::Limits::new(
+                            150,
+                            64,
+                            4096,
+                            16,
+                            1 << 30,
+                            2 * 1024 * 1024,
+                            64 * 1024 * 1024,
+                        ) else {
+                            return;
+                        };
+                        store_config.segment_limits = Some(limits);
+                        if std::fs::create_dir(&store_config.directory).is_err() {
+                            return;
+                        }
+                        let Ok((mut partition, _)) = crate::partition::Partition::open_segmented(
+                            store_config
+                                .directory
+                                .join("00000000000000000000000000000002-0.segments"),
+                            0,
+                            store_config.journal_limits,
+                            store_config.record_limits,
+                            limits,
+                        ) else {
+                            return;
+                        };
+                        for _ in 0..3 {
+                            if partition
+                                .append(
+                                    include_bytes!("../tests/fixtures/records/valid-basic.bin",),
+                                )
+                                .is_err()
+                            {
+                                return;
+                            }
+                        }
+                    }
                     let Ok(mut store) = produce::Store::open(store_config, &catalog) else {
                         return;
                     };
+                    if compaction
+                        && store
+                            .enable_compaction(compaction::Policy::default())
+                            .is_err()
+                    {
+                        return;
+                    }
                     if let Some(policy) = retention {
                         if store.enable_retention(policy).is_err()
                             || produce::process(
@@ -1951,6 +2118,7 @@ mod tests {
                 reads,
                 retention,
                 changes,
+                compaction,
                 wakeup,
             }),
             release,
@@ -2245,6 +2413,180 @@ mod tests {
                 ..retention::Config::default()
             }),
         )
+    }
+    fn parked_compaction(
+    ) -> Result<(Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf, TopicId), Error> {
+        let (router, release, path) = parked_maintenance(true, None, true);
+        let mut id = [0; 16];
+        id[15] = 2;
+        Ok((
+            router,
+            release,
+            path,
+            TopicId::new(id).map_err(|_| Error::ActorFailed)?,
+        ))
+    }
+    async fn compacted_state(path: PathBuf) -> Result<([u8; 8], Vec<i64>), Box<dyn StdError>> {
+        Ok(tokio::task::spawn_blocking(move || -> Result<_, Error> {
+            use std::io::Read;
+            let directory = path
+                .with_extension("parts")
+                .join("00000000000000000000000000000002-0.segments");
+            let mut bytes = Vec::new();
+            std::fs::File::open(directory.join("manifest"))
+                .map_err(produce::Error::Io)?
+                .take(1025)
+                .read_to_end(&mut bytes)
+                .map_err(produce::Error::Io)?;
+            if bytes.len() > 1024 {
+                return Err(Error::ActorFailed);
+            }
+            let mut magic = [0; 8];
+            magic.copy_from_slice(bytes.get(..8).ok_or(Error::ActorFailed)?);
+            let config = produce::Config::new(path.with_extension("parts"));
+            let (mut partition, _) = crate::partition::Partition::open_segmented(
+                directory,
+                0,
+                config.journal_limits,
+                config.record_limits,
+                crate::segments::Limits::default(),
+            )
+            .map_err(produce::Error::Partition)?;
+            assert_eq!(
+                (partition.log_start_offset(), partition.next_offset()),
+                (0, 3)
+            );
+            let mut offsets = Vec::new();
+            for entry in partition
+                .fetch(0, 16, 2 * 1024 * 1024)
+                .map_err(produce::Error::Partition)?
+            {
+                let records = crate::records::validate_read(&entry.payload, config.record_limits)
+                    .map_err(|error| {
+                    produce::Error::Partition(crate::partition::Error::Records(error))
+                })?;
+                for batch in records.batches() {
+                    for record in batch
+                        .map_err(|error| {
+                            produce::Error::Partition(crate::partition::Error::Records(error))
+                        })?
+                        .records()
+                    {
+                        offsets.push(
+                            record
+                                .map_err(|error| {
+                                    produce::Error::Partition(crate::partition::Error::Records(
+                                        error,
+                                    ))
+                                })?
+                                .offset,
+                        );
+                    }
+                }
+            }
+            drop(partition);
+            std::fs::remove_file(&path).map_err(produce::Error::Io)?;
+            std::fs::remove_dir_all(path.with_extension("parts")).map_err(produce::Error::Io)?;
+            Ok((magic, offsets))
+        })
+        .await??)
+    }
+    #[tokio::test]
+    async fn canceled_compaction_skips_rewrite_and_releases_shared_slot(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path, id) = parked_compaction()?;
+        let waiting = tokio::spawn({
+            let router = Arc::clone(&router);
+            async move { router.compact_partition(id, 0, 2000).await }
+        });
+        full(&router).await?;
+        assert!(matches!(
+            router.compact_partition(id, 0, 2000).await,
+            Err(Error::QueueFull)
+        ));
+        assert!(matches!(
+            router.dispatch(request(0)).await,
+            Err(Error::QueueFull)
+        ));
+        waiting.abort();
+        assert!(waiting.await.is_err());
+        assert_eq!(router.data_slots.available_permits(), 1);
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        router.respond(request(3)).await?;
+        assert!(!router.changes.has_changed()?);
+        router.shutdown().await?;
+        assert_eq!(compacted_state(path).await?, (*b"PLSEGM01", vec![0, 1, 2]));
+        Ok(())
+    }
+    #[tokio::test]
+    async fn unconsumed_compaction_receipt_holds_shared_slot_after_publication(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path, id) = parked_compaction()?;
+        let mut pending = Box::pin(router.compact_partition(id, 0, 2000));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => std::task::Poll::Ready(Err("parked compact completed")),
+        })
+        .await?;
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        router.respond(request(3)).await?;
+        assert!(router.changes.has_changed()?);
+        assert!(matches!(
+            router.compact_partition(id, 0, 2000).await,
+            Err(Error::QueueFull)
+        ));
+        assert_eq!(router.data_slots.available_permits(), 0);
+        let result = pending.await?;
+        assert_eq!(
+            (
+                result.end_offset,
+                result.rewritten_segments,
+                result.retained_records
+            ),
+            (2, 2, 1)
+        );
+        assert_eq!(router.data_slots.available_permits(), 1);
+        router.shutdown().await?;
+        assert_eq!(compacted_state(path).await?, (*b"PLSEGM03", vec![1, 2]));
+        Ok(())
+    }
+    #[tokio::test]
+    async fn compaction_shutdown_rejects_queued_rewrite_and_keeps_join(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path, id) = parked_compaction()?;
+        let waiting = tokio::spawn({
+            let router = Arc::clone(&router);
+            async move { router.compact_partition(id, 0, 2000).await }
+        });
+        full(&router).await?;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(2), router.shutdown())
+                .await
+                .is_err()
+        );
+        assert!(router.task.lock().await.is_some());
+        release.send(())?;
+        router.shutdown().await?;
+        assert!(matches!(waiting.await?, Err(Error::Stopped)));
+        assert!(matches!(
+            router.compact_partition(id, 0, 2000).await,
+            Err(Error::Stopped)
+        ));
+        assert!(router.task.lock().await.is_none());
+        assert_eq!(compacted_state(path).await?, (*b"PLSEGM01", vec![0, 1, 2]));
+        Ok(())
     }
     async fn retained_state(path: PathBuf) -> Result<(i64, i64), Box<dyn StdError>> {
         Ok(

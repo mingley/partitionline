@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/workspace/work/cargo/bin/rustfmt",
+    "--edition",
+    "2021",
+    "four authorized paths"
+  ],
+  "exit_code": 1,
+  "cause": "rustup did not have configured CARGO_HOME/RUSTUP_HOME or a default toolchain; no Rust compile/test was invoked",
+  "record_scope": "failure description reconstructed from prior tool response; no original raw output was captured"
+}

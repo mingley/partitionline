@@ -8,6 +8,7 @@
 //! require the separate, evidence-backed completion gates.
 
 pub mod catalog;
+pub mod compaction;
 pub mod fetch;
 pub mod journal;
 pub mod metadata;

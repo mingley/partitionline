@@ -1,0 +1,36 @@
+{
+  "scope": "coordinator-authorized inactive own generated build cache only",
+  "cache": "/workspace/work/broker-oidc/target",
+  "proc_reference_checks": [
+    "exe",
+    "cwd",
+    "cmdline",
+    "environ"
+  ],
+  "active_references": [],
+  "files": 3186,
+  "generated_bytes": 659425339,
+  "ELF_paths": 79,
+  "new_uncovered_ELFs_preserved": 0,
+  "all_required_ELFs_byte_and_mode_roundtrip": true,
+  "retention_sources": [
+    {
+      "manifest": "docs/evidence/broker/KL11-37/production/foundation-final-96211da1/bin/manifest.json",
+      "manifest_sha256": "db61d60cce89c23a03f4a6c78d007790808f2dbd2cc66b82094975fea819be1a",
+      "archive": "/workspace/work/broker-oidc/foundation-binaries-retention-96211da1/cache-executables.tar.gz",
+      "archive_sha256": "96dee464b80435ab02e66136764b54aece07160cd719ac4c41748297dca93df4"
+    },
+    {
+      "manifest": "docs/evidence/broker/KL11-37/production/http-final-0b9797ef/bin/manifest.json",
+      "manifest_sha256": "d0094d1c9ada2723bd59b9fb7e12e1777e63ad455616faccad32f5e425c62389",
+      "archive": "/workspace/work/broker-oidc/http-final-retention-0b9797ef/test-executables.tar.gz",
+      "archive_sha256": "d32afb08f7ac34acb41bab93293437aa89116ee82268c4cf3cdfbf5c55292af2"
+    }
+  ],
+  "inventory_gzip_sha256": "3baf4bfb71407b4444b41d1f70b70f443bcafd2412b1256aef600df1cc5dfba5",
+  "inventory_original_sha256": "aec372e4351e58c08cb0ebb8507cbc1ee23cee32b8fff224ccace4b2df945db4",
+  "inventory_original_full_mode": "0o600",
+  "inventory_original_scratch_path": "/workspace/work/broker-oidc/cache-clear-retention-0b9797ef/cache-inventory.json",
+  "source_rawlogs_evidence_WAL_unchanged": true,
+  "deleted_only_generated_cache": true
+}

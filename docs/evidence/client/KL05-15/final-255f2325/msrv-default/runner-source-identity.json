@@ -1,0 +1,10 @@
+{
+  "source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "cpuset": "0,1",
+  "runner_sha256": {
+    "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+    "verify-existing-source.py": "0de49faf33770a0cfa7f4ad394991d866d4af01edf788f6b1b260e0e531ab69d"
+  },
+  "launch_free_bytes": 1297096704,
+  "required_free_bytes": 1205862400
+}

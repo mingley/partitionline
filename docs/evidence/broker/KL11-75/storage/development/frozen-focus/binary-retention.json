@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "retained_binaries": [
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-storage-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/compaction-db74215932b4c83c",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/compaction-db74215932b4c83c.gz",
+      "sha256": "b49f67e1ce1a1ce7b2442e9d7f3eab9f6cbe0610cf77fdbd8cf189df12b80279",
+      "bytes": 2397960,
+      "mode": 448,
+      "gzip_sha256": "8edd7c650ab2577ca526eff8441260af3a17e5cdfbbd12785553da05c1c13553",
+      "decompressed_sha256": "b49f67e1ce1a1ce7b2442e9d7f3eab9f6cbe0610cf77fdbd8cf189df12b80279"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-storage-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/partition-59775e1ffb5b8906.gz",
+      "sha256": "85e5402a7d9dd948b8acc20d973fcb477204e7616639a63e33be2b68986a8edc",
+      "bytes": 2120200,
+      "mode": 448,
+      "gzip_sha256": "f3fc73d083ef6dd7149ca89febfec5ac50b27fc83bae614f2d5815aee22979d1",
+      "decompressed_sha256": "85e5402a7d9dd948b8acc20d973fcb477204e7616639a63e33be2b68986a8edc"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-storage-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/records-a33d3fff4f092df4.gz",
+      "sha256": "6f2fb3eb12028e791014af50916a57cd424135b4f51c939a3c1145e785ce314a",
+      "bytes": 1703464,
+      "mode": 448,
+      "gzip_sha256": "5c3db3606155a3f945307cfbaa683d42543680d39b69f7a42fbfd90eeb395848",
+      "decompressed_sha256": "6f2fb3eb12028e791014af50916a57cd424135b4f51c939a3c1145e785ce314a"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-storage-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/segments-213b0db01981153c.gz",
+      "sha256": "caa7089b9c1d1e75d4ba98c857aa6fa59798f1aa6763fff85b2be7fd490d0e9c",
+      "bytes": 2391224,
+      "mode": 448,
+      "gzip_sha256": "44b122218d7c7a4d30859e5e230e1cd3f01c1d3d495c89789905aa6168dc0449",
+      "decompressed_sha256": "caa7089b9c1d1e75d4ba98c857aa6fa59798f1aa6763fff85b2be7fd490d0e9c"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-unit-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/partitionline_broker-c952dbf8a96b13dc.gz",
+      "sha256": "aa895ec7dd91f2b4b98c80eb2fc2fb0a45a2f67f5563c96f5c4c9680a951022a",
+      "bytes": 9002528,
+      "mode": 448,
+      "gzip_sha256": "1655bbf5d9b53025630a11e6edace055ebc8549a371c53a1a9a775f17d5f0fa1",
+      "decompressed_sha256": "aa895ec7dd91f2b4b98c80eb2fc2fb0a45a2f67f5563c96f5c4c9680a951022a"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "stable",
+      "proof_receipt": "stable-fetch-final.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a",
+      "retained": "/workspace/work/compaction-development/corrected/bin/stable/fetch-dc28d9e99e19d99a.gz",
+      "sha256": "a84559f66dc71b5f35eea8d59fec3e6e6ab9b4c55a62ee2a69db10b43d178f11",
+      "bytes": 9781672,
+      "mode": 448,
+      "gzip_sha256": "613a350f39bfe2d6608cff69af7f14c6feb8b02d95e8e378f8cf238cf1f3f8b2",
+      "decompressed_sha256": "a84559f66dc71b5f35eea8d59fec3e6e6ab9b4c55a62ee2a69db10b43d178f11"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-storage-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/compaction-a6ad70839d1ce958",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/compaction-a6ad70839d1ce958.gz",
+      "sha256": "81e0456a7d4a65f4f5de74f52e12fc5f5316e6601d0ea8d2375a6124bb112425",
+      "bytes": 2233168,
+      "mode": 448,
+      "gzip_sha256": "f9d04be2a54b4fc2e9a49e8e4646b6abce3fbe4da52f1ac16b4e0c0ef0a6365b",
+      "decompressed_sha256": "81e0456a7d4a65f4f5de74f52e12fc5f5316e6601d0ea8d2375a6124bb112425"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-storage-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/partition-740a16c0a82eaef0",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/partition-740a16c0a82eaef0.gz",
+      "sha256": "1a91fa1f7bf4c672d66834f923de72d1ef5b680933071cba865eabf26a7a133f",
+      "bytes": 1970192,
+      "mode": 448,
+      "gzip_sha256": "9d942fa394ab058a50904367b9355218d63987da156e43327a737aaf73dfd1a4",
+      "decompressed_sha256": "1a91fa1f7bf4c672d66834f923de72d1ef5b680933071cba865eabf26a7a133f"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-storage-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/records-fb825c23446ef8a7",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/records-fb825c23446ef8a7.gz",
+      "sha256": "ef2c1769fe57d40fe6e15a631d79494317666c7dcdac6e421d9f9a2992e086bc",
+      "bytes": 1595928,
+      "mode": 448,
+      "gzip_sha256": "2b44d37031c6139265fb568d8195fa92e0d9a73ef133705e6e30e4a269c0c364",
+      "decompressed_sha256": "ef2c1769fe57d40fe6e15a631d79494317666c7dcdac6e421d9f9a2992e086bc"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-storage-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/segments-a6cf26df558bc909",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/segments-a6cf26df558bc909.gz",
+      "sha256": "ddfe28bf697b5218a109795cad34bdba6b4b24f0c80c6723f95a889a1c584f44",
+      "bytes": 2229304,
+      "mode": 448,
+      "gzip_sha256": "da1c8c84fcbdda44e69e682a7fabbb6962403fa15e89663572e6b0fbeab0c59d",
+      "decompressed_sha256": "ddfe28bf697b5218a109795cad34bdba6b4b24f0c80c6723f95a889a1c584f44"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-unit-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/partitionline_broker-ea773fb32d16e69c.gz",
+      "sha256": "5f8dbd2bdd0d72cea65e914782f133f9c94441f939f8814637f26caf9ef03af0",
+      "bytes": 7306632,
+      "mode": 448,
+      "gzip_sha256": "1b038297036fb4141c26e5d4e7a4aa6a08ee7e7832df00321ac56452e88035b3",
+      "decompressed_sha256": "5f8dbd2bdd0d72cea65e914782f133f9c94441f939f8814637f26caf9ef03af0"
+    },
+    {
+      "classification": "exact development overlay proof binary; not final immutable source",
+      "lane": "1.85.0",
+      "proof_receipt": "msrv-fetch-current.json",
+      "binary": "/workspace/work/target-broker-segments/debug/deps/fetch-8562db1c75ebefc2",
+      "retained": "/workspace/work/compaction-development/corrected/bin/1.85.0/fetch-8562db1c75ebefc2.gz",
+      "sha256": "107549a884857440caaaf7d2dc7d8f704ce7bc3de671f38cccee93be27a49d58",
+      "bytes": 7684192,
+      "mode": 448,
+      "gzip_sha256": "c9d3f8ce272d588e5a5e86adfcef22865bf4ffd8a424eebe0b7c9bcf9a3c6c48",
+      "decompressed_sha256": "107549a884857440caaaf7d2dc7d8f704ce7bc3de671f38cccee93be27a49d58"
+    }
+  ]
+}

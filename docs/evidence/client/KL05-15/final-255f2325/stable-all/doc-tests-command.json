@@ -1,0 +1,14 @@
+{
+  "phase": "doc-tests",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--doc",
+    "--all-features"
+  ],
+  "cpuset": "0,1"
+}

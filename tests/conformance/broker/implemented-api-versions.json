@@ -176,7 +176,7 @@
     }
   ],
   "metadata_source": "partitionline-broker/src/metadata.rs",
-  "metadata_source_sha256": "7ed2dfb5fec0056672475f28d38c20268ecfbb9df33b29aec3b51bc0860f83be",
+  "metadata_source_sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
   "metadata_test_source": "partitionline-broker/tests/metadata.rs",
   "metadata_test_source_sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
   "metadata_fixture_root": "partitionline-broker/tests/fixtures/metadata",
@@ -2297,7 +2297,7 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "a908101835489c5fb15d899e2f043ccb701ffa453b1ab93b0ec64ac2d61c49f4",
+  "produce_source_sha256": "2d85a339af47a8a6732d5b3e5d98d3fff691e99e0fbfc280dddf53a384c673b7",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
   "produce_test_source_sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
   "produce_fixtures_sha256": {
@@ -3631,9 +3631,9 @@
   ],
   "read_write_implementation_gate": "KL11-07",
   "fetch_source": "partitionline-broker/src/fetch.rs",
-  "fetch_source_sha256": "81c5ff1535d0bbfc7ec2bd64ac200732a58f62c489865b92454f08c85055d186",
+  "fetch_source_sha256": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
-  "fetch_test_source_sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+  "fetch_test_source_sha256": "161d37e796e4120290a6de0698e5b2485210826c66a3273200fb633e336520b5",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",
   "fetch_fixtures_sha256": {
     "4.1.2/cases.tsv": "f80ab5cc0e21fb8ef35e3d2cf508a35234c2e8851d71e79e0233993b7a6319e5",
@@ -5110,11 +5110,11 @@
   "retention_test_source": "partitionline-broker/tests/retention.rs",
   "retention_test_source_sha256": "dfe982791f08ce3c13040dc02f4a5386630c3f27f5298a10fac338450020aa3e",
   "segments_source": "partitionline-broker/src/segments.rs",
-  "segments_source_sha256": "85b44d6a6ccd4bb57f01b5f9c15c316168901a77f1f520686b12dfa2c32776a8",
+  "segments_source_sha256": "14998f8873bcf41ae9f5eabb40c7cd8932897e217b81c04eea31ff3f79dd8f3e",
   "segments_test_source": "partitionline-broker/tests/segments.rs",
-  "segments_test_source_sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+  "segments_test_source_sha256": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
   "partition_source": "partitionline-broker/src/partition.rs",
-  "partition_source_sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+  "partition_source_sha256": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca",
   "partition_test_source": "partitionline-broker/tests/partition.rs",
   "partition_test_source_sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
 }

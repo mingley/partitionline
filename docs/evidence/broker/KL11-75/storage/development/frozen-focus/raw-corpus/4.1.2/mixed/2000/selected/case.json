@@ -1,0 +1,1 @@
+{"schema":1,"release":"4.1.2","scenario":"mixed","clock_ms":2000,"phase":"selected","expected_fixture":"cleaner-first-horizon-sparse","active_fixture":"cleaner-mixed-active-protected","logical_floor":0,"logical_end":10,"outcome":{"start_offset":0,"end_offset":8,"scanned_records":8,"retained_records":4,"rewritten_segments":1,"bytes_before":283,"bytes_after":199}}

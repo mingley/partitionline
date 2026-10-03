@@ -1,0 +1,57 @@
+Diff in /workspace/work/compaction-development/corrected/source/partitionline-broker/src/records.rs:660:
+     if read && attrs & 0x40 != 0 && base_time < 0 {
+         return Err(invalid(at + 27, Invalid::Timestamp));
+     }
+-    if read && count==0 {
+-        if attrs & 0x40!=0 { return Err(invalid(at+21,Invalid::Attributes)); }
+-        if base_time!=-1 { return Err(invalid(at+27,Invalid::Timestamp)); }
++    if read && count == 0 {
++        if attrs & 0x40 != 0 {
++            return Err(invalid(at + 21, Invalid::Attributes));
++        }
++        if base_time != -1 {
++            return Err(invalid(at + 27, Invalid::Timestamp));
++        }
+     }
+     if count > c.remaining().len() / 7 {
+         return Err(invalid(at + 57, Invalid::Length));
+Diff in /workspace/work/compaction-development/corrected/source/partitionline-broker/tests/records.rs:177:
+ #[test]
+ fn empty_read_headers_require_canonical_no_horizon_base_time_and_full_consumption() {
+     use partitionline_broker::records::validate_read;
+-    let original=include_bytes!("fixtures/records-compacted/4.3.1/cleaner-last-empty-61.bin");
+-    assert_eq!(validate_read(original,Limits::default()).unwrap().record_count(),0);
+-    let mut bad=original.to_vec(); bad[27..35].copy_from_slice(&0_i64.to_be_bytes()); crc(&mut bad);
+-    assert!(matches!(validate_read(&bad,Limits::default()),Err(Error::Invalid { kind:Invalid::Timestamp,.. })));
+-    bad[21..23].copy_from_slice(&0x40_u16.to_be_bytes()); bad[27..35].copy_from_slice(&3000_i64.to_be_bytes()); crc(&mut bad);
+-    assert!(matches!(validate_read(&bad,Limits::default()),Err(Error::Invalid { kind:Invalid::Attributes,.. })));
++    let original = include_bytes!("fixtures/records-compacted/4.3.1/cleaner-last-empty-61.bin");
++    assert_eq!(
++        validate_read(original, Limits::default())
++            .unwrap()
++            .record_count(),
++        0
++    );
++    let mut bad = original.to_vec();
++    bad[27..35].copy_from_slice(&0_i64.to_be_bytes());
++    crc(&mut bad);
++    assert!(matches!(
++        validate_read(&bad, Limits::default()),
++        Err(Error::Invalid {
++            kind: Invalid::Timestamp,
++            ..
++        })
++    ));
++    bad[21..23].copy_from_slice(&0x40_u16.to_be_bytes());
++    bad[27..35].copy_from_slice(&3000_i64.to_be_bytes());
++    crc(&mut bad);
++    assert!(matches!(
++        validate_read(&bad, Limits::default()),
++        Err(Error::Invalid {
++            kind: Invalid::Attributes,
++            ..
++        })
++    ));
+     // These are deliberately narrower structural rules, not a claim that
+     // Apache's low-level parser rejects either synthetic mutation.
+ }

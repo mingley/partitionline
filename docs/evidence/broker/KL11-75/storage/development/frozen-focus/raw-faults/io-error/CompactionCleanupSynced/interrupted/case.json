@@ -1,0 +1,1 @@
+{"schema":1,"kind":"io-error","phase":"CompactionCleanupSynced","stage":"interrupted","source_end":4,"confirmed_floor":0,"cleaned_end":3,"expected_retained_offsets":[2,3],"active_offset":3,"physical_power_loss_claim":false}

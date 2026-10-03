@@ -1,0 +1,14 @@
+{
+  "phase": "all-target-tests",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--all-targets",
+    "--all-features"
+  ],
+  "cpuset": "0,1"
+}

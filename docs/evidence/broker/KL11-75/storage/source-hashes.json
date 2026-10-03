@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "classification": "frozen candidate source identities; final complete-source source pin and full acceptance remain pending publication",
+  "scope": "ordinary sealed-prefix compaction; no transaction/producer-state/full-cleaner acceptance",
+  "development_basis": "9fb69ad8c9efff517de09d0774bb6f64cf5e203b broker subtree+rootclippy.toml, explicit WORK overlays, authentic Apache fixtures, two exact9fb committed compile prerequisites; not whole repository proof",
+  "files": {
+    "partitionline-broker/src/compaction.rs": {
+      "sha256": "864840ca1fb90256bb9078ac49782fec5aed03d54dbf71adaa66ed6fc5af6962",
+      "git_blob": "071879ac51420f95d9d067c83e8b6ae19796e3d7",
+      "bytes": 25367,
+      "mode": 384
+    },
+    "partitionline-broker/src/records.rs": {
+      "sha256": "150fa65d2b4ad3b7075bcc392af7e6e4ae1538abe4b1458c277db00ae3169cf1",
+      "git_blob": "11fa91668ec977597069af24936bfbe90db936e9",
+      "bytes": 30302,
+      "mode": 384
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "76a317f8d493a69b80d29c57fc2eabafd6224a173c2c96fd68fd329921266fca",
+      "git_blob": "dcd78f641e1fb6d9942ed3994d4a810c08873404",
+      "bytes": 18396,
+      "mode": 384
+    },
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "14998f8873bcf41ae9f5eabb40c7cd8932897e217b81c04eea31ff3f79dd8f3e",
+      "git_blob": "17be802a1977f436704b1a76c3a9c8f83c6639e6",
+      "bytes": 126373,
+      "mode": 384
+    },
+    "partitionline-broker/tests/compaction.rs": {
+      "sha256": "9d2d6ac2002457c407934bc81b15a1917710bd9c749bbb3b754036ee626e492b",
+      "git_blob": "83d97fadeb264d7dd221e64b6b03d3d5d12cd833",
+      "bytes": 21863,
+      "mode": 384
+    },
+    "partitionline-broker/tests/records.rs": {
+      "sha256": "b22db1437961a9b7fe599438f8dd88473da86c5975fd0aa7cfd94f356149bc7a",
+      "git_blob": "1194d9a73fe9ea5889e3183597b4ed96ed1a7572",
+      "bytes": 16789,
+      "mode": 384
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "1b861e89e02e05a93e6956c0a56c87e122497b4b3f1992b78bac371d303fc11e",
+      "git_blob": "4c3e41351ea5275f52eea584b797f835fc71c55c",
+      "bytes": 32867,
+      "mode": 384
+    },
+    "partitionline-broker/src/lib.rs": {
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "git_blob": "9b129643b0bd4754918cc90be4c3633366332693",
+      "bytes": 848,
+      "mode": 384
+    },
+    "partitionline-broker/src/metadata.rs": {
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "git_blob": "e47d607e5c35995bdf0b409c9550a5a9143b0273",
+      "bytes": 99234,
+      "mode": 384
+    },
+    "partitionline-broker/src/produce.rs": {
+      "sha256": "2d85a339af47a8a6732d5b3e5d98d3fff691e99e0fbfc280dddf53a384c673b7",
+      "git_blob": "048bc0f205ef3502d067799e7f30c6d644b00af0",
+      "bytes": 40354,
+      "mode": 384
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "sha256": "a76240c081d42013eff275b27e7727ea924e26b5cebbff3c449e16da88d3f0b8",
+      "git_blob": "05781f41e5897ec485c7acfee95bad7947013716",
+      "bytes": 24580,
+      "mode": 384
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "161d37e796e4120290a6de0698e5b2485210826c66a3273200fb633e336520b5",
+      "git_blob": "55d0d8435c82af90f92bd087adeb829901e778cd",
+      "bytes": 71757,
+      "mode": 384
+    }
+  },
+  "staged_source_paths": [
+    "partitionline-broker/src/compaction.rs",
+    "partitionline-broker/src/records.rs",
+    "partitionline-broker/src/partition.rs",
+    "partitionline-broker/src/segments.rs",
+    "partitionline-broker/tests/compaction.rs",
+    "partitionline-broker/tests/records.rs",
+    "partitionline-broker/tests/segments.rs",
+    "partitionline-broker/src/lib.rs",
+    "partitionline-broker/src/metadata.rs",
+    "partitionline-broker/src/produce.rs",
+    "partitionline-broker/src/fetch.rs",
+    "partitionline-broker/tests/fetch.rs",
+    "docs/evidence/broker/KL11-75/storage/README.md",
+    "docs/evidence/broker/KL11-75/storage/source-hashes.json"
+  ]
+}

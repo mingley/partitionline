@@ -1,0 +1,9 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/compaction-development/corrected/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.34s
+     Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a)
+
+running 1 test
+test compacted_fetch_preserves_apache_bytes_holes_timestamps_and_restart ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 0.03s
+

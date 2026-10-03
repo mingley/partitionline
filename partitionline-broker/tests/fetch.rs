@@ -210,6 +210,194 @@ async fn poll_pending<F: std::future::Future>(
 }
 
 #[tokio::test]
+async fn compacted_fetch_preserves_apache_bytes_holes_timestamps_and_restart(
+) -> Result<(), Box<dyn StdError>> {
+    use partitionline_broker::{compaction, records};
+    let fixtures =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/records-compacted/4.3.1");
+    for (name, input, active, fresh, expired, end, sealed_end, retained) in [
+        (
+            "mixed",
+            "cleaner-mixed-input.bin",
+            "cleaner-mixed-active-protected.bin",
+            "cleaner-first-horizon-sparse.bin",
+            "cleaner-equal-horizon-sparse.bin",
+            10,
+            8,
+            2,
+        ),
+        (
+            "null-only",
+            "cleaner-nullonly-input.bin",
+            "cleaner-nullonly-active-protected.bin",
+            "cleaner-nullonly-empty-61.bin",
+            "cleaner-nullonly-empty-61.bin",
+            3,
+            2,
+            0,
+        ),
+        (
+            "all-removed",
+            "cleaner-allremoved-input.bin",
+            "cleaner-allremoved-active-protected.bin",
+            "cleaner-intermediate-empty-dropped.bin",
+            "cleaner-last-empty-61.bin",
+            4,
+            3,
+            0,
+        ),
+    ] {
+        let root = scratch(name);
+        seed(root.clone(), false, false).await?;
+        let initial = read(&fixtures.join(input))?;
+        let protected = read(&fixtures.join(active))?;
+        tokio::task::spawn_blocking({
+            let root = root.clone();
+            let protected = protected.clone();
+            move || -> Result<(), Box<dyn StdError + Send + Sync>> {
+                fs::create_dir(root.join("partitions"))?;
+                let config =
+                    rolling_store(&root).map_err(|e| std::io::Error::other(e.to_string()))?;
+                let (mut part, _) = partition::Partition::open_segmented(
+                    root.join("partitions/00000000000000000000000000000002-0.segments"),
+                    0,
+                    config.journal_limits,
+                    config.record_limits,
+                    config.segment_limits.unwrap(),
+                )?;
+                part.append(&initial)?;
+                part.append(&protected)?;
+                assert_eq!(part.next_offset(), end);
+                assert_eq!(part.segment_count(), 2);
+                Ok(())
+            }
+        })
+        .await?
+        .map_err(|e| e as Box<dyn StdError>)?;
+        let mut raw_id = [0; 16];
+        raw_id[15] = 2;
+        let id = TopicId::new(raw_id)?;
+        let policy = compaction::Policy::new(1000, compaction::Limits::default())?;
+        for (now, expected) in [(2000, fresh), (2999, fresh), (3000, expired)] {
+            let router = Router::open_with_compaction_store(
+                root.join("catalog.journal"),
+                common(),
+                rolling_store(&root)?,
+                fetch::Limits::default(),
+                policy,
+            )
+            .await?
+            .0;
+            let outcome = router.compact_partition(id, 0, now).await?;
+            assert_eq!(outcome.end_offset, sealed_end);
+            let expected = read(&fixtures.join(expected))?;
+            let mut whole = expected.clone();
+            whole.extend_from_slice(&protected);
+            // Holes and empty batches retain the original logical offset span.
+            for offset in 0..=end {
+                let response = router
+                    .respond(fetch_request(
+                        6,
+                        offset,
+                        0,
+                        0,
+                        1024 * 1024,
+                        &[(0, 1024 * 1024)],
+                    ))
+                    .await?;
+                assert_eq!(fetch_error(&response), 0, "{name}/{now}/{offset}");
+                assert_eq!(watermark(&response), end);
+                assert_eq!(i64::from_be_bytes(response[45..53].try_into().unwrap()), 0);
+                let suffix = if offset == end {
+                    &[][..]
+                } else if offset >= outcome.end_offset {
+                    &protected[..]
+                } else {
+                    &whole[..]
+                };
+                assert_eq!(records(&response, 6), suffix, "{name}/{now}/{offset}");
+            }
+            if name == "mixed" {
+                let mut query = fixture("list-offsets-v3-timestamp1003").await?;
+                let length = query.len();
+                query[length - 8..].copy_from_slice(&1004i64.to_be_bytes());
+                let response = router.respond(query).await?;
+                let length = response.len();
+                let (timestamp, offset) = if now < 3000 {
+                    (1010i64, 4i64)
+                } else {
+                    (1011, 5)
+                };
+                assert_eq!(&response[length - 16..length - 8], timestamp.to_be_bytes());
+                assert_eq!(&response[length - 8..], offset.to_be_bytes());
+            } else if name == "null-only" || now >= 3000 {
+                // Empty compacted headers carry max_timestamp1002 for age
+                // hints, but contain no record that can satisfy this query.
+                let mut query = fixture("list-offsets-v3-timestamp1003").await?;
+                let length = query.len();
+                query[length - 8..].copy_from_slice(&1001i64.to_be_bytes());
+                let response = router.respond(query).await?;
+                let length = response.len();
+                let active = records::validate(&protected, records::Limits::default())?;
+                let record = active
+                    .batches()
+                    .next()
+                    .ok_or("protected batch")??
+                    .records()
+                    .next()
+                    .ok_or("protected record")??;
+                assert_eq!(
+                    &response[length - 16..length - 8],
+                    record.timestamp.to_be_bytes()
+                );
+                assert_eq!(&response[length - 8..], record.offset.to_be_bytes());
+            }
+            // Sparse, horizon and empty stored batches never gain Produce admission.
+            assert!(records::validate(&expected, records::Limits::default()).is_err());
+            let rejected = router.respond(produce(&expected, 0)).await?;
+            assert_ne!(i16::from_be_bytes(rejected[23..25].try_into().unwrap()), 0);
+            let at_end = router
+                .respond(fetch_request(6, end, 0, 0, 1, &[(0, 1)]))
+                .await?;
+            assert_eq!(watermark(&at_end), end);
+            if now == 3000 {
+                assert_eq!(outcome.retained_records, retained);
+            }
+            router.shutdown().await?;
+        }
+        // Reopening through the ordinary read profile recognizes the selected
+        // sparse generation; append continues at the unchanged exclusive end.
+        let router = open_rolling(&root, fetch::Limits::default()).await?;
+        let response = router
+            .respond(fetch_request(6, 0, 0, 0, 1024 * 1024, &[(0, 1024 * 1024)]))
+            .await?;
+        let mut expected = read(&fixtures.join(expired))?;
+        expected.extend_from_slice(&protected);
+        assert_eq!(records(&response, 6), expected);
+        assert_eq!(watermark(&response), end);
+        let appended = router.respond(produce(&protected, 0)).await?;
+        assert_eq!(i16::from_be_bytes(appended[23..25].try_into().unwrap()), 0);
+        assert_eq!(
+            i64::from_be_bytes(appended[25..33].try_into().unwrap()),
+            end
+        );
+        let count =
+            records::validate(&protected, records::Limits::default())?.record_count() as i64;
+        let response = router
+            .respond(fetch_request(6, end, 0, 0, 1, &[(0, 1)]))
+            .await?;
+        assert_eq!(watermark(&response), end + count);
+        assert_eq!(
+            i64::from_be_bytes(records(&response, 6)[..8].try_into().unwrap()),
+            end
+        );
+        router.shutdown().await?;
+        clean(root).await?;
+    }
+    Ok(())
+}
+
+#[tokio::test]
 async fn independent_apache_read_goldens() -> Result<(), Box<dyn StdError>> {
     let mut observations = Vec::new();
     let mut api_versions_cases = Vec::new();
@@ -649,7 +837,24 @@ async fn serve_live_probe() -> Result<(), Box<dyn StdError>> {
         Some(value) if value == "1" => rolling_store(&root)?,
         Some(_) => return Err("PARTITIONLINE_FETCH_LIVE_SEGMENTS must be1 when set".into()),
     };
-    let router = Arc::new(
+    let compaction = match std::env::var_os("PARTITIONLINE_FETCH_LIVE_COMPACTION") {
+        None => false,
+        Some(value) if value == "1" && store.segment_limits.is_some() => true,
+        Some(_) => return Err("live compaction requires COMPACTION=1 and SEGMENTS=1".into()),
+    };
+    let opened = if compaction {
+        Router::open_with_compaction_store(
+            root.join("catalog.journal"),
+            cfg,
+            store,
+            fetch::Limits::default(),
+            partitionline_broker::compaction::Policy::new(
+                1000,
+                partitionline_broker::compaction::Limits::default(),
+            )?,
+        )
+        .await?
+    } else {
         Router::open_with_read_store(
             root.join("catalog.journal"),
             cfg,
@@ -657,8 +862,8 @@ async fn serve_live_probe() -> Result<(), Box<dyn StdError>> {
             fetch::Limits::default(),
         )
         .await?
-        .0,
-    );
+    };
+    let router = Arc::new(opened.0);
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], port).into(),
         transport::Config::default(),
@@ -679,6 +884,51 @@ async fn serve_live_probe() -> Result<(), Box<dyn StdError>> {
         .await?;
         if stop || tokio::time::Instant::now() >= deadline {
             break;
+        }
+        if compaction {
+            // This local test operator is independent of the Kafka wire profile.
+            // Peers atomically rename exactly [topic UUID16, partition4, clock8].
+            let command = tokio::task::spawn_blocking({
+                let root = root.clone();
+                move || -> std::io::Result<Option<[u8; 28]>> {
+                    let path = root.join("compact-request");
+                    let metadata = match fs::symlink_metadata(&path) {
+                        Ok(metadata) => metadata,
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                            return Ok(None);
+                        }
+                        Err(error) => return Err(error),
+                    };
+                    if !metadata.is_file() || metadata.len() != 28 {
+                        return Err(std::io::Error::other("invalid local compaction request"));
+                    }
+                    let mut bytes = [0; 28];
+                    File::open(path)?.read_exact(&mut bytes)?;
+                    Ok(Some(bytes))
+                }
+            })
+            .await??;
+            if let Some(command) = command {
+                let topic = TopicId::new(command[..16].try_into()?)?;
+                let partition = i32::from_be_bytes(command[16..20].try_into()?);
+                let now = i64::from_be_bytes(command[20..].try_into()?);
+                let result = router.compact_partition(topic, partition, now).await?;
+                let receipt = format!(
+                    "{{\"start_offset\":{},\"end_offset\":{},\"scanned_records\":{},\"retained_records\":{},\"rewritten_segments\":{},\"bytes_before\":{},\"bytes_after\":{}}}\n",
+                    result.start_offset, result.end_offset, result.scanned_records,
+                    result.retained_records, result.rewritten_segments,
+                    result.bytes_before, result.bytes_after,
+                );
+                tokio::task::spawn_blocking({
+                    let root = root.clone();
+                    move || -> std::io::Result<()> {
+                        write(&root.join("compact-result.tmp"), receipt.as_bytes())?;
+                        fs::remove_file(root.join("compact-request"))?;
+                        fs::rename(root.join("compact-result.tmp"), root.join("compact-result"))
+                    }
+                })
+                .await??;
+            }
         }
         tokio::time::sleep(Duration::from_millis(40)).await;
     }

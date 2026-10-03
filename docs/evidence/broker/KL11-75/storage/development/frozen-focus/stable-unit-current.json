@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "classification": "scoped development WORK-overlay command",
+  "source": "/workspace/work/compaction-development/corrected/source",
+  "toolchain": "stable",
+  "rustc_vV": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "cargo",
+    "+stable",
+    "test",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--locked",
+    "--lib",
+    "compaction",
+    "--",
+    "--nocapture"
+  ],
+  "extra_env": {
+    "PL_COMPACTION_FAULT_DIR": "/workspace/work/compaction-development/corrected/stable-unit-current-faults"
+  },
+  "expected_exit_code": 0,
+  "actual_exit_code": 0,
+  "source_file_count": 5446,
+  "observed_passed_tests": 7,
+  "empty_test_selection": false,
+  "source_unchanged": true,
+  "started_unix": 1791015163.6356168,
+  "elapsed_seconds": 4.590344190597534,
+  "free_bytes_before": 940912640,
+  "free_bytes_after": 936693760
+}

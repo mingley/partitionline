@@ -13,7 +13,7 @@
 
 use crate::{
     catalog::{Catalog, TopicId},
-    journal, metadata, partition, protocol, records, retention, segments,
+    compaction, journal, metadata, partition, protocol, records, retention, segments,
 };
 use std::{
     fs::{self, File},
@@ -131,6 +131,23 @@ impl Config {
         }
         Ok(())
     }
+    pub(crate) fn validate_compaction(&self, policy: compaction::Policy) -> Result<(), Error> {
+        self.validate()?;
+        let limits = self.segment_limits.ok_or(Error::InvalidConfig)?;
+        if limits
+            .compaction_index_envelope()
+            .map_err(|_| Error::InvalidConfig)?
+            > limits.max_index_bytes()
+        {
+            return Err(Error::InvalidConfig);
+        }
+        // The cleaner, source payload and publication buffers share one total
+        // envelope; no normalized Produce request is retained during this job.
+        limits
+            .compaction_scratch_bytes(policy.limits(), self.journal_limits)
+            .map_err(|_| Error::InvalidConfig)?;
+        Ok(())
+    }
 }
 
 /// Structural/lifecycle failures; no payload or configured path is retained.
@@ -209,6 +226,7 @@ pub(crate) struct Store {
     slots: Vec<Slot>,
     changed: bool,
     retention: Option<retention::Config>,
+    compaction: Option<compaction::Policy>,
     sweep_cursor: usize,
 }
 impl Store {
@@ -274,6 +292,7 @@ impl Store {
             slots,
             changed: false,
             retention: None,
+            compaction: None,
             sweep_cursor: 0,
         })
     }
@@ -284,6 +303,54 @@ impl Store {
         }
         self.retention = Some(config);
         Ok(())
+    }
+    pub(crate) fn enable_compaction(&mut self, policy: compaction::Policy) -> Result<(), Error> {
+        self.config.validate_compaction(policy)?;
+        if self.compaction.is_some() {
+            return Err(Error::InvalidConfig);
+        }
+        self.compaction = Some(policy);
+        Ok(())
+    }
+    pub(crate) fn compact_partition(
+        &mut self,
+        catalog: &Catalog,
+        id: TopicId,
+        index: i32,
+        now_ms: i64,
+    ) -> Result<compaction::Outcome, Error> {
+        let policy = self.compaction.ok_or(Error::InvalidConfig)?;
+        let topic = catalog.by_id(id).ok_or(Error::InvalidStore)?;
+        if index < 0
+            || index as u32 >= topic.partition_count()
+            || matches!(
+                topic.name(),
+                "__consumer_offsets" | "__transaction_state" | "__share_group_state"
+            )
+        {
+            return Err(Error::InvalidStore);
+        }
+        if now_ms < 0 {
+            return Err(Error::InvalidConfig);
+        }
+        let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == id && slot.index == index)
+        else {
+            // Known empty partitions need no file or zero-length cleaner swap.
+            return Ok(compaction::Outcome::default());
+        };
+        let watermark = slot.partition.next_offset();
+        let guard =
+            segments::DeletionGuard::new(watermark, watermark).map_err(|_| Error::InvalidConfig)?;
+        let poisoned = slot.partition.is_poisoned();
+        let result = slot.partition.compact(now_ms, policy, guard);
+        self.changed |= result
+            .as_ref()
+            .is_ok_and(|outcome| outcome.rewritten_segments != 0)
+            || poisoned != slot.partition.is_poisoned();
+        result.map_err(Into::into)
     }
     fn append(&mut self, id: TopicId, index: i32, bytes: &[u8]) -> Result<partition::Append, i16> {
         let position = match self

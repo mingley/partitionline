@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_sha": "255f23256e445a4d7739224d05eb68824a1be341",
+  "verified_source_files": 66820,
+  "toolchain": "stable",
+  "features": "default",
+  "all_target_counts": {
+    "passed": 1835,
+    "failed": 0,
+    "ignored": 5
+  },
+  "doctest_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0
+  },
+  "command_receipts": 9,
+  "source_before_after_receipts": 18,
+  "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets.",
+  "qualification_attempts": {
+    "first_attempt": "../stable-default-first-installer-enospc",
+    "first_outcome": "UnqualifiedENOSPC duringstrictClippy; firstfiveactualpasses retained. Rootcorrelated independenttransientformatterinstallation, installerrollback/cleanupverified before retry.",
+    "completion": "Sameimmutable255/66,820Gitfiles/11hashes. Onlyfailedstrict +threeunexecutedcommands rerun/run; all9successfulcommandreceipts+18fullsourcechecks verified.",
+    "classification": "../stable-default-installer-enospc-retry-classification.json",
+    "resume_runner_sha256": "a2a42eeffb3d04ac6ba3844d77051410995aa977f17c3654d43a89c7762f96f2"
+  }
+}

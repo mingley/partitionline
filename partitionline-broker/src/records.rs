@@ -1,10 +1,12 @@
 //! Allocation-free admission validation for ordinary, uncompressed magic-2 batches.
 //!
-//! This is a foundation for a future Produce handler, not a general Fetch parser.
-//! It requires positive record counts and contiguous record offset deltas, accepts
+//! Produce admission requires positive counts and contiguous offset deltas. The
+//! separate [`validate_read`] path accepts ordinary sparse/empty compacted batches
+//! and delete horizons while checking their full logical extent and actual count.
+//! Both paths accept
 //! nullable keys/values and repeated headers, and validates the entire input before
-//! returning a borrowed token. Compacted batches, legacy magic, codecs, producer
-//! sequencing, transactions/control records, delete horizons and broker-selected
+//! returning a borrowed token. Legacy magic, codecs, producer
+//! sequencing, transactions/control records and broker-selected
 //! log-append timestamps require separate implementations. Nothing is advertised.
 //!
 //! CRC32C protects bytes starting at batch attributes; the base offset, length,
@@ -32,6 +34,10 @@ pub struct Limits {
     headers: usize,
 }
 impl Limits {
+    pub(crate) fn remaining_records(mut self, remaining: usize) -> Self {
+        self.records = self.records.min(remaining);
+        self
+    }
     /// Validate byte limits (at most 64 MiB) and count limits (at most one million).
     ///
     /// `record_bytes` includes the encoded length prefix. `field_bytes` bounds
@@ -258,10 +264,200 @@ pub struct Batch<'a> {
     pub base_offset: i64,
     /// Checked signed offset immediately following the last record.
     pub next_offset: i64,
-    /// Positive explicit record count.
+    /// Actual record count; compacted batches can be empty.
     pub record_count: u32,
+    /// CreateTime base or, when present, the delete horizon.
+    pub base_timestamp: i64,
     /// Maximum CreateTime timestamp.
     pub max_timestamp: i64,
+    /// Authenticated compaction horizon in the protected batch attributes/header.
+    pub delete_horizon_ms: Option<i64>,
+}
+impl<'a> Batch<'a> {
+    /// Constant-space fallible projections of the encoded records.
+    ///
+    /// This also checks slicing/arithmetic for externally constructed `Batch`
+    /// values; it does not substitute for full CRC/admission validation.
+    pub fn records(&self) -> Records<'a> {
+        Records::new(self.bytes)
+    }
+}
+
+/// Borrowed proof for complete ordinary stored bytes, including sparse batches.
+#[derive(Debug, Clone, Copy)]
+pub struct ReadSummary<'a> {
+    validated: Validated<'a>,
+    first: Option<i64>,
+    next: Option<i64>,
+}
+impl<'a> ReadSummary<'a> {
+    /// Exact fully consumed input; empty input describes an empty physical entry.
+    pub fn as_bytes(&self) -> &'a [u8] {
+        self.validated.as_bytes()
+    }
+    /// Actual batch count, independent of the enclosing persisted logical span.
+    pub fn batch_count(&self) -> usize {
+        self.validated.batch_count()
+    }
+    /// Actual retained record count.
+    pub fn record_count(&self) -> usize {
+        self.validated.record_count()
+    }
+    /// Actual retained header count.
+    pub fn header_count(&self) -> usize {
+        self.validated.header_count()
+    }
+    /// Borrowed batch projections.
+    pub fn batches(&self) -> Batches<'a> {
+        self.validated.batches()
+    }
+    /// First physical batch base; absent for zero-payload entries.
+    pub fn first_offset(&self) -> Option<i64> {
+        self.first
+    }
+    /// Exclusive original extent of the final physical batch, not actual count.
+    pub fn next_offset(&self) -> Option<i64> {
+        self.next
+    }
+}
+
+/// Borrowed ordinary record, retaining its original logical offset and fields.
+#[derive(Debug, Clone, Copy)]
+pub struct Record<'a> {
+    /// Checked absolute logical offset.
+    pub offset: i64,
+    /// Checked absolute CreateTime timestamp.
+    pub timestamp: i64,
+    /// Nullable key; an empty non-null key remains distinct from null.
+    pub key: Option<&'a [u8]>,
+    /// Nullable value; null is a tombstone only with a non-null key.
+    pub value: Option<&'a [u8]>,
+    /// Complete original record including its encoded length prefix.
+    pub encoded: &'a [u8],
+    pub(crate) suffix: &'a [u8],
+}
+/// Constant-space fallible record iterator.
+#[derive(Debug)]
+pub struct Records<'a> {
+    cursor: Cursor<'a>,
+    base: i64,
+    base_time: i64,
+    last: i32,
+    left: usize,
+    previous: Option<i32>,
+    error: Option<Error>,
+    failed: bool,
+}
+impl<'a> Records<'a> {
+    fn new(bytes: &'a [u8]) -> Self {
+        let mut input = Cursor::new(bytes, 0);
+        let parsed = projection(&mut input).and_then(|b| {
+            if !input.remaining().is_empty() {
+                return Err(invalid(input.at(), Invalid::TrailingBytes));
+            }
+            let last = i32::try_from(b.next_offset - b.base_offset - 1)
+                .map_err(|_| invalid(23, Invalid::Offset))?;
+            Ok((
+                b.base_offset,
+                b.base_timestamp,
+                last,
+                b.record_count as usize,
+            ))
+        });
+        let (base, base_time, last, left, error) = match parsed {
+            Ok((a, b, c, d)) => (a, b, c, d, None),
+            Err(e) => (0, 0, 0, 0, Some(e)),
+        };
+        Self {
+            cursor: Cursor::new(bytes.get(HEADER..).unwrap_or_default(), HEADER),
+            base,
+            base_time,
+            last,
+            left,
+            previous: None,
+            error,
+            failed: false,
+        }
+    }
+}
+impl<'a> Iterator for Records<'a> {
+    type Item = Result<Record<'a>, Error>;
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.failed {
+            return None;
+        }
+        if let Some(error) = self.error.take() {
+            self.failed = true;
+            return Some(Err(error));
+        }
+        if self.left == 0 {
+            if self.cursor.remaining().is_empty() {
+                return None;
+            }
+            self.failed = true;
+            return Some(Err(invalid(self.cursor.at(), Invalid::TrailingBytes)));
+        }
+        let result = (|| {
+            #[cfg(test)]
+            RECORD_VISITS.with(|n| n.set(n.get() + 1));
+            let start = self.cursor.position;
+            let at = self.cursor.at();
+            let length = self.cursor.varint()?;
+            if length < 6 {
+                return Err(invalid(at, Invalid::Length));
+            }
+            let body = self.cursor.take(length as usize)?;
+            let mut r = Cursor::new(body, self.cursor.at() - body.len());
+            if r.byte()? != 0 {
+                return Err(invalid(at, Invalid::RecordAttributes));
+            }
+            let timestamp = self
+                .base_time
+                .checked_add(r.varlong()?)
+                .ok_or_else(|| invalid(r.at(), Invalid::Timestamp))?;
+            let suffix = r.remaining();
+            let delta = r.varint()?;
+            if delta < 0 || delta > self.last || self.previous.is_some_and(|n| delta <= n) {
+                return Err(invalid(r.at(), Invalid::Offset));
+            }
+            let offset = self
+                .base
+                .checked_add(i64::from(delta))
+                .ok_or_else(|| invalid(r.at(), Invalid::Offset))?;
+            let key = nullable(&mut r, MAX_BYTES)?;
+            let value = nullable(&mut r, MAX_BYTES)?;
+            let headers = r.varint()?;
+            let headers = usize::try_from(headers).map_err(|_| invalid(r.at(), Invalid::Length))?;
+            if headers > MAX_ITEMS || headers > r.remaining().len() / 2 {
+                return Err(invalid(r.at(), Invalid::Length));
+            }
+            for _ in 0..headers {
+                let n = r.varint()?;
+                let n = usize::try_from(n).map_err(|_| invalid(r.at(), Invalid::Length))?;
+                if std::str::from_utf8(r.take(n)?).is_err() {
+                    return Err(invalid(r.at(), Invalid::HeaderKey));
+                }
+                nullable(&mut r, MAX_BYTES)?;
+            }
+            if !r.remaining().is_empty() {
+                return Err(invalid(r.at(), Invalid::TrailingBytes));
+            }
+            self.previous = Some(delta);
+            self.left -= 1;
+            Ok(Record {
+                offset,
+                timestamp,
+                key,
+                value,
+                suffix,
+                encoded: &self.cursor.bytes[start..self.cursor.position],
+            })
+        })();
+        if result.is_err() {
+            self.failed = true;
+        }
+        Some(result)
+    }
 }
 /// Constant-space iterator over previously validated batches.
 #[derive(Debug)]
@@ -308,7 +504,7 @@ pub fn validate(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
             return Err(budget(at, Budget::Batches));
         }
         let batch = take_batch(&mut input, limits.batch_bytes)?;
-        validate_batch(batch, at, limits, &mut records, &mut headers)?;
+        validate_batch(batch, at, limits, &mut records, &mut headers, false)?;
         batches += 1;
     }
     Ok(Validated {
@@ -316,6 +512,48 @@ pub fn validate(bytes: &[u8], limits: Limits) -> Result<Validated<'_>, Error> {
         batches,
         records,
         headers,
+    })
+}
+/// Validate complete ordinary stored bytes without allocating an index.
+///
+/// Sparse deltas are strictly increasing and within each original batch extent.
+/// Empty 61-byte batches retain that extent, and empty whole payloads have zero
+/// physical batches. Signed offset overflow, extra bytes and protected features
+/// fail closed even where an Apache component parser is more permissive.
+pub fn validate_read(bytes: &[u8], limits: Limits) -> Result<ReadSummary<'_>, Error> {
+    if bytes.len() > limits.input_bytes {
+        return Err(budget(0, Budget::InputBytes));
+    }
+    let mut input = Cursor::new(bytes, 0);
+    let (mut batches, mut records, mut headers) = (0usize, 0usize, 0usize);
+    let (mut first, mut next) = (None, None);
+    while !input.remaining().is_empty() {
+        let at = input.at();
+        if batches == limits.batches {
+            return Err(budget(at, Budget::Batches));
+        }
+        let bytes = take_batch(&mut input, limits.batch_bytes)?;
+        validate_batch(bytes, at, limits, &mut records, &mut headers, true)?;
+        let mut one = Cursor::new(bytes, at);
+        let b = projection(&mut one)?;
+        if next.is_some_and(|end| b.base_offset < end) {
+            return Err(invalid(at, Invalid::Offset));
+        }
+        if first.is_none() {
+            first = Some(b.base_offset);
+        }
+        next = Some(b.next_offset);
+        batches += 1;
+    }
+    Ok(ReadSummary {
+        validated: Validated {
+            bytes,
+            batches,
+            records,
+            headers,
+        },
+        first,
+        next,
     })
 }
 fn take_batch<'a>(input: &mut Cursor<'a>, limit: usize) -> Result<&'a [u8], Error> {
@@ -341,6 +579,7 @@ fn validate_batch(
     limits: Limits,
     total_records: &mut usize,
     total_headers: &mut usize,
+    read: bool,
 ) -> Result<(), Error> {
     let mut c = Cursor::new(bytes, at);
     let base = c.i64()?;
@@ -376,7 +615,7 @@ fn validate_batch(
     if attrs & 0x10 != 0 {
         return Err(unsupported(at + 21, Unsupported::Transactional));
     }
-    if attrs & 0x40 != 0 {
+    if attrs & 0x40 != 0 && !read {
         return Err(unsupported(at + 21, Unsupported::DeleteHorizon));
     }
     if attrs & 8 != 0 {
@@ -401,7 +640,7 @@ fn validate_batch(
     if producer >= 0 {
         return Err(unsupported(at + 43, Unsupported::Idempotent));
     }
-    if count <= 0 {
+    if count < 0 || (count == 0 && !read) {
         return Err(invalid(at + 57, Invalid::Empty));
     }
     let count = usize::try_from(count).map_err(|_| invalid(at + 57, Invalid::Length))?;
@@ -410,7 +649,7 @@ fn validate_batch(
     }
     if base < 0
         || last < 0
-        || usize::try_from(last).ok() != count.checked_sub(1)
+        || (!read && usize::try_from(last).ok() != count.checked_sub(1))
         || base
             .checked_add(i64::from(last))
             .and_then(|n| n.checked_add(1))
@@ -418,11 +657,25 @@ fn validate_batch(
     {
         return Err(invalid(at, Invalid::Offset));
     }
+    if read && attrs & 0x40 != 0 && base_time < 0 {
+        return Err(invalid(at + 27, Invalid::Timestamp));
+    }
+    if read && count == 0 {
+        if attrs & 0x40 != 0 {
+            return Err(invalid(at + 21, Invalid::Attributes));
+        }
+        if base_time != -1 {
+            return Err(invalid(at + 27, Invalid::Timestamp));
+        }
+    }
     if count > c.remaining().len() / 7 {
         return Err(invalid(at + 57, Invalid::Length));
     }
     let mut observed_max = i64::MIN;
+    let mut previous = None;
     for delta in 0..count {
+        #[cfg(test)]
+        RECORD_VISITS.with(|n| n.set(n.get() + 1));
         let record_at = c.at();
         let prefix_start = c.position;
         let length = c.varint()?;
@@ -445,9 +698,12 @@ fn validate_batch(
             .ok_or_else(|| invalid(r.at(), Invalid::Timestamp))?;
         observed_max = observed_max.max(timestamp);
         let offset = r.varint()?;
-        if usize::try_from(offset).ok() != Some(delta) {
+        if (!read && usize::try_from(offset).ok() != Some(delta))
+            || (read && (offset < 0 || offset > last || previous.is_some_and(|n| offset <= n)))
+        {
             return Err(invalid(r.at(), Invalid::Offset));
         }
+        previous = Some(offset);
         nullable(&mut r, limits.field_bytes)?;
         nullable(&mut r, limits.field_bytes)?;
         let header_at = r.at();
@@ -482,33 +738,43 @@ fn validate_batch(
     if !c.remaining().is_empty() {
         return Err(invalid(c.at(), Invalid::TrailingBytes));
     }
-    if observed_max != max_time {
+    if count > 0 && observed_max != max_time {
         return Err(invalid(at + 35, Invalid::Timestamp));
     }
     *total_records += count;
     Ok(())
 }
-fn nullable(c: &mut Cursor<'_>, limit: usize) -> Result<(), Error> {
+#[cfg(test)]
+thread_local! { static RECORD_VISITS:std::cell::Cell<usize>=const { std::cell::Cell::new(0) }; }
+#[cfg(test)]
+pub(crate) fn reset_record_visits() {
+    RECORD_VISITS.with(|n| n.set(0));
+}
+#[cfg(test)]
+pub(crate) fn record_visits() -> usize {
+    RECORD_VISITS.with(std::cell::Cell::get)
+}
+fn nullable<'a>(c: &mut Cursor<'a>, limit: usize) -> Result<Option<&'a [u8]>, Error> {
     let at = c.at();
     let size = c.varint()?;
     if size == -1 {
-        return Ok(());
+        return Ok(None);
     }
     let size = usize::try_from(size).map_err(|_| invalid(at, Invalid::Length))?;
     if size > limit {
         return Err(budget(at, Budget::FieldBytes));
     }
-    c.take(size)?;
-    Ok(())
+    Ok(Some(c.take(size)?))
 }
 fn projection<'a>(input: &mut Cursor<'a>) -> Result<Batch<'a>, Error> {
     let at = input.at();
     let bytes = take_batch(input, MAX_BYTES)?;
     let mut c = Cursor::new(bytes, at);
     let base_offset = c.i64()?;
-    c.take(15)?;
+    c.take(13)?;
+    let attrs = c.u16()?;
     let last = c.i32()?;
-    c.take(8)?;
+    let base_timestamp = c.i64()?;
     let max_timestamp = c.i64()?;
     c.take(14)?;
     let record_count = c.u32()?;
@@ -516,12 +782,17 @@ fn projection<'a>(input: &mut Cursor<'a>) -> Result<Batch<'a>, Error> {
         .checked_add(i64::from(last))
         .and_then(|n| n.checked_add(1))
         .ok_or_else(|| invalid(at, Invalid::Offset))?;
+    if base_offset < 0 || last < 0 || record_count > i32::MAX as u32 {
+        return Err(invalid(at, Invalid::Offset));
+    }
     Ok(Batch {
         bytes,
         base_offset,
         next_offset,
         record_count,
+        base_timestamp,
         max_timestamp,
+        delete_horizon_ms: (attrs & 0x40 != 0).then_some(base_timestamp),
     })
 }
 #[derive(Debug, Clone, Copy)]

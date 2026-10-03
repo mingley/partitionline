@@ -1,0 +1,32 @@
+diff --git a/tests/protocol_oracles.rs b/tests/protocol_oracles.rs
+index 2efa6063..bcd0eed6 100644
+--- a/tests/protocol_oracles.rs
++++ b/tests/protocol_oracles.rs
+@@ -4922,16 +4922,21 @@ fn share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition()
+         decode_share_acknowledge_topics_response_with_lock_timeout,
+         encode_share_acknowledge_topics_response_with_lock_timeout,
+     };
+-    for version in [1, 2] {
+-        let bytes: &[u8] = if version == 1 {
++    let fetch_cells: &[(&[u8], i16)] = &[
++        (
+             include_bytes!(
+                 "fixtures/protocol_oracles/share_v2/fetch_v1_acquired_subset_response.bin"
+-            )
+-        } else {
++            ),
++            1,
++        ),
++        (
+             include_bytes!(
+                 "fixtures/protocol_oracles/share_v2/fetch_v2_acquired_subset_response.bin"
+-            )
+-        };
++            ),
++            2,
++        ),
++    ];
++    for &(bytes, version) in fetch_cells {
+         let mut cur = bytes;
+         let (topics, endpoints, throttle, message, lock_timeout, code) =
+             decode_share_fetch_response(&mut cur, version).unwrap();

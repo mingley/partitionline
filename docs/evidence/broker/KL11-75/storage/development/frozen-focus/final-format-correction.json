@@ -1,0 +1,7 @@
+{
+  "classification": "owned canonical empty header lines formatted; no semantic changes",
+  "changes": {
+    "partitionline-broker/src/records.rs": "150fa65d2b4ad3b7075bcc392af7e6e4ae1538abe4b1458c277db00ae3169cf1",
+    "partitionline-broker/tests/records.rs": "b22db1437961a9b7fe599438f8dd88473da86c5975fd0aa7cfd94f356149bc7a"
+  }
+}

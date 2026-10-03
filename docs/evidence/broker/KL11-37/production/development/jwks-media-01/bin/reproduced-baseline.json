@@ -1,0 +1,11 @@
+{
+  "executable_local_path": "/workspace/work/broker-oidc/jwks-media-retention/reproduced-baseline-oidc-http",
+  "sha256": "9d80b1bf410e9faa65605a2bf9748164a1111b1c33d283bd6335d6b165f48d27",
+  "mode": 448,
+  "scope": "separate exact-source baseline reproduction, not original first execution",
+  "original_baseline_retention_limitation": "Original first baseline executable was overwritten at its same target path by the subsequent candidate build before its binary hash/bytes were retained. Its complete raw log and source/mode checks remain. The repeated baseline below is a separately labeled reproduction; no byte identity with the unretained original executable is claimed.",
+  "base_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "old_http_cache_source_sha": "0b9797ef166a5d067869be1fe988ee21051c86ad",
+  "otherwise_same_four_path_fixture_overlay": true,
+  "exit_code": 101
+}

@@ -1,0 +1,8 @@
+{
+  "classification": "second exact committed prerequisite copied to partial development archive after missing include failure; not full source proof",
+  "source_sha": "9fb69ad8c9efff517de09d0774bb6f64cf5e203b",
+  "path": "docs/evidence/broker/KL11-59/topic-name-cases.tsv",
+  "git_blob": "ef22f6586ab00c5888e31550916d69bf9fec4177",
+  "sha256": "f1e15f524df69214017f6dc2b87604ff85a63e74e9f857e2a87a3b75e1a2cb43",
+  "bytes": 1450
+}

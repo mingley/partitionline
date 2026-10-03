@@ -1,18 +1,23 @@
 //! Bounded rolling ordinary-record journals and verified offset/time checkpoints.
 //!
-//! Data uses `PLJRNL01`; this is not Kafka's disk format. One manifest selects
+//! Dense data uses `PLJRNL01`; explicit ordinary cleaning selects immutable
+//! `PLSPRS01` generations with positive logical entry spans and possibly zero
+//! payloads. These are local formats, not Kafka's disk format. One manifest selects
 //! contiguous sealed generations and one active journal. Derived seek bundles
 //! are rejected and rebuilt from verified records. Publication synchronizes
 //! files, atomically renames the manifest, then synchronizes its directory;
 //! ambiguous failures poison the handle. Run exclusively on a blocking storage
 //! owner. Explicit retention publishes a version-two manifest containing a
 //! monotonic logical floor and cleanup victims before unlinking files. Opening
-//! or appending a version-one log never migrates it. Process-local ownership is
+//! or appending a version-one log never migrates it. Cleaning explicitly selects
+//! V3, whose obsolete changed generations are separate from retention victims;
+//! older readers fail closed. No background cleaner, transaction/control or
+//! producer-state cleaning is qualified. Process-local ownership is
 //! not cross-process locking; no replication or physical power-loss claim.
 
-use crate::{journal, records};
+use crate::{compaction, journal, records};
 use std::fs::{self, File, OpenOptions};
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::mem::size_of;
 use std::path::{Path, PathBuf};
 
@@ -20,9 +25,13 @@ const MANIFEST: &str = "manifest";
 const MANIFEST_TEMP: &str = "manifest.tmp";
 const MANIFEST_MAGIC: &[u8; 8] = b"PLSEGM01";
 const RETENTION_MAGIC: &[u8; 8] = b"PLSEGM02";
+const COMPACTION_MAGIC: &[u8; 8] = b"PLSEGM03";
+const SPARSE_MAGIC: &[u8; 8] = b"PLSPRS01";
 const INDEX_MAGIC: &[u8; 8] = b"PLSEEK01";
+const SPARSE_INDEX_MAGIC: &[u8; 8] = b"PLSEEK02";
 const MANIFEST_HEADER: usize = 44;
 const RETENTION_HEADER: usize = 64;
+const COMPACTION_HEADER: usize = 72;
 const DESCRIPTOR_BYTES: usize = 56;
 const CHECKPOINT_BYTES: usize = 24;
 const EMPTY_TIME: i64 = i64::MIN;
@@ -112,6 +121,48 @@ impl Limits {
             .and_then(|n| n.checked_add(4096))
             .ok_or(Error::InvalidLimits)
     }
+    /// Additional V3 obsolete-descriptor, simultaneous replacement-checkpoint
+    /// and bounded directory/manifest capacities. Legacy constructors stay dense.
+    pub fn compaction_index_envelope(self) -> Result<usize, Error> {
+        self.index_envelope()?
+            .checked_add(
+                self.max_segments
+                    .checked_mul(
+                        size_of::<Descriptor>() * 3
+                            + DESCRIPTOR_BYTES * 4
+                            + self.max_entries.div_ceil(self.interval) * size_of::<Checkpoint>()
+                            + (size_of::<String>() + 42) * 4,
+                    )
+                    .ok_or(Error::InvalidLimits)?,
+            )
+            .ok_or(Error::InvalidLimits)
+    }
+    /// Conservative maximum operation scratch, including the configured output
+    /// arena, map/keys, one source payload and replacement certification buffers.
+    /// The compactor deducts all of these from this same configured ceiling.
+    pub fn compaction_scratch_bytes(
+        self,
+        policy: compaction::Limits,
+        source: journal::Limits,
+    ) -> Result<usize, Error> {
+        let fixed = self.compaction_fixed_scratch(source)?;
+        if fixed >= policy.scratch_bytes() {
+            return Err(Error::InvalidLimits);
+        }
+        Ok(policy.scratch_bytes())
+    }
+    fn compaction_fixed_scratch(self, source: journal::Limits) -> Result<usize, Error> {
+        self.max_segments
+            .checked_mul(
+                size_of::<Segment>()
+                    + size_of::<Descriptor>() * 2
+                    + self.max_entries.div_ceil(self.interval) * size_of::<Checkpoint>()
+                    + DESCRIPTOR_BYTES * 4,
+            )
+            .and_then(|n| n.checked_add(source.max_entry_bytes().checked_mul(2)?))
+            .and_then(|n| n.checked_add(8192))
+            .ok_or(Error::InvalidLimits)
+    }
     pub(crate) fn journal_limits(self, source: journal::Limits) -> Result<journal::Limits, Error> {
         let hard = self.roll_bytes.max(source.max_entry_bytes() as u64 + 56);
         if hard > source.max_file_bytes() || hard > self.scan_bytes {
@@ -165,6 +216,8 @@ pub enum Error {
     AllocationFailed,
     /// A bounded seek/recovery scan cannot complete within its work budget.
     ScanBudget,
+    /// Ordinary cleaning policy, map, encoded output or work failed preflight.
+    Compaction(compaction::Error),
     /// Generation arithmetic would wrap.
     GenerationOverflow,
     /// Ambiguous publication or I/O failure requires reopening.
@@ -312,10 +365,16 @@ struct Descriptor {
     entries: u64,
     max_time: i64,
     fingerprint: u32,
+    kind: u32,
 }
 struct Segment {
     descriptor: Descriptor,
     checkpoints: Vec<Checkpoint>,
+}
+struct PreparedSegment {
+    old: Descriptor,
+    entries: Vec<journal::Entry>,
+    bytes: u64,
 }
 struct Manifest {
     revision: u64,
@@ -323,10 +382,12 @@ struct Manifest {
     physical_base: u64,
     floor: u64,
     retention: bool,
+    compacted: bool,
     active_base: u64,
     active_generation: u64,
     sealed: Vec<Descriptor>,
     victims: Vec<Descriptor>,
+    obsolete: Vec<Descriptor>,
 }
 
 /// Exclusive synchronous rolling log for validated assigned ordinary batches.
@@ -388,10 +449,11 @@ fn put_descriptor(out: &mut Vec<u8>, d: Descriptor) {
         out.extend_from_slice(&n.to_be_bytes());
     }
     out.extend_from_slice(&d.fingerprint.to_be_bytes());
-    out.extend_from_slice(&0u32.to_be_bytes());
+    out.extend_from_slice(&d.kind.to_be_bytes());
 }
 fn parse_descriptor(bytes: &[u8], at: usize) -> Result<Descriptor, Error> {
-    if count(bytes, at + 52)? != 0 {
+    let kind = count(bytes, at + 52)?;
+    if kind > 1 {
         return Err(Error::InvalidLayout);
     }
     Ok(Descriptor {
@@ -402,6 +464,7 @@ fn parse_descriptor(bytes: &[u8], at: usize) -> Result<Descriptor, Error> {
         entries: number(bytes, at + 32)?,
         max_time: number(bytes, at + 40)? as i64,
         fingerprint: count(bytes, at + 48)?,
+        kind,
     })
 }
 fn buffer(size: usize) -> Result<Vec<u8>, Error> {
@@ -412,8 +475,12 @@ fn buffer(size: usize) -> Result<Vec<u8>, Error> {
 }
 fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
     let mut out = buffer(manifest_size(m))?;
-    if m.retention {
-        out.extend_from_slice(RETENTION_MAGIC);
+    if m.retention || m.compacted {
+        out.extend_from_slice(if m.compacted {
+            COMPACTION_MAGIC
+        } else {
+            RETENTION_MAGIC
+        });
         for n in [
             m.revision,
             m.base,
@@ -426,6 +493,10 @@ fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
         }
         out.extend_from_slice(&(m.sealed.len() as u32).to_be_bytes());
         out.extend_from_slice(&(m.victims.len() as u32).to_be_bytes());
+        if m.compacted {
+            out.extend_from_slice(&(m.obsolete.len() as u32).to_be_bytes());
+            out.extend_from_slice(&0u32.to_be_bytes());
+        }
     } else {
         out.extend_from_slice(MANIFEST_MAGIC);
         for n in [m.revision, m.base, m.active_base, m.active_generation] {
@@ -433,7 +504,7 @@ fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
         }
         out.extend_from_slice(&(m.sealed.len() as u32).to_be_bytes());
     }
-    for d in m.sealed.iter().chain(&m.victims) {
+    for d in m.sealed.iter().chain(&m.victims).chain(&m.obsolete) {
         put_descriptor(&mut out, *d);
     }
     let crc = crc32c::crc32c(&out);
@@ -441,16 +512,22 @@ fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
     Ok(out)
 }
 fn manifest_size(m: &Manifest) -> usize {
-    (if m.retention {
+    (if m.compacted {
+        COMPACTION_HEADER
+    } else if m.retention {
         RETENTION_HEADER
     } else {
         MANIFEST_HEADER
-    }) + (m.sealed.len() + m.victims.len()) * DESCRIPTOR_BYTES
+    }) + (m.sealed.len() + m.victims.len() + m.obsolete.len()) * DESCRIPTOR_BYTES
         + 4
 }
 fn bundle_bytes(segment: &Segment) -> Result<Vec<u8>, Error> {
     let mut out = buffer(72 + segment.checkpoints.len() * CHECKPOINT_BYTES)?;
-    out.extend_from_slice(INDEX_MAGIC);
+    out.extend_from_slice(if segment.descriptor.kind == 0 {
+        INDEX_MAGIC
+    } else {
+        SPARSE_INDEX_MAGIC
+    });
     put_descriptor(&mut out, segment.descriptor);
     out.extend_from_slice(&(segment.checkpoints.len() as u32).to_be_bytes());
     for p in &segment.checkpoints {
@@ -480,8 +557,11 @@ fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>, Error> {
     Ok(out)
 }
 fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, Error> {
-    let retention = bytes.get(..8) == Some(RETENTION_MAGIC);
-    let header = if retention {
+    let compacted = bytes.get(..8) == Some(COMPACTION_MAGIC);
+    let retention = bytes.get(..8) == Some(RETENTION_MAGIC) || compacted;
+    let header = if compacted {
+        COMPACTION_HEADER
+    } else if retention {
         RETENTION_HEADER
     } else {
         MANIFEST_HEADER
@@ -495,10 +575,19 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     } else {
         0
     };
+    let obsolete = if compacted {
+        if count(bytes, 68)? != 0 || limits.compaction_index_envelope()? > limits.index_bytes {
+            return Err(Error::InvalidLayout);
+        }
+        count(bytes, 64)? as usize
+    } else {
+        0
+    };
     if n >= limits.max_segments
         || n.checked_add(victims)
             .is_none_or(|n| n > limits.max_segments)
-        || bytes.len() != header + 4 + (n + victims) * DESCRIPTOR_BYTES
+        || obsolete > n
+        || bytes.len() != header + 4 + (n + victims + obsolete) * DESCRIPTOR_BYTES
         || crc32c::crc32c(&bytes[..bytes.len() - 4]) != count(bytes, bytes.len() - 4)?
     {
         return Err(Error::InvalidLayout);
@@ -509,10 +598,12 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
         physical_base: if retention { number(bytes, 24)? } else { base },
         floor: if retention { number(bytes, 32)? } else { base },
         retention,
+        compacted,
         active_base: number(bytes, if retention { 40 } else { 24 })?,
         active_generation: number(bytes, if retention { 48 } else { 32 })?,
         sealed: Vec::new(),
         victims: Vec::new(),
+        obsolete: Vec::new(),
     };
     if m.base != base
         || m.active_generation > m.revision
@@ -528,10 +619,14 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     m.victims
         .try_reserve_exact(victims)
         .map_err(|_| Error::AllocationFailed)?;
+    m.obsolete
+        .try_reserve_exact(obsolete)
+        .map_err(|_| Error::AllocationFailed)?;
     let mut next = m.physical_base;
     for at in (header..header + n * DESCRIPTOR_BYTES).step_by(DESCRIPTOR_BYTES) {
         let d = parse_descriptor(bytes, at)?;
-        if d.base != next || !valid_descriptor(d, limits, m.revision) {
+        if d.base != next || (!compacted && d.kind != 0) || !valid_descriptor(d, limits, m.revision)
+        {
             return Err(Error::InvalidLayout);
         }
         next = d.end;
@@ -546,6 +641,7 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     {
         let d = parse_descriptor(bytes, at)?;
         if !valid_descriptor(d, limits, m.revision)
+            || (!compacted && d.kind != 0)
             || d.base < base
             || d.end > m.physical_base
             || end.is_some_and(|end| end != d.base)
@@ -558,6 +654,29 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     if end.is_some_and(|end| end != m.physical_base) {
         return Err(Error::InvalidLayout);
     }
+    let mut previous = None;
+    for at in (header + (n + victims) * DESCRIPTOR_BYTES
+        ..header + (n + victims + obsolete) * DESCRIPTOR_BYTES)
+        .step_by(DESCRIPTOR_BYTES)
+    {
+        let d = parse_descriptor(bytes, at)?;
+        let selected = m
+            .sealed
+            .iter()
+            .find(|s| s.base == d.base)
+            .ok_or(Error::InvalidLayout)?;
+        if !valid_descriptor(d, limits, m.revision)
+            || d.end != selected.end
+            || d.entries != selected.entries
+            || d.generation >= selected.generation
+            || selected.generation != m.revision
+            || previous.is_some_and(|end| d.base < end)
+        {
+            return Err(Error::InvalidLayout);
+        }
+        previous = Some(d.end);
+        m.obsolete.push(d);
+    }
     Ok(m)
 }
 fn valid_descriptor(d: Descriptor, limits: Limits, revision: u64) -> bool {
@@ -569,7 +688,302 @@ fn valid_descriptor(d: Descriptor, limits: Limits, revision: u64) -> bool {
         && d.base
             .checked_add(d.entries)
             .is_some_and(|minimum| d.end >= minimum)
-        && d.bytes >= 24 + d.entries * 33
+        && d.kind <= 1
+        && d.bytes >= 24 + d.entries * if d.kind == 0 { 33 } else { 32 }
+}
+// Immutable sparse generations have a distinct magic. The enclosing entry's
+// positive count is its original logical span, independently of actual records.
+// Unlike Journal recovery, no incomplete sparse tail is repaired.
+struct SparseCursor {
+    file: File,
+    _ownership: journal::DirectoryOwnership,
+    limits: journal::Limits,
+    bytes: u64,
+    position: u64,
+    next: u64,
+    fingerprint: u32,
+}
+impl SparseCursor {
+    fn open(path: &Path, base: u64, limits: journal::Limits) -> Result<Self, Error> {
+        if !fs::symlink_metadata(path)?.file_type().is_file() {
+            return Err(Error::InvalidLayout);
+        }
+        let mut ownership = journal::DirectoryOwnership::acquire(path)?;
+        let mut file = File::open(path)?;
+        ownership.identify(&file)?;
+        let bytes = file.metadata()?.len();
+        if bytes < 24 || bytes > limits.max_file_bytes() {
+            return Err(Error::CorruptData);
+        }
+        let mut header = [0; 24];
+        file.read_exact(&mut header)?;
+        if &header[..8] != SPARSE_MAGIC
+            || number(&header, 8)? != base
+            || count(&header, 16)? != 0
+            || count(&header, 20)? != crc32c::crc32c(&header[..20])
+        {
+            return Err(Error::CorruptData);
+        }
+        Ok(Self {
+            file,
+            _ownership: ownership,
+            limits,
+            bytes,
+            position: 24,
+            next: base,
+            fingerprint: crc32c::crc32c(&header),
+        })
+    }
+    fn seek(&mut self, position: u64, offset: u64) -> Result<(), Error> {
+        if !(24..=self.bytes).contains(&position) {
+            return Err(Error::InvalidIndex);
+        }
+        self.file.seek(SeekFrom::Start(position))?;
+        self.position = position;
+        self.next = offset;
+        Ok(())
+    }
+    fn next(&mut self, maximum: usize) -> Result<Option<(u64, journal::Entry)>, Error> {
+        if self.file.metadata()?.len() != self.bytes {
+            return Err(Error::CorruptData);
+        }
+        if self.position == self.bytes {
+            return Ok(None);
+        }
+        if self.bytes - self.position < 32 {
+            return Err(Error::CorruptData);
+        }
+        let position = self.position;
+        let mut header = [0; 32];
+        self.file.read_exact(&mut header)?;
+        let length = count(&header, 8)? as usize;
+        let first = number(&header, 12)?;
+        let span = count(&header, 20)?;
+        let end = first
+            .checked_add(u64::from(span))
+            .ok_or(Error::CorruptData)?;
+        if &header[..8] != b"PLENTRY1"
+            || count(&header, 28)? != crc32c::crc32c(&header[..28])
+            || first != self.next
+            || span == 0
+            || i64::try_from(end).is_err()
+            || length > self.limits.max_entry_bytes()
+            || position
+                .checked_add(32 + length as u64)
+                .is_none_or(|n| n > self.bytes)
+        {
+            return Err(Error::CorruptData);
+        }
+        let charged = length
+            .checked_add(size_of::<journal::Entry>())
+            .ok_or(Error::ScanBudget)?;
+        if charged > maximum || charged > self.limits.max_fetch_bytes() {
+            return Err(journal::Error::FetchBudgetExceeded.into());
+        }
+        let mut payload = buffer(length)?;
+        payload.resize(length, 0);
+        self.file.read_exact(&mut payload)?;
+        if crc32c::crc32c(&payload) != count(&header, 24)?
+            || self.file.metadata()?.len() != self.bytes
+        {
+            return Err(Error::CorruptData);
+        }
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &payload);
+        self.position = position + 32 + length as u64;
+        self.next = end;
+        Ok(Some((
+            position,
+            journal::Entry {
+                first_offset: first,
+                record_count: span,
+                payload,
+            },
+        )))
+    }
+}
+enum StoredCursor {
+    Dense(journal::CheckedCursor),
+    Sparse(SparseCursor),
+}
+impl StoredCursor {
+    fn open(path: &Path, base: u64, limits: journal::Limits, kind: u32) -> Result<Self, Error> {
+        match kind {
+            0 => Ok(Self::Dense(journal::CheckedCursor::open(
+                path, base, limits,
+            )?)),
+            1 => Ok(Self::Sparse(SparseCursor::open(path, base, limits)?)),
+            _ => Err(Error::InvalidLayout),
+        }
+    }
+    fn seek(&mut self, p: u64, o: u64) -> Result<(), Error> {
+        match self {
+            Self::Dense(c) => Ok(c.seek(p, o)?),
+            Self::Sparse(c) => c.seek(p, o),
+        }
+    }
+    fn next(&mut self, n: usize) -> Result<Option<(u64, journal::Entry)>, Error> {
+        let result = match self {
+            Self::Dense(c) => Ok(c.next(n)?),
+            Self::Sparse(c) => c.next(n),
+        };
+        #[cfg(test)]
+        if let Ok(Some((_, entry))) = &result {
+            COMPACTION_LOADED.with(|n| n.set(n.get() + entry.payload.len()));
+        }
+        result
+    }
+    fn file_bytes(&self) -> u64 {
+        match self {
+            Self::Dense(c) => c.file_bytes(),
+            Self::Sparse(c) => c.bytes,
+        }
+    }
+    fn next_offset(&self) -> u64 {
+        match self {
+            Self::Dense(c) => c.next_offset(),
+            Self::Sparse(c) => c.next,
+        }
+    }
+    fn fingerprint(&self) -> u32 {
+        match self {
+            Self::Dense(c) => c.fingerprint(),
+            Self::Sparse(c) => c.fingerprint,
+        }
+    }
+    fn synchronize(&self) -> Result<(), Error> {
+        match self {
+            Self::Dense(c) => Ok(c.synchronize()?),
+            Self::Sparse(c) => Ok(c.file.sync_data()?),
+        }
+    }
+}
+#[cfg(test)]
+thread_local! { static COMPACTION_LOADED:std::cell::Cell<usize>=const { std::cell::Cell::new(0) }; }
+struct SparseWriter {
+    file: File,
+    next: u64,
+    bytes: u64,
+    entries: usize,
+    limits: journal::Limits,
+}
+impl SparseWriter {
+    fn new(path: &Path, base: u64, limits: journal::Limits) -> Result<Self, Error> {
+        let mut file = OpenOptions::new().write(true).create_new(true).open(path)?;
+        let mut header = [0; 24];
+        header[..8].copy_from_slice(SPARSE_MAGIC);
+        header[8..16].copy_from_slice(&base.to_be_bytes());
+        let crc = crc32c::crc32c(&header[..20]);
+        header[20..24].copy_from_slice(&crc.to_be_bytes());
+        file.write_all(&header)?;
+        file.sync_all()?;
+        Ok(Self {
+            file,
+            next: base,
+            bytes: 24,
+            entries: 0,
+            limits,
+        })
+    }
+    fn append(&mut self, entry: &journal::Entry) -> Result<(), Error> {
+        let end = entry
+            .first_offset
+            .checked_add(u64::from(entry.record_count))
+            .ok_or(Error::CorruptData)?;
+        let bytes = self
+            .bytes
+            .checked_add(32 + entry.payload.len() as u64)
+            .ok_or(Error::DiskBudget)?;
+        if entry.first_offset != self.next
+            || entry.record_count == 0
+            || i64::try_from(end).is_err()
+            || entry.payload.len() > self.limits.max_entry_bytes()
+            || bytes > self.limits.max_file_bytes()
+            || self.entries >= self.limits.max_index_entries()
+        {
+            return Err(Error::CorruptData);
+        }
+        let mut header = [0; 32];
+        header[..8].copy_from_slice(b"PLENTRY1");
+        header[8..12].copy_from_slice(&(entry.payload.len() as u32).to_be_bytes());
+        header[12..20].copy_from_slice(&entry.first_offset.to_be_bytes());
+        header[20..24].copy_from_slice(&entry.record_count.to_be_bytes());
+        header[24..28].copy_from_slice(&crc32c::crc32c(&entry.payload).to_be_bytes());
+        let crc = crc32c::crc32c(&header[..28]);
+        header[28..32].copy_from_slice(&crc.to_be_bytes());
+        self.file.write_all(&header)?;
+        self.file.write_all(&entry.payload)?;
+        self.file.sync_data()?;
+        self.next = end;
+        self.bytes = bytes;
+        self.entries += 1;
+        Ok(())
+    }
+}
+enum StoredWriter {
+    Dense(journal::Journal),
+    Sparse(SparseWriter),
+}
+impl StoredWriter {
+    fn new(path: &Path, base: u64, limits: journal::Limits, kind: u32) -> Result<Self, Error> {
+        match kind {
+            0 => Ok(Self::Dense(journal::Journal::open(path, base, limits)?.0)),
+            1 => Ok(Self::Sparse(SparseWriter::new(path, base, limits)?)),
+            _ => Err(Error::InvalidLayout),
+        }
+    }
+    fn append(&mut self, entry: &journal::Entry) -> Result<(), Error> {
+        match self {
+            Self::Dense(w) => {
+                w.append(entry.record_count, &entry.payload)?;
+                Ok(())
+            }
+            Self::Sparse(w) => w.append(entry),
+        }
+    }
+    fn next_offset(&self) -> u64 {
+        match self {
+            Self::Dense(w) => w.next_offset(),
+            Self::Sparse(w) => w.next,
+        }
+    }
+    fn file_bytes(&self) -> u64 {
+        match self {
+            Self::Dense(w) => w.file_bytes(),
+            Self::Sparse(w) => w.bytes,
+        }
+    }
+}
+fn summarize_kind(
+    entry: &journal::Entry,
+    limits: records::Limits,
+    kind: u32,
+) -> Result<i64, Error> {
+    if kind == 0 {
+        return summarize(entry, limits);
+    }
+    let checked = records::validate_read(&entry.payload, limits).map_err(|_| Error::CorruptData)?;
+    let first = i64::try_from(entry.first_offset).map_err(|_| Error::CorruptData)?;
+    let end = entry
+        .first_offset
+        .checked_add(u64::from(entry.record_count))
+        .and_then(|n| i64::try_from(n).ok())
+        .ok_or(Error::CorruptData)?;
+    let mut maximum = EMPTY_TIME;
+    if entry.record_count == 0 {
+        return Err(Error::CorruptData);
+    }
+    for batch in checked.batches() {
+        let batch = batch.map_err(|_| Error::CorruptData)?;
+        if batch.base_offset < first || batch.next_offset > end {
+            return Err(Error::CorruptData);
+        }
+        // Authentic terminal empty headers carry their original maximum. It is
+        // a conservative seek/age hint, never a retained timestamp match; the
+        // record iterator remains empty. Zero-payload entries have no such hint.
+        maximum = maximum.max(batch.max_timestamp);
+    }
+    Ok(maximum)
 }
 fn summarize(entry: &journal::Entry, limits: records::Limits) -> Result<i64, Error> {
     let checked = records::validate(&entry.payload, limits).map_err(|_| Error::CorruptData)?;
@@ -639,6 +1053,11 @@ enum Phase {
     RetentionClearSynced,
     RetentionClearRenamed,
     RetentionClearDirectorySynced,
+    CompactionDataRemoved,
+    CompactionIndexRemoved,
+    CompactionCleanupSynced,
+    CompactionHeaderSynced,
+    CompactionEntrySynced,
 }
 impl Log {
     /// Recover selected generations and certify every payload within bounded work.
@@ -681,7 +1100,7 @@ impl Log {
             parse_manifest(
                 &read_bounded(
                     &manifest_path,
-                    RETENTION_HEADER + 4 + limits.max_segments * DESCRIPTOR_BYTES,
+                    COMPACTION_HEADER + 4 + limits.max_segments * DESCRIPTOR_BYTES * 2,
                 )?,
                 limits,
                 base,
@@ -701,10 +1120,12 @@ impl Log {
                 physical_base: base,
                 floor: base,
                 retention: false,
+                compacted: false,
                 active_base: base,
                 active_generation: 0,
                 sealed,
                 victims: Vec::new(),
+                obsolete: Vec::new(),
             }
         };
         let mut sealed = Vec::new();
@@ -760,7 +1181,7 @@ impl Log {
         recovery.removed_staging_files = result.cleanup()?;
         for position in 0..result.manifest.sealed.len() {
             let d = result.manifest.sealed[position];
-            let segment = result.scan(d.base, d.generation)?;
+            let segment = result.scan_kind(d.base, d.generation, d.kind)?;
             if segment.descriptor != d {
                 return Err(Error::CorruptData);
             }
@@ -783,6 +1204,10 @@ impl Log {
         if !result.manifest.victims.is_empty() {
             let (removed, _) = result.finish_retention_cleanup()?;
             recovery.removed_retention_files = removed;
+        }
+        if !result.manifest.obsolete.is_empty() {
+            let (removed, _) = result.finish_obsolete_cleanup()?;
+            recovery.removed_staging_files += removed;
         }
         if initial {
             result.publish_manifest()?;
@@ -852,6 +1277,7 @@ impl Log {
     pub fn retained_index_bytes(&self) -> usize {
         self.manifest.sealed.capacity() * size_of::<Descriptor>()
             + self.manifest.victims.capacity() * size_of::<Descriptor>()
+            + self.manifest.obsolete.capacity() * size_of::<Descriptor>()
             + self.sealed.capacity() * size_of::<Segment>()
             + self.active_checkpoints.capacity() * size_of::<Checkpoint>()
             + self
@@ -963,10 +1389,14 @@ impl Log {
         Ok(())
     }
     fn scan(&self, base: u64, generation: u64) -> Result<Segment, Error> {
-        let mut cursor = journal::CheckedCursor::open(
+        self.scan_kind(base, generation, 0)
+    }
+    fn scan_kind(&self, base: u64, generation: u64, kind: u32) -> Result<Segment, Error> {
+        let mut cursor = StoredCursor::open(
             &self.data_path(base, generation),
             base,
             self.journal_limits,
+            kind,
         )?;
         if cursor.file_bytes() > self.limits.scan_bytes {
             return Err(Error::ScanBudget);
@@ -988,7 +1418,7 @@ impl Log {
                     prefix_max: maximum,
                 });
             }
-            maximum = maximum.max(summarize(&entry, self.records)?);
+            maximum = maximum.max(summarize_kind(&entry, self.records, kind)?);
             entries += 1;
         }
         cursor.synchronize()?;
@@ -1001,6 +1431,7 @@ impl Log {
                 entries: entries as u64,
                 max_time: maximum,
                 fingerprint: cursor.fingerprint(),
+                kind,
             },
             checkpoints,
         })
@@ -1073,7 +1504,7 @@ impl Log {
             }
             // Only an authoritative version-two manifest may authorize these
             // names for deletion; recovery validates survivors first.
-            for d in &self.manifest.victims {
+            for d in self.manifest.victims.iter().chain(&self.manifest.obsolete) {
                 selected |= name == data_name(d.base, d.generation)
                     || name == index_name(d.base, d.generation);
             }
@@ -1096,11 +1527,12 @@ impl Log {
                     });
                     parsed.is_some_and(|(base, generation)| {
                         let canonical = format!("{base:016x}-{generation:016x}") == stem;
-                        let retired = self
-                            .manifest
-                            .sealed
-                            .iter()
-                            .any(|d| d.base == base && generation < d.generation);
+                        let retired = !self.manifest.compacted
+                            && self
+                                .manifest
+                                .sealed
+                                .iter()
+                                .any(|d| d.base == base && generation < d.generation);
                         let pending = self.manifest.revision.checked_add(1) == Some(generation)
                             && (base == self.next_offset()
                                 || base == self.manifest.active_base
@@ -1280,10 +1712,11 @@ impl Log {
                 .iter()
                 .rfind(|p| p.offset <= offset)
                 .ok_or(Error::InvalidIndex)?;
-            let mut cursor = journal::CheckedCursor::open(
+            let mut cursor = StoredCursor::open(
                 &self.data_path(segment.descriptor.base, segment.descriptor.generation),
                 segment.descriptor.base,
                 self.journal_limits,
+                segment.descriptor.kind,
             )?;
             if cursor.file_bytes() != segment.descriptor.bytes {
                 return Err(Error::CorruptData);
@@ -1307,10 +1740,11 @@ impl Log {
                 let (_, entry) = cursor
                     .next(cap)
                     .map_err(|e| match e {
-                        journal::Error::FetchBudgetExceeded => Error::ScanBudget,
-                        other => Error::Storage(other),
+                        Error::Storage(journal::Error::FetchBudgetExceeded) => Error::ScanBudget,
+                        other => other,
                     })?
                     .ok_or(Error::CorruptData)?;
+                summarize_kind(&entry, self.records, segment.descriptor.kind)?;
                 work.bytes = work
                     .bytes
                     .checked_add(entry.payload.len())
@@ -1465,8 +1899,11 @@ impl Log {
         victims.extend(self.manifest.sealed.iter().take(count).copied());
         // Reserve the initial temp manifest and the worst later clear-temp peak
         // before changing state. Victim files stay in disk_bytes until unlink.
-        let new_size = RETENTION_HEADER
-            + 4
+        let new_size = (if self.manifest.compacted {
+            COMPACTION_HEADER
+        } else {
+            RETENTION_HEADER
+        }) + 4
             + (self.manifest.sealed.len() + usize::from(retire_active)) * DESCRIPTOR_BYTES;
         let extra = new_size
             .checked_add(new_size.saturating_sub(manifest_size(&self.manifest)))
@@ -1627,6 +2064,343 @@ impl Log {
         self.publish_manifest_kind(true)?;
         Ok((removed, bytes))
     }
+    // The V3 list authorizes changed generations only; V1/V2 prefix victims are
+    // deliberately separate. Called only after all selected survivors validate.
+    fn finish_obsolete_cleanup(&mut self) -> Result<(usize, u64), Error> {
+        let (mut removed, mut bytes) = (0usize, 0u64);
+        for n in 0..self.manifest.obsolete.len() {
+            let d = self.manifest.obsolete[n];
+            for (name, phase) in [
+                (
+                    data_name(d.base, d.generation),
+                    Phase::CompactionDataRemoved,
+                ),
+                (
+                    index_name(d.base, d.generation),
+                    Phase::CompactionIndexRemoved,
+                ),
+            ] {
+                let path = self.directory.join(name);
+                match fs::symlink_metadata(&path) {
+                    Ok(meta) => {
+                        if !meta.file_type().is_file() {
+                            return Err(Error::InvalidLayout);
+                        }
+                        bytes = bytes.checked_add(meta.len()).ok_or(Error::DiskBudget)?;
+                        fs::remove_file(path)?;
+                        removed += 1;
+                        self.hit(phase)?;
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e.into()),
+                }
+            }
+        }
+        File::open(&self.directory)?.sync_all()?;
+        self.hit(Phase::CompactionCleanupSynced)?;
+        self.manifest.obsolete.clear();
+        self.publish_manifest_kind(true)?;
+        Ok((removed, bytes))
+    }
+    pub(crate) fn sparse_at(&self, offset: u64) -> bool {
+        self.manifest.compacted
+            && self.sealed.iter().any(|s| {
+                s.descriptor.base <= offset && offset < s.descriptor.end && s.descriptor.kind == 1
+            })
+    }
+    /// Clean the complete eligible sealed prefix atomically. A bounded key map
+    /// and all encoded replacements are prepared and validated before creating
+    /// files. V3 separates changed generations from V2 retention-prefix victims.
+    /// Null keys are discarded, last keyed values retained, and tombstones use
+    /// authentic ordinary delete horizons; active/protected suffixes are untouched.
+    /// The original positive atomic extents survive even with zero payload bytes.
+    pub fn compact(
+        &mut self,
+        now_ms: i64,
+        policy: compaction::Policy,
+        guard: DeletionGuard,
+    ) -> Result<compaction::Outcome, Error> {
+        self.alive()?;
+        let ceiling = self.check_guard(guard)?.min(self.manifest.active_base);
+        let count = self
+            .sealed
+            .iter()
+            .take_while(|s| s.descriptor.end <= ceiling)
+            .count();
+        let start = self
+            .sealed
+            .first()
+            .map_or(self.manifest.active_base, |s| s.descriptor.base);
+        let end = count
+            .checked_sub(1)
+            .map_or(start, |n| self.sealed[n].descriptor.end);
+        let mut outcome = compaction::Outcome {
+            start_offset: start as i64,
+            end_offset: end as i64,
+            ..compaction::Outcome::default()
+        };
+        if now_ms < 0
+            || now_ms
+                .checked_add(policy.delete_retention_ms() as i64)
+                .is_none()
+        {
+            return Err(Error::Compaction(compaction::Error::InvalidClock));
+        }
+        if count == 0 {
+            return Ok(outcome);
+        }
+        if count > policy.limits().max_segments {
+            return Err(Error::Compaction(compaction::Error::BudgetExceeded(
+                compaction::Budget::Segments,
+            )));
+        }
+        if self.limits.compaction_index_envelope()? > self.limits.index_bytes {
+            return Err(Error::InvalidLimits);
+        }
+        self.limits
+            .compaction_scratch_bytes(policy.limits(), self.journal_limits)?;
+        let revision = self
+            .manifest
+            .revision
+            .checked_add(1)
+            .ok_or(Error::GenerationOverflow)?;
+        let fixed = self.limits.compaction_fixed_scratch(self.journal_limits)?;
+        let mut planner =
+            compaction::Planner::new(policy, now_ms, fixed).map_err(Error::Compaction)?;
+        let mut prepared = Vec::new();
+        prepared
+            .try_reserve_exact(count)
+            .map_err(|_| Error::AllocationFailed)?;
+        let mut obsolete = Vec::new();
+        obsolete
+            .try_reserve_exact(count)
+            .map_err(|_| Error::AllocationFailed)?;
+        let preparation = (|| {
+            // Source certification and map construction never mutate selected files.
+            for n in 0..count {
+                let d = self.sealed[n].descriptor;
+                let mut cursor = StoredCursor::open(
+                    &self.data_path(d.base, d.generation),
+                    d.base,
+                    self.journal_limits,
+                    d.kind,
+                )?;
+                let (mut loaded, mut maximum) = (24u64, EMPTY_TIME);
+                for _ in 0..d.entries {
+                    let cap = planner
+                        .source_cap(self.journal_limits.max_entry_bytes())
+                        .map_err(Error::Compaction)?;
+                    let (_, entry) = cursor
+                        .next(cap)
+                        .map_err(|e| match e {
+                            Error::Storage(journal::Error::FetchBudgetExceeded) => {
+                                Error::Compaction(compaction::Error::BudgetExceeded(
+                                    compaction::Budget::ScanBytes,
+                                ))
+                            }
+                            other => other,
+                        })?
+                        .ok_or(Error::CorruptData)?;
+                    loaded = loaded
+                        .checked_add(32 + entry.payload.len() as u64)
+                        .ok_or(Error::CorruptData)?;
+                    maximum = maximum.max(
+                        planner
+                            .map(&entry, d.kind, self.records)
+                            .map_err(Error::Compaction)?,
+                    );
+                }
+                if cursor.next_offset() != d.end
+                    || cursor.file_bytes() != d.bytes
+                    || cursor.fingerprint() != d.fingerprint
+                    || loaded != d.bytes
+                    || maximum != d.max_time
+                {
+                    return Err(Error::CorruptData);
+                }
+            }
+            for n in 0..count {
+                let old = self.sealed[n].descriptor;
+                let mut entries = Vec::new();
+                let capacity = usize::try_from(old.entries).map_err(|_| Error::CorruptData)?;
+                planner
+                    .charge_scratch(
+                        capacity
+                            .checked_mul(size_of::<journal::Entry>())
+                            .ok_or(Error::InvalidLimits)?,
+                    )
+                    .map_err(Error::Compaction)?;
+                entries
+                    .try_reserve_exact(capacity)
+                    .map_err(|_| Error::AllocationFailed)?;
+                if entries.capacity() > capacity {
+                    planner
+                        .charge_scratch(
+                            (entries.capacity() - capacity) * size_of::<journal::Entry>(),
+                        )
+                        .map_err(Error::Compaction)?;
+                }
+                let mut cursor = StoredCursor::open(
+                    &self.data_path(old.base, old.generation),
+                    old.base,
+                    self.journal_limits,
+                    old.kind,
+                )?;
+                let mut bytes = 24u64;
+                let mut loaded = 24u64;
+                for _ in 0..old.entries {
+                    let cap = planner
+                        .source_cap(self.journal_limits.max_entry_bytes())
+                        .map_err(Error::Compaction)?;
+                    let (_, entry) = cursor
+                        .next(cap)
+                        .map_err(|e| match e {
+                            Error::Storage(journal::Error::FetchBudgetExceeded) => {
+                                Error::Compaction(compaction::Error::BudgetExceeded(
+                                    compaction::Budget::ScanBytes,
+                                ))
+                            }
+                            other => other,
+                        })?
+                        .ok_or(Error::CorruptData)?;
+                    loaded = loaded
+                        .checked_add(32 + entry.payload.len() as u64)
+                        .ok_or(Error::CorruptData)?;
+                    let (payload, actual_records) = planner
+                        .encode(
+                            &entry.payload,
+                            self.records,
+                            self.journal_limits.max_entry_bytes(),
+                        )
+                        .map_err(Error::Compaction)?;
+                    planner
+                        .reserve_certification(payload.len(), actual_records)
+                        .map_err(Error::Compaction)?;
+                    bytes = bytes
+                        .checked_add(32 + payload.len() as u64)
+                        .ok_or(Error::DiskBudget)?;
+                    if bytes > self.journal_limits.max_file_bytes()
+                        || bytes > self.limits.scan_bytes
+                    {
+                        return Err(Error::Compaction(compaction::Error::BudgetExceeded(
+                            compaction::Budget::OutputBytes,
+                        )));
+                    }
+                    let retained = journal::Entry { payload, ..entry };
+                    entries.push(retained);
+                }
+                if entries.len() != capacity
+                    || cursor.next_offset() != old.end
+                    || cursor.file_bytes() != old.bytes
+                    || cursor.fingerprint() != old.fingerprint
+                    || loaded != old.bytes
+                {
+                    return Err(Error::CorruptData);
+                }
+                outcome.bytes_before = outcome
+                    .bytes_before
+                    .checked_add(old.bytes)
+                    .ok_or(Error::DiskBudget)?;
+                outcome.bytes_after = outcome
+                    .bytes_after
+                    .checked_add(bytes)
+                    .ok_or(Error::DiskBudget)?;
+                obsolete.push(old);
+                prepared.push(PreparedSegment {
+                    old,
+                    entries,
+                    bytes,
+                });
+            }
+            let mut replacements = Vec::new();
+            replacements
+                .try_reserve_exact(count)
+                .map_err(|_| Error::AllocationFailed)?;
+            let new_manifest =
+                COMPACTION_HEADER + 4 + (self.manifest.sealed.len() + count) * DESCRIPTOR_BYTES;
+            let index_bytes = prepared.iter().try_fold(0u64, |total, p| {
+                total
+                    .checked_add(72 + p.old.entries.div_ceil(self.limits.interval as u64) * 24)
+                    .ok_or(Error::DiskBudget)
+            })?;
+            let extra = outcome
+                .bytes_after
+                .checked_add(index_bytes)
+                .and_then(|n| n.checked_add((new_manifest as u64) * 2))
+                .ok_or(Error::DiskBudget)?;
+            self.reserve_disk(extra)?;
+            Ok(replacements)
+        })();
+        let mut replacements = match preparation {
+            Ok(replacements) => replacements,
+            Err(error) => {
+                self.poisoned |= matches!(
+                    &error,
+                    Error::Io(_)
+                        | Error::CorruptData
+                        | Error::InvalidLayout
+                        | Error::Storage(
+                            journal::Error::Corrupt { .. }
+                                | journal::Error::Io(_)
+                                | journal::Error::ChangedFile
+                                | journal::Error::Poisoned
+                        )
+                        | Error::Compaction(compaction::Error::Records(
+                            records::Error::Invalid { .. } | records::Error::Unsupported { .. }
+                        ))
+                );
+                return Err(error);
+            }
+        };
+        outcome.scanned_records = planner.scanned;
+        outcome.retained_records = planner.retained;
+        outcome.rewritten_segments = count;
+        let result = (|| {
+            for p in prepared {
+                let mut writer = SparseWriter::new(
+                    &self.data_path(p.old.base, revision),
+                    p.old.base,
+                    self.journal_limits,
+                )?;
+                self.hit(Phase::CompactionHeaderSynced)?;
+                for entry in &p.entries {
+                    writer.append(entry)?;
+                    self.hit(Phase::CompactionEntrySynced)?;
+                }
+                if writer.next != p.old.end || writer.bytes != p.bytes {
+                    return Err(Error::CorruptData);
+                }
+                drop(writer);
+                drop(p.entries);
+                let replacement = self.scan_kind(p.old.base, revision, 1)?;
+                if replacement.descriptor.end != p.old.end
+                    || replacement.descriptor.entries != p.old.entries
+                    || replacement.descriptor.bytes != p.bytes
+                {
+                    return Err(Error::CorruptData);
+                }
+                self.write_index(&replacement)?;
+                replacements.push(replacement);
+            }
+            self.manifest.revision = revision;
+            self.manifest.compacted = true;
+            self.manifest.retention = true;
+            self.manifest.obsolete = obsolete;
+            for (n, s) in replacements.iter().enumerate() {
+                self.manifest.sealed[n] = s.descriptor;
+            }
+            self.publish_manifest()?;
+            for (n, s) in replacements.into_iter().enumerate() {
+                self.sealed[n] = s;
+            }
+            self.finish_obsolete_cleanup()?;
+            Ok(outcome)
+        })();
+        if result.is_err() {
+            self.poisoned = true;
+        }
+        result
+    }
     /// Atomically replace one sealed generation with an identical checked copy.
     /// Both generations remain charged until durable manifest publication and
     /// cleanup. This removes no records and implements no compaction policy.
@@ -1646,21 +2420,38 @@ impl Log {
         let extra = old
             .bytes
             .checked_add(
-                (72 + self.sealed[position].checkpoints.len() * 24 + manifest_size(&self.manifest))
-                    as u64,
+                (72 + self.sealed[position].checkpoints.len() * 24
+                    + manifest_size(&self.manifest)
+                    + if self.manifest.compacted {
+                        manifest_size(&self.manifest) + DESCRIPTOR_BYTES * 2
+                    } else {
+                        0
+                    }) as u64,
             )
             .ok_or(Error::DiskBudget)?;
         self.reserve_disk(extra)?;
+        let mut obsolete = Vec::new();
+        if self.manifest.compacted {
+            obsolete
+                .try_reserve_exact(1)
+                .map_err(|_| Error::AllocationFailed)?;
+            obsolete.push(old);
+        }
         let result = (|| {
-            let mut source = journal::CheckedCursor::open(
+            let mut source = StoredCursor::open(
                 &self.data_path(base, old.generation),
                 base,
                 self.journal_limits,
+                old.kind,
             )?;
-            let (mut destination, _) =
-                journal::Journal::open(self.data_path(base, revision), base, self.journal_limits)?;
+            let mut destination = StoredWriter::new(
+                &self.data_path(base, revision),
+                base,
+                self.journal_limits,
+                old.kind,
+            )?;
             while let Some((_, entry)) = source.next(self.journal_limits.max_fetch_bytes())? {
-                destination.append(entry.record_count, &entry.payload)?;
+                destination.append(&entry)?;
                 self.hit(Phase::CopyEntrySynced)?;
             }
             if destination.next_offset() != old.end
@@ -1671,7 +2462,7 @@ impl Log {
             }
             drop(source);
             drop(destination);
-            let replacement = self.scan(base, revision)?;
+            let replacement = self.scan_kind(base, revision, old.kind)?;
             let mut same = replacement.descriptor;
             same.generation = old.generation;
             if same != old {
@@ -1680,8 +2471,15 @@ impl Log {
             self.write_index(&replacement)?;
             self.manifest.revision = revision;
             self.manifest.sealed[position] = replacement.descriptor;
+            if self.manifest.compacted {
+                self.manifest.obsolete = obsolete;
+            }
             self.publish_manifest()?;
             self.sealed[position] = replacement;
+            if self.manifest.compacted {
+                self.finish_obsolete_cleanup()?;
+                return Ok(());
+            }
             fs::remove_file(self.data_path(base, old.generation))?;
             self.hit(Phase::OldDataRemoved)?;
             fs::remove_file(self.directory.join(index_name(base, old.generation)))?;
@@ -1746,6 +2544,232 @@ mod tests {
             records::Limits::default(),
             Limits::new(150, 16, 4, 2, 1024 * 1024, 65536, 4096)?,
         )
+    }
+    const COMPACTION_PHASES: [Phase; 16] = [
+        Phase::CompactionHeaderSynced,
+        Phase::CompactionEntrySynced,
+        Phase::IndexWritten,
+        Phase::IndexSynced,
+        Phase::IndexRenamed,
+        Phase::ManifestWritten,
+        Phase::ManifestSynced,
+        Phase::ManifestRenamed,
+        Phase::DirectorySynced,
+        Phase::CompactionDataRemoved,
+        Phase::CompactionIndexRemoved,
+        Phase::CompactionCleanupSynced,
+        Phase::RetentionClearWritten,
+        Phase::RetentionClearSynced,
+        Phase::RetentionClearRenamed,
+        Phase::RetentionClearDirectorySynced,
+    ];
+    fn compaction_selected(phase: Phase) -> bool {
+        matches!(
+            phase,
+            Phase::ManifestRenamed
+                | Phase::DirectorySynced
+                | Phase::CompactionDataRemoved
+                | Phase::CompactionIndexRemoved
+                | Phase::CompactionCleanupSynced
+                | Phase::RetentionClearWritten
+                | Phase::RetentionClearSynced
+                | Phase::RetentionClearRenamed
+                | Phase::RetentionClearDirectorySynced
+        )
+    }
+    fn compaction_seed(path: &Path) -> Result<Log, Error> {
+        let (mut log, _) = open(path)?;
+        for n in 0..4 {
+            log.append(1, &payload(n))?;
+        }
+        Ok(log)
+    }
+    fn check_tiny_compaction_cap(
+        bytes: u64,
+        records_cap: usize,
+        expected: compaction::Budget,
+        expect_no_load: bool,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let temp = Temp::new()?;
+        let path = temp.0.join("large");
+        let (mut log, _) = Log::open(
+            &path,
+            0,
+            journal::Limits::new(65536, 131072, 4, 131072)?,
+            records::Limits::default(),
+            Limits::new(150, 4, 4, 2, 1024 * 1024, 65536, 131072)?,
+        )?;
+        let mut large = Vec::new();
+        for n in 0..512 {
+            large.extend_from_slice(&payload(n));
+        }
+        log.append(512, &large)?;
+        log.append(1, &payload(512))?;
+        let before = fs::read_dir(&path)?
+            .map(|e| {
+                e.and_then(|e| {
+                    let b = read_bounded(&e.path(), 131072)
+                        .map_err(|e| std::io::Error::other(e.to_string()))?;
+                    Ok((e.file_name(), b))
+                })
+            })
+            .collect::<std::io::Result<Vec<_>>>()?;
+        {
+            COMPACTION_LOADED.with(|n| n.set(0));
+            records::reset_record_visits();
+            let limits = compaction::Limits::new(
+                bytes,
+                65536,
+                records_cap,
+                65536,
+                4 * 1024 * 1024,
+                1000000,
+                64,
+                64 * 1024 * 1024,
+            )?;
+            assert!(
+                matches!(log.compact(2000,compaction::Policy::new(1000,limits)?,DeletionGuard::new(513,513)?),
+                Err(Error::Compaction(compaction::Error::BudgetExceeded(b))) if b==expected)
+            );
+            let loaded = COMPACTION_LOADED.with(std::cell::Cell::get);
+            let visits = records::record_visits();
+            eprintln!("tiny cleaner cap {expected:?}: loaded_payload_bytes={loaded}, parsed_or_projected_record_bodies={visits}");
+            assert_eq!(loaded, if expect_no_load { 0 } else { large.len() });
+            assert_eq!(
+                records::record_visits(),
+                0,
+                "no record body parsed/projected past policy cap"
+            );
+            assert!(!log.is_poisoned());
+            for (name, bytes) in &before {
+                assert_eq!(read_bounded(&path.join(name), 131072)?, *bytes);
+            }
+            assert_eq!(fs::read_dir(&path)?.count(), before.len());
+        }
+        Ok(())
+    }
+    #[test]
+    fn compaction_one_byte_cap_rejects_before_loading_a_large_payload(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        check_tiny_compaction_cap(1, 262144, compaction::Budget::ScanBytes, true)
+    }
+    #[test]
+    fn compaction_one_record_cap_rejects_before_parsing_any_large_entry_body(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        check_tiny_compaction_cap(128 * 1024 * 1024, 1, compaction::Budget::Records, false)
+    }
+    fn capture_compaction(
+        path: &Path,
+        kind: &str,
+        phase: Phase,
+        stage: &str,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PL_COMPACTION_FAULT_DIR") else {
+            return Ok(());
+        };
+        let out = PathBuf::from(root)
+            .join(kind)
+            .join(format!("{phase:?}"))
+            .join(stage);
+        fs::create_dir_all(&out)?;
+        let mut count = 0;
+        for item in fs::read_dir(path)? {
+            let item = item?;
+            count += 1;
+            if count > 72 || !item.file_type()?.is_file() || item.metadata()?.len() > 32768 {
+                return Err("bounded cleaner capture".into());
+            }
+            fs::copy(item.path(), out.join(item.file_name()))?;
+        }
+        let mut receipt = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(out.join("case.json"))?;
+        std::io::Write::write_all(&mut receipt,format!("{{\"schema\":1,\"kind\":\"{kind}\",\"phase\":\"{phase:?}\",\"stage\":\"{stage}\",\"source_end\":4,\"confirmed_floor\":0,\"cleaned_end\":3,\"expected_retained_offsets\":{},\"active_offset\":3,\"physical_power_loss_claim\":false}}\n",
+            if compaction_selected(phase) { "[2,3]" } else { "[0,1,2,3]" }).as_bytes())?;
+        receipt.sync_all()?;
+        Ok(())
+    }
+    fn verify_compaction(path: &Path, phase: Phase) -> Result<Log, Error> {
+        let (mut log, _) = open(path)?;
+        if log.next_offset() != 4 || log.log_start_offset() != 0 {
+            return Err(Error::CorruptData);
+        }
+        let entries = log.fetch(0, 4, 4096)?;
+        if entries.len() != 4 {
+            return Err(Error::CorruptData);
+        }
+        for (n, e) in entries.iter().enumerate() {
+            if e.first_offset != n as u64 || e.record_count != 1 {
+                return Err(Error::CorruptData);
+            }
+            let empty = compaction_selected(phase) && n < 2;
+            if (empty && !e.payload.is_empty()) || (!empty && e.payload != payload(n as u64)) {
+                return Err(Error::CorruptData);
+            }
+        }
+        Ok(log)
+    }
+    #[test]
+    fn compaction_publication_partial_cleanup_io_errors_recover_one_complete_selected_round(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for phase in COMPACTION_PHASES.iter().copied() {
+            let temp = Temp::new()?;
+            let path = temp.0.join("log");
+            let mut log = compaction_seed(&path)?;
+            log.fault = Some((phase, false));
+            assert!(
+                log.compact(
+                    2000,
+                    compaction::Policy::default(),
+                    DeletionGuard::new(4, 4)?
+                )
+                .is_err(),
+                "{phase:?}"
+            );
+            assert!(log.is_poisoned());
+            assert_eq!((log.next_offset(), log.log_start_offset()), (4, 0));
+            assert!(matches!(log.fetch(0, 4, 4096), Err(Error::Poisoned)));
+            capture_compaction(&path, "io-error", phase, "interrupted")?;
+            drop(log);
+            let mut log = verify_compaction(&path, phase)?;
+            capture_compaction(&path, "io-error", phase, "recovered")?;
+            assert_eq!(log.append(1, &payload(4))?.next_offset, 5);
+        }
+        Ok(())
+    }
+    #[test]
+    fn compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PL_COMPACTION_CHILD") {
+            let name = std::env::var("PL_COMPACTION_PHASE")?;
+            let phase = COMPACTION_PHASES
+                .iter()
+                .copied()
+                .find(|p| format!("{p:?}") == name)
+                .ok_or("phase")?;
+            let mut log = compaction_seed(Path::new(&path))?;
+            log.fault = Some((phase, true));
+            log.compact(
+                2000,
+                compaction::Policy::default(),
+                DeletionGuard::new(4, 4)?,
+            )?;
+            return Err("process cut not reached".into());
+        }
+        for phase in COMPACTION_PHASES.iter().copied() {
+            let temp = Temp::new()?;
+            let path = temp.0.join("log");
+            let status=std::process::Command::new(std::env::current_exe()?)
+                .args(["--exact","segments::tests::compaction_process_exit_at_publication_and_cleanup_recovers_atomic_round","--nocapture"])
+                .env("PL_COMPACTION_CHILD",&path).env("PL_COMPACTION_PHASE",format!("{phase:?}")).status()?;
+            assert_eq!(status.code(), Some(0), "{phase:?}");
+            capture_compaction(&path, "process-exit", phase, "interrupted")?;
+            let mut log = verify_compaction(&path, phase)?;
+            capture_compaction(&path, "process-exit", phase, "recovered")?;
+            assert_eq!(log.append(1, &payload(4))?.next_offset, 5);
+        }
+        Ok(())
     }
     const PHASES: [Phase; 8] = [
         Phase::IndexWritten,

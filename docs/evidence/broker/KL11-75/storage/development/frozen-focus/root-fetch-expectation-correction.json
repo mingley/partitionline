@@ -1,0 +1,5 @@
+{
+  "classification": "root test-only timestamp expectation correction: initial allremoved horizon retains actual tombstone; empty-only assertion deferred to expiry",
+  "path": "partitionline-broker/tests/fetch.rs",
+  "sha256": "161d37e796e4120290a6de0698e5b2485210826c66a3273200fb633e336520b5"
+}

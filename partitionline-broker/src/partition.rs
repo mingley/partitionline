@@ -6,7 +6,7 @@
 //! Run this synchronous API on an exclusively owned storage thread. Paths and
 //! cross-process ownership are caller configuration, as for `Journal`.
 
-use crate::{journal, records, segments};
+use crate::{compaction, journal, records, segments};
 use std::path::Path;
 
 /// Storage errors retain neither input records nor configured paths.
@@ -16,6 +16,8 @@ pub enum Error {
     InvalidLimits,
     /// Retention requires explicitly selected rolling storage.
     RetentionUnsupported,
+    /// Ordinary cleaning requires explicitly selected rolling storage.
+    CompactionUnsupported,
     /// Input exceeds the configured journal entry bound.
     InputTooLarge,
     /// Assigned offsets exceed the nonnegative signed Kafka offset domain.
@@ -315,6 +317,21 @@ impl Partition {
             Backend::Journal(_) => Err(Error::RetentionUnsupported),
         }
     }
+    /// Atomically clean a caller-protected sealed ordinary prefix. Actual record
+    /// counts can shrink; logical offsets, floor and exclusive end do not.
+    /// Unsupported producer/transaction/control features fail before mutation.
+    pub fn compact(
+        &mut self,
+        now_ms: i64,
+        policy: compaction::Policy,
+        guard: segments::DeletionGuard,
+    ) -> Result<compaction::Outcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.compact(now_ms, policy, guard)?),
+            Backend::Journal(_) => Err(Error::CompactionUnsupported),
+        }
+    }
     /// Retained atomic journal entries, bounded by the configured index budget.
     pub fn entry_count(&self) -> usize {
         self.journal.entry_count()
@@ -389,6 +406,30 @@ impl Partition {
         }
     }
     fn check_entry(&self, entry: &journal::Entry) -> Result<u64, Error> {
+        if matches!(&self.journal,Backend::Segments(log) if log.sparse_at(entry.first_offset)) {
+            let checked = records::validate_read(&entry.payload, self.record_limits)
+                .map_err(|_| Error::CorruptPayload)?;
+            let next = entry
+                .first_offset
+                .checked_add(u64::from(entry.record_count))
+                .ok_or(Error::CorruptPayload)?;
+            if entry.record_count == 0 {
+                return Err(Error::CorruptPayload);
+            }
+            for batch in checked.batches() {
+                let batch = batch.map_err(|_| Error::CorruptPayload)?;
+                if u64::try_from(batch.base_offset)
+                    .ok()
+                    .is_none_or(|n| n < entry.first_offset)
+                    || u64::try_from(batch.next_offset)
+                        .ok()
+                        .is_none_or(|n| n > next)
+                {
+                    return Err(Error::CorruptPayload);
+                }
+            }
+            return Ok(next);
+        }
         let checked = records::validate(&entry.payload, self.record_limits)
             .map_err(|_| Error::CorruptPayload)?;
         if checked.record_count() != entry.record_count as usize {
