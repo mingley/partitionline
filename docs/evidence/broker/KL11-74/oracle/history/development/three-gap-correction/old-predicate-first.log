@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py", line 332, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py", line 320, in main
+    guard = rejected(call, c['guard'])
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py", line 134, in rejected
+    raise AssertionError('semantic control was accepted')
+AssertionError: semantic control was accepted

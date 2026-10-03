@@ -1,0 +1,187 @@
+{
+  "trace_sha256": "9193232ee6dfae6a20e92cf6ed6bdd01c4ff3b22d2a164fa411818a59f36557d",
+  "events": 132,
+  "paired_raw_checkpoints": 28,
+  "decoded_content_operations": 186,
+  "decoded_election_frames": 222,
+  "distinct_image_generations": 3,
+  "event_counts": {
+    "open": 1,
+    "campaign": 3,
+    "vote_request": 7,
+    "vote_response": 7,
+    "activate": 3,
+    "prepare": 18,
+    "receive": 18,
+    "acknowledge": 18,
+    "propose": 1,
+    "checkpoint_image": 2,
+    "feature_prepare": 1,
+    "feature_receive": 1,
+    "feature_acknowledge": 1,
+    "checkpoint": 28,
+    "add_voter": 1,
+    "prior_configuration_guard": 1,
+    "process_exit": 1,
+    "process_exit_observed": 1,
+    "reopen": 4,
+    "image_prepare": 1,
+    "image_begin": 1,
+    "image_chunk_prepare": 1,
+    "image_chunk_receive": 1,
+    "image_finish": 1,
+    "image_acknowledge": 1,
+    "acknowledge_mutated": 1,
+    "duplicate_acknowledge": 1,
+    "remove_voter": 1,
+    "removed_leader_propose": 1,
+    "reopen_final": 4,
+    "removed_campaign": 1
+  },
+  "local_commit_proofs": [
+    {
+      "event": 12,
+      "configuration_epoch": 0,
+      "term": 2,
+      "commit": 1,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ]
+      ],
+      "majority": 2
+    },
+    {
+      "event": 22,
+      "configuration_epoch": 0,
+      "term": 2,
+      "commit": 2,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ]
+      ],
+      "majority": 2
+    },
+    {
+      "event": 72,
+      "configuration_epoch": 1,
+      "term": 3,
+      "commit": 4,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 95,
+      "configuration_epoch": 2,
+      "term": 3,
+      "commit": 5,
+      "distinct_matches": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 2
+    },
+    {
+      "event": 112,
+      "configuration_epoch": 2,
+      "term": 4,
+      "commit": 6,
+      "distinct_matches": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 2
+    }
+  ],
+  "election_proofs": [
+    {
+      "event": 3,
+      "term": 2,
+      "configuration_epoch": 0,
+      "distinct_grants": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ]
+      ],
+      "majority": 2
+    },
+    {
+      "event": 57,
+      "term": 3,
+      "configuration_epoch": 1,
+      "distinct_grants": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 103,
+      "term": 4,
+      "configuration_epoch": 2,
+      "distinct_grants": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 2
+    }
+  ],
+  "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+}

@@ -1,0 +1,7 @@
+{
+  "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+  "checker_sha256": "b026723b9bf6c72ed6c4cd6d1cca9da2fafdb64096ff306a3409377d0e532c22",
+  "error": "committed removed leader fencing",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 5, in <module>\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py\", line 386, in verify\n    require(not raw.contains(model['view'], event['key']) and model['view']['position']['index'] <= model['commit'] and\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py\", line 33, in require\n    raise Rejected(message)\nwal_oracle.Rejected: committed removed leader fencing\n",
+  "scope": "first independent causal checker execution; classify before correction"
+}

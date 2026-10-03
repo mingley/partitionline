@@ -1,0 +1,390 @@
+{
+  "negative_controls_rejected": 52,
+  "original_positive_runs": 4,
+  "controls": [
+    {
+      "history": "history-3",
+      "name": "invented_ack_sequence",
+      "guard": "ACK actual once-only emitted correlation",
+      "source_sha256": "08476e74b64484d48157ae7f7c7e657aad49eef1265d19da14e96d93fcb5bf1e",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_response_target",
+      "guard": "response exact request target",
+      "source_sha256": "7c73d6ee8613d5386a125e455b8685911002503bce096f84731a8eb89f133df5",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "changed_sender_configuration_epoch",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "fd4c44b1af4e872c6ba3a6ccd77bb29cd28d1c56983f0b59b1d6b25f90008149",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "changed_sender_committed_floor",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "3e801e995bfffd33a6946a5ceac87590bbb50274b60779b1fd64250a806aeb7b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "invented_source_record",
+      "guard": "append emitted exact source records",
+      "source_sha256": "7c687c2211354ee848cfcf91c94336bae34ebd2bb2f5973d34ee1a2519a12d67",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_vote_directory",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "0ee38daa3194b758ebdb956e5a5f7f1fbaabdaafba3844287fd657b9c4791ec9",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_vote_receiver",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "c0013eb53f4b65a16b9a0f39a5b968b59114d2d482be50ff9b0ba023f09b3868",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "old_majority_addition_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "84bfadcd57f20c05a3c065f46fb6ac3fd7903fc9483ccbcf0694e8893e22ff6d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "removed_self_authorizes_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "9c1299c3cfefda69bec9eaec34554cdf23a7819f1e1b149efb322120c3cd7aef",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "caller_clock_regression",
+      "guard": "caller clock regression",
+      "source_sha256": "cbafc152c5e53886c489d098cdda7826427f6cd77fa567683ffc278e562842bc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_observed_exit",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "6755167ce6a54e5d95e5f19c028de33762a3b5e44233f1ded2528749510dfcc1",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "lost_clock_handoff",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "f9209c9dca3bb4c68eca44516cd72c51de8a793de0810861b8b8ee32588f0981",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_feature_advertisement",
+      "guard": "feature receive emitted correlation",
+      "source_sha256": "cb855b6c34c0917d8d3031ed7c42209744c7ab9e5bc8b6393a50e540e26dd9cb",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_change_receipt_epoch",
+      "guard": "change receipt epoch",
+      "source_sha256": "f9c3c6352983b063dc33680e258cc366feff3fba3a7cb423a645d46ce8bbdd15",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "invented_change_position",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "75773e09457150f6622680fb4625609d3cb29c20a0ad85baa811dae39614b304",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "uncommitted_change_reports_committed",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "af8e2da22f83544aa1f2eab6e6942c12020f1b0444cf2dd0b0dff41f817f3953",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_stream_bytes",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "a8e241bdd22d88596308fa1b6c6585cbb709c320d4ed8dc7ace1a826dd66957b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_stream_offset",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "e4aa34030284058c50dbfda068b0fd9d8d6fbf07bd4b69a486ef2f5bf6213846",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "undeclared_changed_response",
+      "guard": "only declared response field changed/rejected",
+      "source_sha256": "f770288a9820409b5f7c5c4ecd039039e220ed9d3ec68f96d389e40b99006cee",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_checkpoint_count",
+      "guard": "checkpoint actual durable denominators",
+      "source_sha256": "e89d49827abe29c2bdbb200eed60d3647757fa821fd020a02cb2d517ff9d931d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "removed_leader_authority",
+      "guard": "committed removed leader fencing",
+      "source_sha256": "4f2ea7b3bc95e6aa5d971c43ec2c962f26879040e094fc679e4330c108c0300d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "result_descriptor_changed",
+      "guard": "forged resulting configuration",
+      "all_outer_checksums_valid": true,
+      "sha256": "a6034fb3370557664ed9bcc121c1729c4507069fba140102ff6f66a7fc91ab82"
+    },
+    {
+      "history": "history-3",
+      "name": "local_commit_envelope_changed",
+      "guard": "local authority/configuration/commit",
+      "all_outer_checksums_valid": true,
+      "sha256": "28f4cf346eab9ca2b25029e58e80880fc39523af4ea71a23b9ab1001d38d6bfd"
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_receiver_directory",
+      "guard": "authority kind/term/intended directory",
+      "all_outer_checksums_valid": true,
+      "sha256": "2b04274d46a88df78d62fd3a6db0b1dc65b84fc5c023784855d28b5975784c15"
+    },
+    {
+      "history": "history-3",
+      "name": "voter_record_position_changed",
+      "guard": "append voter exact position",
+      "all_outer_checksums_valid": true,
+      "sha256": "7c139e06b0476f753640ee0a8f7a365fd51f3bae2e1eb02a0549e271b02e62f0"
+    },
+    {
+      "history": "history-3",
+      "name": "historical_equal_view_origin",
+      "guard": "election source must be actual configuration-changing operation",
+      "all_outer_checksums_valid": true,
+      "changed_election_frames": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "original_source": 6,
+      "same_view_decoy": 7,
+      "final_original_context_preserved": true,
+      "sha256": "bfd0e07e672418081290239ab491f585e13edddb533feda7d5cc9e737a70112b"
+    },
+    {
+      "history": "history-5",
+      "name": "invented_ack_sequence",
+      "guard": "ACK actual once-only emitted correlation",
+      "source_sha256": "22becd21a0ebac2edad229f4e8a3f9ca06814a7452aaab06812b6468b1c5c272",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_response_target",
+      "guard": "response exact request target",
+      "source_sha256": "dc25256cc859ba0ddca1a30f4dcec3b2b58fa42eb5f2fcb91047273502ae8ea6",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "changed_sender_configuration_epoch",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "c651c634d5064d388d27b2644749fb8e03771d4dd1962719bc0f15f606d4e5ab",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "changed_sender_committed_floor",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "1b0b39b334c7dfcca832a267e5994770bbf1722d592d7fcf0f92f5485d2e5a02",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "invented_source_record",
+      "guard": "append emitted exact source records",
+      "source_sha256": "944a95f4dd3543b53879467e6dd6089fb4dfc3713330ec1d7eb2499c89f3dfa5",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_vote_directory",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "2ce8ecfaefa50db8e925b9f399175754e813f558144fdefe7b9545f1736a40fc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_vote_receiver",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "d6f1e1aff6abe3896f4c5487873fda641fb13f39357c45ae6fe2e42c6bf5e1b3",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "old_majority_addition_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "e02e47ea94de40c45e65df056cd7e913fb1b8aaaf3af9504016d0118d788965c",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "removed_self_authorizes_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "1b349439b3e7d4ac1fa45837f9e1c44f447105d70771699a385c07f9c0aff8e1",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "caller_clock_regression",
+      "guard": "caller clock regression",
+      "source_sha256": "1f43bcf4ba26a20c23f517a902097a1b8add1f38d369e3b920386203dcb5c22c",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_observed_exit",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "bb9d4d90075ceee71fc7bdbb54dbd5056f10f944b5c3c696cf0e681f6097d4eb",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "lost_clock_handoff",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "547871eced03b7f385957db406f4bbea2224baafc3c052077f0f9dd6e2c007d7",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_feature_advertisement",
+      "guard": "feature receive emitted correlation",
+      "source_sha256": "26326f447d8de3ce318a50b202039518bf673f1ccfd7f8e3bae46dde1ae730fc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_change_receipt_epoch",
+      "guard": "change receipt epoch",
+      "source_sha256": "e585d4f172a7d8c518533dbd357ea88bd2299ae56e53c11968c077f77a9b6c10",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "invented_change_position",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "c09db65889decc15520b960c7cdef1636a17e2e2660db92ec413424d62063f4a",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "uncommitted_change_reports_committed",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "df601b2e579ef787f822edd8dea681a023173fea0ab5ddebba051a40a61fa35b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_stream_bytes",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "c39e20f23e0fa0159f25d1a4bf6b296c5ed865c2abac8dc3d482da55453d9bb6",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_stream_offset",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "d413b45df7334cdc5493375092335624c6fbaf03295a44b4028f12ec40edd1b0",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "undeclared_changed_response",
+      "guard": "only declared response field changed/rejected",
+      "source_sha256": "b5790fa590f4047936b7b42a3b34e7e2e41ef79087183d181e6e922b87096227",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_checkpoint_count",
+      "guard": "checkpoint actual durable denominators",
+      "source_sha256": "87f3d73f80b862ca92b962779ac20678adef7bbf6f130a329bc3e5feacf11ee7",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "removed_leader_authority",
+      "guard": "committed removed leader fencing",
+      "source_sha256": "2cf9cfec9474b0636b8488669c78bbd70459dfd3167c2a83b45ce23db0937a8f",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "result_descriptor_changed",
+      "guard": "forged resulting configuration",
+      "all_outer_checksums_valid": true,
+      "sha256": "b59aee89ffc14875b88b08504368a4352b1959f70df351a794f105b28fcb7d3b"
+    },
+    {
+      "history": "history-5",
+      "name": "local_commit_envelope_changed",
+      "guard": "local authority/configuration/commit",
+      "all_outer_checksums_valid": true,
+      "sha256": "32dccad7fb50ec66a6f668fa867306aeaa1d7364fa2eb2e6dd3651410809f687"
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_receiver_directory",
+      "guard": "authority kind/term/intended directory",
+      "all_outer_checksums_valid": true,
+      "sha256": "db679a4785447afa0900962861820e5a03fbc74a37cfb121ff6d54aabc9e5449"
+    },
+    {
+      "history": "history-5",
+      "name": "voter_record_position_changed",
+      "guard": "append voter exact position",
+      "all_outer_checksums_valid": true,
+      "sha256": "2bb42790d74bf2f50866b36684250ebc9695808ec61033bec5e862a4fcc56d3b"
+    },
+    {
+      "history": "history-5",
+      "name": "historical_equal_view_origin",
+      "guard": "election source must be actual configuration-changing operation",
+      "all_outer_checksums_valid": true,
+      "changed_election_frames": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "original_source": 6,
+      "same_view_decoy": 7,
+      "final_original_context_preserved": true,
+      "sha256": "9f2f28b80d1b2d168fcb73c11fda0375b98d3b876ee6c90b0131e7852e57c7ea"
+    }
+  ],
+  "all_original_bytes_and_full_modes_unchanged": true,
+  "scope": "finite independent semantic guard controls; valid Journal checksums and untouched captured originals"
+}

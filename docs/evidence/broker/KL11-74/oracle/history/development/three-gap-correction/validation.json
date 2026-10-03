@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "before_change_source_and_full_modes_preserved": true,
+  "historical_52_control_receipts_unchanged": true,
+  "original_capture_bytes_and_full_modes_unchanged": true,
+  "failing_first": {
+    "matrix_exit_code": 1,
+    "log": "old-predicate-first.log",
+    "old_positive_traces_passed": 4,
+    "unsafe_controls_accepted": 36
+  },
+  "final": {
+    "control_runs": 2,
+    "negative_controls_rejected": 140,
+    "positive_replays": 8,
+    "distinct_corrected_traces": 4,
+    "events_checked": 666,
+    "paired_raw_checkpoints": 140,
+    "remote_wal_authorities_bound": 106
+  },
+  "same_36_new_mutant_bytes_checked_before_and_after": true,
+  "source_freeze": "source-freeze.json",
+  "artifacts": {
+    "source-freeze.json": {
+      "sha256": "2bff7a60bf596a7353069d8d8860d4d73e14abf9b19cfeaafd7104a08683a56d",
+      "bytes": 1018
+    },
+    "final-msrv-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "final-stable-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "final-stable-3-history.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656
+    },
+    "old-predicate-first.log": {
+      "sha256": "9a16b14cfb8c6874910f904b6b9f9488a3aca00af633c19c03d9454cbfd9e0e4",
+      "bytes": 608
+    },
+    "final-msrv-5-history.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646
+    },
+    "final-stable-5-history.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646
+    },
+    "final-msrv-3-history.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656
+    },
+    "final-stable-controls.json": {
+      "sha256": "c5d6ce3ed913749b458c2ae7c65fba4cb767c90369123bc18cb4e6c6cd4ce3a9",
+      "bytes": 34763
+    },
+    "before-change.json": {
+      "sha256": "f3141438a063aad0d8037b699d5799708a74453f3f6d0e79f53480741cacf856",
+      "bytes": 77931
+    },
+    "old-predicate-probes.json": {
+      "sha256": "4f148b1540991df8004339795e685e4821cc4495f1aea8280164caca92dd1c3b",
+      "bytes": 64832
+    },
+    "probe-old-predicates.py": {
+      "sha256": "97eb98783cc4c161ff6e2ad02ad478fc7e1e7cdc107b302056852537645fb7e2",
+      "bytes": 3081
+    },
+    "final-msrv-controls.json": {
+      "sha256": "c5d6ce3ed913749b458c2ae7c65fba4cb767c90369123bc18cb4e6c6cd4ce3a9",
+      "bytes": 34763
+    },
+    "seal.py": {
+      "sha256": "56d30783ea006cd8fa5a37b860de0c62725f5e124a5162afcbf83bd10e76f832",
+      "bytes": 4827
+    },
+    "old-predicate-probes.log": {
+      "sha256": "14a37d869d1e94390253e4936ec63a892138d2d7ba227a2f3b67976bc330e487",
+      "bytes": 150
+    }
+  },
+  "limits": [
+    "Current/prior leader-end catch-up timestamps and recent-contact addition eligibility are not independently reconstructed.",
+    "Feature negotiation deadline and leader lease timers are absent from this trace schema and are not inferred.",
+    "Prior configuration commit and NEW-set/current-term commit majority are checked; these alone do not qualify every addition admission criterion."
+  ],
+  "disposition": "Scoped corrected Python oracle proof ready for coordinator review; no task closure, source push, Cargo or live network claim"
+}

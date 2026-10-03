@@ -1,0 +1,69 @@
+{
+  "commands": [
+    {
+      "command": [
+        "python3",
+        "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+        "docs/evidence/broker/KL11-74/runtime/development/corrected-complete-stable-tests/captures/history-3/trace.json",
+        "--output",
+        "/workspace/work/integration/membership-stage-one-root-replay/stable-3.json"
+      ],
+      "exit_code": 0,
+      "events": 132,
+      "paired_raw_checkpoints": 28,
+      "remote_wal_authorities_bound": 20,
+      "trace_sha256": "9193232ee6dfae6a20e92cf6ed6bdd01c4ff3b22d2a164fa411818a59f36557d",
+      "result_sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79"
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+        "docs/evidence/broker/KL11-74/runtime/development/corrected-complete-stable-tests/captures/history-5/trace.json",
+        "--output",
+        "/workspace/work/integration/membership-stage-one-root-replay/stable-5.json"
+      ],
+      "exit_code": 0,
+      "events": 201,
+      "paired_raw_checkpoints": 42,
+      "remote_wal_authorities_bound": 33,
+      "trace_sha256": "f07ae50ea104ca800e43ee182492c4efb6376ec7dd3a60c9668aa6fc424bc008",
+      "result_sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1"
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+        "docs/evidence/broker/KL11-74/runtime/development/corrected-complete-msrv-tests/captures/history-3/trace.json",
+        "--output",
+        "/workspace/work/integration/membership-stage-one-root-replay/msrv-3.json"
+      ],
+      "exit_code": 0,
+      "events": 132,
+      "paired_raw_checkpoints": 28,
+      "remote_wal_authorities_bound": 20,
+      "trace_sha256": "9193232ee6dfae6a20e92cf6ed6bdd01c4ff3b22d2a164fa411818a59f36557d",
+      "result_sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79"
+    },
+    {
+      "command": [
+        "python3",
+        "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+        "docs/evidence/broker/KL11-74/runtime/development/corrected-complete-msrv-tests/captures/history-5/trace.json",
+        "--output",
+        "/workspace/work/integration/membership-stage-one-root-replay/msrv-5.json"
+      ],
+      "exit_code": 0,
+      "events": 201,
+      "paired_raw_checkpoints": 42,
+      "remote_wal_authorities_bound": 33,
+      "trace_sha256": "f07ae50ea104ca800e43ee182492c4efb6376ec7dd3a60c9668aa6fc424bc008",
+      "result_sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1"
+    }
+  ],
+  "all_four_exact_results_reproduced": true,
+  "events": 666,
+  "paired_raw_checkpoints": 140,
+  "remote_wal_authorities_bound": 106,
+  "scope": "four existing actual developmental captures; independently reconstructed durable remote authorities, no complete admission timer or final merged source qualification"
+}

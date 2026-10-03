@@ -1,0 +1,19 @@
+{
+  "initial_decoder_failure": "operation trailing bytes",
+  "checkpoint": {
+    "key": {
+      "id": 1,
+      "directory": "02020202020202020202020202020202"
+    },
+    "phase": "before-add",
+    "event_ordinal": 30,
+    "wal_path": "journals/30-before-add-1/metadata.wal",
+    "election_path": "journals/30-before-add-1/election.wal",
+    "images_dir": "journals/30-before-add-1/images",
+    "wal_confirmed_ops": 6,
+    "election_confirmed_states": 5
+  },
+  "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 8, in <module>\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py\", line 386, in read_content\n    result.apply(payload)\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py\", line 326, in apply\n    r.finish()\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py\", line 74, in finish\n    require(self.offset == len(self.data), \"operation trailing bytes\")\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py\", line 33, in require\n    raise Rejected(message)\nwal_oracle.Rejected: operation trailing bytes\n",
+  "scope": "independent decoder first execution; classify before correction"
+}

@@ -1,0 +1,706 @@
+{
+  "decoder_sha256": "6aacab1399d6ed042692007f97cbf5d6a2a85da39a0d4e28ddcfb5b6f5d3a590",
+  "checkpoints": [
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 30,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 6,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 31,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 4,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 32,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 33,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 39,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 7,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 40,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 41,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 42,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 46,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 7,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 48,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 50,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 52,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 80,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 10,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 81,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 7,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 82,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 5,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 83,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 4,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 97,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 98,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 9,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 99,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 7,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 100,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 4,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 119,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 120,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 11,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 121,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 8,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 122,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 6,
+      "election_states": 10
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 124,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 126,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 11,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 128,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 8,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-3/trace.json",
+      "ordinal": 130,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 6,
+      "election_states": 10
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 49,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 6,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 50,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 4,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 51,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 4,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 52,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 53,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 54,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 63,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 7,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 64,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 65,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 66,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 67,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 68,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 72,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 7,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 74,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 76,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 6,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 78,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 80,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 82,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 3,
+      "election_states": 4
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 120,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 10,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 121,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 7,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 122,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 7,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 123,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 5,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 124,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 3,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 125,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 4,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 142,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 143,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 9,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 144,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 9,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 145,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 7,
+      "election_states": 9
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 146,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 3,
+      "election_states": 5
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 147,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 4,
+      "election_states": 7
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 182,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 183,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 11,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 184,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 10,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 185,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 8,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 186,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 5,
+      "election_states": 8
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 187,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 6,
+      "election_states": 10
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 189,
+      "local": {
+        "id": 1,
+        "directory": "02020202020202020202020202020202"
+      },
+      "content_ops": 12,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 191,
+      "local": {
+        "id": 2,
+        "directory": "03030303030303030303030303030303"
+      },
+      "content_ops": 11,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 193,
+      "local": {
+        "id": 3,
+        "directory": "04040404040404040404040404040404"
+      },
+      "content_ops": 10,
+      "election_states": 13
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 195,
+      "local": {
+        "id": 4,
+        "directory": "05050505050505050505050505050505"
+      },
+      "content_ops": 8,
+      "election_states": 11
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 197,
+      "local": {
+        "id": 5,
+        "directory": "06060606060606060606060606060606"
+      },
+      "content_ops": 5,
+      "election_states": 8
+    },
+    {
+      "trace": "docs/evidence/broker/KL11-74/runtime/development/integrated-fourth-stable-history/captures/history-5/trace.json",
+      "ordinal": 199,
+      "local": {
+        "id": 6,
+        "directory": "07070707070707070707070707070707"
+      },
+      "content_ops": 6,
+      "election_states": 10
+    }
+  ],
+  "scope": "developmental capture raw content/election/image bytes only; causal majority/control checks pending"
+}

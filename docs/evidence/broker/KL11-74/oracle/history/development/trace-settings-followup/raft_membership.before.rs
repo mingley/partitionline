@@ -301,10 +301,6 @@ fn hex_bytes(bytes: &[u8]) -> Result<String> {
     }
     Ok(out)
 }
-const DYNAMIC_QUORUM_TIMEOUT_MS: u64 = 1000;
-const DYNAMIC_ELECTION_MIN_MS: u64 = 10;
-const DYNAMIC_ELECTION_MAX_MS: u64 = 10;
-
 struct DynamicGroup {
     root: PathBuf,
     genesis: Voters,
@@ -342,9 +338,8 @@ impl DynamicGroup {
             vec![local.key().id],
             "membership-test".into(),
         )?;
-        config.election_timeouts = Timeouts::new(DYNAMIC_ELECTION_MIN_MS, DYNAMIC_ELECTION_MAX_MS)?;
-        let mut config = replication::Config::new(config);
-        config.quorum_timeout_ms = DYNAMIC_QUORUM_TIMEOUT_MS;
+        config.election_timeouts = Timeouts::new(10, 10)?;
+        let config = replication::Config::new(config);
         let identity = snapshot::Identity::dynamic(
             "membership-test".into(),
             "__cluster_metadata".into(),
@@ -1458,7 +1453,7 @@ impl DynamicHistory {
     fn save(&self) -> Result {
         let source = std::env::var("PL_MEMBERSHIP_SOURCE_SHA")
             .unwrap_or_else(|_| "development-d21-owned-overlay".into());
-        let trace=format!("{{\"schema_version\":1,\"profile\":\"caller-driven-durable-directory-membership\",\"source_sha\":{},\"runtime_settings\":{{\"quorum_timeout_ms\":{},\"election_min_ms\":{},\"election_max_ms\":{}}},\"group\":{{\"cluster_id\":\"membership-test\",\"topic\":\"__cluster_metadata\",\"partition\":0,\"genesis\":{}}},\"locals\":[{}],\"events\":[{}],\"checkpoints\":[{}],\"limits\":[\"typed exchange, no autonomous network or native directory wire\",\"opaque fullprefix retained; no application fold/compaction\",\"known directory discovery precondition\"]}}\n",mj_text(&source),DYNAMIC_QUORUM_TIMEOUT_MS,DYNAMIC_ELECTION_MIN_MS,DYNAMIC_ELECTION_MAX_MS,mj_voters(&self.group.genesis)?,self.group.local.iter().map(mj_voter).collect::<Result<Vec<_>>>()?.join(","),self.events.join(",\n"),self.checkpoints.join(",\n"));
+        let trace=format!("{{\"schema_version\":1,\"profile\":\"caller-driven-durable-directory-membership\",\"source_sha\":{},\"group\":{{\"cluster_id\":\"membership-test\",\"topic\":\"__cluster_metadata\",\"partition\":0,\"genesis\":{}}},\"locals\":[{}],\"events\":[{}],\"checkpoints\":[{}],\"limits\":[\"typed exchange, no autonomous network or native directory wire\",\"opaque fullprefix retained; no application fold/compaction\",\"known directory discovery precondition\"]}}\n",mj_text(&source),mj_voters(&self.group.genesis)?,self.group.local.iter().map(mj_voter).collect::<Result<Vec<_>>>()?.join(","),self.events.join(",\n"),self.checkpoints.join(",\n"));
         mj_write(self.output.join("trace.json"), trace.as_bytes())
     }
 }

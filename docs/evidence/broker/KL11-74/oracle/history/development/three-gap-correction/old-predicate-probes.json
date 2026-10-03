@@ -1,0 +1,1887 @@
+{
+  "old_positive_traces_passed": 4,
+  "new_control_attempts": 36,
+  "unsafe_controls_accepted": 36,
+  "all_original_capture_bytes_and_modes_unchanged": true,
+  "positives": [
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "result": {
+        "trace_sha256": "9193232ee6dfae6a20e92cf6ed6bdd01c4ff3b22d2a164fa411818a59f36557d",
+        "events": 132,
+        "paired_raw_checkpoints": 28,
+        "decoded_content_operations": 186,
+        "decoded_election_frames": 222,
+        "distinct_image_generations": 3,
+        "event_counts": {
+          "open": 1,
+          "campaign": 3,
+          "vote_request": 7,
+          "vote_response": 7,
+          "activate": 3,
+          "prepare": 18,
+          "receive": 18,
+          "acknowledge": 18,
+          "propose": 1,
+          "checkpoint_image": 2,
+          "feature_prepare": 1,
+          "feature_receive": 1,
+          "feature_acknowledge": 1,
+          "checkpoint": 28,
+          "add_voter": 1,
+          "prior_configuration_guard": 1,
+          "process_exit": 1,
+          "process_exit_observed": 1,
+          "reopen": 4,
+          "image_prepare": 1,
+          "image_begin": 1,
+          "image_chunk_prepare": 1,
+          "image_chunk_receive": 1,
+          "image_finish": 1,
+          "image_acknowledge": 1,
+          "acknowledge_mutated": 1,
+          "duplicate_acknowledge": 1,
+          "remove_voter": 1,
+          "removed_leader_propose": 1,
+          "reopen_final": 4,
+          "removed_campaign": 1
+        },
+        "local_commit_proofs": [
+          {
+            "event": 12,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 1,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 22,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 2,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 72,
+            "configuration_epoch": 1,
+            "term": 3,
+            "commit": 4,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 95,
+            "configuration_epoch": 2,
+            "term": 3,
+            "commit": 5,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 112,
+            "configuration_epoch": 2,
+            "term": 4,
+            "commit": 6,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          }
+        ],
+        "election_proofs": [
+          {
+            "event": 3,
+            "term": 2,
+            "configuration_epoch": 0,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 57,
+            "term": 3,
+            "configuration_epoch": 1,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 103,
+            "term": 4,
+            "configuration_epoch": 2,
+            "distinct_grants": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          }
+        ],
+        "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+      }
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "result": {
+        "trace_sha256": "f07ae50ea104ca800e43ee182492c4efb6376ec7dd3a60c9668aa6fc424bc008",
+        "events": 201,
+        "paired_raw_checkpoints": 42,
+        "decoded_content_operations": 263,
+        "decoded_election_frames": 325,
+        "distinct_image_generations": 3,
+        "event_counts": {
+          "open": 1,
+          "campaign": 3,
+          "vote_request": 13,
+          "vote_response": 13,
+          "activate": 3,
+          "prepare": 31,
+          "receive": 31,
+          "acknowledge": 31,
+          "propose": 1,
+          "checkpoint_image": 2,
+          "feature_prepare": 1,
+          "feature_receive": 1,
+          "feature_acknowledge": 1,
+          "checkpoint": 42,
+          "add_voter": 1,
+          "prior_configuration_guard": 1,
+          "process_exit": 1,
+          "process_exit_observed": 1,
+          "reopen": 6,
+          "image_prepare": 1,
+          "image_begin": 1,
+          "image_chunk_prepare": 1,
+          "image_chunk_receive": 1,
+          "image_finish": 1,
+          "image_acknowledge": 1,
+          "acknowledge_mutated": 1,
+          "duplicate_acknowledge": 1,
+          "remove_voter": 1,
+          "removed_leader_propose": 1,
+          "reopen_final": 6,
+          "removed_campaign": 1
+        },
+        "local_commit_proofs": [
+          {
+            "event": 22,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 1,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 41,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 2,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 112,
+            "configuration_epoch": 1,
+            "term": 3,
+            "commit": 4,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 4
+          },
+          {
+            "event": 140,
+            "configuration_epoch": 2,
+            "term": 3,
+            "commit": 5,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 169,
+            "configuration_epoch": 2,
+            "term": 4,
+            "commit": 6,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          }
+        ],
+        "election_proofs": [
+          {
+            "event": 5,
+            "term": 2,
+            "configuration_epoch": 0,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 89,
+            "term": 3,
+            "configuration_epoch": 1,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 4
+          },
+          {
+            "event": 152,
+            "term": 4,
+            "configuration_epoch": 2,
+            "distinct_grants": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          }
+        ],
+        "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+      }
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "result": {
+        "trace_sha256": "9193232ee6dfae6a20e92cf6ed6bdd01c4ff3b22d2a164fa411818a59f36557d",
+        "events": 132,
+        "paired_raw_checkpoints": 28,
+        "decoded_content_operations": 186,
+        "decoded_election_frames": 222,
+        "distinct_image_generations": 3,
+        "event_counts": {
+          "open": 1,
+          "campaign": 3,
+          "vote_request": 7,
+          "vote_response": 7,
+          "activate": 3,
+          "prepare": 18,
+          "receive": 18,
+          "acknowledge": 18,
+          "propose": 1,
+          "checkpoint_image": 2,
+          "feature_prepare": 1,
+          "feature_receive": 1,
+          "feature_acknowledge": 1,
+          "checkpoint": 28,
+          "add_voter": 1,
+          "prior_configuration_guard": 1,
+          "process_exit": 1,
+          "process_exit_observed": 1,
+          "reopen": 4,
+          "image_prepare": 1,
+          "image_begin": 1,
+          "image_chunk_prepare": 1,
+          "image_chunk_receive": 1,
+          "image_finish": 1,
+          "image_acknowledge": 1,
+          "acknowledge_mutated": 1,
+          "duplicate_acknowledge": 1,
+          "remove_voter": 1,
+          "removed_leader_propose": 1,
+          "reopen_final": 4,
+          "removed_campaign": 1
+        },
+        "local_commit_proofs": [
+          {
+            "event": 12,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 1,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 22,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 2,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 72,
+            "configuration_epoch": 1,
+            "term": 3,
+            "commit": 4,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 95,
+            "configuration_epoch": 2,
+            "term": 3,
+            "commit": 5,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 112,
+            "configuration_epoch": 2,
+            "term": 4,
+            "commit": 6,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          }
+        ],
+        "election_proofs": [
+          {
+            "event": 3,
+            "term": 2,
+            "configuration_epoch": 0,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ]
+            ],
+            "majority": 2
+          },
+          {
+            "event": 57,
+            "term": 3,
+            "configuration_epoch": 1,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 103,
+            "term": 4,
+            "configuration_epoch": 2,
+            "distinct_grants": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 2
+          }
+        ],
+        "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+      }
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "result": {
+        "trace_sha256": "f07ae50ea104ca800e43ee182492c4efb6376ec7dd3a60c9668aa6fc424bc008",
+        "events": 201,
+        "paired_raw_checkpoints": 42,
+        "decoded_content_operations": 263,
+        "decoded_election_frames": 325,
+        "distinct_image_generations": 3,
+        "event_counts": {
+          "open": 1,
+          "campaign": 3,
+          "vote_request": 13,
+          "vote_response": 13,
+          "activate": 3,
+          "prepare": 31,
+          "receive": 31,
+          "acknowledge": 31,
+          "propose": 1,
+          "checkpoint_image": 2,
+          "feature_prepare": 1,
+          "feature_receive": 1,
+          "feature_acknowledge": 1,
+          "checkpoint": 42,
+          "add_voter": 1,
+          "prior_configuration_guard": 1,
+          "process_exit": 1,
+          "process_exit_observed": 1,
+          "reopen": 6,
+          "image_prepare": 1,
+          "image_begin": 1,
+          "image_chunk_prepare": 1,
+          "image_chunk_receive": 1,
+          "image_finish": 1,
+          "image_acknowledge": 1,
+          "acknowledge_mutated": 1,
+          "duplicate_acknowledge": 1,
+          "remove_voter": 1,
+          "removed_leader_propose": 1,
+          "reopen_final": 6,
+          "removed_campaign": 1
+        },
+        "local_commit_proofs": [
+          {
+            "event": 22,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 1,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 41,
+            "configuration_epoch": 0,
+            "term": 2,
+            "commit": 2,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 112,
+            "configuration_epoch": 1,
+            "term": 3,
+            "commit": 4,
+            "distinct_matches": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 4
+          },
+          {
+            "event": 140,
+            "configuration_epoch": 2,
+            "term": 3,
+            "commit": 5,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 169,
+            "configuration_epoch": 2,
+            "term": 4,
+            "commit": 6,
+            "distinct_matches": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          }
+        ],
+        "election_proofs": [
+          {
+            "event": 5,
+            "term": 2,
+            "configuration_epoch": 0,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ]
+            ],
+            "majority": 3
+          },
+          {
+            "event": 89,
+            "term": 3,
+            "configuration_epoch": 1,
+            "distinct_grants": [
+              [
+                1,
+                "02020202020202020202020202020202"
+              ],
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 4
+          },
+          {
+            "event": 152,
+            "term": 4,
+            "configuration_epoch": 2,
+            "distinct_grants": [
+              [
+                2,
+                "03030303030303030303030303030303"
+              ],
+              [
+                3,
+                "04040404040404040404040404040404"
+              ],
+              [
+                4,
+                "05050505050505050505050505050505"
+              ]
+            ],
+            "majority": 3
+          }
+        ],
+        "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+      }
+    }
+  ],
+  "probes": [
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "2fec750fb94f7cf36b9a31dc96206df59d2b17d800de6b674d94098d19a80bf8",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "21202348504571b10655b84e3453622ba9192f64e93f9b0da4556ffb275868d2",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "af036bb7f6f726b8d6af98490ae3387f94cf6c4deef510ca452f105a99d9bcca"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "f0530d44bab5a7c0e56ea21d8cd74309c398468ffc937fc27b592c0c2cca1540"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "516c532d5a0c12ca9493ae92d4b43ede8d21fb37d3601dbd4373d1af8debdfd5"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "5c9a416e77579934318603c0f0bbc51528aaf950b3b100c1c868cd23b6e5ee2f"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "c3ca82e52b617584568a6c619a2974a46a33e19f5778a2498da58d8a19f9b15d"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "7db71ac80a4a65d1e2cfdd27de0710b371a6bab6fefa2bd9bf0c9863eab23754"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "512eacd1c307dbbe8cabbf425644687423b395f462341172ab3dc19054a2664d"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "ce5868d94bfc150c63d81ace67201a70e7805f41ea38f4ce79559b6aca666125"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "3ed4b86411ac20025468f9b30b77cabf592c402875a33b1ee07cb8762a5d653b"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "9d949e70a3d0fdd86d42dc04f3fbcfe8f4f0af361d48b9159d1aaf4e7ec67fa6"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "55af18a20a72cff2754b88be8531d57d0d1e0861f3641334f72a4bca5145d087"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "2e3668a96d365ffb29ce0322e4ab24477583b15703ededaf14a137e1a6777a1e"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-3",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "9743dc2287a4a9e1ac32cdccc78a860a4eca783b8e2b688d129dd4a95d4bd7f1",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "7a7db0cff8a3e09a615372413fa58b4482182d9d04aba0bab86f0a0d34318650",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "8105486420bb4be23d3f11bfef69f53671316cc3f74b6810a2986d25dfca4eb3"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "ba4cd16b0b1766a1933ee573015b8a73841c18c687bd6ad7386dc714c7c1717e"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "967627a50a714a9185e6928139c14fe274fb7a0e107bbd53156ceb9432cab7bc"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "d2fd68c93edd4858dc1f0fa8f2916b52487aeeec8965dcd6a04bcd10f503ef22"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "f6f47b424bfa60aac8d471c2d848429cb632d78fe69fc0bf00a1ed9bb45c9dbe"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "718cd3d6027d7b84514a86c7eee2178e573befc50f85ceb3f6800b3bbd52b452"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "b7c3866b74c054d437a580ad6e53adfda76e84c893953b0eba884dc21d0f3030"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "dbafd2bdc1a8e0c57fa39a69ce2b8ab4123c5187e14179667552d4f1890104b4"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "bf0e72949e781b546f6983adcc954b5a6f226c478bb823683a08a0875c4c61fe"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "cc7aab41d7bbc8c0a1c3f3ccb642a8db951b4039190126cc078f223bb6c7a564"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "300317ab93d9dc9d61fc6b74320a7878b98f3ae38986379bbf178d65cc349134"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "f9bd845d66f624cf6b5259c19de7acb7654308ba776736002836ce4c048b8434"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "stable",
+      "history": "history-5",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "2fec750fb94f7cf36b9a31dc96206df59d2b17d800de6b674d94098d19a80bf8",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "21202348504571b10655b84e3453622ba9192f64e93f9b0da4556ffb275868d2",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "af036bb7f6f726b8d6af98490ae3387f94cf6c4deef510ca452f105a99d9bcca"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "f0530d44bab5a7c0e56ea21d8cd74309c398468ffc937fc27b592c0c2cca1540"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "516c532d5a0c12ca9493ae92d4b43ede8d21fb37d3601dbd4373d1af8debdfd5"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "5c9a416e77579934318603c0f0bbc51528aaf950b3b100c1c868cd23b6e5ee2f"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "c3ca82e52b617584568a6c619a2974a46a33e19f5778a2498da58d8a19f9b15d"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "7db71ac80a4a65d1e2cfdd27de0710b371a6bab6fefa2bd9bf0c9863eab23754"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "512eacd1c307dbbe8cabbf425644687423b395f462341172ab3dc19054a2664d"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "ce5868d94bfc150c63d81ace67201a70e7805f41ea38f4ce79559b6aca666125"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "3ed4b86411ac20025468f9b30b77cabf592c402875a33b1ee07cb8762a5d653b"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "9d949e70a3d0fdd86d42dc04f3fbcfe8f4f0af361d48b9159d1aaf4e7ec67fa6"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "55af18a20a72cff2754b88be8531d57d0d1e0861f3641334f72a4bca5145d087"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "2e3668a96d365ffb29ce0322e4ab24477583b15703ededaf14a137e1a6777a1e"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-3",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "9743dc2287a4a9e1ac32cdccc78a860a4eca783b8e2b688d129dd4a95d4bd7f1",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "7a7db0cff8a3e09a615372413fa58b4482182d9d04aba0bab86f0a0d34318650",
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "8105486420bb4be23d3f11bfef69f53671316cc3f74b6810a2986d25dfca4eb3"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "ba4cd16b0b1766a1933ee573015b8a73841c18c687bd6ad7386dc714c7c1717e"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "967627a50a714a9185e6928139c14fe274fb7a0e107bbd53156ceb9432cab7bc"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "d2fd68c93edd4858dc1f0fa8f2916b52487aeeec8965dcd6a04bcd10f503ef22"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "f6f47b424bfa60aac8d471c2d848429cb632d78fe69fc0bf00a1ed9bb45c9dbe"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "718cd3d6027d7b84514a86c7eee2178e573befc50f85ceb3f6800b3bbd52b452"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "b7c3866b74c054d437a580ad6e53adfda76e84c893953b0eba884dc21d0f3030"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "dbafd2bdc1a8e0c57fa39a69ce2b8ab4123c5187e14179667552d4f1890104b4"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "bf0e72949e781b546f6983adcc954b5a6f226c478bb823683a08a0875c4c61fe"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "cc7aab41d7bbc8c0a1c3f3ccb642a8db951b4039190126cc078f223bb6c7a564"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "300317ab93d9dc9d61fc6b74320a7878b98f3ae38986379bbf178d65cc349134"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "f9bd845d66f624cf6b5259c19de7acb7654308ba776736002836ce4c048b8434"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    },
+    {
+      "toolchain": "msrv",
+      "history": "history-5",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true,
+      "old_predicate_outcome": "accepted_unsafe_control"
+    }
+  ],
+  "new_control_source_sha256": "f749482c976150ca61e0a0d70d549bee6be4a797290682f5a82ee8971dcc6e2c"
+}

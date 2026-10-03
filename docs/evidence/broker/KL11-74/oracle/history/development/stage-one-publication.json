@@ -1,0 +1,299 @@
+{
+  "scope": "Independent Python checker correction and test-only captured timer settings. Existing corrected developmental 3/5 membership captures are rechecked; final merged-source gates and settings-driven admission proof remain pending. Historical unsafe checker predicates are preserved with failing-first controls and honest finite limitations.",
+  "oracle_freeze_sha256": "2bff7a60bf596a7353069d8d8860d4d73e14abf9b19cfeaafd7104a08683a56d",
+  "runtime_source_freeze_sha256": "6a70241a5ae61f4fd054e4d1d2d6cf7cc3e8d9e993b6a7fb7eea50a4dda4cacc",
+  "historical_tests_source_sha256": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+  "new_capture_settings_tests_source_sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+  "files": {
+    "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "0c1b51da025316747fb7c982fef3bb8c2a0f5dfcd68a370517b3da8d730a799a",
+      "bytes": 32198,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/first-causal-result.json": {
+      "sha256": "fef587b9d4b5d7544c1810a6d44c42a1f8fba17609544c544639dc1a255c2610",
+      "bytes": 896,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/first-raw-validation.json": {
+      "sha256": "7a4eac1c3adc8be72d20e1f820c813bdddd35ef425b44bea6f32617a1b9c5ae9",
+      "bytes": 22278,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/first-result.json": {
+      "sha256": "f318a40bdc4a6e840371087d6765cc3aa589a29a2df76c7b393784b4f0a05677",
+      "bytes": 1428,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/history-3-causal-validation.json": {
+      "sha256": "abe9af4b1a9e6b9a084f23aa7a078df616213f90aea745d7545dca59276a7861",
+      "bytes": 3874,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/history-5-causal-validation.json": {
+      "sha256": "6bb0daae5ea6c94d98ab868c3e7cae60e62fef054fb38f5f4a7df78f1f0ea101",
+      "bytes": 4510,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/initial-decoder.py": {
+      "sha256": "f650a26b10f0fbebab9e7ebc9d82d301bb27aa8cb1a6f037a63f5e8dcdfa5fc5",
+      "bytes": 25384,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/initial-history-checker.py": {
+      "sha256": "b026723b9bf6c72ed6c4cd6d1cca9da2fafdb64096ff306a3409377d0e532c22",
+      "bytes": 27680,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls-authority.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls-authority.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls-final.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls-final.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls-first.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/initial-root-development/semantic-controls.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/root-replay/msrv-3.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/root-replay/msrv-5.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/root-replay/stable-3.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/root-replay/stable-5.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/root-replay/validation.json": {
+      "sha256": "6071d02ae14ae98e82195c2505024a0190aa67c619845d49b4edff002c09e291",
+      "bytes": 3013,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before-change.json": {
+      "sha256": "f3141438a063aad0d8037b699d5799708a74453f3f6d0e79f53480741cacf856",
+      "bytes": 77931,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+      "bytes": 11564,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "2c14afcea4b3692b332254a2d8bf00fc240fafd64d33e6853e711fd9470fa55d",
+      "bytes": 28779,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "6aacab1399d6ed042692007f97cbf5d6a2a85da39a0d4e28ddcfb5b6f5d3a590",
+      "bytes": 25447,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "c3150141a0daa228409c056956464d3907a8af108bd0bea4d0191385e74859b0",
+      "bytes": 12696,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls-authority.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls-authority.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls-final.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls-final.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls-first.log": {
+      "sha256": "e7d2050156f88bda837e8b7b6d0630b293f67c16385ac0b6e0fd08b0e7d1dc5d",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/before/historical-receipts/semantic-controls.json": {
+      "sha256": "7ccb8e1d63ec352045cdd24257dbc4057a8ea878386bc2900dac3d083e88a704",
+      "bytes": 15026,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-msrv-3-history.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-msrv-5-history.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-msrv-controls.json": {
+      "sha256": "c5d6ce3ed913749b458c2ae7c65fba4cb767c90369123bc18cb4e6c6cd4ce3a9",
+      "bytes": 34763,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-msrv-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-stable-3-history.json": {
+      "sha256": "16547c6233b965a40bdd65ddfc975e205af8f8c3c114538a9f25881148f5bf79",
+      "bytes": 15656,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-stable-5-history.json": {
+      "sha256": "6cadb33ed93b621007c3555981f19c1fb02b8a5eb5a05b552fa5fef6fba491b1",
+      "bytes": 23646,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-stable-controls.json": {
+      "sha256": "c5d6ce3ed913749b458c2ae7c65fba4cb767c90369123bc18cb4e6c6cd4ce3a9",
+      "bytes": 34763,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/final-stable-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/old-predicate-first.log": {
+      "sha256": "9a16b14cfb8c6874910f904b6b9f9488a3aca00af633c19c03d9454cbfd9e0e4",
+      "bytes": 608,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/old-predicate-probes.json": {
+      "sha256": "4f148b1540991df8004339795e685e4821cc4495f1aea8280164caca92dd1c3b",
+      "bytes": 64832,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/old-predicate-probes.log": {
+      "sha256": "14a37d869d1e94390253e4936ec63a892138d2d7ba227a2f3b67976bc330e487",
+      "bytes": 150,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/probe-old-predicates.py": {
+      "sha256": "97eb98783cc4c161ff6e2ad02ad478fc7e1e7cdc107b302056852537645fb7e2",
+      "bytes": 3081,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/seal.py": {
+      "sha256": "56d30783ea006cd8fa5a37b860de0c62725f5e124a5162afcbf83bd10e76f832",
+      "bytes": 4827,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/source-freeze.json": {
+      "sha256": "2bff7a60bf596a7353069d8d8860d4d73e14abf9b19cfeaafd7104a08683a56d",
+      "bytes": 1018,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/source/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "0c1b51da025316747fb7c982fef3bb8c2a0f5dfcd68a370517b3da8d730a799a",
+      "bytes": 32198,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/source/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "bytes": 25651,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/source/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "f749482c976150ca61e0a0d70d549bee6be4a797290682f5a82ee8971dcc6e2c",
+      "bytes": 19355,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/three-gap-correction/validation.json": {
+      "sha256": "d11d925f73c74a8a11e7db288d688464e4e79ffd821d1bcfd385e499a9706335",
+      "bytes": 3459,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/before.json": {
+      "sha256": "7d5d62c13104367140658499d788f38c1fcf09cf24d8d22787f96cf2dc0b9ef3",
+      "bytes": 311,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/capture-settings.patch": {
+      "sha256": "448f1dfe972a52c482c9ad662d21619e1dc00739d0455cbfba01cd7f23afd8f0",
+      "bytes": 2699,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/raft_membership.after.rs": {
+      "sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+      "bytes": 69001,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/raft_membership.before.rs": {
+      "sha256": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+      "bytes": 68595,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/rustfmt-1.85.0.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/rustfmt-stable.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/development/trace-settings-followup/validation.json": {
+      "sha256": "1182b97bc532482f3f8a4adedb54f7ed0480a5b9567c898ca61434787a1bb7e8",
+      "bytes": 2280,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "bytes": 25651,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "f749482c976150ca61e0a0d70d549bee6be4a797290682f5a82ee8971dcc6e2c",
+      "bytes": 19355,
+      "full_mode": 384
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+      "bytes": 69001,
+      "full_mode": 384
+    }
+  }
+}

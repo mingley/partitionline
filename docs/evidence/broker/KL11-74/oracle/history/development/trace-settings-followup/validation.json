@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "1b6298bc2f933ddde3ee4266b5ce02122b0d017d",
+  "scope": "Authorized test-only trace settings; no production edits, no Cargo, no new runtime tests or regenerated old traces",
+  "before": {
+    "source_sha": "1b6298bc2f933ddde3ee4266b5ce02122b0d017d",
+    "path": "partitionline-broker/tests/raft_membership.rs",
+    "sha256": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+    "full_mode": 384,
+    "scope": "Test-only capture settings followup; original proof trees remain untouched"
+  },
+  "after": {
+    "path": "partitionline-broker/tests/raft_membership.rs",
+    "sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+    "full_mode": 384
+  },
+  "trace_fields": {
+    "runtime_settings": {
+      "quorum_timeout_ms": 1000,
+      "election_min_ms": 10,
+      "election_max_ms": 10
+    }
+  },
+  "binding": "The exact same three named constants are assigned to Config/Timeouts in DynamicGroup::open and emitted by DynamicHistory::save. quorum_timeout_ms remains the existing default1000; election10..10 is unchanged.",
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/membership-runtime/trace-settings-followup/rustfmt-stable.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/membership-runtime/trace-settings-followup/rustfmt-1.85.0.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "patch_sha256": "448f1dfe972a52c482c9ad662d21619e1dc00739d0455cbfba01cd7f23afd8f0",
+  "old_proofs": "The c4d7f83b source copies, command/capture seals, packets, histories and runtime/SHA256SUMS remain untouched."
+}

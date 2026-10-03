@@ -1,0 +1,7 @@
+{
+  "source_sha": "1b6298bc2f933ddde3ee4266b5ce02122b0d017d",
+  "path": "partitionline-broker/tests/raft_membership.rs",
+  "sha256": "c4d7f83b3834b9dd23847fe180972bb582187944e4e6e68716eb550230c140ad",
+  "full_mode": 384,
+  "scope": "Test-only capture settings followup; original proof trees remain untouched"
+}

@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "scope": "Only three delegated independent checker source paths; not full KL11-74 qualification",
+  "sources": {
+    "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "full_mode": "0o600",
+      "git_blob": "09e8e30b41d421b58bde6c580a9d860893a4c18c"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "0c1b51da025316747fb7c982fef3bb8c2a0f5dfcd68a370517b3da8d730a799a",
+      "full_mode": "0o600",
+      "git_blob": "d3c1310d9b28cf9be2a9ff011b2c6ea3b4f9291b"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "f749482c976150ca61e0a0d70d549bee6be4a797290682f5a82ee8971dcc6e2c",
+      "full_mode": "0o600",
+      "git_blob": "101478b3f9a297d8a87927090933d957644234b4"
+    }
+  },
+  "before_change_packet_sha256": "f3141438a063aad0d8037b699d5799708a74453f3f6d0e79f53480741cacf856"
+}
