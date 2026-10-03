@@ -45909,7 +45909,9 @@
     "partitionline-broker/tests/raft_snapshot.rs",
     "partitionline-broker/tests/raft_membership.rs",
     "docs/evidence/broker/KL11-74/runtime/",
-    "docs/plan/evidence/KL11-74.json"
+    "docs/plan/evidence/KL11-74.json",
+    "partitionline-broker/src/protocol.rs",
+    "partitionline-broker/tests/protocol.rs"
   ],
   "delegated_write_sets": {
     "codex-c-peer-20261003": [
@@ -45921,7 +45923,7 @@
       "docs/evidence/broker/KL11-74/oracle/history/"
     ]
   },
-  "integration_coordinator": "RPC exclusively owns typed durable configuration/directory fencing and recovery source after15 closure; c_peer owns independent pinned Kafka membership components/fixtures. Root owns exports/independent raw membership history checker/shared protocol gates and card state. Preserve fixed voter behavior, old image/WAL recovery and current controller advertisement. Freeze core before final actual-source stable/MSRV QA. Implement Kafka one-at-a-time voter changes and new-set majority with committed prior configuration, current-epoch high watermark, caught-up addition and committed removed-leader resignation; no substitute joint-consensus claim. Native modern wire integration stays under70."
+  "integration_coordinator": "RPC exclusively owns typed durable configuration/directory fencing and recovery source after15 closure; c_peer owns independent pinned Kafka membership components/fixtures. Root owns exports/independent raw membership history checker/shared protocol gates and card state. Preserve fixed voter behavior, old image/WAL recovery and current controller advertisement. Freeze core before final actual-source stable/MSRV QA. Implement Kafka one-at-a-time voter changes and new-set majority with committed prior configuration, current-epoch high watermark, caught-up addition and committed removed-leader resignation; no substitute joint-consensus claim. Native modern wire integration stays under70. RPC additionally owns only the necessary Controller/Election membership bridge and its protocol regression tests within protocol.rs/tests/protocol.rs; existing framed headers, ApiVersions registry and fixed-v0 wire behavior remain intact. Root makes no concurrent protocol.rs edits and updates shared source bindings only after freeze."
 },
     {
       "id": "KL05-28",
