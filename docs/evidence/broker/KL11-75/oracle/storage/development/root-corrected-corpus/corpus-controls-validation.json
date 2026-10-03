@@ -1,0 +1,598 @@
+{
+  "passed": true,
+  "negative_controls": 42,
+  "positive_original_checks": 42,
+  "inputs_unchanged": true,
+  "results": [
+    {
+      "release": "4.1.2",
+      "name": "invented-keyed-value",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "invented-keyed-value",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-delete-horizon",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-delete-horizon",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-retained-timestamp",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "wrong-retained-timestamp",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "expired-tombstones-early",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "expired-tombstones-early",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "kept-expired-tombstones",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "0df77e6f221ee69599bdda8976ddb39609c7dfbf1845b389bd01848bdc6518c9",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "kept-expired-tombstones",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "87511de02ea2193ad45db5ba0c858546b94c18e3467f680cf005b3ed751d609a",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "kept-null-keys",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "kept-null-keys",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "invented-empty-header-time",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "4cd995ba26da9d222bc2b681cb3ecb400cb89b3b1527547addf3534407a5ac48",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "invented-empty-header-time",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "3a78d4176b249a324cd9e0515d1f594355540d7b838db286836a7e40e70c0aaf",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "invented-keyed-value",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "invented-keyed-value",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-delete-horizon",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-delete-horizon",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-retained-timestamp",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "wrong-retained-timestamp",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "expired-tombstones-early",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "expired-tombstones-early",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "kept-expired-tombstones",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "140aee090519a8c5a75a22cd181403b8c6dc203259e993218af6f5e3a1806da6",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "kept-expired-tombstones",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "e3a1c22bc6b8946dd7a0e7dd6471f1e4c9d1ab18e3b03cc9acf82c1a2040c0ff",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "kept-null-keys",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "kept-null-keys",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "invented-empty-header-time",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "755efbaa21c0563425fb87089a7f3b3083534a7bce31768ba15236a450f3a1ef",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "invented-empty-header-time",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "158acda7806964d364a291a67e0a23702c6a898afe2643f94d17de73c7549c82",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "invented-keyed-value",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "invented-keyed-value",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "06f26cc99d0a03d72a42d167871e005b6fb8622e56d748f1701ad3df264e035a",
+        "0000000000000000-0000000000000002.seek": "548ff49833d124ac033c07a4d0d7d8498b289b2368e18de5398a0fa17359d6f1",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "9cf6e40282668bd5bc220890be6ac4a6e2efd0fcde3b0c6d6bf3c4eda0e3a6bc"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-delete-horizon",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-delete-horizon",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-retained-timestamp",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "wrong-retained-timestamp",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "7fb8a645e3f785c82e68f7cb4584bb79b3799ab6ebc7d00d234ba1dc286e1240",
+        "0000000000000000-0000000000000002.seek": "ca5ff454313587059fd969f7ad9bb65f6234c0b82dfc126d8a72876c2dee5263",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "36782b5ddee41a0fd7784f08ffac34ba87c1d26ffbf04620dc1ce99baeba2d16"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "expired-tombstones-early",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "expired-tombstones-early",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000002.seek": "49db6922f90170536048804cc128f604841e1aeefd8fcb4c209ef24fb03d0bc6",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "d0c8804725ae49d82acad8b80c6a6136383e10203a286164aec9f2cb7a6fef7c"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "kept-expired-tombstones",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "d22d72e0871ca0287936e75ea2e6b3a8f5690d882bde95ce400e66a0a8275a67",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "kept-expired-tombstones",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000004.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000004.seek": "5a0e8360715e75a24875df9367b8d26409d54f5a95a45b47d095e49d76ae9256",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "f962a2ed4636a7d9db206cd7daa9eb53ea5e2b9d770a1d634a466dabd6210bd7",
+        "manifest": "b87131385c0131c1aaeb045878f336a47b6d220ce5cac5bbbe5ac230abc6fbe0"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "kept-null-keys",
+      "phase": "selected",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "kept-null-keys",
+      "phase": "reopened",
+      "rejected_by": "exact selected file envelope",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000002.journal": "f3966330647c061eda921773d9efaa2f7544f94357809c2bc8c9484c6deec3fe",
+        "0000000000000000-0000000000000002.seek": "4af4a05ec2e5c88e325d9643138e3b51c172cdbb5c59a457e12bd626285ab698",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "23396417badf95b13e11797218a6621a5a95b70d7d70eeb968b49ceca213f313"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "invented-empty-header-time",
+      "phase": "selected",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "dd6e4a9677e36fc372448585e8e81d52bb75ddc8a1dd2235ed59b6c3c7f48118",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "invented-empty-header-time",
+      "phase": "reopened",
+      "rejected_by": "selected logical entry/CRC/exact Apache bytes",
+      "repaired_Kafka_file_entry_manifest_seek_checksums": true,
+      "altered_files_sha256": {
+        "0000000000000000-0000000000000003.journal": "250ea6535b1ca9bc8c345394ba5bd2c38ddf2a73665c303f8990f50a0fec8bc4",
+        "0000000000000000-0000000000000003.seek": "5340ec3e621e68c78658d022aaa63436545b9d455cc7fcef608947c98b3d638b",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "ff8e5098e85c27851dff5d7d5adffe782f358a9d50a226a472d746ed18705e93",
+        "manifest": "cbe0bded8ef3ee23a295cef81b690a598d0d98911510c41a132f4ef9d3702775"
+      }
+    }
+  ],
+  "checker_sha256": "a53daa15abeb12727e015b6b021aa931296ca2986bf1c6af5cb8cd566baddb5e",
+  "scope": "Finite semantic cleaner controls on isolated copies of three-release actual disk captures"
+}

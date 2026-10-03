@@ -1,0 +1,30 @@
+{
+  "scope": "Root independent development proof. BASIC histories predate work-cap correction; corpus is corrected owned source before final root test-helper fixes. Checkers and finite outputs only, no pushed product/runtime qualification. Fresh actual main binding remains required.",
+  "history_raw_path": "/workspace/work/compaction-development/attempt-1/faults",
+  "history_controls_raw_path": "/workspace/work/integration/compaction-root-controls-attempt-2",
+  "corpus_raw_path": "/workspace/work/compaction-development/corrected/stable-storage-corpus",
+  "history_cases": 32,
+  "history_states": 64,
+  "history_raw_files": 666,
+  "semantic_history_controls": 34,
+  "corpus_cases": 24,
+  "corpus_states": 48,
+  "corpus_raw_files": 240,
+  "scope_limitations": [
+    "No arbitrary histories or physical power-loss qualification.",
+    "No dynamic replication or transactions.",
+    "Genuine public-peer runtime and final stable/MSRV feature matrix remain open."
+  ],
+  "development_guard_failures": [
+    {
+      "attempt": "history-controls-attempt-1",
+      "actual_exit": 1,
+      "reason": "Changed kind on the empty56B sparse entry also violates dense minimum57B before intended descriptor binding guard. Original checksum remained valid; control moved to retained offset2 entry to isolate intended semantic invariant."
+    },
+    {
+      "attempt": "corpus-attempt-1",
+      "actual_exit": 1,
+      "reason": "Applied32KiB rawcapture bound to larger genuineApachegoldensJSON. Separate bounded1MiB JSONmanifest reader added; rawcapture/filebounds unchanged."
+    }
+  ]
+}

@@ -1,0 +1,5351 @@
+{
+  "passed": true,
+  "cases": 24,
+  "states": 48,
+  "results": [
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "29d9be299268ee36fc24070289084abf7dae5e1abc8b17264cbbac4e6335eb17",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "663b6f3b55c4e42930853e66b3f4ad58630cf3733d3fdff4f95b9a62456bf5cd",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b920b437f1ca08cdd0869973299482f70e9d54fe881562939289d52fd54c043a",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "80b42d4103bab89bc5c52f8544346a6d39a52b7dbf81e04f05eb08cd8ebfe38a",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "0df77e6f221ee69599bdda8976ddb39609c7dfbf1845b389bd01848bdc6518c9",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "87511de02ea2193ad45db5ba0c858546b94c18e3467f680cf005b3ed751d609a",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "174fce00ada810b2343710d771c6caac97ad8682a67c8acde993f76c8987e225",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "459ec6e39a1d330680ea942e662b2cce23fb266df3a9af739be5e4e0eb1e0297",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "6c6ab944ab45c0dc5c4568f42fed01ac10248156cfaefb6710f5815b39031e00",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "a03d25fca564c89d9daefacbbc4cadf1d427cd55dab9d046361b656b501869f4",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "f1766c2ac05e804f81168ee14ae7c17a146741d42c57a635b30f160bdbba669e",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "324e676aa1e29ea87067fe0d9be946c678cc72ba8ae1e4437e5889d4c991ee14",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "4e041ef1b4d139695027913d4f233ac07e21e40915374405cd111d4601df8df2",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "6db94f72de0fc110e8c95a50dc18a2d596ce981b016dcf7b8c314d6f94dc5ab2",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "4cd995ba26da9d222bc2b681cb3ecb400cb89b3b1527547addf3534407a5ac48",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "3a78d4176b249a324cd9e0515d1f594355540d7b838db286836a7e40e70c0aaf",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "da9b99d6e52dfd90561d762a20c01662e466a00821cd460b50768961e4a45d04",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "a2371d35f7f470485c9b0e6538c51cf84bab61d21a180e1dc5b60e3a3faa2e60",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "9a7d60c35d83dad0d2e911d30276169f845fe73fefa75306da09488f0ce20b86",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "961696de52f8d785c444ae7bcf141f0fdc4b056322324123dc604cf10c6a52c0",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "140aee090519a8c5a75a22cd181403b8c6dc203259e993218af6f5e3a1806da6",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "e3a1c22bc6b8946dd7a0e7dd6471f1e4c9d1ab18e3b03cc9acf82c1a2040c0ff",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "8f57d052fb6365b50aa6ab454093ab848faa1d366d6165e6a0a73954f09e9dfa",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b337d489cb9a30f5fa3d42cb35ed96d05d974dec1f8ae54d116c95c0a3072889",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "8646ae0a00a7a63b0bdcd9e483bf6e3288f6ba3d1e07def3d913670c8ff53c50",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "ba6225c0d2c8c930b28ad6d104b4f47cac06357a252d8fa280d5202c06a8292d",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "b08b15e903ed20c92ff27b60b1e852893b69410fa69af9c947f072a0a2fc2f5f",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "159fa753f81b024b4aefbd8d777dbf505b4642d5825bee6036672140f3ea5169",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "5ede23465dc6f9c7f02c9661deb2ce89135f9e21a0696ddfdc04f618731f72d5",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "e07c2a489a78d9936e466967025247b841e2963e41e79c8e60cb7a085fe0bed2",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "755efbaa21c0563425fb87089a7f3b3083534a7bce31768ba15236a450f3a1ef",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "158acda7806964d364a291a67e0a23702c6a898afe2643f94d17de73c7549c82",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "51c09ac152956c69c0d7f33ddf4c3f1d7a07ed2ad266a3a3abdd303ffaf95a6d",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000002.seek": "3a7476f1c83e6e41d0a82878860167f5c7db6fb72a09003277b886bb700732c5",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b04f64abc3b9acdadb63f2a3397ebabcff1b0e8c4f02e67b34e8a850dc73539f",
+        "manifest": "b9fb45fe0177d8a7bd486713f36f990cfb143ec6bcc60de322386a0927c12197"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "cc8e131c5d1e08874157ef116c756aefe6977b24a96e73ddb8e78b20ed78afe2",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 2999,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 4,
+          "timestamp": 1010,
+          "key_hex": "62",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 7,
+          "timestamp": 1013,
+          "key_hex": "63",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "2fadb336194da5057324d3e22f4a930b2a00a4dbf4cfd7420329eb0b5649de22",
+        "0000000000000000-0000000000000003.seek": "3d060e605f5722e6ebb104a0da10222d4082e857cb9141debcc12957a6d4069a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "3bef76155a9c5d6763fa9f85b96da1d8ae4c671d1f5c438bec09aab4c92cb155",
+        "manifest": "eac10289ffcd27ab30a3e11389bcc10fa6acb4783411d08a02b9f6c9d49436b8"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "d22d72e0871ca0287936e75ea2e6b3a8f5690d882bde95ce400e66a0a8275a67",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 4,
+      "raw_sha256": {
+        "0000000000000000-0000000000000004.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000004.seek": "1cebc60876e951ab086d49c776bba29d990b8f0aa7e16d640a2346535773511a",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "f962a2ed4636a7d9db206cd7daa9eb53ea5e2b9d770a1d634a466dabd6210bd7",
+        "manifest": "227eb56c9da49d06fc94cf140a221560f24579b79c254ddede7dfa5acad4575a"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "fd132d09a276519d6edf0f7999b5171fa8127f95e1344a31b7e80898c0e8a0cb",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "mixed",
+      "clock_ms": 3001,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "6e6577",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 5,
+          "timestamp": 1011,
+          "key_hex": "",
+          "value_hex": "",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 8,
+          "timestamp": 1014,
+          "key_hex": "61",
+          "value_hex": "70726f746563746564",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        },
+        {
+          "offset": 9,
+          "timestamp": 1015,
+          "key_hex": null,
+          "value_hex": "6163746976652d6e756c6c",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 10,
+      "revision": 5,
+      "raw_sha256": {
+        "0000000000000000-0000000000000005.journal": "45f687f530006727bd35edf73563e945ac967aeaea30a1af93ee73a7372793b1",
+        "0000000000000000-0000000000000005.seek": "de886b2551de2427b73b46dc182ffa0594309c925d1b0cb8f1bef557bd3c117c",
+        "0000000000000008-0000000000000001.journal": "ebf2c2991839934481e8ea3a877a2347b173b3bcf431374c790a0fce0189bbca",
+        "case.json": "b62d76508a55986fa9a5847801998149ed0d42a456cfd2716cfe12988b0e4c64",
+        "manifest": "59c7f271e15cdbf73328149f189a3fb6a7c57902524e6a4d5d142e9a9de4bd59"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "6cac18ef5438854a806ea63621c19c9c7809a4f41eb4c17a192b63b58d22c2d9",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "allremoved",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "61",
+          "value_hex": null,
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "f1d862eecade9db0489e0e24daa5e4451a9fd25cca5440c8e73d4a9a9c1588e0",
+        "0000000000000000-0000000000000002.seek": "23ff815fb2c98f09c8469457da400281cedb99fbd7414aac5760ca9912ba4501",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "8261a2e44ba2e33e84ba23dcf48b71f25017087757e6197206e1196a6c9d9f0e",
+        "manifest": "c0ab387ef7b38cb6c4e596a2b3543103c688aa070729d27140e462e1d8303b85"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "83afc316bab3ca54f5962c4d83cc5895365f9bd22186dc60ef5968e3730a1ac1",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "allremoved",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 3,
+          "timestamp": 1003,
+          "key_hex": "61",
+          "value_hex": "616374697665",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 4,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "6f7554f7d74da4af597e1964770e617d1b136da8b19dd7ebd2f48b15b17f61d7",
+        "0000000000000000-0000000000000003.seek": "abc81e4bb8ebfce6f84129a8228755846cab6e4d275c59ef51ef713626d45f55",
+        "0000000000000003-0000000000000001.journal": "43e43d19da1c3a2f7da027fb78f86db88abac1b353fcb67126760b49c2b500f6",
+        "case.json": "f53b6c5400fbc39e4bbdf6e60c9c2d941efbd35e5393cff59c08acc2613493be",
+        "manifest": "bacabffe1ac580bf17bcb2c4b1077931b10bf09ab005a205c14f1ade2d1d4c81"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "3f36d2cf2365f06b0d36c7865148fe5c6c3b0cd4da33b9996b3da477fab38f8c",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "nullonly",
+      "clock_ms": 2000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 2,
+      "raw_sha256": {
+        "0000000000000000-0000000000000002.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000002.seek": "a7543721528bc6f83a126615a26afd8fd98a7df423423b8136e268cb87fc09dc",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "828b65fefbd57c6fb32b38a2eb3f7d3924f0f7aaf5a588656c42292a5a2f9681",
+        "manifest": "2f722862f047f486731fba75563d802247015b1d81f991dfdc839901d0a2da38"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "selected",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "dd6e4a9677e36fc372448585e8e81d52bb75ddc8a1dd2235ed59b6c3c7f48118",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "scenario": "nullonly",
+      "clock_ms": 3000,
+      "phase": "reopened",
+      "retained_records": [],
+      "protected_records": [
+        {
+          "offset": 2,
+          "timestamp": 1002,
+          "key_hex": "616374697665",
+          "value_hex": "76616c7565",
+          "headers": [
+            {
+              "key": "dup",
+              "value_hex": "61"
+            },
+            {
+              "key": "dup",
+              "value_hex": null
+            }
+          ]
+        }
+      ],
+      "selected_header_batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ],
+      "floor": 0,
+      "end": 3,
+      "revision": 3,
+      "raw_sha256": {
+        "0000000000000000-0000000000000003.journal": "82ffbeb08e637d3cc1abe071127a00ffc3781702f12209b8320380861f27718a",
+        "0000000000000000-0000000000000003.seek": "ec9db40376129b1a7bdbe13629e760b9a8a4fde3ff89d15b081dca5c9a0944dd",
+        "0000000000000002-0000000000000001.journal": "53ed7a2f3ef6cc0a0bbec58f1b07e7b23b0c9c51634a7f40df8d0d5e2421acfe",
+        "case.json": "ff8e5098e85c27851dff5d7d5adffe782f358a9d50a226a472d746ed18705e93",
+        "manifest": "f33987810a5580a3fd84ba83d51b8a9e1157d13cd855af6da99b2025b163958a"
+      }
+    }
+  ],
+  "scope": "Finite three-release ordinary cleaner raw files and public record semantics; no replication/transaction/powerloss claim",
+  "inputs_unchanged": true,
+  "raw_input_files": 240,
+  "checker_sha256": "843837dfd64e04e58322aed6b94c4e2eead414a6b5ba62ca31c32f01f6eec519"
+}

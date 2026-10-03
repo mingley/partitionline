@@ -1,0 +1,1 @@
+{"schema":1,"release":"4.1.2","scenario":"nullonly","clock_ms":2000,"phase":"selected","expected_fixture":"cleaner-nullonly-empty-61","active_fixture":"cleaner-nullonly-active-protected","logical_floor":0,"logical_end":3,"outcome":{"start_offset":0,"end_offset":2,"scanned_records":2,"retained_records":0,"rewritten_segments":1,"bytes_before":158,"bytes_after":117}}
