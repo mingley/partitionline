@@ -1,0 +1,329 @@
+{
+  "schema": 1,
+  "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_file_count": 25713,
+  "whole_archive": true,
+  "all_commands_passed": true,
+  "command_count": 19,
+  "test_lanes": {
+    "stable-default-all-targets": {
+      "tests_passed": 207,
+      "tests_failed": 0,
+      "tests_ignored": 0,
+      "reports": {
+        "wire-report.json": {
+          "case_results": 99,
+          "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+        },
+        "metadata-report.json": {
+          "case_results": 555,
+          "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+        },
+        "produce-report.json": {
+          "case_results": 708,
+          "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+        },
+        "fetch-report.json": {
+          "case_results": 366,
+          "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+        },
+        "rolling-report.json": {
+          "case_results": 366,
+          "sha256": "74e0bf19d1aafc17d77d19f8905934e29b306cb2ba7457b1f1b4676f84d8fc22"
+        },
+        "apache-router-report.json": {
+          "case_results": 56,
+          "sha256": "134282a48f6665f94f8e9d4f4714919f28bf9b2dd5db3ca572429979041b7ab4"
+        }
+      },
+      "fault_histories": 33,
+      "fault_states": 66,
+      "active_entry_prefixes": 107,
+      "incomplete_positive_entry_prefixes": 105,
+      "partial_index_prefixes": 96,
+      "valid_crc_stale_fields": 11,
+      "rolling_fixture_responses": 330,
+      "rolling_structural_rejections": 36,
+      "apache_normal_from0_timestamp_responses": 30,
+      "apache_containing_whole_batch_fetch_responses": 26,
+      "strict_clippy": true,
+      "strict_rustdoc": true,
+      "strict_doctest_compile": true,
+      "doctests_executed": 0
+    },
+    "stable-all-features-all-targets": {
+      "tests_passed": 284,
+      "tests_failed": 0,
+      "tests_ignored": 0,
+      "reports": {
+        "wire-report.json": {
+          "case_results": 99,
+          "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+        },
+        "metadata-report.json": {
+          "case_results": 555,
+          "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+        },
+        "produce-report.json": {
+          "case_results": 708,
+          "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+        },
+        "fetch-report.json": {
+          "case_results": 366,
+          "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+        },
+        "rolling-report.json": {
+          "case_results": 366,
+          "sha256": "74e0bf19d1aafc17d77d19f8905934e29b306cb2ba7457b1f1b4676f84d8fc22"
+        },
+        "apache-router-report.json": {
+          "case_results": 56,
+          "sha256": "134282a48f6665f94f8e9d4f4714919f28bf9b2dd5db3ca572429979041b7ab4"
+        }
+      },
+      "fault_histories": 33,
+      "fault_states": 66,
+      "active_entry_prefixes": 107,
+      "incomplete_positive_entry_prefixes": 105,
+      "partial_index_prefixes": 96,
+      "valid_crc_stale_fields": 11,
+      "rolling_fixture_responses": 330,
+      "rolling_structural_rejections": 36,
+      "apache_normal_from0_timestamp_responses": 30,
+      "apache_containing_whole_batch_fetch_responses": 26,
+      "strict_clippy": true,
+      "strict_rustdoc": true,
+      "strict_doctest_compile": true,
+      "doctests_executed": 0
+    },
+    "1.85.0-default-all-targets": {
+      "tests_passed": 207,
+      "tests_failed": 0,
+      "tests_ignored": 0,
+      "reports": {
+        "wire-report.json": {
+          "case_results": 99,
+          "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+        },
+        "metadata-report.json": {
+          "case_results": 555,
+          "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+        },
+        "produce-report.json": {
+          "case_results": 708,
+          "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+        },
+        "fetch-report.json": {
+          "case_results": 366,
+          "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+        },
+        "rolling-report.json": {
+          "case_results": 366,
+          "sha256": "74e0bf19d1aafc17d77d19f8905934e29b306cb2ba7457b1f1b4676f84d8fc22"
+        },
+        "apache-router-report.json": {
+          "case_results": 56,
+          "sha256": "134282a48f6665f94f8e9d4f4714919f28bf9b2dd5db3ca572429979041b7ab4"
+        }
+      },
+      "fault_histories": 33,
+      "fault_states": 66,
+      "active_entry_prefixes": 107,
+      "incomplete_positive_entry_prefixes": 105,
+      "partial_index_prefixes": 96,
+      "valid_crc_stale_fields": 11,
+      "rolling_fixture_responses": 330,
+      "rolling_structural_rejections": 36,
+      "apache_normal_from0_timestamp_responses": 30,
+      "apache_containing_whole_batch_fetch_responses": 26,
+      "strict_clippy": true,
+      "strict_rustdoc": true,
+      "strict_doctest_compile": true,
+      "doctests_executed": 0
+    },
+    "1.85.0-all-features-all-targets": {
+      "tests_passed": 284,
+      "tests_failed": 0,
+      "tests_ignored": 0,
+      "reports": {
+        "wire-report.json": {
+          "case_results": 99,
+          "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+        },
+        "metadata-report.json": {
+          "case_results": 555,
+          "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+        },
+        "produce-report.json": {
+          "case_results": 708,
+          "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+        },
+        "fetch-report.json": {
+          "case_results": 366,
+          "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+        },
+        "rolling-report.json": {
+          "case_results": 366,
+          "sha256": "74e0bf19d1aafc17d77d19f8905934e29b306cb2ba7457b1f1b4676f84d8fc22"
+        },
+        "apache-router-report.json": {
+          "case_results": 56,
+          "sha256": "134282a48f6665f94f8e9d4f4714919f28bf9b2dd5db3ca572429979041b7ab4"
+        }
+      },
+      "fault_histories": 33,
+      "fault_states": 66,
+      "active_entry_prefixes": 107,
+      "incomplete_positive_entry_prefixes": 105,
+      "partial_index_prefixes": 96,
+      "valid_crc_stale_fields": 11,
+      "rolling_fixture_responses": 330,
+      "rolling_structural_rejections": 36,
+      "apache_normal_from0_timestamp_responses": 30,
+      "apache_containing_whole_batch_fetch_responses": 26,
+      "strict_clippy": true,
+      "strict_rustdoc": true,
+      "strict_doctest_compile": true,
+      "doctests_executed": 0
+    }
+  },
+  "independent_receipts_pending": [],
+  "retained_binaries": [
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable/fetch",
+      "sha256": "d759464d3b7d5058d8d272158c15c79cdc7b495935fc576d2c7f117bc90c3540",
+      "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "path": "bin/1.85.0/fetch",
+      "sha256": "c9cfb51bc3025a1ec5de8d6f7d985fe62eb4f2da2590d4ea8edeff132dc81683",
+      "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    }
+  ],
+  "limitations": [
+    "explicit rolling mode; no implicit legacy migration",
+    "Partitionline layout rather than Kafka disk layout",
+    "fixed single-node ordinary broker semantics; transactional/idempotent/replicated writes remain rejected",
+    "identical generation replacement; no retention/compaction policy",
+    "IO/process-exit fault injection; no physical power-loss/cross-process locking/RSS/performance/production qualification",
+    "Apache timestamp comparison restricted to15 normal from0 queries; negative/sentinel/explicit from-offset/bare partial slices have separate scope"
+  ],
+  "tests_total": 982,
+  "final_validation": {
+    "path": "docs/evidence/broker/KL11-09/final-45582234/validation.json",
+    "sha256": "ea59cc2ead10a58a8c178d492ec1ee39b572a71626d37ecc4553944b1632968b"
+  },
+  "source_integrity": {
+    "path": "docs/evidence/broker/KL11-09/final-45582234/source-integrity.json",
+    "sha256": "4224ae7bf96391b6fecdd502b06c8d97b83bd5fb68857be12ea0bde35dd480bd"
+  },
+  "replay_script": {
+    "path": "docs/evidence/broker/KL11-09/run-final.py",
+    "sha256": "1f6a9361e89341d2f90eb35aa3e8bfd9951a27a96a749af728e95b7afafc9b44"
+  },
+  "independent_receipts": {
+    "apache_components": {
+      "path": "docs/evidence/broker/KL11-09/oracle/final-afaf4ea9/validation.json",
+      "sha256": "2420d4bd8fe4a67b63755dd1984801bc92429a9c49bf8600c26a4dbc873d9c04",
+      "scope": "Apache components only; manual segment boundaries; no Rust or wire broker/performance claim."
+    },
+    "independent_storage_fault_decoder": {
+      "path": "docs/evidence/broker/KL11-09/oracle/storage-final-df715760/validation.json",
+      "sha256": "c8d33fd51abfd31781c031aac5dd4a8aa39dc837abc0c128eb94bb61f8c8bdd4",
+      "scope": [
+        "Finite actual runtime publication checkpoints, independent selected-file decoder; no imported Rust implementation.",
+        "Five checksum-valid semantic and one structural checker counterexample per lane, not compiled production mutants.",
+        "Raw runtime source archive before/after and actual subprocess cuts are separately bound by final-45582234/validation.json.",
+        "No active torn-tail/interval/whole-resource/power-loss/retention/compaction/performance inference from this checker."
+      ]
+    },
+    "registry_gates": {
+      "path": "docs/evidence/broker/KL11-09/profile-gates/final-45582234/validation.json",
+      "sha256": "32084720b5d191e8384a99c103e6244b2f279f665bfdf6c2e5aede797f892767",
+      "scope": [
+        "The four ordinary compiled reports and rolling tests were executed on exact 455 source. The controller reports and18TCP pairs retain actual db002 execution; only reflected source labels are normalized for the current static registry.",
+        "The independent30Produce/60read-write live API18 receipts retain exact c34/58810 provenance; no fresh455live client claim follows from them.",
+        "Existing profile verifier checks do not parse the new rolling366 or Apache56 report schemas. Their actual test execution/immutable source provenance and independent storage review are separately retained; raw fault states are checked by the root-owned history oracle.",
+        "No uncommitted15replication or37security runtime source was used."
+      ]
+    },
+    "independent_static_review": {
+      "path": "docs/evidence/broker/KL11-09/independent-storage-review.json",
+      "sha256": "b5b4149b6ba93f2da488e17366bafcf7c3aad9ef86451869281c4077f5a13acd",
+      "scope": "Independent read-only static review of frozen rolling storage bounds/publication/seek accounting; no runtime, Apache equivalence, performance or production qualification"
+    }
+  },
+  "eligible_for_root_card_closure": true,
+  "storage_checker": {
+    "histories": 132,
+    "states": 264,
+    "intended_negative_rejections": 24,
+    "input_files_unchanged": 1356,
+    "checker_source_commit": "df715760b24ca46cb0e2e135ce4c3520ec563af9",
+    "scope": "independent selected-file decoder over actual raw fault states; no Rust import or compiled production mutants"
+  },
+  "profile_gate_scope": {
+    "ci_negative_tests": 48,
+    "fresh_ordinary_cells": 4,
+    "combined_cells": 4,
+    "fresh_per_cell": {
+      "wire": 99,
+      "metadata": 555,
+      "produce": 708,
+      "fetch_list_offsets": 366,
+      "api18_serialized_layouts": 15
+    },
+    "historical_controller_execution": "db002;201direct/18TCP capture pairs; reflected module labels normalized only",
+    "historical_independent_api18_tcp": "c34 Produce30 and58810 read_write60; no fresh455 SDKsession claim",
+    "new_rolling_schemas": "source-pinned runtime reports separately bound; existing inventory verifier does not parse new366/56 schemas"
+  },
+  "cross_cell_byte_identity": {
+    "fault-histories": {
+      "files_per_cell": 339,
+      "all_four_identical": true,
+      "map_sha256": "34dbc62e8911e15e0ab271978fae2e94156ab231ec6c3146ba57ab430d6608bc"
+    },
+    "responses": {
+      "files_per_cell": 330,
+      "all_four_identical": true,
+      "map_sha256": "f5ac2893186022f4afc1b0d67bacaf00d04c95a422ee333c7bcdf3efc1c07a77"
+    },
+    "proof": {
+      "files_per_cell": 12,
+      "all_four_identical": true,
+      "map_sha256": "f08f1f144b27d7dca09b551c1302fa6e8ba0f74033a64eded6abd892924034f1"
+    }
+  }
+}

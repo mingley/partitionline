@@ -1,0 +1,480 @@
+{
+  "card": "KL11-09",
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_file_count": 25713,
+  "source_archive_scope": "Whole exact Git archive checked before and after every final command.",
+  "acceptance_complete": true,
+  "commands": [
+    {
+      "name": "clean-before-source-switch",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4a2cb2ca1dcfdbecede2a37816993a51e3922b10622930fedc3760cefcc8d22f"
+    },
+    {
+      "name": "format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stable-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log_sha256": "03edae70454950f787cdafbb2b7ef5b3d35000e3d2e415dad50419728d557015"
+    },
+    {
+      "name": "stable-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log_sha256": "83851591e4a8c51c817446f21fff44c759202aa12c5c1fed93455d6c14ceaea7"
+    },
+    {
+      "name": "stable-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log_sha256": "76dac71f3074a96c2d0146673e093bb2b8bed21ed70c0d40ce5fdafe478097e8"
+    },
+    {
+      "name": "stable-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "name": "stable-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log_sha256": "ae00410e39c79ee409ad58ab5773a008091b8b99e20f579bdc2b761f761a280d"
+    },
+    {
+      "name": "stable-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log_sha256": "06c80a255d957bf417427b0133fff76c5acda4e73d90bf8a7a11ae9447011c3c"
+    },
+    {
+      "name": "stable-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log_sha256": "479db6cdea9a5a65828adb7599810c6c6d1ef3060f95c3503e428aeab151bf5b"
+    },
+    {
+      "name": "stable-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    },
+    {
+      "name": "clean-between-toolchains",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0,
+      "log_sha256": "3669f671ac811c32569a6f85ba33c839609cac7c2bda73cf7d4327bb9bce5021"
+    },
+    {
+      "name": "1.85.0-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4707aa8079f878fd27e4e55fcd32c45ceb3ecaffdb5203e979a4f357f8c0d5f7"
+    },
+    {
+      "name": "1.85.0-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log_sha256": "77a9c94c714faaea157cc5f7d8466ebc8297f54abd14c3a22032fc57cdb051d8"
+    },
+    {
+      "name": "1.85.0-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log_sha256": "38e9845e1d9eae4ecbafec6150175a4966b82eccba1c710773184610456cc4bf"
+    },
+    {
+      "name": "1.85.0-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "name": "1.85.0-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e59e59f0f21b25ee62ecbdf4649fb5f0e820dc163179e7b4c050f40111f52338"
+    },
+    {
+      "name": "1.85.0-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log_sha256": "34907d347582c2b449c008b7a7897898bfcaeb852e860d1b8be5a04f0b7d64ad"
+    },
+    {
+      "name": "1.85.0-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8b09f763838b9721790c538269719f35e4d913d7f9b35d96200d19fc06e5782a"
+    },
+    {
+      "name": "1.85.0-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    }
+  ],
+  "results": {
+    "tests_passed": 982,
+    "tests_failed": 0,
+    "tests_ignored": 0,
+    "toolchain_feature_lanes": 4,
+    "strict_fmt_clippy_docs": true,
+    "real_fault_histories": 132,
+    "retained_states": 264,
+    "independent_negative_rejections": 24,
+    "independent_inputs_unchanged": 1356,
+    "fresh_rolling_cases_per_lane": 366,
+    "fresh_rolling_responses_per_lane": 330,
+    "fresh_apache_derived_tcp_cases_per_lane": 56,
+    "derived_index_partial_prefixes_per_lane": 96,
+    "derived_index_valid_crc_stale_fields_per_lane": 11,
+    "active_entry_prefixes_per_lane": 107,
+    "ci_guard_cases": 48,
+    "ordinary_profile_gates": 4,
+    "combined_profile_gates": 4
+  },
+  "implementation_summary": {
+    "path": "docs/evidence/broker/KL11-09/implementation-validation.json",
+    "sha256": "4bcca4fd4ec3f65d3a370a5e4382b9bec26dfd948db2e146baf7b88aea28c442"
+  },
+  "independent_receipts": {
+    "apache_components": {
+      "path": "docs/evidence/broker/KL11-09/oracle/final-afaf4ea9/validation.json",
+      "sha256": "2420d4bd8fe4a67b63755dd1984801bc92429a9c49bf8600c26a4dbc873d9c04",
+      "scope": "Apache components only; manual segment boundaries; no Rust or wire broker/performance claim."
+    },
+    "independent_storage_fault_decoder": {
+      "path": "docs/evidence/broker/KL11-09/oracle/storage-final-df715760/validation.json",
+      "sha256": "c8d33fd51abfd31781c031aac5dd4a8aa39dc837abc0c128eb94bb61f8c8bdd4",
+      "scope": [
+        "Finite actual runtime publication checkpoints, independent selected-file decoder; no imported Rust implementation.",
+        "Five checksum-valid semantic and one structural checker counterexample per lane, not compiled production mutants.",
+        "Raw runtime source archive before/after and actual subprocess cuts are separately bound by final-45582234/validation.json.",
+        "No active torn-tail/interval/whole-resource/power-loss/retention/compaction/performance inference from this checker."
+      ]
+    },
+    "registry_gates": {
+      "path": "docs/evidence/broker/KL11-09/profile-gates/final-45582234/validation.json",
+      "sha256": "32084720b5d191e8384a99c103e6244b2f279f665bfdf6c2e5aede797f892767",
+      "scope": [
+        "The four ordinary compiled reports and rolling tests were executed on exact 455 source. The controller reports and18TCP pairs retain actual db002 execution; only reflected source labels are normalized for the current static registry.",
+        "The independent30Produce/60read-write live API18 receipts retain exact c34/58810 provenance; no fresh455live client claim follows from them.",
+        "Existing profile verifier checks do not parse the new rolling366 or Apache56 report schemas. Their actual test execution/immutable source provenance and independent storage review are separately retained; raw fault states are checked by the root-owned history oracle.",
+        "No uncommitted15replication or37security runtime source was used."
+      ]
+    },
+    "independent_static_review": {
+      "path": "docs/evidence/broker/KL11-09/independent-storage-review.json",
+      "sha256": "b5b4149b6ba93f2da488e17366bafcf7c3aad9ef86451869281c4077f5a13acd",
+      "scope": "Independent read-only static review of frozen rolling storage bounds/publication/seek accounting; no runtime, Apache equivalence, performance or production qualification"
+    }
+  },
+  "source_hashes": {
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "3df736c99f7af42204517a977ce5f507a7edb4e50eb54b3fa8e343f4eacb4081",
+      "git_blob_sha1": "e76f503f24195564d5ec96d097d38cc840692093",
+      "bytes": 56538
+    },
+    "partitionline-broker/src/journal.rs": {
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "git_blob_sha1": "294d0173013f0d4dd0a79985e423d5bb10da986c",
+      "bytes": 48288
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+      "git_blob_sha1": "1913988e14fbc1bf6bff487df38872720327cc82",
+      "bytes": 14747
+    },
+    "partitionline-broker/src/produce.rs": {
+      "sha256": "194c5b9dac69d1dabc4981fd5db2badd93dee359cc97c176418f61dcca036986",
+      "git_blob_sha1": "ce5193249e92ce6297b51954636563338c0f46c2",
+      "bytes": 32767
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "sha256": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+      "git_blob_sha1": "0b59266de9e577dc123299b13e6822698be75117",
+      "bytes": 25264
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+      "git_blob_sha1": "651f785c42a263b14effde5693c4ec3f8b59d9ed",
+      "bytes": 18374
+    },
+    "partitionline-broker/tests/partition.rs": {
+      "sha256": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+      "git_blob_sha1": "febaa7f2080697ba9cac7c9b507e80ecb234c1f4",
+      "bytes": 10765
+    },
+    "partitionline-broker/tests/produce.rs": {
+      "sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "git_blob_sha1": "e22f6295e35f5eed00576419e273803bc51c4a51",
+      "bytes": 21757
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+      "git_blob_sha1": "7cdae981f939b7ddeb9e509a4b79185a07321235",
+      "bytes": 60578
+    }
+  },
+  "limitations": [
+    "explicit rolling mode; no implicit legacy migration",
+    "Partitionline layout rather than Kafka disk layout",
+    "fixed single-node ordinary broker semantics; transactional/idempotent/replicated writes remain rejected",
+    "identical generation replacement; no retention/compaction policy",
+    "IO/process-exit fault injection; no physical power-loss/cross-process locking/RSS/performance/production qualification",
+    "Apache timestamp comparison restricted to15 normal from0 queries; negative/sentinel/explicit from-offset/bare partial slices have separate scope",
+    "Existing combined verifier controller and independent API18 peer inputs retain historical actual provenance with label-only registry normalization; new rolling report schemas have independent source/runtime/storage proof."
+  ],
+  "checksum_manifest": {
+    "path": "docs/evidence/broker/KL11-09/SHA256SUMS",
+    "sha256": "f7dc67ba646a22c0e6eb2b7c891963f4b08f8d371c49a0680e15fefacb074026",
+    "artifacts": 4209
+  }
+}

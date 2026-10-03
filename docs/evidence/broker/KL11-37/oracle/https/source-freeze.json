@@ -1,0 +1,16 @@
+{
+  "source_parent": "efeb8e2af289ee00898d5b2dfe55069bf90672c4",
+  "scope": "Independent synthetic HTTPS issuer source and preparation only; final pushed execution and actual broker/client OIDC integration pending.",
+  "sources": {
+    "docs/evidence/broker/KL11-37/oracle/https/issuer.py": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+    "docs/evidence/broker/KL11-37/oracle/https/check-issuer.py": "b5056f18590f758a8dd0ba9e7593ac996606b88df4ee1c30303b90b4c88857fa",
+    "docs/evidence/broker/KL11-37/oracle/https/README.md": "3e441ea638976115b2aac6e097dbb7799bba6d23410e0c485428a6c8ed3e4fab"
+  },
+  "development": {
+    "validation": "docs/evidence/broker/KL11-37/oracle/https/development/attempt-1/validation.json",
+    "sha256": "8f38d086881380b5e22131f063a183a78100bd08a9bdf1962bd07bdcc74628d5",
+    "passed_cases": 15,
+    "actual_https_requests": 20
+  },
+  "secret_retention": "Ephemeral scratch keys/credentials; receipts omit compact live bearers, client/control secrets and private keys."
+}

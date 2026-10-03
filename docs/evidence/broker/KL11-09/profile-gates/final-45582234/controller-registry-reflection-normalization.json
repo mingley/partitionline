@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "gate_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "historical_controller_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "scope": "Reflected source labels only. Original reports and every case/capture byte are unchanged; normalization does not establish fresh controller runtime execution.",
+  "source_bindings": {
+    "partitionline-broker/src/raft/protocol.rs": {
+      "historical_sha256": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+      "gate_sha256": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+      "unchanged": true
+    },
+    "partitionline-broker/tests/raft_protocol.rs": {
+      "historical_sha256": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+      "gate_sha256": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+      "unchanged": true
+    },
+    "partitionline-broker/src/raft/election.rs": {
+      "historical_sha256": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+      "gate_sha256": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+      "unchanged": true
+    },
+    "partitionline-broker/src/raft/mod.rs": {
+      "historical_sha256": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+      "gate_sha256": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028",
+      "unchanged": false,
+      "diff": "diff --git a/partitionline-broker/src/raft/mod.rs b/partitionline-broker/src/raft/mod.rs\nindex 3cd30aae..72a43fb1 100644\n--- a/partitionline-broker/src/raft/mod.rs\n+++ b/partitionline-broker/src/raft/mod.rs\n@@ -8,3 +8,4 @@\n pub mod election;\n pub mod protocol;\n pub mod replication;\n+pub mod snapshot;\n"
+    }
+  },
+  "cells": [
+    {
+      "cell": "stable-default",
+      "actual_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "original_report": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-report.json",
+      "original_report_sha256": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "normalized_report": "stable-default-controller-registry-labels.json",
+      "normalized_report_sha256": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "changes": {
+        "controller_source_sha256": {
+          "original_reflected_label": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+          "current_registry_label": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67"
+        },
+        "controller_test_source_sha256": {
+          "original_reflected_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+          "current_registry_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+        },
+        "election_source_sha256": {
+          "original_reflected_label": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+          "current_registry_label": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac"
+        },
+        "raft_module_source_sha256": {
+          "original_reflected_label": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+          "current_registry_label": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028"
+        }
+      },
+      "case_results_unchanged": true,
+      "fresh_controller_runtime_execution_at_gate_source": false
+    },
+    {
+      "cell": "stable-all-features",
+      "actual_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "original_report": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/controller-report.json",
+      "original_report_sha256": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "normalized_report": "stable-all-features-controller-registry-labels.json",
+      "normalized_report_sha256": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "changes": {
+        "controller_source_sha256": {
+          "original_reflected_label": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+          "current_registry_label": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67"
+        },
+        "controller_test_source_sha256": {
+          "original_reflected_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+          "current_registry_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+        },
+        "election_source_sha256": {
+          "original_reflected_label": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+          "current_registry_label": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac"
+        },
+        "raft_module_source_sha256": {
+          "original_reflected_label": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+          "current_registry_label": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028"
+        }
+      },
+      "case_results_unchanged": true,
+      "fresh_controller_runtime_execution_at_gate_source": false
+    },
+    {
+      "cell": "1.85.0-default",
+      "actual_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "original_report": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/controller-report.json",
+      "original_report_sha256": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "normalized_report": "1.85.0-default-controller-registry-labels.json",
+      "normalized_report_sha256": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "changes": {
+        "controller_source_sha256": {
+          "original_reflected_label": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+          "current_registry_label": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67"
+        },
+        "controller_test_source_sha256": {
+          "original_reflected_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+          "current_registry_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+        },
+        "election_source_sha256": {
+          "original_reflected_label": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+          "current_registry_label": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac"
+        },
+        "raft_module_source_sha256": {
+          "original_reflected_label": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+          "current_registry_label": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028"
+        }
+      },
+      "case_results_unchanged": true,
+      "fresh_controller_runtime_execution_at_gate_source": false
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "actual_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "original_report": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/controller-report.json",
+      "original_report_sha256": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "normalized_report": "1.85.0-all-features-controller-registry-labels.json",
+      "normalized_report_sha256": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "changes": {
+        "controller_source_sha256": {
+          "original_reflected_label": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+          "current_registry_label": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67"
+        },
+        "controller_test_source_sha256": {
+          "original_reflected_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+          "current_registry_label": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+        },
+        "election_source_sha256": {
+          "original_reflected_label": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+          "current_registry_label": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac"
+        },
+        "raft_module_source_sha256": {
+          "original_reflected_label": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+          "current_registry_label": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028"
+        }
+      },
+      "case_results_unchanged": true,
+      "fresh_controller_runtime_execution_at_gate_source": false
+    }
+  ]
+}

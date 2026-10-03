@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "phase": "mutable correction candidate frozen for root review/push; final qualification requires resulting pushed SHA",
+  "supersedes_unqualified_source_checkpoint": "df715760b24ca46cb0e2e135ce4c3520ec563af9",
+  "review_base_head": "efeb8e2af289ee00898d5b2dfe55069bf90672c4",
+  "changed_source_paths": [
+    "src/share.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs"
+  ],
+  "source_sha256": {
+    "src/share.rs": "53982130bda0622517bfc4abba8b12f7a3a9f1d5de4aeb0b6137550d123be8be",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "0a555600e527ae846277c6e55128045fae6e72d0e2a6b89df7f8bdd9f910de32",
+    "tests/share_semantics.rs": "8705d3e93ab1c00c936c0bc87bc798b12a26f2e7893011b103b8f97502715cd2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "net_unchanged_sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+  "preparation_results": {
+    "share_semantics": {
+      "passed": 17,
+      "failed": 0,
+      "live_ignored": 1
+    },
+    "protocol_oracles": {
+      "passed": 39,
+      "failed": 0,
+      "existing_live_ignored": 1
+    },
+    "full_surface_share": {
+      "passed": 27,
+      "failed": 0
+    },
+    "focused_all_features_clippy": "passed"
+  },
+  "required_final_gates": [
+    "pushed source immutable stable/MSRV default/all-features matrix",
+    "fresh genuine digest-pinned Apache Kafka4.3.1 v2 acquisition/Renew/expiry/release/count/accept proof",
+    "separate fresh three-release pinned Docker qualification"
+  ],
+  "failed_first_retained": "failed-first.json"
+}

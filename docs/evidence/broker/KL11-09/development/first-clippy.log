@@ -1,0 +1,22 @@
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error: large size difference between variants
+  --> src/partition.rs:64:1
+   |
+64 | / enum Backend {
+65 | |     Journal(journal::Journal),
+   | |     ------------------------- the second-largest variant contains at least 112 bytes
+66 | |     Segments(segments::Log),
+   | |     ----------------------- the largest variant contains at least 448 bytes
+67 | | }
+   | |_^ the entire enum is at least 448 bytes
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#large_enum_variant
+   = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+   |
+66 -     Segments(segments::Log),
+66 +     Segments(Box<segments::Log>),
+   |
+
+error: could not compile `partitionline-broker` (lib) due to 1 previous error

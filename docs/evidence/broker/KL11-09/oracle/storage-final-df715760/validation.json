@@ -1,0 +1,245 @@
+{
+  "source_sha": "df715760b24ca46cb0e2e135ce4c3520ec563af9",
+  "runtime_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "sources": {
+    "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+    "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+  },
+  "fixture_sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28",
+  "passed": true,
+  "histories": 132,
+  "states": 264,
+  "negative_rejections": 24,
+  "lanes": [
+    {
+      "lane": "stable-default-all-targets",
+      "histories": 33,
+      "states": 66,
+      "negative_rejections": 6,
+      "input_files": 339,
+      "positive_sha256": "765ffebd062046ef8cc4b35fc412fc05319a98339597d4626504480c537cfbb2",
+      "negative_sha256": "6ca50e25a8a6cfa9ad9e9f882f1428a4b7c1e8f658203b9a3a385205d976f86f"
+    },
+    {
+      "lane": "stable-all-features-all-targets",
+      "histories": 33,
+      "states": 66,
+      "negative_rejections": 6,
+      "input_files": 339,
+      "positive_sha256": "765ffebd062046ef8cc4b35fc412fc05319a98339597d4626504480c537cfbb2",
+      "negative_sha256": "6ca50e25a8a6cfa9ad9e9f882f1428a4b7c1e8f658203b9a3a385205d976f86f"
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "histories": 33,
+      "states": 66,
+      "negative_rejections": 6,
+      "input_files": 339,
+      "positive_sha256": "765ffebd062046ef8cc4b35fc412fc05319a98339597d4626504480c537cfbb2",
+      "negative_sha256": "6ca50e25a8a6cfa9ad9e9f882f1428a4b7c1e8f658203b9a3a385205d976f86f"
+    },
+    {
+      "lane": "1.85.0-all-features-all-targets",
+      "histories": 33,
+      "states": 66,
+      "negative_rejections": 6,
+      "input_files": 339,
+      "positive_sha256": "765ffebd062046ef8cc4b35fc412fc05319a98339597d4626504480c537cfbb2",
+      "negative_sha256": "6ca50e25a8a6cfa9ad9e9f882f1428a4b7c1e8f658203b9a3a385205d976f86f"
+    }
+  ],
+  "commands": [
+    {
+      "lane": "stable-default-all-targets",
+      "kind": "positive",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-history.py",
+        "--histories",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/stable-default-all-targets/fault-histories",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/stable-default-all-targets/positive.json"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "kind": "negative",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py",
+        "--baseline",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/stable-default-all-targets/fault-histories/roll-error/ManifestRenamed/interrupted",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/stable-default-all-targets/counterexamples"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "stable-all-features-all-targets",
+      "kind": "positive",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-history.py",
+        "--histories",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/stable-all-features-all-targets/fault-histories",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/stable-all-features-all-targets/positive.json"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "stable-all-features-all-targets",
+      "kind": "negative",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py",
+        "--baseline",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/stable-all-features-all-targets/fault-histories/roll-error/ManifestRenamed/interrupted",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/stable-all-features-all-targets/counterexamples"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "kind": "positive",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-history.py",
+        "--histories",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/1.85.0-default-all-targets/fault-histories",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/1.85.0-default-all-targets/positive.json"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "kind": "negative",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py",
+        "--baseline",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/1.85.0-default-all-targets/fault-histories/roll-error/ManifestRenamed/interrupted",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/1.85.0-default-all-targets/counterexamples"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "1.85.0-all-features-all-targets",
+      "kind": "positive",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-history.py",
+        "--histories",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/1.85.0-all-features-all-targets/fault-histories",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/1.85.0-all-features-all-targets/positive.json"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    },
+    {
+      "lane": "1.85.0-all-features-all-targets",
+      "kind": "negative",
+      "command": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py",
+        "--baseline",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/final-45582234/1.85.0-all-features-all-targets/fault-histories/roll-error/ManifestRenamed/interrupted",
+        "--fixture",
+        "/workspace/partitionline/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-09/oracle/storage-final-df715760/1.85.0-all-features-all-targets/counterexamples"
+      ],
+      "exit_code": 0,
+      "source_before": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      },
+      "source_after": {
+        "docs/evidence/broker/KL11-09/oracle/check-storage-history.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+        "docs/evidence/broker/KL11-09/oracle/check-storage-counterexamples.py": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb"
+      }
+    }
+  ],
+  "input_files": 1356,
+  "inputs_sha256": "7b4ed8989f66e20846f4603b32bf7219af59a4e1ae007ab100ed1f3b29f8a7ba",
+  "limitations": [
+    "Finite actual runtime publication checkpoints, independent selected-file decoder; no imported Rust implementation.",
+    "Five checksum-valid semantic and one structural checker counterexample per lane, not compiled production mutants.",
+    "Raw runtime source archive before/after and actual subprocess cuts are separately bound by final-45582234/validation.json.",
+    "No active torn-tail/interval/whole-resource/power-loss/retention/compaction/performance inference from this checker."
+  ]
+}

@@ -1,0 +1,188 @@
+   Compiling zeroize v1.9.0
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.2
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling const-oid v0.10.2
+   Compiling untrusted v0.9.0
+   Compiling digest v0.11.3
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling crc32fast v1.5.2
+   Compiling rustls-webpki v0.103.15
+   Compiling subtle v2.6.1
+   Compiling snap v1.1.2
+   Compiling adler2 v2.0.1
+   Compiling once_cell v1.21.4
+   Compiling simd-adler32 v0.3.10
+   Compiling miniz_oxide v0.9.1
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling flate2 v1.1.10
+   Compiling tokio-rustls v0.26.6
+   Compiling zstd-rs v0.1.0
+   Compiling base64 v0.23.1
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 27.00s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-26c2c94d65eb563c)
+
+running 47 tests
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+test security::credentials::tests::ambiguous_failure_after_complete_append_poison_disables_auth_until_recovery ... ok
+test security::credentials::tests::corrupt_payload_and_duplicate_changes_cannot_become_a_generation ... ok
+test security::credentials::tests::failed_storage_before_append_has_no_ack_or_published_generation ... ok
+test security::credentials::tests::stalled_started_commit_survives_cancellation_queued_cancel_skips_and_auth_is_busy ... ok
+test security::sasl::tests::apache_first_message_parser_scope_and_stricter_policy ... ok
+test security::sasl::tests::authentic_apache_and_literal_rfc_scram_proofs ... ok
+test security::sasl::tests::authentic_apache_plain_decisions ... ok
+test security::sasl::tests::cancellation_releases_admission_and_running_worker_remains_bounded ... ok
+test security::sasl::tests::cancelled_queued_work_does_not_execute_after_pool_unblocks ... ok
+test security::sasl::tests::constant_time_api_rejects_first_middle_last_and_wrong_length ... ok
+test security::sasl::tests::contended_credential_access_is_bounded_and_releases_admission ... ok
+test security::session::tests::admin_runtime_encoders_match_apache_success_and_all_truncated_mutations_are_uncommitted ... ok
+test security::session::tests::all_authentic_apache_wire_fields_headers_lengths_and_response_goldens ... ok
+test security::session::tests::malformed_varint_tag_order_count_and_null_sentinels_fail_boundedly ... ok
+test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... ok
+test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... ok
+test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... ok
+test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... ok
+test transport::sasl_frame_tests::owned_authentication_frame_debug_is_redacted ... ok
+
+test result: ok. 47 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.09s
+
+     Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-0dc25e022e2a3718)
+
+running 23 tests
+test absolute_wait_cap_and_minimum_clamping ... ok
+test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+test independent_apache_read_goldens ... ok
+test invalid_local_read_limits_are_rejected_before_io ... ok
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules ... ok
+test rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss ... ok
+test rolling_lost_append_receipt_and_delete_wake_without_blocking_actor ... ok
+test rolling_real_router_replays_all_independent_read_goldens ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
+
+     Running tests/journal.rs (/workspace/work/target-broker-segments/debug/deps/journal-20139ef16046d359)
+
+running 15 tests
+test actual_file_matches_documented_checksums_and_can_be_retained_for_oracle ... ok
+test complete_payload_and_header_corruption_never_truncate ... ok
+test durable_restart_preserves_explicit_record_counts_and_logical_ranges ... ok
+test every_incomplete_tail_prefix_repairs_to_last_complete_entry ... ok
+test external_file_growth_poisons_append_without_offset_advance ... ok
+test failed_open_releases_ownership_and_positive_limits_are_validated ... ok
+test fetch_output_charges_entry_storage_and_never_returns_partial_failure ... ok
+test file_and_index_budgets_hold_on_append_and_recovery ... ok
+test file_header_identity_and_partial_prefix_damage_fail_closed ... ok
+test interior_missing_payload_with_later_entry_is_not_a_torn_final_entry ... ok
+test invalid_append_and_offset_overflow_leave_committed_state_unchanged ... ok
+test live_inode_aliases_are_rejected_and_guard_releases_after_drop ... ok
+test process_exit_without_destructors_recovers_durable_and_incomplete_entries ... ok
+test protected_invalid_lengths_counts_and_offset_gaps_fail_closed ... ok
+test simultaneous_new_file_open_rejects_a_second_live_handle ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-7a4d0b1acca35067)
+
+running 8 tests
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-3492448daacabee5)
+
+running 9 tests
+test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+test independent_apache_produce_goldens ... ok
+test malformed_entire_body_never_appends ... ok
+test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+test response_and_normalized_budgets_fail_before_append ... ok
+test rolling_store_preserves_offsets_historical_budget_and_rejects_wrong_layout ... ok
+test serve_live_probe ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-ff695805be5613a1)
+
+running 13 tests
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... ok
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test disk_and_staging_reservations_hold_before_mutation_and_after_restart ... ok
+test every_active_entry_prefix_recovers_prior_acks_and_complete_ambiguous_append ... ok
+test every_partial_index_and_valid_crc_stale_hint_is_rebuilt_from_checked_data ... ok
+test hidden_scan_exhaustion_cannot_return_a_successful_partial_fetch ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+test sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets ... ok
+test valid_crc_generation_overflow_is_rejected_before_any_publication ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

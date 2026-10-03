@@ -1,0 +1,13 @@
+{
+  "scope": "dirty-development; earlier logs lack full source snapshots and do not qualify a remote SHA",
+  "preliminary_attempts": {
+    "first-segments-test.log": "unit filter executed; integration target filtered out",
+    "second-segments-test.log": "real CorruptData failure from unassigned second batch in test input; fixed assigned base1 test bytes",
+    "first-clippy.log": "large inline backend variant; explicit bounded inline rationale added",
+    "second-clippy.log": "banned unbounded fs read/write in test helpers; replaced by bounded File IO",
+    "prerequisite-package-selection": "root workspace excludes broker; manifest path required; failure retained",
+    "final-focused": "first new ScanBudget/prefix candidate; stable gates passed; MSRV default/all behavior and default lint passed; all-feature lint failed ENOSPC, not a source lint error",
+    "focused-oracle-candidate": "new authentic Apache TCP+raw33 fault histories; all14 exact recorded focused/strict/clean commands pass stable and1.85.0; target clean between toolchains"
+  },
+  "raw_development_source_limit": "Earlier manual log attempts are retained as failures/progress only; current runner preserves owned SHA256 before/after each command and explicitly records dirty HEAD/status. Exact final qualification still requires pushed source archive."
+}

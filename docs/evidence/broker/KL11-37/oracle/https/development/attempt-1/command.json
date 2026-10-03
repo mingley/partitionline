@@ -1,0 +1,12 @@
+{
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-37/oracle/https/check-issuer.py",
+    "--scratch",
+    "/workspace/work/oidc-issuer-development-1",
+    "--output",
+    "docs/evidence/broker/KL11-37/oracle/https/development/attempt-1/validation.json"
+  ],
+  "exit_code": 0,
+  "scope": "Mutable independent synthetic HTTPS authority preparation; no production OIDC evidence."
+}

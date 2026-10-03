@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "qualification": "dirty-development-only",
+  "head": "afaf4ea94eb958616445708d2d2f6846250a5e50",
+  "dirty_status": " M partitionline-broker/src/fetch.rs\n M partitionline-broker/src/journal.rs\n M partitionline-broker/src/lib.rs\n M partitionline-broker/src/partition.rs\n M partitionline-broker/src/produce.rs\n M partitionline-broker/src/raft/mod.rs\n M partitionline-broker/tests/fetch.rs\n M partitionline-broker/tests/partition.rs\n M partitionline-broker/tests/produce.rs\n M src/protocol/share.rs\n M src/share.rs\n M tests/common/mod.rs\n?? docs/evidence/broker/KL11-03/__pycache__/\n?? docs/evidence/broker/KL11-07/profile-gates/final-2db175c7/SHA256SUMS\n?? docs/evidence/broker/KL11-08/\n?? docs/evidence/broker/KL11-09/oracle/final-afaf4ea9/\n?? docs/evidence/broker/KL11-15/\n?? docs/evidence/broker/KL11-68/__pycache__/\n?? docs/evidence/broker/KL11-73/oracle/history/__pycache__/\n?? docs/evidence/broker/KL11-73/oracle/history/final-db002076/\n?? docs/evidence/broker/KL11-73/runtime/README.md\n?? docs/evidence/broker/KL11-73/runtime/SHA256SUMS\n?? docs/evidence/broker/KL11-73/runtime/assemble-evidence.py\n?? docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/\n?? docs/evidence/broker/KL11-73/runtime/development/\n?? docs/evidence/broker/KL11-73/runtime/final-db002076/\n?? docs/evidence/broker/KL11-73/runtime/final-evidence.json\n?? docs/evidence/broker/KL11-73/runtime/final-source/\n?? docs/evidence/broker/KL11-73/runtime/metadata-assembly-attempts.json\n?? docs/evidence/broker/KL11-73/runtime/mutants/\n?? docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/\n?? docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/\n?? docs/evidence/broker/KL11-73/runtime/retained-binaries.json\n?? docs/evidence/broker/KL11-73/runtime/run-controller-labels.py\n?? docs/evidence/broker/KL11-73/runtime/run-final.py\n?? docs/evidence/broker/KL11-73/runtime/run-inventory-gates.py\n?? docs/evidence/broker/KL11-73/runtime/seal-traces.py\n?? docs/evidence/broker/KL11-73/runtime/trace-schema-proposal.json\n?? docs/evidence/broker/KL11-73/runtime/verify-source.py\n?? docs/evidence/client/KL05-28/README.md\n?? docs/evidence/client/KL05-28/__pycache__/\n?? docs/evidence/client/KL05-28/final/\n?? docs/evidence/client/KL05-28/run-final.py\n?? docs/evidence/client/KL05-28/seal-final.py\n?? docs/plan/evidence/KL11-73.json\n?? partitionline-broker/src/raft/snapshot.rs\n?? partitionline-broker/src/segments.rs\n?? partitionline-broker/tests/fixtures/raft-snapshot/\n?? partitionline-broker/tests/raft_snapshot.rs\n?? partitionline-broker/tests/segments.rs\n?? scripts/__pycache__/\n?? scripts/broker-interop.py\n?? tests/ci/__pycache__/\n?? tests/conformance/__pycache__/\n?? tests/conformance/broker/interop/\n?? tests/history/__pycache__/\n",
+  "owned_sources": {
+    "partitionline-broker/src/segments.rs": "aaf4fcc47f56eb5fed5087e22da71033a56648d43bb6658119dd1de7419d805c",
+    "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+    "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+    "partitionline-broker/src/produce.rs": "5b19f3e84f1104145aca507465ced5dd7b1c33fe427d03515098012c44ce9438",
+    "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+    "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+    "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+    "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+    "partitionline-broker/tests/fetch.rs": "fa17be453444c12b882a6a401b1caf59ffd27e683bc4b9ee7e12f7e6c1e9df69"
+  },
+  "commands": [
+    {
+      "name": "format-owned",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "partitionline-broker/src/segments.rs",
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/src/partition.rs",
+        "partitionline-broker/src/produce.rs",
+        "partitionline-broker/src/fetch.rs",
+        "partitionline-broker/tests/segments.rs",
+        "partitionline-broker/tests/partition.rs",
+        "partitionline-broker/tests/produce.rs",
+        "partitionline-broker/tests/fetch.rs"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.075,
+      "sources_before": {
+        "partitionline-broker/src/segments.rs": "aaf4fcc47f56eb5fed5087e22da71033a56648d43bb6658119dd1de7419d805c",
+        "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+        "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+        "partitionline-broker/src/produce.rs": "5b19f3e84f1104145aca507465ced5dd7b1c33fe427d03515098012c44ce9438",
+        "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+        "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+        "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+        "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+        "partitionline-broker/tests/fetch.rs": "fa17be453444c12b882a6a401b1caf59ffd27e683bc4b9ee7e12f7e6c1e9df69"
+      },
+      "sources_after": {
+        "partitionline-broker/src/segments.rs": "aaf4fcc47f56eb5fed5087e22da71033a56648d43bb6658119dd1de7419d805c",
+        "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+        "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+        "partitionline-broker/src/produce.rs": "5b19f3e84f1104145aca507465ced5dd7b1c33fe427d03515098012c44ce9438",
+        "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+        "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+        "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+        "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+        "partitionline-broker/tests/fetch.rs": "fa17be453444c12b882a6a401b1caf59ffd27e683bc4b9ee7e12f7e6c1e9df69"
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stable-focused-default",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "partitionline-broker",
+        "--lib",
+        "--test",
+        "segments",
+        "--test",
+        "journal",
+        "--test",
+        "partition",
+        "--test",
+        "produce",
+        "--test",
+        "fetch",
+        "--",
+        "--test-threads=1"
+      ],
+      "exit_code": 101,
+      "elapsed_seconds": 0.035,
+      "sources_before": {
+        "partitionline-broker/src/segments.rs": "aaf4fcc47f56eb5fed5087e22da71033a56648d43bb6658119dd1de7419d805c",
+        "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+        "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+        "partitionline-broker/src/produce.rs": "5b19f3e84f1104145aca507465ced5dd7b1c33fe427d03515098012c44ce9438",
+        "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+        "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+        "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+        "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+        "partitionline-broker/tests/fetch.rs": "fa17be453444c12b882a6a401b1caf59ffd27e683bc4b9ee7e12f7e6c1e9df69"
+      },
+      "sources_after": {
+        "partitionline-broker/src/segments.rs": "aaf4fcc47f56eb5fed5087e22da71033a56648d43bb6658119dd1de7419d805c",
+        "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+        "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+        "partitionline-broker/src/produce.rs": "5b19f3e84f1104145aca507465ced5dd7b1c33fe427d03515098012c44ce9438",
+        "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+        "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+        "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+        "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+        "partitionline-broker/tests/fetch.rs": "fa17be453444c12b882a6a401b1caf59ffd27e683bc4b9ee7e12f7e6c1e9df69"
+      },
+      "log_sha256": "9c59d0e15cbf8564c839733fa9e55431fcd053f43edf1cb611a8894e48d0679a"
+    }
+  ],
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments"
+  },
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+    "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+  }
+}

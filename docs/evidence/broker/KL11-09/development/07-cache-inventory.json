@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "recorded_utc": "2026-10-03T02:05:27.817227+00:00",
+  "status": "exact generated target removed; preserved source/evidence/binaries unchanged",
+  "candidate": "/workspace/work/target-broker-fetch-dev",
+  "allocated_bytes": 499187712,
+  "observed_live_rust_build_processes": 0,
+  "active_target_references_accessible_processes": [],
+  "process_visibility_limitation": "Root-owned dockerd/containerd cannot be inspected via fd/maps/environment; accessible live agent processes have no references. 145 defunct processes excluded.",
+  "preserved_binaries": [
+    {
+      "path": "/workspace/work/partitionline-fetch-final-bin/stable/fetch",
+      "sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+      "bytes": 7361080
+    },
+    {
+      "path": "/workspace/work/broker-log-live-read/bin/stable-full/fetch",
+      "sha256": "48bab264cdf7a9161abb0a4540deaa4f2d2ec5b3c495a565aa9c1aeb1e831872",
+      "bytes": 7361080
+    },
+    {
+      "path": "/workspace/work/broker-log-live-read/bin/1.85.0/fetch",
+      "sha256": "567ca42f2f07ea761f019372c91ca2f2a831399b93af3973ba6ac78a549632a7",
+      "bytes": 5898880
+    },
+    {
+      "path": "/workspace/work/broker-log-live-read/bin/stable/fetch",
+      "sha256": "76cbadde26155918525223228a851e3b0c87835c769b3b03f0f4f8ea36c78a4f",
+      "bytes": 7361080
+    }
+  ],
+  "preserve": [
+    "/workspace/work/fetch-final-qualified-source-58810f2e",
+    "/workspace/work/fetch-final-source-58810f2e",
+    "/workspace/work/broker-log-live-read",
+    "/workspace/work/partitionline-fetch-final-bin",
+    "/workspace/partitionline/docs/evidence/broker/KL11-07",
+    "/workspace/partitionline/docs/evidence/broker/KL11-68"
+  ],
+  "leave_other_targets_untouched": {
+    "/workspace/work/target-openloop": "Older04-06/07 replay scripts reference examples directly; no cleanup approved for this target."
+  },
+  "required_before_cleanup": [
+    "Independent68 worker confirms reliance only on preserved copies",
+    "Recheck current live processes immediately before deletion",
+    "Remove only the exact generated target directory; no parent-directory wildcard",
+    "Record post-cleanup disk availability and preserved binary hashes"
+  ],
+  "cleanup_utc": "2026-10-03T02:06:44.468034+00:00",
+  "independent_worker_confirmation": "avro_adapter confirms all accepted68 and planned08 lanes use immutable copied binaries; original target disposable",
+  "post_cleanup_disk": "Filesystem       1B-blocks        Used  Available Use% Mounted on\noverlay        33770192896 24488202240 7547228160  77% /\n",
+  "removed_target_exists": false
+}

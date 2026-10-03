@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "immutable_production_sha": "df715760b24ca46cb0e2e135ce4c3520ec563af9",
+  "production_matches_checkpoint": {
+    "src/share.rs": "9bfa6abf28acaac829c77fd54f207e6e8350e38a083abe0fb8912cd88191dab2",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+  },
+  "test_harness_sha256": {
+    "tests/common/mod.rs": "0a555600e527ae846277c6e55128045fae6e72d0e2a6b89df7f8bdd9f910de32",
+    "tests/share_semantics.rs": "8705d3e93ab1c00c936c0bc87bc798b12a26f2e7893011b103b8f97502715cd2"
+  },
+  "command": "cargo test --offline --locked --test share_semantics -- --nocapture",
+  "environment": "Same recorded preparation toolchain/cache/CPU0-2,4; no new target",
+  "results": "13 passed,4 failed,1 live ignored",
+  "failures": [
+    "Ack top7 retry sends stale epoch1 and receives123",
+    "Fetch top31 next request repeats epoch1 and loses prior acquisition after123 reset",
+    "Fetch session-limit133 returned without initial-epoch recovery",
+    "Externally cancelled Ack marks socket closed, but old acquisition metadata survives new session"
+  ],
+  "net_review": {
+    "edit_required": false,
+    "proof": "CloseOnDrop guards roundtrip_deadline; cancelled reads poison closed flag and response correlation is validated. Delayed old Fetch/Ack bytes never satisfy new requests.",
+    "source_path": "src/net.rs",
+    "lines": [
+      192,
+      210,
+      1165
+    ]
+  },
+  "additional_upstream": {
+    "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/consumer/internals/ShareSessionHandler.java",
+    "sha256": "4f1acb10fcf6e7f5af684d1500c228e2da949f7f9b184115754e1db13ecdf0aa",
+    "scope": "Fetch lines263-285; Ack lines296-317"
+  }
+}

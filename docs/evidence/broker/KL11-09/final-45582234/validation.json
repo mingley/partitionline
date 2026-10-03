@@ -1,0 +1,709 @@
+{
+  "schema": 1,
+  "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "archive_sha256": "e3a991d5b25e5860984583acf9d760a0dbd3de63e4145cdd682ef00f35ed0563",
+  "source_manifest_sha256": "4224ae7bf96391b6fecdd502b06c8d97b83bd5fb68857be12ea0bde35dd480bd",
+  "scope": "complete immutable source; real ordinary rolling serving and process/IO histories, not physical power loss or full Kafka qualification",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "commands": [
+    {
+      "name": "clean-before-source-switch",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 1.647,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "4a2cb2ca1dcfdbecede2a37816993a51e3922b10622930fedc3760cefcc8d22f"
+    },
+    {
+      "name": "format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 1.861,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stable-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/segments-final-45582234/stable-default-all-targets/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/segments-final-45582234/stable-default-all-targets/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/segments-final-45582234/stable-default-all-targets/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/segments-final-45582234/stable-default-all-targets/fault-histories"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 34.51,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "03edae70454950f787cdafbb2b7ef5b3d35000e3d2e415dad50419728d557015"
+    },
+    {
+      "name": "stable-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 9.202,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "83851591e4a8c51c817446f21fff44c759202aa12c5c1fed93455d6c14ceaea7"
+    },
+    {
+      "name": "stable-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.171,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "76dac71f3074a96c2d0146673e093bb2b8bed21ed70c0d40ce5fdafe478097e8"
+    },
+    {
+      "name": "stable-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.711,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "name": "stable-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fault-histories"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 72.114,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "ae00410e39c79ee409ad58ab5773a008091b8b99e20f579bdc2b761f761a280d"
+    },
+    {
+      "name": "stable-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 17.689,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "06c80a255d957bf417427b0133fff76c5acda4e73d90bf8a7a11ae9447011c3c"
+    },
+    {
+      "name": "stable-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.318,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "479db6cdea9a5a65828adb7599810c6c6d1ef3060f95c3503e428aeab151bf5b"
+    },
+    {
+      "name": "stable-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.979,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    },
+    {
+      "name": "clean-between-toolchains",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 1.688,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "3669f671ac811c32569a6f85ba33c839609cac7c2bda73cf7d4327bb9bce5021"
+    },
+    {
+      "name": "1.85.0-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fault-histories"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 37.852,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "4707aa8079f878fd27e4e55fcd32c45ceb3ecaffdb5203e979a4f357f8c0d5f7"
+    },
+    {
+      "name": "1.85.0-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 12.32,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "77a9c94c714faaea157cc5f7d8466ebc8297f54abd14c3a22032fc57cdb051d8"
+    },
+    {
+      "name": "1.85.0-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.297,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "38e9845e1d9eae4ecbafec6150175a4966b82eccba1c710773184610456cc4bf"
+    },
+    {
+      "name": "1.85.0-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.76,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "name": "1.85.0-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fault-histories"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 88.014,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "e59e59f0f21b25ee62ecbdf4649fb5f0e820dc163179e7b4c050f40111f52338"
+    },
+    {
+      "name": "1.85.0-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 23.864,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "34907d347582c2b449c008b7a7897898bfcaeb852e860d1b8be5a04f0b7d64ad"
+    },
+    {
+      "name": "1.85.0-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 2.563,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "8b09f763838b9721790c538269719f35e4d913d7f9b35d96200d19fc06e5782a"
+    },
+    {
+      "name": "1.85.0-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 1.929,
+      "source_before": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "source_after": {
+        "file_count": 25713,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+      },
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    }
+  ],
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+    "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+  },
+  "retained_binaries": [
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable/fetch",
+      "sha256": "d759464d3b7d5058d8d272158c15c79cdc7b495935fc576d2c7f117bc90c3540",
+      "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "path": "bin/1.85.0/fetch",
+      "sha256": "c9cfb51bc3025a1ec5de8d6f7d985fe62eb4f2da2590d4ea8edeff132dc81683",
+      "source_commit": "45582234de9a40620f038ba6b68ab57d2616beb2",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    }
+  ],
+  "final_source": {
+    "file_count": 25713,
+    "all_git_blobs_match": true,
+    "set_and_blob_sha256": "cdf259f15d00e9cf80fb253daec811da88289a6c268f3257ed9157fcc0b0a83b"
+  }
+}

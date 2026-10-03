@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "scope": "Independent read-only static review of frozen rolling storage bounds/publication/seek accounting; no runtime, Apache equivalence, performance or production qualification",
+  "reviewer": "codex-c-peer-20261003",
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_hash_manifest": "docs/evidence/broker/KL11-09/source-hashes.json",
+  "source_hash_manifest_sha256": "173b8d4e74cad6fac86de474d3b5f786eb153eade1a0b6190b6d2e81e84a6d7b",
+  "source_files": {
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "3df736c99f7af42204517a977ce5f507a7edb4e50eb54b3fa8e343f4eacb4081",
+      "git_blob_sha1": "e76f503f24195564d5ec96d097d38cc840692093",
+      "bytes": 56538
+    },
+    "partitionline-broker/src/journal.rs": {
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "git_blob_sha1": "294d0173013f0d4dd0a79985e423d5bb10da986c",
+      "bytes": 48288
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+      "git_blob_sha1": "1913988e14fbc1bf6bff487df38872720327cc82",
+      "bytes": 14747
+    },
+    "partitionline-broker/src/produce.rs": {
+      "sha256": "194c5b9dac69d1dabc4981fd5db2badd93dee359cc97c176418f61dcca036986",
+      "git_blob_sha1": "ce5193249e92ce6297b51954636563338c0f46c2",
+      "bytes": 32767
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "sha256": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+      "git_blob_sha1": "0b59266de9e577dc123299b13e6822698be75117",
+      "bytes": 25264
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+      "git_blob_sha1": "651f785c42a263b14effde5693c4ec3f8b59d9ed",
+      "bytes": 18374
+    },
+    "partitionline-broker/tests/partition.rs": {
+      "sha256": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+      "git_blob_sha1": "febaa7f2080697ba9cac7c9b507e80ecb234c1f4",
+      "bytes": 10765
+    },
+    "partitionline-broker/tests/produce.rs": {
+      "sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "git_blob_sha1": "e22f6295e35f5eed00576419e273803bc51c4a51",
+      "bytes": 21757
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+      "git_blob_sha1": "7cdae981f939b7ddeb9e509a4b79185a07321235",
+      "bytes": 60578
+    }
+  },
+  "actor_source": {
+    "path": "partitionline-broker/src/metadata.rs",
+    "sha256": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+    "unchanged_from_committed_source": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+    "claim": "Actor/watch/admission/lifecycle source byte-identical to qualified07 baseline"
+  },
+  "passed": true,
+  "blocking_findings": [],
+  "checks": [
+    {
+      "name": "retained index and transient allocations",
+      "finding": "Limits checks ceil(entryCount/interval) sparse checkpoint capacities for every segment, descriptor/table capacities,128bytes per entry for active+replacement+Journal growth, four checkpoint bundle buffers, bounded cleanup names and fixed overhead. Journal reserve_index uses try_reserve_exact with capacity capped at max_index_entries; it does not permit unconstrained geometric capacities. Corrupt cache reads are capped by the DATA-derived expected bundle length."
+    },
+    {
+      "name": "disk publication and replacement",
+      "finding": "Actual enumerated file lengths include old/new data, sidecars and temp manifests; disk reservation precedes mutations. Roll verifies old data and syncs new files before durable manifest selection, then admits new append. Replacement copies/validates exact old data and protects both generations through manifest rename+directory sync; cleanup follows. I/O publication failure poisons the selected owner."
+    },
+    {
+      "name": "file descriptors and payload scratch",
+      "finding": "Store validates aggregate per-store index/disk ceilings and documents max_stores active files plus four transient actor files. Sealed reads use one transient CheckedCursor. Source/destination replacement handles drop before replacement validation/index/publication. At most one maximum-entry validation/scan payload is additional to normalized work and append copy; allocator/OS/caller outputs are separately disclosed."
+    },
+    {
+      "name": "hidden seek work reaches wire request budget",
+      "finding": "CheckedCursor open reads protected24-byte header and file metadata, not a full journal recovery. It seeks a previously data-certified checkpoint. Every skipped/returned payload and entry is charged through segments::Work -> Partition.read_with_work -> Store.read_entry -> FetchBudget.read. A scan-only FetchBudgetExceeded becomes distinct ScanBudget and ScanLimit, preventing successful output truncation or a false miss after hidden budget exhaustion. Entry counts separately bound fixed entry/file headers."
+    },
+    {
+      "name": "offset and timestamp seek semantics",
+      "finding": "Containing atomic inputs retain their complete bytes, and Fetch still filters older complete batches. Time checkpoint selection uses strict prefix_max<wanted, retaining equal and nonmonotonic timestamps before the desired record; per-segment maximum controls skipping. Returned cursor entries receive payload CRC and range/record validation."
+    },
+    {
+      "name": "actor cancellation and mutation ordering",
+      "finding": "Metadata actor source is unchanged from07. Store.append marks change on confirmed append or new poison; Store reads mark new poison. The actor takes changes and publishes watch version before replying, including canceled/lost receipts. Delete/Produce identity ordering, capture-before-enqueue, retained admission through outside-actor wait, stop/drain/join behavior remain in the unchanged actor."
+    }
+  ],
+  "documentation_refinements_resolved": [
+    "Seek byte budget now explicitly means payload bytes, with entry caps bounding fixed headers",
+    "Config now names the additional bounded maximum-entry validation/scan payload and distinguishes monolithic64-byte slots from rolling index envelopes"
+  ],
+  "limitations": [
+    "Static review does not execute the frozen candidate",
+    "Runtime fault histories, independent Apache observations and raw-WAL/index parsing must retain their own exact-source receipts",
+    "Legacy monolithic proof cannot qualify rolling layout",
+    "No retention, compaction, replication, power-loss or performance claim"
+  ],
+  "initial_candidate_receipt_sha256": "64c4be1b565ce73820ff04c012879cc2539b6c2bbf9663e2b31e36226d16a238",
+  "pushed_source_binding": {
+    "passed": true,
+    "committed_source_paths_checked": 9,
+    "actor_unchanged": true,
+    "source_scope": "frozen455 source blobs; no uncommitted snapshot or replication integration included"
+  }
+}

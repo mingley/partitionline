@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "gate_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "runtime_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "passed": true,
+  "source_archive_sha256": "e3a991d5b25e5860984583acf9d760a0dbd3de63e4145cdd682ef00f35ed0563",
+  "tracked_files_checked": 25713,
+  "ci_tests": 48,
+  "compiled_cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "report": "stable-default-ordinary-report.json",
+      "sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "report": "stable-all-features-ordinary-report.json",
+      "sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "report": "1.85.0-default-ordinary-report.json",
+      "sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "report": "1.85.0-all-features-ordinary-report.json",
+      "sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe"
+    }
+  ],
+  "per_cell_cases": {
+    "wire": 99,
+    "metadata": 555,
+    "produce": 708,
+    "fetch_list_offsets": 366,
+    "read_write_api_versions_response_layouts": 15
+  },
+  "independent_api_versions_exchanges": {
+    "produce_profile": 30,
+    "read_write_profile": 60
+  },
+  "limitations": [
+    "Independent live ApiVersions receipts retain their original c34 Produce and 58810 read/write runtime sources; they are not relabeled as 455 rolling execution.",
+    "This first receipt covers the existing ordinary profiles. Rolling response/TCP reports and the fixed-controller reflected module label are handled separately."
+  ],
+  "artifacts_sha256": {
+    "1.85.0-all-features-ordinary-report.json": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "1.85.0-all-features-ordinary.log": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "1.85.0-default-ordinary-report.json": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "1.85.0-default-ordinary.log": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "ci-48.log": "58458536453a53c70b4492549134b32bafdec93d0c762e9b8f0e9aed02756428",
+    "stable-all-features-ordinary-report.json": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "stable-all-features-ordinary.log": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "stable-default-ordinary-report.json": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "stable-default-ordinary.log": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "ordinary-commands.json": "f0b98a7021c934673a3cc1c9dd14b318abe6ed00c37ae18efc14f4ad18333b97"
+  }
+}

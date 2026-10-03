@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "phase": "mutable candidate preparation, not immutable final qualification",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/client-share-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "PATH_prefix": "/workspace/work/cargo/bin",
+    "cpu_affinity": "0-2,4"
+  },
+  "cwd": "/workspace/partitionline",
+  "format_command": "rustfmt --edition 2021 src/share.rs tests/common/mod.rs tests/share_semantics.rs",
+  "commands": [
+    {
+      "log": "runtime-correction-test-01.log",
+      "command": "cargo test --offline --locked --test share_semantics -- --nocapture"
+    },
+    {
+      "log": "runtime-correction-clippy-01.log",
+      "command": "cargo clippy --offline --locked --lib --test share_semantics --test protocol_oracles --all-features -- -D warnings"
+    },
+    {
+      "log": "runtime-correction-oracles-01.log",
+      "command": "cargo test --offline --locked --test protocol_oracles -- --nocapture"
+    },
+    {
+      "log": "runtime-correction-full-01.log",
+      "command": "cargo test --offline --locked --test full_surface share -- --nocapture"
+    }
+  ]
+}

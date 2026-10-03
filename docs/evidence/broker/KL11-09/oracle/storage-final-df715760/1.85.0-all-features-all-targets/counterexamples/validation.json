@@ -1,0 +1,88 @@
+{
+  "baseline_manifest_sha256": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2",
+  "checker_sha256": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834",
+  "generator_sha256": "7dc658d084d4489db6854feb34710a95d4fa49b7f5023e44161ec78a47d464cb",
+  "baseline_accepted": true,
+  "expected_rejections": 6,
+  "results": [
+    {
+      "mutation": "wrong-checkpoint-position",
+      "rejected": true,
+      "reason": "seek physical position/prefix maximum",
+      "classification": "checksum-valid selected metadata/payload semantic mutation",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "0000000000000000-0000000000000000.seek": "c4f8ef4888d1ece0dc5c1345b16aad8555695a292aefc9e0773d69dbad93755d",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+      }
+    },
+    {
+      "mutation": "wrong-prefix-maximum",
+      "rejected": true,
+      "reason": "seek physical position/prefix maximum",
+      "classification": "checksum-valid selected metadata/payload semantic mutation",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "0000000000000000-0000000000000000.seek": "47f945a7eb9a5a07cad35a083cefec5a6e8b1429834f82d7e97c47aeddca66a8",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+      }
+    },
+    {
+      "mutation": "wrong-selected-fingerprint",
+      "rejected": true,
+      "reason": "selected descriptor fingerprint",
+      "classification": "checksum-valid selected metadata/payload semantic mutation",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "0000000000000000-0000000000000000.seek": "96bba1555ecc842e238f9dd21acdc4a69316ac2b70ca1e9c2507a889843608e8",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "e76b337a5a8f88175bd9eb600a93fc987ad6754663b58e81b88e176fbaaf4b76"
+      }
+    },
+    {
+      "mutation": "checksum-valid-wrong-seed",
+      "rejected": true,
+      "reason": "acknowledged ordinary seed payload bytes",
+      "classification": "checksum-valid selected metadata/payload semantic mutation",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "eddf2ac292d42b3d5156d2b023605164a69511fae81e2d2c7096633e1985993d",
+        "0000000000000000-0000000000000000.seek": "0620dc688a5235eee3471b0e4a373b9589c506f4a8c839a58fd9b44bc743c15c",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "587efdd30a0880ec62af8aa762af5c7faa187e6f4dd6b99ca1da54e90af83f6b"
+      }
+    },
+    {
+      "mutation": "future-selected-generation",
+      "rejected": true,
+      "reason": "selected contiguous generations",
+      "classification": "checksum-valid selected metadata/payload semantic mutation",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "8dfab282cfc2360cb9124153124fed3650610c49f10d2b7b691c91d3c9dc6eb4",
+        "0000000000000000-0000000000000000.seek": "e91676e9fb6e53021365296c09fbb8dc4fa26817d6a6ca3d90875fce1f737f16",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "35a66a3c1ce00f7453119fa8e07ee73d2b548b7464453c9b52f949a6c305371f"
+      }
+    },
+    {
+      "mutation": "partial-selected-payload",
+      "rejected": true,
+      "reason": "entry payload CRC",
+      "classification": "structural incomplete payload",
+      "files_sha256": {
+        "0000000000000000-0000000000000000.journal": "20a0be03afe2afc8304bedd91511de01094a170c23d004915f09996ab0476f0f",
+        "0000000000000000-0000000000000000.seek": "86511efa607ffdf50d8893530c367fa3cc0c03a9b480b093c0c47bb35e9223ff",
+        "0000000000000001-0000000000000001.journal": "d89ab4d1e169bdcc3697e67fded4db6c120324f3a56c88343623d2375025fa2c",
+        "case.json": "31f01d43129ba5364649095bddc08c2d14a996b7c1ba3c5cb987e17d75a380ad",
+        "manifest": "064d0671467e0058f6d191dcf489e0b63764ea4aaf7d77376df293bb9ff64af2"
+      }
+    }
+  ],
+  "scope": "Altered genuine checkpoint files, not a compiled Rust mutant or exhaustive fault schedule."
+}

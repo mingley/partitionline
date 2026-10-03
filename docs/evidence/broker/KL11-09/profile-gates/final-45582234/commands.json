@@ -1,0 +1,617 @@
+[
+  {
+    "argv": [
+      "python3",
+      "tests/ci/test_broker_api_matrix.py"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "log": "ci-48.log",
+    "log_sha256": "58458536453a53c70b4492549134b32bafdec93d0c762e9b8f0e9aed02756428",
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_before_provenance": "Same source tree was verified by the preceding immutable foundation runner; CI command completed before this wrapper was written."
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-default-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.559,
+    "log": "stable-default-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-all-features-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.555,
+    "log": "stable-all-features-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-default-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.558,
+    "log": "1.85.0-default-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-all-features-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.556,
+    "log": "1.85.0-all-features-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-default-controller-registry-labels.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-responses/transport",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-default-combined-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.564,
+    "log": "stable-default-combined.log",
+    "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-report.json": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-default-controller-registry-labels.json": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+    },
+    "input_tcp_captures_sha256": {
+      "4.1.2/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.1.2/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.1.2/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.1.2/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.2.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.2.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.2.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.2.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.3.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.3.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.3.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.3.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c"
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-all-features-controller-registry-labels.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/controller-responses/transport",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-all-features-combined-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.588,
+    "log": "stable-all-features-combined.log",
+    "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/controller-report.json": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-all-features-controller-registry-labels.json": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+    },
+    "input_tcp_captures_sha256": {
+      "4.1.2/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.1.2/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.1.2/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.1.2/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.2.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.2.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.2.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.2.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.3.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.3.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.3.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.3.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c"
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-default-controller-registry-labels.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/controller-responses/transport",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-default-combined-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.563,
+    "log": "1.85.0-default-combined.log",
+    "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/controller-report.json": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-default-controller-registry-labels.json": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+    },
+    "input_tcp_captures_sha256": {
+      "4.1.2/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.1.2/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.1.2/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.1.2/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.2.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.2.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.2.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.2.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.3.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.3.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.3.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.3.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c"
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-all-features-controller-registry-labels.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/controller-responses/transport",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-all-features-combined-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.547,
+    "log": "1.85.0-all-features-combined.log",
+    "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/controller-report.json": "0cf34e096fbf329cdf54e841ef77b3d0341d2f223d15ec469dff7ce8d0882c0f",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-all-features-controller-registry-labels.json": "63955023c5e0fb5419a6b76fdd9d8d8fc9e62f0a9b2478e2feea24fcb8c0fb89",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+    },
+    "input_tcp_captures_sha256": {
+      "4.1.2/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.1.2/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.1.2/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.1.2/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.2.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.2.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.2.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.2.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.3.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.3.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.3.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.3.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c"
+    }
+  }
+]

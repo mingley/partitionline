@@ -1,0 +1,20 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/snapshot-foundation-final/45582234/source/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.11s
+     Running tests/raft_snapshot.rs (/workspace/work/target-broker-snapshot/debug/deps/raft_snapshot-b86997150aea1536)
+
+running 10 tests
+test actual_apache_opaque_observation_preserves_order_and_boundary_mapping ... ok
+test canonical_prefix_round_trip_and_sequential_transfer ... ok
+test ambiguous_rename_error_poison_preserves_previous_image ... ok
+test empty_prefix_and_canceled_reader_have_explicit_boundaries ... ok
+test fully_rehashed_hostile_images_cannot_bless_malformed_content ... ok
+
+running 1 test
+test identity_and_generation_budgets_are_preflighted ... ok
+test snapshot_crash_helper ... ok
+test exact_completion_seal_and_crc_are_required ... ok
+test actual_process_exit_during_transfer_keeps_old_image_recoverable ... ok
+test foreign_fixed_group_and_namespace_are_rejected ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

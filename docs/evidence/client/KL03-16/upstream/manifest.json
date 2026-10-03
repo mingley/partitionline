@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "pin": "Apache Kafka4.3.1",
+  "upstream_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+  "purpose": "Source comparison of case dispositions; this is not execution of the Apache suite",
+  "sources": [
+    {
+      "path": "group-coordinator/src/main/java/org/apache/kafka/coordinator/group/GroupConfig.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/group-coordinator/src/main/java/org/apache/kafka/coordinator/group/GroupConfig.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/GroupConfig.java",
+      "sha256": "bc5ebffdb09445eb3ebb7c34bfc2ae02ade12945706d8c95fada5c17a1dd57db",
+      "executed": false
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareCompletedFetchTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareCompletedFetchTest.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareCompletedFetchTest.java",
+      "sha256": "a71a9bb649c3250f6299294b81ec5996fa461233e4648f7472645118d23b89fa",
+      "executed": false
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/internals/ShareConsumeRequestManager.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/consumer/internals/ShareConsumeRequestManager.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareConsumeRequestManager.java",
+      "sha256": "16e3dfb92f5eb325589901120fe3de4f5245c51a2da7f3b23e6b3ebee18d9932",
+      "executed": false
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareConsumeRequestManagerTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareConsumeRequestManagerTest.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareConsumeRequestManagerTest.java",
+      "sha256": "fcfbd453ba9eeb6e34c64530bdbc6319e5426991eeb2e309835f42a812b8a545",
+      "executed": false
+    },
+    {
+      "path": "group-coordinator/src/main/java/org/apache/kafka/coordinator/group/modern/share/ShareGroupConfig.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/group-coordinator/src/main/java/org/apache/kafka/coordinator/group/modern/share/ShareGroupConfig.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareGroupConfig.java",
+      "sha256": "c31354db01da1309a372eb7515c88743c61acdf1147db0b376cf5ca03cb7c7dc",
+      "executed": false
+    },
+    {
+      "path": "clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareSessionHandlerTest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/test/java/org/apache/kafka/clients/consumer/internals/ShareSessionHandlerTest.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareSessionHandlerTest.java",
+      "sha256": "8e11ca07ee8fabe9e25f8d082a15f707c519bfcb340ffee94ab0bd7d41f8a612",
+      "executed": false
+    },
+    {
+      "path": "clients/src/main/java/org/apache/kafka/clients/consumer/internals/ShareSessionHandler.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/clients/consumer/internals/ShareSessionHandler.java",
+      "retained_path": "docs/evidence/client/KL03-16/upstream/ShareSessionHandler.java",
+      "sha256": "4f1acb10fcf6e7f5af684d1500c228e2da949f7f9b184115754e1db13ecdf0aa",
+      "executed": false
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+[
+  {
+    "argv": [
+      "python3",
+      "tests/ci/test_broker_api_matrix.py"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "log": "ci-48.log",
+    "log_sha256": "58458536453a53c70b4492549134b32bafdec93d0c762e9b8f0e9aed02756428",
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_before_provenance": "Same source tree was verified by the preceding immutable foundation runner; CI command completed before this wrapper was written."
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-default-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.559,
+    "log": "stable-default-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/stable-default-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/stable-all-features-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.555,
+    "log": "stable-all-features-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/stable-all-features-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-default-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.558,
+    "log": "1.85.0-default-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-default-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-09/profile-gates/final-45582234/1.85.0-all-features-ordinary-report.json"
+    ],
+    "cwd": "/workspace/work/snapshot-foundation-final/45582234/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.556,
+    "log": "1.85.0-all-features-ordinary.log",
+    "log_sha256": "8d9f4165b9bff0200faab6aa53433c40284ba296b9ba775a59843abbafe535fe",
+    "source_before": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "source_after": {
+      "tracked_files_checked": 25713,
+      "passed": true
+    },
+    "input_reports_sha256": {
+      "wire": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/wire-report.json",
+        "sha256": "bfc99f3c5084305c760db8fddba206a997806add122e32a5946a299d76509186"
+      },
+      "metadata": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/metadata-report.json",
+        "sha256": "63ce2ed6757db6f8dd5e443d378ee5dd8dd8a965939b993698d7a64fd9e382af"
+      },
+      "produce": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/produce-report.json",
+        "sha256": "8664a24ffe1050a38da4c317515c6af31a8ed44ac5aaa3e48cfc38cd7b299e87"
+      },
+      "fetch": {
+        "path": "/workspace/work/segments-final-45582234/1.85.0-all-features-all-targets/fetch-report.json",
+        "sha256": "438f62666e66b03ae08aa65568a351d44b7251bce87f57183c2c7d88fc02419a"
+      },
+      "data_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734"
+      },
+      "read_write_api_versions": {
+        "path": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+        "sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709"
+      }
+    }
+  }
+]

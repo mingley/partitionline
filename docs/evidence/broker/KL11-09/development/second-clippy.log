@@ -1,0 +1,130 @@
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:158:20
+    |
+158 |     let original = fs::read(&indexes[0])?;
+    |                    ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+    = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/segments.rs:164:5
+    |
+164 |     fs::write(&indexes[0], &stale)?;
+    |     ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:168:16
+    |
+168 |     assert_eq!(fs::read(&indexes[0])?, original);
+    |                ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:182:22
+    |
+182 |         let before = fs::read(&data[0])?;
+    |                      ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/segments.rs:187:17
+    |
+187 |                 fs::write(&data[0], bad)?;
+    |                 ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/segments.rs:189:30
+    |
+189 |             "sealed-tail" => fs::write(&data[0], &before[..before.len() - 1])?,
+    |                              ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:193:29
+    |
+193 |                 let mut b = fs::read(&p)?;
+    |                             ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/segments.rs:195:17
+    |
+195 |                 fs::write(p, b)?;
+    |                 ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:200:24
+    |
+200 |             assert_eq!(fs::read(&data[0])?.len(), before.len() - 1);
+    |                        ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:236:17
+    |
+236 |     let bytes = fs::read(&old)?;
+    |                 ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:240:16
+    |
+240 |     assert_eq!(fs::read(first)?, bytes);
+    |                ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:323:24
+    |
+323 |     let mut manifest = fs::read(&path)?;
+    |                        ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/segments.rs:328:5
+    |
+328 |     fs::write(&path, &manifest)?;
+    |     ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/segments.rs:337:16
+    |
+337 |     assert_eq!(fs::read(path)?, manifest);
+    |                ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: could not compile `partitionline-broker` (test "segments") due to 14 previous errors

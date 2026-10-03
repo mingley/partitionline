@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "whole_source_provenance": "docs/evidence/broker/KL11-15/foundation-final/45582234/source-inputs.json",
+  "gate_files_sha256": {
+    "scripts/check-broker-api-matrix.py": "baae232d8785d388960e889e6db7169b8140d1c72c9434aa010807ad8dd0db56",
+    "tests/ci/test_broker_api_matrix.py": "e5cdd155eb38a5fc4787155d661d252992e5b1db9e095a845be1b50840b43ef5",
+    "tests/conformance/broker/implemented-api-versions.json": "2ababad6694ff22b0a8ff95e49df23bd27be1ce30e18db2eaa1e6d1bc8a60f37",
+    "tests/conformance/broker/features.json": "ec95848b061543971901600ca26b403bf7bbfb77d4d13304e3e2bf64b67b56f9"
+  }
+}

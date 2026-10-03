@@ -1,0 +1,22 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.86s
+     Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c)
+
+running 7 tests
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... Error: CorruptData
+FAILED
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+
+failures:
+
+failures:
+    atomic_multi_batch_input_and_containing_offsets_are_not_split
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test segments`

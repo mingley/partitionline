@@ -1097,7 +1097,7 @@ impl ShareGroup {
                     );
                     return Ok(ShareRecords::from(recs));
                 }
-                Err(e) if share_leader_retriable(&e) || share_session_reset(&e) => {
+                Err(e) if share_leader_retriable(&e) || share_fetch_session_reset(&e) => {
                     if Instant::now() >= deadline {
                         return Err(Error::Timeout);
                     }
@@ -1169,6 +1169,15 @@ impl ShareGroup {
     }
 
     fn prune_expired_acquisitions(&mut self) {
+        let poisoned: Vec<_> = self
+            .share_conns
+            .iter()
+            .filter(|(_, peer)| peer.conn.is_closed())
+            .map(|(node, _)| *node)
+            .collect();
+        for node in poisoned {
+            self.reset_node_session(node);
+        }
         let now = Instant::now();
         self.acquisitions
             .retain(|_, acquisition| acquisition.expires_at.is_none_or(|expiry| expiry > now));
@@ -1189,11 +1198,20 @@ impl ShareGroup {
     }
 
     async fn node_share_version(&mut self, node: i32, api: i16) -> Result<i16> {
-        if self.share_conns.get(&node).is_some_and(|peer| {
-            peer.conn.is_closed() || peer.conn.idle_expired(self.cfg.connections_max_idle)
-        }) {
+        if self
+            .share_conns
+            .get(&node)
+            .is_some_and(|peer| peer.conn.is_closed())
+        {
+            self.reset_node_session(node);
+        } else if self
+            .share_conns
+            .get(&node)
+            .is_some_and(|peer| peer.conn.idle_expired(self.cfg.connections_max_idle))
+        {
+            // A clean idle reconnect preserves broker-side member/session state.
+            // Cancelled or failed roundtrips instead invalidate ambiguous locks.
             let _ = self.share_conns.remove(&node);
-            let _ = self.share_epochs.remove(&node);
         }
         if !self.share_conns.contains_key(&node) {
             let addr = self
@@ -1442,11 +1460,16 @@ impl ShareGroup {
             }
             if error_code != 0 {
                 let error = Error::broker(error_code, "ShareFetch");
-                if share_session_reset(&error) || share_leader_retriable(&error) {
+                if share_fetch_session_reset(&error) || share_leader_retriable(&error) {
                     self.reset_node_session(node);
+                } else {
+                    self.advance_node_epoch(node);
                 }
                 return Err(error);
             }
+            // A well-formed response consumed this epoch even when a later
+            // partition outcome fails. Initial sessions must also be closable.
+            self.advance_node_epoch(node);
             if version >= 1 {
                 self.acquisition_lock_timeout_ms = Some(lock_timeout);
             }
@@ -1586,7 +1609,6 @@ impl ShareGroup {
                     ));
                 }
             };
-            self.advance_node_epoch(node);
             for record in incoming {
                 let _ = self.acquisitions.insert(
                     (record.topic.clone(), record.partition, record.offset),
@@ -1868,6 +1890,8 @@ impl ShareGroup {
                 let error = Error::broker(code, "ShareAcknowledge");
                 if share_session_reset(&error) {
                     self.reset_node_session(node);
+                } else {
+                    self.advance_node_epoch(node);
                 }
                 return Err(error);
             }
@@ -2365,6 +2389,10 @@ fn share_ack_retriable(error: &Error) -> bool {
             && !share_session_reset(error)
             && (error.is_retriable() || code == error::NETWORK_EXCEPTION)
     })
+}
+
+fn share_fetch_session_reset(error: &Error) -> bool {
+    share_session_reset(error) || error.broker_code() == Some(error::SHARE_SESSION_LIMIT_REACHED)
 }
 
 fn share_session_reset(e: &Error) -> bool {
