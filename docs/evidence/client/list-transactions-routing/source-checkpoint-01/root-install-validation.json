@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "task": "KL05-38",
+  "status": "in_progress",
+  "scope": "Root reviewed/formatted all-broker implementation and bounded independent peer source installed before immutable compile/runtime qualification.",
+  "old_admin_sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+  "new_admin_sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8",
+  "source_peer_manifest_sha256": "8bc4505a7c444381497c4d613dcfb2565e56c9ad4182cbc9d7fb75fe73c63228",
+  "initial_independent_parser_findings": 2,
+  "revised_source_semantic_controls": 145,
+  "revised_independent_review_sha256": "706d090db4ee3adbe925ddf40e6aaee8c2edcdf40ae7d7c962dedab9c536fb3e",
+  "actual_standalone_format_commands": 2,
+  "declared_socket_tests": 17,
+  "declared_scripted_socket_subcases": 41,
+  "actual_cargo_commands": 0,
+  "actual_sdk_commands": 0,
+  "actual_socket_tests": 0,
+  "all_broker_runtime_qualified": false,
+  "auth_reconnect_qualified": false,
+  "full_protocol_complete": false,
+  "core_protocol_complete": false,
+  "evidence_prefix": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/",
+  "installed_paths": [
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/src/admin.rs",
+      "repository_path": "src/admin.rs",
+      "bytes": 590487,
+      "full_mode": 384,
+      "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/src/lib.rs",
+      "repository_path": "src/lib.rs",
+      "bytes": 211672,
+      "full_mode": 384,
+      "sha256": "95e15136b6e6bc0b745f0e59da56e495e3c7c3555952a97c43041ebff228c788"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/common/mod.rs",
+      "repository_path": "tests/common/mod.rs",
+      "bytes": 380411,
+      "full_mode": 384,
+      "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "repository_path": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "bytes": 20465,
+      "full_mode": 384,
+      "sha256": "632cf34ce04e79c88432a0bc46df368be711f35949287a0e007057c80cf88dda"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "repository_path": "tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 5904,
+      "full_mode": 384,
+      "sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "repository_path": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "bytes": 2352,
+      "full_mode": 384,
+      "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "repository_path": "tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "bytes": 462,
+      "full_mode": 384,
+      "sha256": "47cb0c33afd94cc231011f768dda6de978572a1e5e5c8212df837e2f1c4c130f"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "repository_path": "tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "bytes": 8618,
+      "full_mode": 384,
+      "sha256": "7869c46f09ebd260fae37faefcde582988c1904b89a0dfeee0d1faa6468b0793"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "repository_path": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 28906,
+      "full_mode": 384,
+      "sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/full_surface.rs",
+      "repository_path": "tests/full_surface.rs",
+      "bytes": 543964,
+      "full_mode": 384,
+      "sha256": "58caf24ded7c0fe58ac58c68b04b38a05bcb22a45387cd15a5d3a8d8d069fa62"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/list_transactions_routing.rs",
+      "repository_path": "tests/list_transactions_routing.rs",
+      "bytes": 18320,
+      "full_mode": 384,
+      "sha256": "815ba92732f5993794f1e9895c9cf9bfc77d28d431c8c1d28713f2ca90d4a5d2"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate-manifest.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/root/candidate-manifest.json",
+      "bytes": 4830,
+      "full_mode": 384,
+      "sha256": "178456f6714ec83d2d8308c1659354d05d162844262c5e5c73d8e3fb66ebe5c9"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/format-apply.log",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/root/format-apply.log",
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/msrv-format-check.log",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/root/msrv-format-check.log",
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-install-01/prepare.py",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/root/prepare.py",
+      "bytes": 7822,
+      "full_mode": 384,
+      "sha256": "cd02ef3fc6043d2bf3830482a36ee64e73c94808e33aaa1d12b1178b6497ffe2"
+    },
+    {
+      "source": "/workspace/work/list-transactions-routing-01/methods.rs.part",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/prepared/methods.rs.part",
+      "bytes": 11149,
+      "full_mode": 384,
+      "sha256": "d2f025ce76c2dc3f31105475495bfb9788470cc34e8e3379a87b00b5e4e6e2d4"
+    },
+    {
+      "source": "/workspace/work/list-transactions-routing-01/support.rs.part",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/prepared/support.rs.part",
+      "bytes": 5500,
+      "full_mode": 384,
+      "sha256": "48a703e3c34df8e45747300b2581912403f18958fe8f5d0add74d95034d4830c"
+    },
+    {
+      "source": "/workspace/work/list-transactions-routing-01/prepare.py",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/prepared/prepare.py",
+      "bytes": 1851,
+      "full_mode": 384,
+      "sha256": "e4b008b11597ad63a2c5ce239013dc8145b634b82b63e955c2612010da973321"
+    },
+    {
+      "source": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/installation-manifest.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/peer/installation-manifest.json",
+      "bytes": 9608,
+      "full_mode": 384,
+      "sha256": "8bc4505a7c444381497c4d613dcfb2565e56c9ad4182cbc9d7fb75fe73c63228"
+    },
+    {
+      "source": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/source-inspection.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/peer/source-inspection.json",
+      "bytes": 108911,
+      "full_mode": 384,
+      "sha256": "0a8ba2726f0d5efbc78fb52c233f8e50f6fad279cfe3927e931e79f3b6be6af4"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/controls.py",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/controls.py",
+      "bytes": 4617,
+      "full_mode": 384,
+      "sha256": "0c0ac299e225dbad40655d5e8534d59525181c98d644fdd25b03b84d64ef70f9"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/controls.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/controls.json",
+      "bytes": 5171,
+      "full_mode": 384,
+      "sha256": "c1844c06a37ed8e696648f116dc25f3fe20c3617520e61a45dbddd1f97b8ff28"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/input-snapshot.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/input-snapshot.json",
+      "bytes": 1154,
+      "full_mode": 384,
+      "sha256": "1651443467d44435084c81b8fa55f28dbbef360fc771389ecf2b54e04f7026b1"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/validation.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/validation.json",
+      "bytes": 11304,
+      "full_mode": 384,
+      "sha256": "a447e5cb8cfadab34c6200efb735934dd4e46d39d9c20dd657db3ed47cce306d"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/validation-before-body-size-correction.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/validation-before-body-size-correction.json",
+      "bytes": 10875,
+      "full_mode": 384,
+      "sha256": "6a34944a61f243afd816b4e1a1a1d48dd7f74e986b69a4d10e7af1ec95d82154"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/ListTransactionsHandler-4.1.2.java",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/first-independent-review/ListTransactionsHandler-4.1.2.java",
+      "bytes": 6029,
+      "full_mode": 384,
+      "sha256": "99961419a99681fde8f8d71dfd73a765b8521d85364b6fb25169f2916474fa5b"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/controls.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/revised-independent-review/controls.json",
+      "bytes": 50020,
+      "full_mode": 384,
+      "sha256": "2f6dec6095f097c678901e056dde4aff82b037f0894f29d00c427d26957b3314"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/controls.py",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/revised-independent-review/controls.py",
+      "bytes": 5302,
+      "full_mode": 384,
+      "sha256": "f59f1cd592607869bd891dc8431771fcab97dbcbcd9169a26e9b67a4966313ee"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/input.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/revised-independent-review/input.json",
+      "bytes": 595,
+      "full_mode": 384,
+      "sha256": "76eaab103b9a9055b36103e3eac12e708a3689c43078d80fc8bf4d25ef9fb6c1"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/reviewed-helpers.rs",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/revised-independent-review/reviewed-helpers.rs",
+      "bytes": 4699,
+      "full_mode": 384,
+      "sha256": "694961328f9eb046817c78897a4738b67bbeb364d07f8351a099d396a838828b"
+    },
+    {
+      "source": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/validation.json",
+      "repository_path": "docs/evidence/client/list-transactions-routing/source-checkpoint-01/revised-independent-review/validation.json",
+      "bytes": 3413,
+      "full_mode": 384,
+      "sha256": "706d090db4ee3adbe925ddf40e6aaee8c2edcdf40ae7d7c962dedab9c536fb3e"
+    }
+  ],
+  "other337_task_objects_unchanged": true,
+  "held_bytes_unchanged": {
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+  },
+  "source_only": true,
+  "resource_free_bytes": 714137600
+}

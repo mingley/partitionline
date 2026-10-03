@@ -1,0 +1,3171 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only ZIP classfile byte tables; no JVM, compiler, SDK runtime, sockets or semantic assertion execution.",
+  "releases": {
+    "4.1.2": {
+      "source_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jar_before": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "bytes": 9769826,
+        "full_mode": 384,
+        "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+      },
+      "classes": {
+        "MessageUtil": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "UNSIGNED_INT_MAX",
+              "descriptor": "J",
+              "access_flags": 25
+            },
+            {
+              "name": "UNSIGNED_SHORT_MAX",
+              "descriptor": "I",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "byteBufferToArray",
+              "descriptor": "(Ljava/nio/ByteBuffer;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "deepToString",
+              "descriptor": "(Ljava/util/Iterator;)Ljava/lang/String;",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToByte",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToLong",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToBinary",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToDouble",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D",
+              "access_flags": 9
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "([B)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "compareRawTaggedFields",
+              "descriptor": "(Ljava/util/List;Ljava/util/List;)Z",
+              "access_flags": 9
+            },
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedByteBuffer",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedBytes",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedByteBuffer",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedBytes",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "bytes": 9509,
+          "sha256": "96f395d1c07a055ed12bb0d703bd0d19a54fdcf8a0d3dbd14b7f7808587541bd"
+        },
+        "ByteBufferAccessor": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "buf",
+              "descriptor": "Ljava/nio/ByteBuffer;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readByte",
+              "descriptor": "()B",
+              "access_flags": 1
+            },
+            {
+              "name": "readShort",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "readInt",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readLong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "readDouble",
+              "descriptor": "()D",
+              "access_flags": 1
+            },
+            {
+              "name": "readArray",
+              "descriptor": "(I)[B",
+              "access_flags": 1
+            },
+            {
+              "name": "readUnsignedVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readByteBuffer",
+              "descriptor": "(I)Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByte",
+              "descriptor": "(B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeShort",
+              "descriptor": "(S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeInt",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeLong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeDouble",
+              "descriptor": "(D)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteArray",
+              "descriptor": "([B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeUnsignedVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteBuffer",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarlong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarlong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "remaining",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "slice",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Readable;",
+              "access_flags": 1
+            },
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "bytes": 4307,
+          "sha256": "3e0cc852eb4ce1009fd3dc90014bb8a732669f957ec9933a19eb51c65eab62fd"
+        },
+        "ListTransactionsResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/KafkaFuture;)V",
+              "access_flags": 0
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "byBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "allByBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "lambda$allByBrokerId$4",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$3",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Set;Ljava/lang/Integer;Lorg/apache/kafka/common/internals/KafkaFutureImpl;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$2",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Integer;Ljava/util/Set;Ljava/util/Collection;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$byBrokerId$1",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$all$0",
+              "descriptor": "(Ljava/util/Map;)Ljava/util/Collection;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/ListTransactionsResult.class",
+          "bytes": 7386,
+          "sha256": "e57a19a7414edf4b7dc460884c66c0f28e80f1fe60e1d5516cf6db504e1937dc"
+        },
+        "AllBrokersStrategy": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ANY_BROKER",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOOKUP_KEYS",
+              "descriptor": "Ljava/util/Set;",
+              "access_flags": 25
+            },
+            {
+              "name": "SINGLE_REQUEST_SCOPE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 26
+            },
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/MetadataRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "validateLookupKeys",
+              "descriptor": "(Ljava/util/Set;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/MetadataResponseData$MetadataResponseBroker;)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy.class",
+          "bytes": 7866,
+          "sha256": "81034cd8cc737241da6b850a76124e466db49bdcc9317f4a0b2029bed38c6f3d"
+        },
+        "AllBrokersFuture": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 18
+            },
+            {
+              "name": "brokerFutures",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupKeys",
+              "descriptor": "()Ljava/util/Set;",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookup",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookupExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Object;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Throwable;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 1
+            },
+            {
+              "name": "futureOrThrow",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 2
+            },
+            {
+              "name": "lambda$completeLookup$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Integer;)V",
+              "access_flags": 4098
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture.class",
+          "bytes": 7157,
+          "sha256": "ff1cdc8169d0e0f2cd313865510a0ec1d1d5653130b64288ca239255d788139f"
+        },
+        "BrokerKey": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "brokerId",
+              "descriptor": "Ljava/util/OptionalInt;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/OptionalInt;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey.class",
+          "bytes": 1714,
+          "sha256": "cb3b845a5c117435486d2e96cd14599360796d44bb28291478d59352437e86f9"
+        },
+        "ListTransactionsHandler": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            },
+            {
+              "name": "options",
+              "descriptor": "Lorg/apache/kafka/clients/admin/ListTransactionsOptions;",
+              "access_flags": 18
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/ListTransactionsOptions;Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "newFuture",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture;",
+              "access_flags": 9
+            },
+            {
+              "name": "apiName",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/ListTransactionsRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Lorg/apache/kafka/common/Node;Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "requireSingleton",
+              "descriptor": "(Ljava/util/Set;I)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 2
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/ListTransactionsResponseData$TransactionState;)Lorg/apache/kafka/clients/admin/TransactionListing;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/ListTransactionsHandler.class",
+          "bytes": 10974,
+          "sha256": "d59c02811c76609d14a4edcda10df47134af8c52b7a13a89f9765b7b6e6dbb5e"
+        },
+        "LookupResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            },
+            {
+              "name": "mappedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/List;Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "mapped",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Integer;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult.class",
+          "bytes": 2963,
+          "sha256": "92c780b2a757325f5f7a586022a133cc4b9b47b0d6f4fcf67f59cca5c6fb9de1"
+        },
+        "ApiResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "unmappedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "unmapped",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult.class",
+          "bytes": 3036,
+          "sha256": "ff180050b57934ea6082e18312bb5bf5a95447cd365d590a741c6e1e363631e6"
+        },
+        "TransactionState": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ONGOING",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "EMPTY",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_EPOCH_FENCE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "UNKNOWN",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "NAME_TO_ENUM",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 26
+            },
+            {
+              "name": "name",
+              "descriptor": "Ljava/lang/String;",
+              "access_flags": 18
+            },
+            {
+              "name": "$VALUES",
+              "descriptor": "[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4122
+            }
+          ],
+          "methods": [
+            {
+              "name": "values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "valueOf",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/lang/String;ILjava/lang/String;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "parse",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "lambda$static$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/TransactionState;)Ljava/lang/String;",
+              "access_flags": 4106
+            },
+            {
+              "name": "$values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/TransactionState.class",
+          "bytes": 3413,
+          "sha256": "d46049e7725a27f13b92cd986c6fb7784461d3b471fcd63d280fadfbcf4cfb83"
+        },
+        "MetadataRequestData": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "topics",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 0
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "_unknownTaggedFields",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 2
+            },
+            {
+              "name": "SCHEMA_0",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_1",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_2",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_3",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_4",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_5",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_6",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_7",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_8",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_9",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_10",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_11",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_12",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_13",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMAS",
+              "descriptor": "[Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOWEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            },
+            {
+              "name": "HIGHEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "apiKey",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "lowestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "highestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "read",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 17
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "addSize",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "topics",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "unknownTaggedFields",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "setTopics",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setAllowAutoTopicCreation",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeClusterAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeTopicAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Message;",
+              "access_flags": 4161
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/message/MetadataRequestData.class",
+          "bytes": 13228,
+          "sha256": "51e47bc1fbd9f3faff8b457445c3361e890bba170e50c2eb29e628dedb5de664"
+        }
+      },
+      "jar_after": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "bytes": 9769826,
+        "full_mode": 384,
+        "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+      }
+    },
+    "4.2.1": {
+      "source_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jar_before": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "bytes": 10119977,
+        "full_mode": 384,
+        "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+      },
+      "classes": {
+        "MessageUtil": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "UNSIGNED_INT_MAX",
+              "descriptor": "J",
+              "access_flags": 25
+            },
+            {
+              "name": "UNSIGNED_SHORT_MAX",
+              "descriptor": "I",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "byteBufferToArray",
+              "descriptor": "(Ljava/nio/ByteBuffer;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "deepToString",
+              "descriptor": "(Ljava/util/Iterator;)Ljava/lang/String;",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToByte",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToLong",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToBinary",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToDouble",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D",
+              "access_flags": 9
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "([B)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "compareRawTaggedFields",
+              "descriptor": "(Ljava/util/List;Ljava/util/List;)Z",
+              "access_flags": 9
+            },
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedByteBuffer",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedBytes",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedByteBuffer",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedBytes",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "bytes": 9509,
+          "sha256": "96f395d1c07a055ed12bb0d703bd0d19a54fdcf8a0d3dbd14b7f7808587541bd"
+        },
+        "ByteBufferAccessor": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "buf",
+              "descriptor": "Ljava/nio/ByteBuffer;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readByte",
+              "descriptor": "()B",
+              "access_flags": 1
+            },
+            {
+              "name": "readShort",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "readInt",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readLong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "readDouble",
+              "descriptor": "()D",
+              "access_flags": 1
+            },
+            {
+              "name": "readArray",
+              "descriptor": "(I)[B",
+              "access_flags": 1
+            },
+            {
+              "name": "readUnsignedVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readByteBuffer",
+              "descriptor": "(I)Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByte",
+              "descriptor": "(B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeShort",
+              "descriptor": "(S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeInt",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeLong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeDouble",
+              "descriptor": "(D)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteArray",
+              "descriptor": "([B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeUnsignedVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteBuffer",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarlong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarlong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "remaining",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "slice",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Readable;",
+              "access_flags": 1
+            },
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "bytes": 4307,
+          "sha256": "3e0cc852eb4ce1009fd3dc90014bb8a732669f957ec9933a19eb51c65eab62fd"
+        },
+        "ListTransactionsResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/KafkaFuture;)V",
+              "access_flags": 0
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "byBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "allByBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "lambda$allByBrokerId$0",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$1",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Set;Ljava/lang/Integer;Lorg/apache/kafka/common/internals/KafkaFutureImpl;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$2",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Integer;Ljava/util/Set;Ljava/util/Collection;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$byBrokerId$0",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$all$0",
+              "descriptor": "(Ljava/util/Map;)Ljava/util/Collection;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/ListTransactionsResult.class",
+          "bytes": 7424,
+          "sha256": "2b2d991b9774839f35d01016d705bd07e73f8e58d710ef3e23a44617eb029f0c"
+        },
+        "AllBrokersStrategy": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ANY_BROKER",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOOKUP_KEYS",
+              "descriptor": "Ljava/util/Set;",
+              "access_flags": 25
+            },
+            {
+              "name": "SINGLE_REQUEST_SCOPE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 26
+            },
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/MetadataRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "validateLookupKeys",
+              "descriptor": "(Ljava/util/Set;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/MetadataResponseData$MetadataResponseBroker;)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy.class",
+          "bytes": 7866,
+          "sha256": "81034cd8cc737241da6b850a76124e466db49bdcc9317f4a0b2029bed38c6f3d"
+        },
+        "AllBrokersFuture": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 18
+            },
+            {
+              "name": "brokerFutures",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupKeys",
+              "descriptor": "()Ljava/util/Set;",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookup",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookupExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Object;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Throwable;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 1
+            },
+            {
+              "name": "futureOrThrow",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 2
+            },
+            {
+              "name": "lambda$completeLookup$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Integer;)V",
+              "access_flags": 4098
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture.class",
+          "bytes": 7157,
+          "sha256": "ff1cdc8169d0e0f2cd313865510a0ec1d1d5653130b64288ca239255d788139f"
+        },
+        "BrokerKey": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "brokerId",
+              "descriptor": "Ljava/util/OptionalInt;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/OptionalInt;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey.class",
+          "bytes": 1714,
+          "sha256": "cb3b845a5c117435486d2e96cd14599360796d44bb28291478d59352437e86f9"
+        },
+        "ListTransactionsHandler": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            },
+            {
+              "name": "options",
+              "descriptor": "Lorg/apache/kafka/clients/admin/ListTransactionsOptions;",
+              "access_flags": 18
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/ListTransactionsOptions;Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "newFuture",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture;",
+              "access_flags": 9
+            },
+            {
+              "name": "apiName",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/ListTransactionsRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Lorg/apache/kafka/common/Node;Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "requireSingleton",
+              "descriptor": "(Ljava/util/Set;I)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 2
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/ListTransactionsResponseData$TransactionState;)Lorg/apache/kafka/clients/admin/TransactionListing;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/ListTransactionsHandler.class",
+          "bytes": 10974,
+          "sha256": "d59c02811c76609d14a4edcda10df47134af8c52b7a13a89f9765b7b6e6dbb5e"
+        },
+        "LookupResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            },
+            {
+              "name": "mappedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/List;Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "mapped",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Integer;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult.class",
+          "bytes": 2963,
+          "sha256": "92c780b2a757325f5f7a586022a133cc4b9b47b0d6f4fcf67f59cca5c6fb9de1"
+        },
+        "ApiResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "unmappedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "unmapped",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult.class",
+          "bytes": 3036,
+          "sha256": "ff180050b57934ea6082e18312bb5bf5a95447cd365d590a741c6e1e363631e6"
+        },
+        "TransactionState": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ONGOING",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "EMPTY",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_EPOCH_FENCE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "UNKNOWN",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "NAME_TO_ENUM",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 26
+            },
+            {
+              "name": "name",
+              "descriptor": "Ljava/lang/String;",
+              "access_flags": 18
+            },
+            {
+              "name": "$VALUES",
+              "descriptor": "[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4122
+            }
+          ],
+          "methods": [
+            {
+              "name": "values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "valueOf",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/lang/String;ILjava/lang/String;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "parse",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "$values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$static$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/TransactionState;)Ljava/lang/String;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/TransactionState.class",
+          "bytes": 3413,
+          "sha256": "217227ae51301899df5a989a6bcf2c53b68329c5e16b1f6346efebe84acadfdf"
+        },
+        "MetadataRequestData": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "topics",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 0
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "_unknownTaggedFields",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 2
+            },
+            {
+              "name": "SCHEMA_0",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_1",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_2",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_3",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_4",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_5",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_6",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_7",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_8",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_9",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_10",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_11",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_12",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_13",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMAS",
+              "descriptor": "[Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOWEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            },
+            {
+              "name": "HIGHEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "apiKey",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "lowestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "highestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "read",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 17
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "addSize",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "topics",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "unknownTaggedFields",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "setTopics",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setAllowAutoTopicCreation",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeClusterAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeTopicAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Message;",
+              "access_flags": 4161
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/message/MetadataRequestData.class",
+          "bytes": 13228,
+          "sha256": "51e47bc1fbd9f3faff8b457445c3361e890bba170e50c2eb29e628dedb5de664"
+        }
+      },
+      "jar_after": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "bytes": 10119977,
+        "full_mode": 384,
+        "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+      }
+    },
+    "4.3.1": {
+      "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jar_before": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "bytes": 10204032,
+        "full_mode": 384,
+        "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+      },
+      "classes": {
+        "MessageUtil": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "UNSIGNED_INT_MAX",
+              "descriptor": "J",
+              "access_flags": 25
+            },
+            {
+              "name": "UNSIGNED_SHORT_MAX",
+              "descriptor": "I",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "byteBufferToArray",
+              "descriptor": "(Ljava/nio/ByteBuffer;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "deepToString",
+              "descriptor": "(Ljava/util/Iterator;)Ljava/lang/String;",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToByte",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedShort",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToUnsignedInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToInt",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToLong",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToBinary",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "jsonNodeToDouble",
+              "descriptor": "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D",
+              "access_flags": 9
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "([B)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "compareRawTaggedFields",
+              "descriptor": "(Ljava/util/List;Ljava/util/List;)Z",
+              "access_flags": 9
+            },
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedByteBuffer",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toVersionPrefixedBytes",
+              "descriptor": "(SLorg/apache/kafka/common/protocol/Message;)[B",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedByteBuffer",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;",
+              "access_flags": 9
+            },
+            {
+              "name": "toCoordinatorTypePrefixedBytes",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "bytes": 9549,
+          "sha256": "6cc828d9300f1df0d420a9d75af0db60e46bc8e64846a4c58212d16453109f9f"
+        },
+        "ByteBufferAccessor": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "buf",
+              "descriptor": "Ljava/nio/ByteBuffer;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readByte",
+              "descriptor": "()B",
+              "access_flags": 1
+            },
+            {
+              "name": "readShort",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "readInt",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readLong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "readDouble",
+              "descriptor": "()D",
+              "access_flags": 1
+            },
+            {
+              "name": "readArray",
+              "descriptor": "(I)[B",
+              "access_flags": 1
+            },
+            {
+              "name": "readUnsignedVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readByteBuffer",
+              "descriptor": "(I)Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByte",
+              "descriptor": "(B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeShort",
+              "descriptor": "(S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeInt",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeLong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeDouble",
+              "descriptor": "(D)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteArray",
+              "descriptor": "([B)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeUnsignedVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeByteBuffer",
+              "descriptor": "(Ljava/nio/ByteBuffer;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarint",
+              "descriptor": "(I)V",
+              "access_flags": 1
+            },
+            {
+              "name": "writeVarlong",
+              "descriptor": "(J)V",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarint",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "readVarlong",
+              "descriptor": "()J",
+              "access_flags": 1
+            },
+            {
+              "name": "remaining",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "slice",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Readable;",
+              "access_flags": 1
+            },
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "bytes": 4307,
+          "sha256": "9d50ce9c5bc2e466eb61242560b09783e8fd3e872e6f657c6baf8db8aedc9f06"
+        },
+        "ListTransactionsResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/KafkaFuture;)V",
+              "access_flags": 0
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "byBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "allByBrokerId",
+              "descriptor": "()Lorg/apache/kafka/common/KafkaFuture;",
+              "access_flags": 1
+            },
+            {
+              "name": "lambda$allByBrokerId$0",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$1",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/util/Set;Ljava/lang/Integer;Lorg/apache/kafka/common/internals/KafkaFutureImpl;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$allByBrokerId$2",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Integer;Ljava/util/Set;Ljava/util/Collection;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$byBrokerId$0",
+              "descriptor": "(Lorg/apache/kafka/common/internals/KafkaFutureImpl;Ljava/util/Map;Ljava/lang/Throwable;)V",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$all$0",
+              "descriptor": "(Ljava/util/Map;)Ljava/util/Collection;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/ListTransactionsResult.class",
+          "bytes": 7424,
+          "sha256": "4e64046ac8845991b14b6eecdb8fe668270075525d511ce8e758416e65319165"
+        },
+        "AllBrokersStrategy": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ANY_BROKER",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOOKUP_KEYS",
+              "descriptor": "Ljava/util/Set;",
+              "access_flags": 25
+            },
+            {
+              "name": "SINGLE_REQUEST_SCOPE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 26
+            },
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/MetadataRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "validateLookupKeys",
+              "descriptor": "(Ljava/util/Set;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "buildRequest",
+              "descriptor": "(Ljava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lookupScope",
+              "descriptor": "(Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/ApiRequestScope;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/MetadataResponseData$MetadataResponseBroker;)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy.class",
+          "bytes": 7866,
+          "sha256": "3cd19f476cb247e7ecec92062bfdab19482e342e85a7154ff4d1a18018b15318"
+        },
+        "AllBrokersFuture": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "future",
+              "descriptor": "Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 18
+            },
+            {
+              "name": "brokerFutures",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupKeys",
+              "descriptor": "()Ljava/util/Set;",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookup",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeLookupExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "complete",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Object;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completeExceptionally",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Throwable;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "all",
+              "descriptor": "()Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 1
+            },
+            {
+              "name": "futureOrThrow",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;)Lorg/apache/kafka/common/internals/KafkaFutureImpl;",
+              "access_flags": 2
+            },
+            {
+              "name": "lambda$completeLookup$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;Ljava/lang/Integer;)V",
+              "access_flags": 4098
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture.class",
+          "bytes": 7157,
+          "sha256": "2f880bb3b4bc27014493c7ffcd1b8106d832a53f1abe6f39e8873cd9cf9e10bc"
+        },
+        "BrokerKey": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "brokerId",
+              "descriptor": "Ljava/util/OptionalInt;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/OptionalInt;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey.class",
+          "bytes": 1714,
+          "sha256": "bb72d76c6caf2e6dfef655ec84f5fe349f8cd62f498b23ff1f19583f4610b86a"
+        },
+        "ListTransactionsHandler": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "log",
+              "descriptor": "Lorg/slf4j/Logger;",
+              "access_flags": 18
+            },
+            {
+              "name": "options",
+              "descriptor": "Lorg/apache/kafka/clients/admin/ListTransactionsOptions;",
+              "access_flags": 18
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy;",
+              "access_flags": 18
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/ListTransactionsOptions;Lorg/apache/kafka/common/utils/LogContext;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "newFuture",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$AllBrokersFuture;",
+              "access_flags": 9
+            },
+            {
+              "name": "apiName",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "lookupStrategy",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy;",
+              "access_flags": 1
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/ListTransactionsRequest$Builder;",
+              "access_flags": 1
+            },
+            {
+              "name": "handleResponse",
+              "descriptor": "(Lorg/apache/kafka/common/Node;Ljava/util/Set;Lorg/apache/kafka/common/requests/AbstractResponse;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 1
+            },
+            {
+              "name": "requireSingleton",
+              "descriptor": "(Ljava/util/Set;I)Lorg/apache/kafka/clients/admin/internals/AllBrokersStrategy$BrokerKey;",
+              "access_flags": 2
+            },
+            {
+              "name": "buildBatchedRequest",
+              "descriptor": "(ILjava/util/Set;)Lorg/apache/kafka/common/requests/AbstractRequest$Builder;",
+              "access_flags": 4161
+            },
+            {
+              "name": "lambda$handleResponse$0",
+              "descriptor": "(Lorg/apache/kafka/common/message/ListTransactionsResponseData$TransactionState;)Lorg/apache/kafka/clients/admin/TransactionListing;",
+              "access_flags": 4106
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/ListTransactionsHandler.class",
+          "bytes": 10973,
+          "sha256": "ac74ff88c401ac48220bfaafcd4e2508cdd53467a90cfb9a572e874ebd3ce48e"
+        },
+        "LookupResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            },
+            {
+              "name": "mappedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/List;Ljava/util/Map;Ljava/util/Map;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            },
+            {
+              "name": "mapped",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Integer;)Lorg/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult;",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiLookupStrategy$LookupResult.class",
+          "bytes": 2963,
+          "sha256": "d5270f173aa56e5eabcfd2d92ca5790b7d1c90f93c2e42778ca38909f37d4411"
+        },
+        "ApiResult": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "completedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "failedKeys",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 17
+            },
+            {
+              "name": "unmappedKeys",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 17
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/util/Map;Ljava/util/Map;Ljava/util/List;)V",
+              "access_flags": 1
+            },
+            {
+              "name": "completed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Object;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "failed",
+              "descriptor": "(Ljava/lang/Object;Ljava/lang/Throwable;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "unmapped",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            },
+            {
+              "name": "empty",
+              "descriptor": "()Lorg/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult;",
+              "access_flags": 9
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/internals/AdminApiHandler$ApiResult.class",
+          "bytes": 3036,
+          "sha256": "d43c7049c1007917ee1d4a8ac55400a182e68ea137f59906d63e539487d78d63"
+        },
+        "TransactionState": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "ONGOING",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_ABORT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "COMPLETE_COMMIT",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "EMPTY",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "PREPARE_EPOCH_FENCE",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "UNKNOWN",
+              "descriptor": "Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 16409
+            },
+            {
+              "name": "NAME_TO_ENUM",
+              "descriptor": "Ljava/util/Map;",
+              "access_flags": 26
+            },
+            {
+              "name": "name",
+              "descriptor": "Ljava/lang/String;",
+              "access_flags": 18
+            },
+            {
+              "name": "$VALUES",
+              "descriptor": "[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4122
+            }
+          ],
+          "methods": [
+            {
+              "name": "values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "valueOf",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "<init>",
+              "descriptor": "(Ljava/lang/String;ILjava/lang/String;)V",
+              "access_flags": 2
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "parse",
+              "descriptor": "(Ljava/lang/String;)Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 9
+            },
+            {
+              "name": "$values",
+              "descriptor": "()[Lorg/apache/kafka/clients/admin/TransactionState;",
+              "access_flags": 4106
+            },
+            {
+              "name": "lambda$static$0",
+              "descriptor": "(Lorg/apache/kafka/clients/admin/TransactionState;)Ljava/lang/String;",
+              "access_flags": 4106
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/clients/admin/TransactionState.class",
+          "bytes": 3413,
+          "sha256": "c1fff40e594f255ce5d75668619e709b5c6a155e62fe9cd0deddffeb7a548ee0"
+        },
+        "MetadataRequestData": {
+          "classfile_version": [
+            55,
+            0
+          ],
+          "fields": [
+            {
+              "name": "topics",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 0
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "Z",
+              "access_flags": 0
+            },
+            {
+              "name": "_unknownTaggedFields",
+              "descriptor": "Ljava/util/List;",
+              "access_flags": 2
+            },
+            {
+              "name": "SCHEMA_0",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_1",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_2",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_3",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_4",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_5",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_6",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_7",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_8",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_9",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_10",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_11",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_12",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMA_13",
+              "descriptor": "Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "SCHEMAS",
+              "descriptor": "[Lorg/apache/kafka/common/protocol/types/Schema;",
+              "access_flags": 25
+            },
+            {
+              "name": "LOWEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            },
+            {
+              "name": "HIGHEST_SUPPORTED_VERSION",
+              "descriptor": "S",
+              "access_flags": 25
+            }
+          ],
+          "methods": [
+            {
+              "name": "<init>",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "<init>",
+              "descriptor": "()V",
+              "access_flags": 1
+            },
+            {
+              "name": "apiKey",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "lowestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "highestSupportedVersion",
+              "descriptor": "()S",
+              "access_flags": 1
+            },
+            {
+              "name": "read",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Readable;S)V",
+              "access_flags": 17
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "addSize",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1
+            },
+            {
+              "name": "equals",
+              "descriptor": "(Ljava/lang/Object;)Z",
+              "access_flags": 1
+            },
+            {
+              "name": "hashCode",
+              "descriptor": "()I",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "toString",
+              "descriptor": "()Ljava/lang/String;",
+              "access_flags": 1
+            },
+            {
+              "name": "topics",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "allowAutoTopicCreation",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeClusterAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "includeTopicAuthorizedOperations",
+              "descriptor": "()Z",
+              "access_flags": 1
+            },
+            {
+              "name": "unknownTaggedFields",
+              "descriptor": "()Ljava/util/List;",
+              "access_flags": 1
+            },
+            {
+              "name": "setTopics",
+              "descriptor": "(Ljava/util/List;)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setAllowAutoTopicCreation",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeClusterAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "setIncludeTopicAuthorizedOperations",
+              "descriptor": "(Z)Lorg/apache/kafka/common/message/MetadataRequestData;",
+              "access_flags": 1
+            },
+            {
+              "name": "duplicate",
+              "descriptor": "()Lorg/apache/kafka/common/protocol/Message;",
+              "access_flags": 4161
+            },
+            {
+              "name": "<clinit>",
+              "descriptor": "()V",
+              "access_flags": 8
+            }
+          ],
+          "jar_member": "org/apache/kafka/common/message/MetadataRequestData.class",
+          "bytes": 13206,
+          "sha256": "8c8e8ec95143e124d1008703f4de27d3aa0ca2414cf558c6a2cd1c12aee4b26b"
+        }
+      },
+      "jar_after": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "bytes": 10204032,
+        "full_mode": 384,
+        "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+      }
+    }
+  }
+}

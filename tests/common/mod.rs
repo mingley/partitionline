@@ -4767,7 +4767,7 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 );
                 st.last_metadata_include_topic_authorized = Some(include_topic);
                 let (host, port) = broker_host_port(&st, node_id);
-                let md = if id_based > 0 {
+                let mut md = if id_based > 0 {
                     metadata_for_ids(
                         &st,
                         &host,
@@ -4778,6 +4778,10 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 } else {
                     metadata_for(&st, &host, port, include_topic)
                 };
+                // Metadata v1+ distinguishes an empty selection from all topics.
+                if header.api_version >= 1 && topics.as_ref().is_some_and(Vec::is_empty) {
+                    md.topics.clear();
+                }
                 if header.api_version >= 10 {
                     for topic in &md.topics {
                         if let Some(name) = &topic.name {
@@ -6031,39 +6035,27 @@ async fn handle_conn<S: AsyncRead + AsyncWrite + Unpin>(
                 let mut st = state.lock();
                 st.last_list_transactions_version = Some(version);
                 st.last_list_transactions_duration = Some(duration_ms);
-                if st.txn_coord_node != node_id {
-                    st.list_transactions_not_coordinator =
-                        st.list_transactions_not_coordinator.saturating_add(1);
-                    // 16 only. Do not disclose fixture txn ids on the wrong node.
-                    encode_list_transactions_response(
-                        &mut body,
-                        version,
-                        &ListTransactionsResponse::new(
-                            error::NOT_COORDINATOR,
-                            Vec::new(),
-                            Vec::new(),
-                        ),
-                    )
-                    .unwrap();
-                } else {
+                // Each broker answers this all-brokers query. Only the current
+                // owner has these fixtures; other brokers succeed with no rows.
+                let transaction_states: Vec<TransactionListing> = if st.txn_coord_node == node_id {
                     st.last_list_transactions_node = Some(node_id);
-                    // Fixture transactional ids only.
-                    let transaction_states: Vec<TransactionListing> = st
-                        .txn_fixtures
+                    st.txn_fixtures
                         .values()
                         .map(|s| TransactionListing {
                             transactional_id: s.transactional_id.clone(),
                             producer_id: s.producer_id,
                             transaction_state: s.transaction_state.clone(),
                         })
-                        .collect();
-                    encode_list_transactions_response(
-                        &mut body,
-                        version,
-                        &ListTransactionsResponse::new(0, Vec::new(), transaction_states),
-                    )
-                    .unwrap();
-                }
+                        .collect()
+                } else {
+                    Vec::new()
+                };
+                encode_list_transactions_response(
+                    &mut body,
+                    version,
+                    &ListTransactionsResponse::new(0, Vec::new(), transaction_states),
+                )
+                .unwrap();
             }
             DESCRIBE_ACLS => {
                 let version = header.api_version;

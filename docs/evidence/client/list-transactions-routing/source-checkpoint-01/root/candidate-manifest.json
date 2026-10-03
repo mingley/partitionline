@@ -1,0 +1,96 @@
+{
+  "scope": "Root narrow source integration/pre-format preservation/standalone stable+MSRV formatting only, no Cargo/Rust typing/SDK/listener/runtime qualification.",
+  "task": "KL05-38",
+  "source_manifest_sha256": "8bc4505a7c444381497c4d613dcfb2565e56c9ad4182cbc9d7fb75fe73c63228",
+  "candidate_admin_after_format": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8",
+  "formatter_invocations": 2,
+  "actual_cargo_commands": 0,
+  "actual_sdk_commands": 0,
+  "held_files_edited": false,
+  "changes": [
+    "All-broker membership snapshot, per-connection API66 negotiation and complete versus origin-preserving partial results.",
+    "One total deadline; finite retries/refreshes; bounded borrowed preflight before allocating decoders.",
+    "Metadata v1-3 legacy allow_auto_create=true for an empty topic selection.",
+    "Correct shared mock API66 nonowner empty success and Metadata v1+ empty topic selection; preserve historical source copies.",
+    "Reexport partial-result type and replace coordinator-only integration expectation."
+  ],
+  "files": [
+    {
+      "repository_path": "src/admin.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/src/admin.rs",
+      "bytes": 590487,
+      "full_mode": 384,
+      "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8"
+    },
+    {
+      "repository_path": "src/lib.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/src/lib.rs",
+      "bytes": 211672,
+      "full_mode": 384,
+      "sha256": "95e15136b6e6bc0b745f0e59da56e495e3c7c3555952a97c43041ebff228c788"
+    },
+    {
+      "repository_path": "tests/common/mod.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/common/mod.rs",
+      "bytes": 380411,
+      "full_mode": 384,
+      "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "bytes": 20465,
+      "full_mode": 384,
+      "sha256": "632cf34ce04e79c88432a0bc46df368be711f35949287a0e007057c80cf88dda"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/README.md",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 5904,
+      "full_mode": 384,
+      "sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "bytes": 2352,
+      "full_mode": 384,
+      "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "bytes": 462,
+      "full_mode": 384,
+      "sha256": "47cb0c33afd94cc231011f768dda6de978572a1e5e5c8212df837e2f1c4c130f"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "bytes": 8618,
+      "full_mode": 384,
+      "sha256": "7869c46f09ebd260fae37faefcde582988c1904b89a0dfeee0d1faa6468b0793"
+    },
+    {
+      "repository_path": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 28906,
+      "full_mode": 384,
+      "sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d"
+    },
+    {
+      "repository_path": "tests/full_surface.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/full_surface.rs",
+      "bytes": 543964,
+      "full_mode": 384,
+      "sha256": "58caf24ded7c0fe58ac58c68b04b38a05bcb22a45387cd15a5d3a8d8d069fa62"
+    },
+    {
+      "repository_path": "tests/list_transactions_routing.rs",
+      "source": "/workspace/work/integration/list-transactions-install-01/candidate/tests/list_transactions_routing.rs",
+      "bytes": 18320,
+      "full_mode": 384,
+      "sha256": "815ba92732f5993794f1e9895c9cf9bfc77d28d431c8c1d28713f2ca90d4a5d2"
+    }
+  ]
+}

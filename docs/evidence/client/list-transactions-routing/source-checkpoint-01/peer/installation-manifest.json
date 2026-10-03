@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "task": "KL05-38",
+  "preparation_state": "source_only_frozen_for_coordinator_review",
+  "actual_runs": {
+    "Cargo": 0,
+    "JVM": 0,
+    "SDK_semantic_probe": 0,
+    "C_or_Java_compiler": 0,
+    "Rust_compiler": 0,
+    "Rustfmt": 0,
+    "socket_listeners": 0
+  },
+  "target_implementation_not_edited": {
+    "path": "/workspace/work/list-transactions-routing-01/admin.candidate.rs",
+    "bytes": 590487,
+    "full_mode": 384,
+    "sha256": "e78e63d5fac51b74a5ce9784d671d1aa4fb23ead6dc3e27cf6f7039dcc274ab8"
+  },
+  "old_source_reference": {
+    "path": "/workspace/work/list-transactions-routing-01/admin.before.rs",
+    "bytes": 576058,
+    "full_mode": 384,
+    "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc"
+  },
+  "installation_map": [
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/list_transactions_routing.rs",
+      "bytes": 15198,
+      "full_mode": 384,
+      "sha256": "70cf4456cfcf79f68443f81170d6c8106d4a083ef650be23be4bdfc3fb8b841d",
+      "relative_work_path": "tests/list_transactions_routing.rs",
+      "coordinator_install_target": "tests/list_transactions_routing.rs"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 26154,
+      "full_mode": 384,
+      "sha256": "c5310426fa588fe8465b86907b8aa289cd55d2b085e75b8a2edd93e85c693c86",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/socket_peer.rs"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "bytes": 2047,
+      "full_mode": 384,
+      "sha256": "ca3edd9dba497ed1800598a7cd6d822de5e272808305cbe3f7d6e19e7c4937fb",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "bytes": 454,
+      "full_mode": 384,
+      "sha256": "524bb995e67ef7a1172d2b29daf4c1b6de0c1846feabe0348e92f300c7c15f7a",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/before_existing_api.rs",
+      "old_only_overlay_target": "tests/list_transactions_routing.rs"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "bytes": 20465,
+      "full_mode": 384,
+      "sha256": "632cf34ce04e79c88432a0bc46df368be711f35949287a0e007057c80cf88dda",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "bytes": 8618,
+      "full_mode": 384,
+      "sha256": "7869c46f09ebd260fae37faefcde582988c1904b89a0dfeee0d1faa6468b0793",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/prepare-and-run.py",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/prepare-and-run.py"
+    },
+    {
+      "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 5904,
+      "full_mode": 384,
+      "sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997",
+      "relative_work_path": "tests/fixtures/list-transactions-routing/README.md",
+      "coordinator_install_target": "tests/fixtures/list-transactions-routing/README.md"
+    }
+  ],
+  "evidence_only_byte_table_receipt": {
+    "path": "/workspace/work/list-transactions-routing-01/tests/fixtures/list-transactions-routing/source-inspection.json",
+    "bytes": 108911,
+    "full_mode": 384,
+    "sha256": "0a8ba2726f0d5efbc78fb52c233f8e50f6fad279cfe3927e931e79f3b6be6af4"
+  },
+  "source_only_checks": [
+    {
+      "name": "Python execution-support AST accepted",
+      "scope": "syntax only"
+    },
+    {
+      "name": "17 unique declared Tokio tests",
+      "scope": "source names only, not executions"
+    },
+    {
+      "name": "Old/new target share unchanged existing-public-API assertion",
+      "scope": "source link only; no failing-first runtime yet"
+    },
+    {
+      "name": "Official serializer/component/public-Admin entry points present",
+      "scope": "source presence plus pinned classfile byte tables, not successful Java compilation"
+    },
+    {
+      "name": "Independent manual peer encoder and joined-shutdown/export source reviewed",
+      "scope": "source-only design; no actual tasks/listeners started"
+    }
+  ],
+  "declared_test_names": [
+    "partial_results_preserve_broker_origin_and_complete_results_reject_terminal_errors",
+    "mixed_broker_versions_preserve_unfiltered_v0_and_filtered_v1",
+    "duration_on_v0_and_absent_api_fail_complete_but_remain_typed_in_partial",
+    "load_retry_is_per_broker_and_never_replays_successful_broker",
+    "persistent_loading_has_at_most_eight_actual_attempts",
+    "disconnect_refreshes_only_affected_address_with_at_most_three_refreshes",
+    "partial_deadline_keeps_success_and_times_out_stalled_broker",
+    "delayed_metadata_uses_total_budget_and_sends_no_post_deadline_listing",
+    "listing_rounds_cannot_reset_budget_or_send_to_next_broker_after_expiry",
+    "zero_deadline_and_invalid_filters_do_not_send_discovery_or_listings",
+    "count_trailing_and_byte_limits_cannot_become_complete_success",
+    "required_metadata_fields_topics_counts_duplicates_and_trailing_fail_closed",
+    "cumulative_listing_limit_covers_successful_brokers_together",
+    "cumulative_response_bytes_include_every_broker_not_just_each_frame",
+    "excessive_broker_count_fails_before_any_broker_listing",
+    "dropping_public_future_cancels_active_wait_then_all_peer_tasks_join",
+    "all_queries_two_distinct_brokers_and_preserves_conflicting_duplicates"
+  ],
+  "declared_socket_cases_if_all_tests_run": 41,
+  "limits": {
+    "listeners": 3,
+    "distinct_broker_ids": 2,
+    "replacement_endpoints": 1,
+    "accepted_connections_per_listener": 16,
+    "frames_per_connection": 32,
+    "captured_rows_per_case": 192,
+    "request_frame_bytes": 262144,
+    "captured_request_frame_bytes_per_case": 2097152,
+    "additional_copied_request_body_bytes_per_case": 2097152,
+    "response_body_bytes": 17825792,
+    "captured_response_frame_bytes_per_case": 25165824,
+    "queued_replies_per_broker": 16,
+    "queued_response_body_bytes_total": 25165824,
+    "client_operation_close_and_artifact_timeout_ms": 2000,
+    "join_timeout_per_listener_ms": 2000,
+    "join_timeout_total_ms": 6000,
+    "artifact_manifest_bytes": 65536,
+    "artifact_ownership_summary_bytes": 65536,
+    "SDK_releases": 3,
+    "future_vectors_per_actual_generator_run": 16,
+    "future_replays_per_release": 2,
+    "JVM_heap_bytes": 134217728,
+    "future_subprocess_seconds": 45,
+    "future_subprocess_log_bytes_hard_cap": 524288,
+    "recommended_test_threads": 1,
+    "recommended_raw_fixture_disk_forecast_bytes": 134217728
+  },
+  "future_validation_plan": [
+    {
+      "step": "Copy old-only shim and identical shared assertion/helper to isolated old source; set fresh proof directory; run only common four-row regression.",
+      "expected_not_yet_observed": "Old implementation succeeds with broker1 rows only; unchanged four-row assertion fails after joined frame retention."
+    },
+    {
+      "step": "Pin root final corrected source plus these frozen sources. Format/compile only after coordinator release; run all seventeen tests serially on stable and Rust1.85.",
+      "expected_not_yet_observed": "Both brokers, exact origin/filter/version/deadline/retry/resource behavior; complete-only methods never return partial success."
+    },
+    {
+      "step": "Authorize prepare-and-run.py into fresh WORK output; strict javac against each exact SDK and replay official serializer/component runs twice.",
+      "expected_not_yet_observed": "Three genuine SDK compiles and six component/generator runs, sixteen full frame pairs each, byte-identical fixtures."
+    },
+    {
+      "step": "Separately supervise SDK-capable public Admin socket cases, including authentication reconnect history, with actual frame/owner/source receipts.",
+      "expected_not_yet_observed": "Genuine Java byBrokerId/all/allByBrokerId and required authentication/reconnect behavior, no adapted-constructor-only qualification."
+    }
+  ],
+  "scope_limits": [
+    "Authored socket response values and hard caps are source fixtures, not Apache broker output or production allocation-peak evidence.",
+    "All source is unformatted/uncompiled/unexecuted; Python AST and read-only classfile inspection do not qualify Rust/Java semantics.",
+    "Metadata1/ApiVersions0 peer is a legacy field regression; genuine Java public network operation needs additional SDK-capable header/Metadata support.",
+    "Authentication reconnect qualification is not implemented or executed by this plaintext source packet.",
+    "No noncanonical or duplicate tagged-field rejection equivalence is claimed.",
+    "Root candidate/root taskbook/shared gates/main source were not edited by this agent."
+  ]
+}

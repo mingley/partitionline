@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "scope": "Python source-semantic controls only, independently specified required-field/tag policy; no Rust/Cargo/runtime execution",
+  "candidate_sha256": "c85570c736ad649cef481640264b4ee0b5156f2aca64b27121123f2ceaa0c400",
+  "controls": [
+    {
+      "name": "valid-empty",
+      "body_hex": "000000000000010100",
+      "body_bytes": 9,
+      "sha256": "8e73d3bfd14aae8619c1bf8d22b20e0154348433f862ce1504a44020b3d47c62",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "valid required empty arrays"
+    },
+    {
+      "name": "null-unknown-array",
+      "body_hex": "000000000000000100",
+      "body_bytes": 9,
+      "sha256": "e64cf59bfbcf3c5743ccd9eda3a811a7966689717a8499e5b1ef0cb1f33bf4b6",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "invalid nonnullable UnknownStateFilters"
+    },
+    {
+      "name": "null-listings-array",
+      "body_hex": "000000000000010000",
+      "body_bytes": 9,
+      "sha256": "9d2acc50176c40439f056a30952ca9166bd6c1144bd43e66fc7a12c1029112b7",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "invalid nonnullable TransactionStates"
+    },
+    {
+      "name": "null-unknown-string",
+      "body_hex": "00000000000002000100",
+      "body_bytes": 10,
+      "sha256": "5add43c1df497eae7fa6adfc414be559c9d9651a759d1527bbc9c9ae978a59d6",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "invalid nonnullable unknown-filter element"
+    },
+    {
+      "name": "null-transaction-id",
+      "body_hex": "0000000000000102000000000000000007084f6e676f696e670000",
+      "body_bytes": 27,
+      "sha256": "0ac64f0991a3d5b401a6fddb1690de6a3e325c85b322bdbbf5de119ff17212de",
+      "candidate_model_accepted": true,
+      "count": 1,
+      "reason": "invalid nonnullable TransactionalId"
+    },
+    {
+      "name": "null-transaction-state",
+      "body_hex": "00000000000001020374780000000000000007000000",
+      "body_bytes": 22,
+      "sha256": "3970cbf623b316f458977f8b513bc4e29ced9eac47ebd83ec97fdef08d30af47",
+      "candidate_model_accepted": true,
+      "count": 1,
+      "reason": "invalid nonnullable TransactionState"
+    },
+    {
+      "name": "duplicate-top-tags",
+      "body_hex": "00000000000001010203000300",
+      "body_bytes": 13,
+      "sha256": "a0580c233c217cfefcbc48bf043d05446207d8cf5bb021d71a19056290f6ce43",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "duplicate unknown tags"
+    },
+    {
+      "name": "descending-top-tags",
+      "body_hex": "00000000000001010205000300",
+      "body_bytes": 13,
+      "sha256": "2b38592d2e8c7cf876933bfdfc46dc31b5ba094c7fdb6c7f6a113e040f879550",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "descending unknown tags"
+    },
+    {
+      "name": "duplicate-entry-tags",
+      "body_hex": "00000000000001020374780000000000000007084f6e676f696e67020300030000",
+      "body_bytes": 33,
+      "sha256": "363c1f3dcf36dad79200b7f187a0d876bb3abcd3033fea718a813c6e8bc07f63",
+      "candidate_model_accepted": true,
+      "count": 1,
+      "reason": "duplicate entry unknown tags"
+    },
+    {
+      "name": "valid-distinct-tags",
+      "body_hex": "00000000000001010203000500",
+      "body_bytes": 13,
+      "sha256": "ca2fb20f5bc7979fc43606e3838f8fdd78f384aba480b7aa62c52c83aaed2d85",
+      "candidate_model_accepted": true,
+      "count": 0,
+      "reason": "valid strictly ascending unknown tags"
+    },
+    {
+      "name": "valid-listing",
+      "body_hex": "00000000000001020374780000000000000007084f6e676f696e670000",
+      "body_bytes": 29,
+      "sha256": "adcab65aedb5034da8686d46049251b9ecb0e0d211da9dc07026c374e20e5494",
+      "candidate_model_accepted": true,
+      "count": 1,
+      "reason": "valid listing"
+    },
+    {
+      "name": "trailing-byte",
+      "body_hex": "00000000000001010078",
+      "body_bytes": 10,
+      "sha256": "0433b6eee7d26317b44e6466817fd0d742f97051138c5682fc279b2c9e8b7150",
+      "candidate_model_accepted": false,
+      "count": null,
+      "reason": "trailing byte refusal"
+    },
+    {
+      "name": "unknown-count-cap",
+      "body_hex": null,
+      "body_bytes": 8203,
+      "sha256": "542a5121b00d0b6ccd4e1fef5bd2f269b774507b2e99ea83ca424da6b2886c50",
+      "candidate_model_accepted": false,
+      "count": null,
+      "reason": "unknown-filter cap before decode"
+    },
+    {
+      "name": "remaining-listings-cap",
+      "body_hex": "00000000000001020374780000000000000007084f6e676f696e670000",
+      "body_bytes": 29,
+      "sha256": "adcab65aedb5034da8686d46049251b9ecb0e0d211da9dc07026c374e20e5494",
+      "candidate_model_accepted": false,
+      "count": null,
+      "reason": "aggregate listing count at zero remainder"
+    }
+  ],
+  "metadata_preallocation_counterexample": {
+    "version": 9,
+    "body_bytes": 500025,
+    "body_sha256": "5c4fa389aa3216ac0592016ba8b61921e7a364f44d941437ea9bea7ada082069",
+    "broker_count": 1,
+    "unexpected_topic_count": 500000,
+    "ordinary_decoder_reaches_topic_Vec_allocation_before_first_topic_decode": true,
+    "model_allocated_topics": 0
+  },
+  "actual_Rust_runs": 0,
+  "actual_operational_mutations": 0
+}

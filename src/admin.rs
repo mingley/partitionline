@@ -2854,7 +2854,6 @@ pub struct Admin {
     alter_client_quotas_version: Option<i16>,
     allocate_producer_ids_version: Option<i16>,
     describe_transactions_version: Option<i16>,
-    list_transactions_version: Option<i16>,
     consumer_group_describe_version: Option<i16>,
     describe_groups_version: Option<i16>,
     list_groups_version: Option<i16>,
@@ -2883,6 +2882,161 @@ pub struct Admin {
     txn_coord: Option<(String, i32)>,
     txn_coords: HashMap<String, i32>,
     stats: Arc<crate::metrics::AdminTracker>,
+}
+
+/// The result of querying one broker for transactions.
+///
+/// A successful empty listing is a complete broker response. An error retains
+/// that broker's origin; it must not be flattened into a complete cluster result.
+#[derive(Debug)]
+pub struct BrokerTransactionListings {
+    /// Broker ID from the initial Metadata membership snapshot.
+    pub broker_id: i32,
+    /// Listings in the broker's response order, or that broker's failure.
+    pub listings: Result<Vec<TransactionListing>>,
+}
+
+#[derive(Default)]
+struct ListTransactionsBudget {
+    listings: usize,
+    response_bytes: usize,
+    refreshes: usize,
+    exhausted: bool,
+}
+
+fn list_transactions_retryable(error: &Error) -> bool {
+    // This is an all-brokers query. A coordinator load delay retries the same
+    // broker; NOT_COORDINATOR is not a request to look up an empty ID.
+    matches!(error, Error::Io(_) | Error::Timeout)
+        || error.broker_code() == Some(error::COORDINATOR_LOAD_IN_PROGRESS)
+}
+
+fn validate_list_transactions_body(mut bytes: &[u8], remaining_listings: usize) -> Result<()> {
+    use crate::protocol::buf;
+    let _ = buf::get_i32(&mut bytes)?;
+    let _ = buf::get_i16(&mut bytes)?;
+    let unknown = buf::get_array_len(&mut bytes, true)?
+        .ok_or_else(|| Error::protocol("null ListTransactions unknown-filter array"))?;
+    if unknown > 8_192 {
+        return Err(Error::protocol(
+            "ListTransactions unknown-filter count exceeds local limit",
+        ));
+    }
+    for _ in 0..unknown {
+        list_transactions_skip_string(&mut bytes, true, false)?;
+    }
+    let count = buf::get_array_len(&mut bytes, true)?
+        .ok_or_else(|| Error::protocol("null ListTransactions listing array"))?;
+    // Every listing includes two compact strings, an i64 and a tag count.
+    if count > remaining_listings || count > bytes.len() / 11 {
+        return Err(Error::protocol(
+            "ListTransactions listing count exceeds local limit or body",
+        ));
+    }
+    for _ in 0..count {
+        list_transactions_skip_string(&mut bytes, true, false)?;
+        let _ = buf::get_i64(&mut bytes)?;
+        list_transactions_skip_string(&mut bytes, true, false)?;
+        buf::skip_tagged_fields(&mut bytes)?;
+    }
+    buf::skip_tagged_fields(&mut bytes)?;
+    if !bytes.is_empty() {
+        return Err(Error::protocol("trailing ListTransactions response bytes"));
+    }
+    Ok(())
+}
+
+fn list_transactions_skip_string(bytes: &mut &[u8], flexible: bool, nullable: bool) -> Result<()> {
+    let count = if flexible {
+        let encoded = crate::protocol::buf::get_unsigned_varint(bytes)?;
+        if encoded == 0 {
+            if nullable {
+                return Ok(());
+            }
+            return Err(Error::protocol("null required ListTransactions string"));
+        }
+        usize::try_from(encoded - 1)
+            .map_err(|_| Error::protocol("ListTransactions string length overflow"))?
+    } else {
+        let length = crate::protocol::buf::get_i16(bytes)?;
+        if length < 0 {
+            if nullable && length == -1 {
+                return Ok(());
+            }
+            return Err(Error::protocol(
+                "null or invalid ListTransactions Metadata string",
+            ));
+        }
+        usize::try_from(length)
+            .map_err(|_| Error::protocol("ListTransactions Metadata string length overflow"))?
+    };
+    if count > 64 * 1024 || count > bytes.len() {
+        return Err(Error::protocol(
+            "ListTransactions string exceeds local limit or body",
+        ));
+    }
+    let (text, remaining) = bytes.split_at(count);
+    let _ =
+        std::str::from_utf8(text).map_err(|_| Error::protocol("invalid ListTransactions UTF-8"))?;
+    *bytes = remaining;
+    Ok(())
+}
+
+fn validate_list_transactions_metadata(mut bytes: &[u8], version: i16) -> Result<()> {
+    use crate::protocol::buf;
+    let flexible = version >= 9;
+    if version >= 3 {
+        let _ = buf::get_i32(&mut bytes)?;
+    }
+    let brokers = buf::get_array_len(&mut bytes, flexible)?
+        .ok_or_else(|| Error::protocol("null ListTransactions Metadata broker array"))?;
+    if brokers == 0 || brokers > 256 {
+        return Err(Error::protocol(
+            "ListTransactions Metadata broker count outside 1..=256",
+        ));
+    }
+    for _ in 0..brokers {
+        let _ = buf::get_i32(&mut bytes)?;
+        list_transactions_skip_string(&mut bytes, flexible, false)?;
+        let port = buf::get_i32(&mut bytes)?;
+        if !(1..=65_535).contains(&port) {
+            return Err(Error::protocol(
+                "invalid ListTransactions Metadata broker port",
+            ));
+        }
+        if version >= 1 {
+            list_transactions_skip_string(&mut bytes, flexible, true)?;
+        }
+        if flexible {
+            buf::skip_tagged_fields(&mut bytes)?;
+        }
+    }
+    if version >= 2 {
+        list_transactions_skip_string(&mut bytes, flexible, true)?;
+    }
+    if version >= 1 {
+        let _ = buf::get_i32(&mut bytes)?;
+    }
+    // This operation requests an empty topic selection. Reject a nonzero/null
+    // topic count before decode_metadata_response allocates any topic vector.
+    if buf::get_array_len(&mut bytes, flexible)? != Some(0) {
+        return Err(Error::protocol(
+            "unexpected ListTransactions Metadata topics",
+        ));
+    }
+    if (8..=10).contains(&version) {
+        let _ = buf::get_i32(&mut bytes)?;
+    }
+    if version >= 13 {
+        let _ = buf::get_i16(&mut bytes)?;
+    }
+    if flexible {
+        buf::skip_tagged_fields(&mut bytes)?;
+    }
+    if !bytes.is_empty() {
+        return Err(Error::protocol("trailing ListTransactions Metadata bytes"));
+    }
+    Ok(())
 }
 
 pub(crate) async fn fetch_client_instance_id(
@@ -3827,9 +3981,6 @@ impl Admin {
         let describe_transactions_version = versions
             .get(&DESCRIBE_TRANSACTIONS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
-        let list_transactions_version = versions
-            .get(&LIST_TRANSACTIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let consumer_group_describe_version = versions
             .get(&CONSUMER_GROUP_DESCRIBE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
@@ -3913,7 +4064,6 @@ impl Admin {
             alter_client_quotas_version,
             allocate_producer_ids_version,
             describe_transactions_version,
-            list_transactions_version,
             consumer_group_describe_version,
             describe_groups_version,
             list_groups_version,
@@ -6861,13 +7011,11 @@ impl Admin {
             .collect()
     }
 
-    /// List transactional.id state (ListTransactions api 66).
+    /// List transactional.id state from every broker (ListTransactions api 66).
     ///
-    /// Lands on the transaction coordinator (`FindCoordinator`
-    /// `key_type=1`). `COORDINATOR_LOAD_IN_PROGRESS` /
-    /// `COORDINATOR_NOT_AVAILABLE` / `NOT_COORDINATOR` (16) refresh the
-    /// coordinator and retry. This is not `NOT_CONTROLLER` (41). Top-level
-    /// `error_code` (bytes 4–5), not a first-result field.
+    /// Queries every broker from Metadata and negotiates each connection.
+    /// Complete results require every broker to succeed; load delays retry the
+    /// affected broker under one caller deadline.
     /// Duration is unfiltered (`-1`). See
     /// [`Self::list_transactions_with_duration`] for Java
     /// `ListTransactionsOptions.filterOnDuration`. Optional at
@@ -6889,7 +7037,7 @@ impl Admin {
     /// `ListTransactionsOptions.timeoutMs`).
     ///
     /// ListTransactions has no TimeoutMs; `timeout` is the RPC deadline
-    /// and the coordinator retry budget. DurationFilter stays `-1`
+    /// and the total all-broker retry budget. DurationFilter stays `-1`
     /// (unfiltered). See [`Self::list_transactions_with_duration_timeout`]
     /// for `filterOnDuration` plus deadline.
     pub async fn list_transactions_timeout(
@@ -6953,13 +7101,13 @@ impl Admin {
         .await
     }
 
-    /// [`Self::list_transactions_with_duration`] with a one-shot RPC
-    /// deadline (Java `ListTransactionsOptions.filterOnDuration` and
-    /// `timeoutMs`).
+    /// List transactions with complete results from every discovered broker.
     ///
-    /// ListTransactions has no TimeoutMs; `timeout` is the RPC deadline
-    /// and the coordinator retry budget. `duration_ms` is DurationFilter
-    /// (v1), not TimeoutMs.
+    /// Discovery, authentication, negotiation and retries share one absolute
+    /// deadline. Brokers are queried sequentially in ascending ID order; their
+    /// listings are concatenated without deduplicating transactional IDs.
+    /// Use [`Self::list_transactions_by_broker_timeout`] to inspect partial
+    /// successes and the error from each broker.
     pub async fn list_transactions_with_duration_timeout(
         &mut self,
         state_filters: &[&str],
@@ -6967,65 +7115,292 @@ impl Admin {
         duration_ms: i64,
         timeout: Duration,
     ) -> Result<Vec<TransactionListing>> {
+        let results = self
+            .list_transactions_by_broker_timeout(
+                state_filters,
+                producer_id_filters,
+                duration_ms,
+                timeout,
+            )
+            .await?;
+        let mut all = Vec::new();
+        for broker in results {
+            all.extend(broker.listings?);
+        }
+        Ok(all)
+    }
+
+    /// List transactions with broker IDs and individual success/error results.
+    ///
+    /// This queries the broker membership returned by one Metadata discovery,
+    /// including brokers which own no matching transactions. Results retain
+    /// duplicate IDs and contradictory states from different brokers. A
+    /// discovery failure is returned directly; after discovery each broker has
+    /// a result, including brokers not reached before the deadline.
+    ///
+    /// The local limits are 256 brokers, 100,000 listings, 16 MiB of cumulative
+    /// API66 response bodies, eight attempts per broker and three Metadata
+    /// refreshes. Only one broker request is active. Discovery and refresh
+    /// bodies are limited to 1 MiB. The transport's existing 100 MiB frame cap
+    /// applies before this operation can inspect a received body. Filter arrays
+    /// are limited to 8,192 elements each and state-filter text to 256 KiB.
+    /// Exceeding a limit returns an error rather than a partial-only success.
+    ///
+    /// Duration filters require API66 v1 on every broker. This operation speaks
+    /// versions 0 and 1 and negotiates separately on each selected connection.
+    /// All work is awaited by this future; dropping it cancels its active wait.
+    pub async fn list_transactions_by_broker(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
+    ) -> Result<Vec<BrokerTransactionListings>> {
+        let timeout = self.cfg.request_timeout;
+        self.list_transactions_by_broker_timeout(
+            state_filters,
+            producer_id_filters,
+            duration_ms,
+            timeout,
+        )
+        .await
+    }
+
+    /// [`Self::list_transactions_by_broker`] with one total caller deadline.
+    ///
+    /// A timeout preserves completed broker results and records [`Error::Timeout`]
+    /// for each remaining broker. The complete-only Vec-returning methods fail
+    /// when any broker fails. Membership is the initial discovery snapshot;
+    /// bounded refreshes resolve address changes for those broker IDs.
+    pub async fn list_transactions_by_broker_timeout(
+        &mut self,
+        state_filters: &[&str],
+        producer_id_filters: &[i64],
+        duration_ms: i64,
+        timeout: Duration,
+    ) -> Result<Vec<BrokerTransactionListings>> {
+        if timeout.is_zero() {
+            return Err(Error::Timeout);
+        }
+        let deadline = Instant::now()
+            .checked_add(timeout)
+            .ok_or_else(|| Error::protocol("ListTransactions deadline overflow"))?;
+        if state_filters.len() > 8_192 || producer_id_filters.len() > 8_192 {
+            return Err(Error::protocol(
+                "ListTransactions filter count exceeds local limit",
+            ));
+        }
+        let text_bytes = state_filters
+            .iter()
+            .try_fold(0usize, |total, value| total.checked_add(value.len()));
+        if text_bytes.is_none_or(|bytes| bytes > 256 * 1024) {
+            return Err(Error::protocol(
+                "ListTransactions filter text exceeds local limit",
+            ));
+        }
         let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();
-        let pids = producer_id_filters.to_vec();
-        // ListTransactions has no transactional.id; FindCoordinator still
-        // needs a key. Empty string is the no-id lookup used here.
-        const COORD_KEY: &str = "";
-        let version = self
-            .list_transactions_version
-            .ok_or_else(|| Error::Unsupported("broker does not support ListTransactions".into()))?;
-        let deadline = Instant::now() + timeout;
+        let nodes = tokio::time::timeout_at(
+            tokio::time::Instant::from_std(deadline),
+            self.list_transactions_broker_ids(deadline),
+        )
+        .await
+        .map_err(|_| Error::Timeout)??;
+        let mut results = Vec::with_capacity(nodes.len());
+        let mut budget = ListTransactionsBudget::default();
+        for node in nodes {
+            let listings = tokio::time::timeout_at(
+                tokio::time::Instant::from_std(deadline),
+                self.list_transactions_on_broker(
+                    node,
+                    &states,
+                    producer_id_filters,
+                    duration_ms,
+                    deadline,
+                    &mut budget,
+                ),
+            )
+            .await
+            .unwrap_or(Err(Error::Timeout));
+            results.push(BrokerTransactionListings {
+                broker_id: node,
+                listings,
+            });
+        }
+        Ok(results)
+    }
+
+    async fn list_transactions_broker_ids(&mut self, deadline: Instant) -> Result<Vec<i32>> {
+        let version = self.metadata_version;
+        let body = self
+            .roundtrip_bootstrap(
+                METADATA,
+                version,
+                |buf| encode_metadata_request_topics(buf, version, Some(&[]), version < 4, false),
+                deadline.saturating_duration_since(Instant::now()),
+            )
+            .await?;
+        if body.len() > 1024 * 1024 {
+            return Err(Error::protocol(
+                "ListTransactions Metadata exceeds 1 MiB limit",
+            ));
+        }
+        // Validate every borrowed field and empty topic selection before the
+        // ordinary decoder allocates any broker, string or topic vector.
+        validate_list_transactions_metadata(&body, version)?;
+        let mut cursor = body.as_ref();
+        let metadata = decode_metadata_response(&mut cursor, version)?;
+        if !cursor.is_empty() || !metadata.topics.is_empty() {
+            return Err(Error::protocol(
+                "unexpected ListTransactions Metadata topic or trailing bytes",
+            ));
+        }
+        metadata.check()?;
+        let mut nodes: Vec<i32> = metadata
+            .brokers
+            .iter()
+            .map(|broker| broker.node_id)
+            .collect();
+        nodes.sort_unstable();
+        if nodes.iter().any(|id| *id < 0) || nodes.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(Error::protocol(
+                "invalid or duplicate ListTransactions broker ID",
+            ));
+        }
+        self.cluster.apply(&metadata, version);
+        Ok(nodes)
+    }
+
+    async fn list_transactions_on_broker(
+        &mut self,
+        node: i32,
+        states: &[String],
+        pids: &[i64],
+        duration_ms: i64,
+        deadline: Instant,
+        budget: &mut ListTransactionsBudget,
+    ) -> Result<Vec<TransactionListing>> {
+        if budget.exhausted {
+            return Err(Error::protocol(
+                "ListTransactions aggregate response limit exhausted",
+            ));
+        }
         let mut attempt = 0u32;
         loop {
-            let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != COORD_KEY);
-            if stale {
-                let node = self.discover_txn_coord(COORD_KEY).await?;
-                self.txn_coord = Some((COORD_KEY.to_string(), node));
+            if Instant::now() >= deadline {
+                return Err(Error::Timeout);
             }
-            let node = self
-                .txn_coord
-                .as_ref()
-                .map(|(_, n)| *n)
-                .ok_or_else(|| Error::protocol("missing transaction coordinator"))?;
-            self.connect_node(node).await?;
-            let body = {
+            let result = async {
+                self.list_transactions_connect(node).await?;
                 let conn = self
                     .conns
                     .get_mut(&node)
-                    .ok_or_else(|| Error::protocol("missing list_transactions conn"))?;
-                conn.roundtrip(
-                    LIST_TRANSACTIONS,
-                    version,
-                    |buf| {
-                        encode_list_transactions_request(buf, version, &states, &pids, duration_ms)
-                    },
-                    timeout,
+                    .ok_or_else(|| Error::protocol("missing ListTransactions broker connection"))?;
+                let capabilities = crate::protocol::api::negotiate_api_versions(
+                    conn,
+                    deadline.saturating_duration_since(Instant::now()),
                 )
-                .await
-            };
-            let body = match body {
-                Ok(b) => b,
-                Err(e) if e.is_retriable() => {
-                    let _ = self.conns.remove(&node);
-                    self.txn_coord = None;
-                    self.wait_retry(&mut attempt, deadline).await?;
-                    continue;
+                .await?;
+                let version = capabilities
+                    .api_keys
+                    .iter()
+                    .find(|v| v.api_key == LIST_TRANSACTIONS)
+                    .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
+                    .ok_or_else(|| {
+                        Error::Unsupported(format!(
+                            "broker {node} does not support ListTransactions v0-1"
+                        ))
+                    })?;
+                crate::protocol::admin::ListTransactionsRequest::build(version, duration_ms)?;
+                let body = conn
+                    .roundtrip(
+                        LIST_TRANSACTIONS,
+                        version,
+                        |buf| {
+                            encode_list_transactions_request(
+                                buf,
+                                version,
+                                states,
+                                pids,
+                                duration_ms,
+                            )
+                        },
+                        deadline.saturating_duration_since(Instant::now()),
+                    )
+                    .await?;
+                budget.response_bytes = budget
+                    .response_bytes
+                    .checked_add(body.len())
+                    .unwrap_or(usize::MAX);
+                if budget.response_bytes > 16 * 1024 * 1024 {
+                    budget.exhausted = true;
+                    return Err(Error::protocol(
+                        "ListTransactions response bytes exceed local limit",
+                    ));
                 }
-                Err(e) => return Err(e),
-            };
-            let resp = decode_list_transactions_response(&mut body.clone(), version)?;
-            if error::coordinator_retriable(resp.error_code) {
-                // 14/15/16: FindCoordinator, then the new txn coordinator.
-                self.txn_coord = None;
-                let _ = self.conns.remove(&node);
-                self.wait_retry(&mut attempt, deadline).await?;
-                continue;
+                validate_list_transactions_body(
+                    &body,
+                    100_000usize.saturating_sub(budget.listings),
+                )?;
+                let mut cursor = body.as_ref();
+                let response = decode_list_transactions_response(&mut cursor, version)?;
+                if !cursor.is_empty() {
+                    return Err(Error::protocol("trailing ListTransactions response bytes"));
+                }
+                if response.error_code != 0 {
+                    return Err(Error::broker(
+                        response.error_code,
+                        format!("ListTransactions broker {node}"),
+                    ));
+                }
+                budget.listings += response.transaction_states.len();
+                Ok(response.transaction_states)
             }
-            if resp.error_code != 0 {
-                return Err(Error::broker(resp.error_code, "ListTransactions"));
+            .await;
+            match result {
+                Err(error) if list_transactions_retryable(&error) && attempt < 7 => {
+                    let _ = self.conns.remove(&node);
+                    if matches!(&error, Error::Io(_)) && budget.refreshes < 3 {
+                        budget.refreshes += 1;
+                        let _ = self.list_transactions_broker_ids(deadline).await?;
+                    }
+                    self.wait_retry(&mut attempt, deadline).await?;
+                }
+                other => return other,
             }
-            return Ok(resp.transaction_states);
+        }
+    }
+
+    async fn list_transactions_connect(&mut self, node: i32) -> Result<()> {
+        if self
+            .conns
+            .get(&node)
+            .is_some_and(|conn| conn.idle_expired(self.cfg.connections_max_idle))
+        {
+            let _ = self.conns.remove(&node);
+        }
+        if self.conns.contains_key(&node) {
+            return Ok(());
+        }
+        let address =
+            self.cluster.brokers.get(&node).cloned().ok_or_else(|| {
+                Error::protocol(format!("unknown ListTransactions broker {node}"))
+            })?;
+        let failures = self.reconnect_fails.get(&node).copied().unwrap_or(0);
+        crate::config::sleep_reconnect_backoff(
+            self.cfg.reconnect_backoff,
+            self.cfg.reconnect_backoff_max,
+            failures,
+        )
+        .await;
+        match self.open_node_conn(&address).await {
+            Ok(connection) => {
+                let _ = self.reconnect_fails.remove(&node);
+                let _ = self.conns.insert(node, connection);
+                Ok(())
+            }
+            Err(error) => {
+                let _ = crate::config::bump_reconnect_fails(&mut self.reconnect_fails, node);
+                Err(error)
+            }
         }
     }
 

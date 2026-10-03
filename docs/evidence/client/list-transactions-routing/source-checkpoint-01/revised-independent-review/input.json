@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "scope": "Additive read-only revised source review; no product or Rust execution",
+  "full_source": {
+    "path": "/workspace/work/list-transactions-routing-01/admin.candidate.rs",
+    "sha256": "9bf5265936028337c03cbe5a3e9d314174c00c21727252e68aefc2e6eaee2a3e",
+    "bytes": 590481,
+    "full_mode": 384
+  },
+  "helper_excerpt": {
+    "path": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/reviewed-helpers.rs",
+    "sha256": "694961328f9eb046817c78897a4738b67bbeb364d07f8351a099d396a838828b",
+    "bytes": 4699,
+    "full_mode": 384
+  }
+}

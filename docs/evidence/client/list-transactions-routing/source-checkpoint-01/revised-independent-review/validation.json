@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "scope": "Additive independent read-only corrected ListTransactions source review; Python models only, no Rust/Cargo/SDK/runtime",
+  "source": {
+    "path": "/workspace/work/list-transactions-routing-01/admin.candidate.rs",
+    "sha256": "9bf5265936028337c03cbe5a3e9d314174c00c21727252e68aefc2e6eaee2a3e",
+    "bytes": 590481,
+    "full_mode": 384
+  },
+  "prior_review": {
+    "path": "/workspace/work/integration/list-transactions-review-01/validation.json",
+    "sha256": "a447e5cb8cfadab34c6200efb735934dd4e46d39d9c20dd657db3ed47cce306d",
+    "bytes": 11304,
+    "full_mode": 384
+  },
+  "inputs": [
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/input.json",
+      "sha256": "76eaab103b9a9055b36103e3eac12e708a3689c43078d80fc8bf4d25ef9fb6c1",
+      "bytes": 595,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/reviewed-helpers.rs",
+      "sha256": "694961328f9eb046817c78897a4738b67bbeb364d07f8351a099d396a838828b",
+      "bytes": 4699,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/controls.py",
+      "sha256": "f59f1cd592607869bd891dc8431771fcab97dbcbcd9169a26e9b67a4966313ee",
+      "bytes": 5302,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/revised-9bf52659/controls.json",
+      "sha256": "2f6dec6095f097c678901e056dde4aff82b037f0894f29d00c427d26957b3314",
+      "bytes": 50020,
+      "full_mode": 384
+    }
+  ],
+  "controls": {
+    "executions": 1,
+    "cases": 145,
+    "passed": 145,
+    "actual_Rust_runs": 0,
+    "original_null_arrays_strings_now_rejected": true,
+    "original_500025_metadata_huge_topics_rejected_before_any_topic_allocation": true,
+    "metadata_versions_1_to_13_valid_and_nullable_rows": true,
+    "canonical_empty_string_array_rows_retained": true,
+    "unknown_tags_unchanged_permissive_read_policy": true
+  },
+  "source_assessment": {
+    "allbroker_methods_unchanged_except_predecode_Metadata_preflight_call": true,
+    "preflight_completes_before_all_decode_metadata_response_allocations": true,
+    "Metadata_required_brokers_nonnull_count1_to256": true,
+    "Metadata_hosts_required_UTF8_and_bounded": true,
+    "Metadata_ports_checked1_to65535": true,
+    "Metadata_rack_nullable_versions1plus_cluster_nullable2plus": true,
+    "Metadata_controller1plus_authops8to10_toperror13plus_tags9plus_and_trailing_handled": true,
+    "Metadata_topics_strict_nonnull_empty_before_decoder": true,
+    "API66_required_arrays_and_string_elements_nonnull": true,
+    "API66_unknown_count8192_and_listing_budget_minwirecount_preserved": true,
+    "source_same_hash_after_controls": true
+  },
+  "verdict": "The two previously identified blockers are resolved in exact9bf52659 source. No further source blocker found in this narrow correction review. Required genuine Rust/mock/live tests and broad validation remain unexecuted by this review.",
+  "limits": [
+    "No Apache parser or Java execution; tagged-field ordering policy remains intentionally unchanged without Apache-equivalent rejection claim.",
+    "Python controls mirror helper source semantics and are not Rust executions.",
+    "No runtime cancellation, real broker, compiler/MSRV or measured resource qualification claim."
+  ]
+}

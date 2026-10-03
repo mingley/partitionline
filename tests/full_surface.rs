@@ -10030,7 +10030,7 @@ async fn describe_transactions_batches_find_coordinator() {
 }
 
 #[tokio::test]
-async fn list_transactions_follows_coordinator() {
+async fn list_transactions_queries_all_brokers_without_coordinator_lookup() {
     let mock = common::Mock::start_two_node().await;
     mock.set_txn_coordinator(2);
     mock.set_txn_fixture(TransactionState {
@@ -10060,7 +10060,7 @@ async fn list_transactions_follows_coordinator() {
     assert_eq!(
         mock.last_list_transactions_node(),
         Some(2),
-        "ListTransactions must land on the transaction coordinator, not bootstrap"
+        "the broker which owns these fixtures must be queried"
     );
     assert_eq!(
         mock.last_list_transactions_version(),
@@ -10073,9 +10073,8 @@ async fn list_transactions_follows_coordinator() {
         "list_transactions must send DurationFilter -1 (no filter)"
     );
     assert!(
-        mock.find_coordinator_key_types()
-            .contains(&COORDINATOR_TRANSACTION),
-        "ListTransactions must FindCoordinator key_type=1"
+        mock.find_coordinator_key_types().is_empty(),
+        "ListTransactions must not look up an empty transactional ID"
     );
 
     mock.move_txn_coordinator();
@@ -10085,18 +10084,19 @@ async fn list_transactions_follows_coordinator() {
     assert_eq!(
         again[0].transactional_id.as_str(),
         "tx-list",
-        "retry on the new coordinator must still return fixture txn ids, not the 16 empty body"
+        "all-broker discovery must include fixtures after ownership moves"
     );
     assert_eq!(
         mock.list_transactions_not_coordinator(),
-        1,
-        "stale coordinator must return NOT_COORDINATOR (16) once"
+        0,
+        "a broker with no matching transactions succeeds with an empty listing"
     );
     assert_eq!(
         mock.last_list_transactions_node(),
         Some(1),
-        "ListTransactions must FindCoordinator after NOT_COORDINATOR"
+        "the new fixture owner must be included in the next all-broker query"
     );
+    assert!(mock.find_coordinator_key_types().is_empty());
     let timed = admin
         .list_transactions_timeout(&[], &[], Duration::from_secs(5))
         .await

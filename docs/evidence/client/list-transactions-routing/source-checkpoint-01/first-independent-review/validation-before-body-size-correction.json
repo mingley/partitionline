@@ -1,0 +1,181 @@
+{
+  "schema_version": 1,
+  "scope": "Independent read-only source review of WORK prototype, plus 14 Python source-semantic controls; no installed product, Rust execution, SDK/JVM/native runtime, Git changes or task qualification",
+  "inputs": [
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/input-snapshot.json",
+      "sha256": "1651443467d44435084c81b8fa55f28dbbef360fc771389ecf2b54e04f7026b1",
+      "bytes": 1154,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/controls.py",
+      "sha256": "0c0ac299e225dbad40655d5e8534d59525181c98d644fdd25b03b84d64ef70f9",
+      "bytes": 4617,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/controls.json",
+      "sha256": "c1844c06a37ed8e696648f116dc25f3fe20c3617520e61a45dbddd1f97b8ff28",
+      "bytes": 5171,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/admin.candidate.rs",
+      "sha256": "c85570c736ad649cef481640264b4ee0b5156f2aca64b27121123f2ceaa0c400",
+      "bytes": 587992,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/admin.before.rs",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+      "bytes": 576058,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/integration/list-transactions-review-01/ListTransactionsHandler-4.1.2.java",
+      "sha256": "99961419a99681fde8f8d71dfd73a765b8521d85364b6fb25169f2916474fa5b",
+      "bytes": 6029,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/partitionline/src/protocol/admin.rs",
+      "sha256": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0",
+      "bytes": 1467875,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/partitionline/src/protocol/buf.rs",
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/partitionline/src/protocol/api.rs",
+      "sha256": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+      "bytes": 303913,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/partitionline/src/net.rs",
+      "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+      "bytes": 83409,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/partitionline/src/cluster.rs",
+      "sha256": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa",
+      "bytes": 20271,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/ListTransactionsResponse.json",
+      "sha256": "154abac86cb57d4e87827194d890efb5a01deb16970e31476bbd4cc86686abed",
+      "bytes": 2237,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/ListTransactionsRequest.json",
+      "sha256": "b54931d4ab03cf2a6da501737b5e59709447448e680e54037a741b824bb94176",
+      "bytes": 2330,
+      "full_mode": 384
+    },
+    {
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/MetadataResponse.json",
+      "sha256": "482b7171b2c41172213b9d8c7842998938c386872a0c89f209cc0e0427d4b4d8",
+      "bytes": 6026,
+      "full_mode": 384
+    }
+  ],
+  "reviewed_candidate_sha256": "c85570c736ad649cef481640264b4ee0b5156f2aca64b27121123f2ceaa0c400",
+  "current_original_candidate": {
+    "path": "/workspace/work/list-transactions-routing-01/admin.candidate.rs",
+    "sha256": "c85570c736ad649cef481640264b4ee0b5156f2aca64b27121123f2ceaa0c400",
+    "bytes": 587992,
+    "full_mode": 384
+  },
+  "original_candidate_unchanged_at_seal": true,
+  "static_checks": {
+    "zero_empty_key_FindCoordinator_in_changed_methods": true,
+    "sorted_initial_broker_ID_snapshot": true,
+    "absolute_outer_timeout_for_discovery_and_each_broker": true,
+    "overflow_checked_absolute_deadline": true,
+    "eight_attempt_bound": true,
+    "refresh_bound_three": true,
+    "one_off_connection_no_inherited_connect_loop": true,
+    "connection_cancellation_CloseOnDrop": true,
+    "idle_expiry_reconnects_closed_stream": true,
+    "metadata_topics_allocate_before_candidate_reject": true,
+    "listing_preflight_required_array_null_accepted": true,
+    "listing_preflight_required_string_null_accepted": true
+  },
+  "verdict": "Concrete required-null and Metadata preallocation corrections recommended before claiming bounded protocol validation; unknown-tag order is an explicitly separate hardening-policy question, not an observed Apache rejection. Core all-broker routing/partial/deadline ownership has no further identified blocker in this source-only pass.",
+  "findings": [
+    {
+      "id": "required-null",
+      "severity": "correctness",
+      "evidence": [
+        "API66 JSON has no nullableVersions on UnknownStateFilters, TransactionStates, their string elements, TransactionalId or TransactionState",
+        "candidate preflight converts null arrays to count0 and accepts encoded0 required strings",
+        "ordinary API66 decoder converts these to empty arrays/default strings"
+      ],
+      "counterexamples": [
+        "null-unknown-array",
+        "null-listings-array",
+        "null-unknown-string",
+        "null-transaction-id",
+        "null-transaction-state"
+      ],
+      "minimal_fix": "Require Some(count) for both API66 arrays and nonzero compact length for all required strings in local preflight. Empty array/string encoded1 remains allowed. Also require Metadata Topics non-null and count0."
+    },
+    {
+      "id": "metadata-preallocation",
+      "severity": "resource",
+      "evidence": [
+        "candidate caps Metadata body1MiB and broker count256 before ordinary decode",
+        "ordinary Metadata decoder allocates topic Vec from declared count before candidate checks topics.is_empty()",
+        "500030B v9 Python case with one valid broker reaches declared topic count500000 without allocating any topics in the reviewer"
+      ],
+      "minimal_fix": "Fully preflight the bounded broker-only Metadata shape, including required fields, valid lengths/tags and exactly zero Topics, before invoking the allocating decoder; preserve version1-13 layouts."
+    },
+    {
+      "id": "unknown-tag-order",
+      "severity": "policy-clarification",
+      "evidence": [
+        "skip_tagged_fields bounds count/size but does not enforce strict ascending tag IDs",
+        "three Python malformed duplicate/descending cases pass the mirrored preflight"
+      ],
+      "minimal_fix": "If strict canonical tagged-field validation is claimed, locally reject duplicate/descending tags while accepting ordered unknown tags. Do not claim Apache reader rejects these without an authentic observed reference."
+    }
+  ],
+  "routing_and_ownership_assessment": {
+    "complete_only": "Existing Vec-returning methods iterate every broker result in ascending ID order and fail on first sorted error; no partial success flattened as complete. Duplicate transactional IDs/contradictory states remain visible in partial method and are concatenated without dedup on complete success.",
+    "discovery": "Initial failure is global; after successful discovery each original broker ID receives a success/error slot even after deadline; refreshed metadata does not add new IDs to the initial snapshot.",
+    "error_policy": "COORDINATOR_LOAD_IN_PROGRESS14 retries same broker; COORDINATOR_NOT_AVAILABLE15 and NOT_COORDINATOR16 fail that broker, matching retained Java handler; no empty coordinator lookup remains.",
+    "deadline": "Outer timeout_at applies one checked absolute deadline to discovery and each broker including reconnect sleep/auth/negotiation/refresh. Internal helpers receive configured relative limits but the outer wrapper bounds awaits. Synchronous parsing is cooperatively scheduled and bounded by local body/count caps, not a demonstrated precise CPU deadline.",
+    "cancellation": "No spawned owner tasks. Dropping active roundtrip marks stream closed via existing CloseOnDrop; next idle_expired observes is_closed and reconnects. Opening not-yet-inserted connection drops locally on cancellation. No actual cancellation test executed in this review.",
+    "attempts": "At most eight iterations per broker, three Metadata refreshes cumulatively; each connection attempt can itself negotiate API18 and authenticate, then API18 is negotiated again for API66. Eight iterations is not eight wire requests.",
+    "memory_scope": "16MiB is cumulative API66 body bytes checked after transport receive, not a total RSS/heap cap. Existing transport100MiB cap and handshake bodies are separate. Returned listing/string allocations and complete aggregation remain bounded by100000 rows but need honest envelope labeling.",
+    "bootstrap": "Discovery has one attempt through existing bootstrap connection. A bootstrap failure does not claim empty cluster success. Existing merge map may retain brokers absent from a later refresh; initial snapshot semantics remains deliberate."
+  },
+  "required_meaningful_tests": [
+    "Malformed required null arrays and strings reject while canonical empty arrays/strings accept for API66v0/v1.",
+    "Broker-only Metadata v1-13 rejects nonempty/null Topics and huge declared topic count before allocation; body/broker caps and trailing rejection preserved.",
+    "Two or more broker IDs in unsorted Metadata, independentAPI66v0/v1 negotiation, one empty broker, same ID conflicting listings, complete API all results and partial origin retained.",
+    "Load-in-progress succeeds on eighth permitted attempt; ninth forbidden; three refresh ceiling and address change after IO observed without extra coordinator request.",
+    "Deadline during connect/auth/Metadata refresh/slow broker preserves earlier completed results and Timeout per remaining initial ID; dropped future closes partial stream and later call reconnects.",
+    "COORDINATOR_NOT_AVAILABLE and NOT_COORDINATOR each fail correct broker, with zeroFindCoordinator and unaffected later brokers.",
+    "Limits listings/unknown filters/filter bytes/response aggregate/256brokers reject at correct boundary before expensive allocation where applicable."
+  ],
+  "actual_operations": {
+    "Python_control_executions": 1,
+    "Rust_Cargo_SDK_broker_runs": 0,
+    "product_or_repo_edits": 0,
+    "Git_mutations": 0
+  },
+  "causal_limits": [
+    "Python models mirror selected source control flow and are not executions of Rust or Apache.",
+    "No live broker, cross-language, runtime timing/memory or compile/MSRV result claimed.",
+    "This prototype may change after snapshot; this receipt binds c855 source copy and independently read supporting file hashes only."
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "scope": "Read-only source review snapshots only; no Rust execution or product changes",
+  "files": [
+    {
+      "original_path": "/workspace/work/list-transactions-routing-01/admin.candidate.rs",
+      "review_copy": "/workspace/work/integration/list-transactions-review-01/admin.candidate.rs",
+      "sha256": "c85570c736ad649cef481640264b4ee0b5156f2aca64b27121123f2ceaa0c400",
+      "bytes": 587992,
+      "full_mode": 384
+    },
+    {
+      "original_path": "/workspace/work/list-transactions-routing-01/admin.before.rs",
+      "review_copy": "/workspace/work/integration/list-transactions-review-01/admin.before.rs",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+      "bytes": 576058,
+      "full_mode": 384
+    },
+    {
+      "original_path": "/workspace/work/list-transactions-routing-01/ListTransactionsHandler-4.1.2.java",
+      "review_copy": "/workspace/work/integration/list-transactions-review-01/ListTransactionsHandler-4.1.2.java",
+      "sha256": "99961419a99681fde8f8d71dfd73a765b8521d85364b6fb25169f2916474fa5b",
+      "bytes": 6029,
+      "full_mode": 384
+    }
+  ]
+}
