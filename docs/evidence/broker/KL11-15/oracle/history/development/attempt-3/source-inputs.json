@@ -1,0 +1,6 @@
+{
+  "docs/evidence/broker/KL11-15/oracle/history/history_oracle.py": "b0ae87b08ba6507a78911d6c572cba455debd702f9ed2fb3792f94d3021403c9",
+  "docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py": "8785e6e3840ab4b46c373b46a093e6a236a8c0b586f25312e444461c16768e8b",
+  "docs/evidence/broker/KL11-15/oracle/history/election_oracle.py": "f3debf56bcc6b9859e140dc0e740b83e4f478b4c237e81770d1050fcb198820a",
+  "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae"
+}

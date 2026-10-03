@@ -1,0 +1,69 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling libc v0.2.189
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling pin-project-lite v0.2.17
+   Compiling cfg-if v1.0.5
+   Compiling bytes v1.12.1
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-storage/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 10.00s
+     Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906)
+
+running 10 tests
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test partition_retention_preserves_protected_records_and_synchronized_end ... ok
+test retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor ... ok
+test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c)
+
+running 20 tests
+test age_is_strict_prefix_ordered_and_size_keeps_whole_segment_target ... ok
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... ok
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test deletion_guards_reject_unconfirmed_and_protected_ranges_before_mutation ... ok
+test disk_and_staging_reservations_hold_before_mutation_and_after_restart ... ok
+test end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart ... Error: Storage(AlreadyOpen)
+FAILED
+test every_active_entry_prefix_recovers_prior_acks_and_complete_ambiguous_append ... ok
+test every_partial_index_and_valid_crc_stale_hint_is_rebuilt_from_checked_data ... ok
+test hidden_scan_exhaustion_cannot_return_a_successful_partial_fetch ... ok
+test logical_floor_preserves_containing_input_and_only_explicitly_migrates_layout ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test one_segment_limit_can_reclaim_active_and_continue_appending ... Error: Storage(AlreadyOpen)
+FAILED
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+test sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets ... ok
+test sweep_limit_and_protected_boundary_bound_physical_prefix_progress ... ok
+test v2_corrupt_floor_or_victim_descriptors_fail_closed_with_valid_checksum ... ok
+test valid_crc_generation_overflow_is_rejected_before_any_publication ... ok
+
+failures:
+
+failures:
+    end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart
+    one_segment_limit_can_reclaim_active_and_continue_appending
+
+test result: FAILED. 18 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `--test segments`

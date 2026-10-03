@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "scope": "Development binaries preserved before package cache clean; source/log/raw inputs remain immutable.",
+  "files": [
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/stable-partitionline_broker-c952dbf8a96b13dc.gz",
+      "sha256": "2dd05ca5276f011c11fdd4a6b7c547352a1fbc10bbfa373bbc3520c0663c29a6",
+      "compressed_sha256": "d53684ccea16e8fe597e9870dd2237db2b087de5b6d156bd0b0a50284ff70135",
+      "bytes": 7154424,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_election-fdd916042ccc2539",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/stable-raft_election-fdd916042ccc2539.gz",
+      "sha256": "4cb2bb62a19a4cc6d52afd1ba6a7bd777c88b7ec9f70a8662007cf69dde184b7",
+      "compressed_sha256": "faf9b62d6788058b835f73d8530d80408eec73c35e11a49a294a148956a7dc33",
+      "bytes": 1808976,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_protocol-a5d013805f23b48d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/stable-raft_protocol-a5d013805f23b48d.gz",
+      "sha256": "c777d7822bbc2cb14c919c2ecf254589fd9efca60d3e7adfefb712c3351b59b0",
+      "compressed_sha256": "996be2723cf8c25cc78cf019796d4a2d3745110dcaa522d2f48f80e0e52bbee2",
+      "bytes": 5222216,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_replication-0ded16aa4dab486e",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/stable-raft_replication-0ded16aa4dab486e.gz",
+      "sha256": "c34c2a4570cd973af315572b04932c7edca9ac7c3d2f72ed49b296d521ee3cb2",
+      "compressed_sha256": "ae2d52f02eda628c88605e2ac9a8ea5c90085f7e6614121f45ab8d4d99c41493",
+      "bytes": 4874400,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_snapshot-094df91f92704702",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/stable-raft_snapshot-094df91f92704702.gz",
+      "sha256": "12c80d0420e6423d11b5f6b53db402bd92e93f12ca1fb0282b805a11e57c4b9e",
+      "compressed_sha256": "68bfad45454d45902a539bdd406fd5f46c63022b19ab7efa7559426e14cbda34",
+      "bytes": 1712880,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/msrv-partitionline_broker-ea773fb32d16e69c.gz",
+      "sha256": "0a6be4d20dd435453bbf0cf7e99967b0ab67495582eb51a27b27581b02ffb755",
+      "compressed_sha256": "7b1d04b7d10bcea8a77037c396b91338ce9f50487b14d14b2c0cdb3de56dc34c",
+      "bytes": 5968480,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_election-c18593246fa844c7",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/msrv-raft_election-c18593246fa844c7.gz",
+      "sha256": "e2bab0a92266c7ac1cf735a1aac43658f923fb30e480b7e83ed259bf2c95140a",
+      "compressed_sha256": "9dc27dd588a9e953f5c55d2772deb5650dd7d39d06fbf725d3f582416bdb043b",
+      "bytes": 1688432,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_protocol-ab246e857326ed2a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/msrv-raft_protocol-ab246e857326ed2a.gz",
+      "sha256": "ea7ee73fd5133b6acf593113e6a15ce8d7be65cefcefc286782266c3649b79c5",
+      "compressed_sha256": "24285efc70d1459dcc01294d0ad9790aca4e79fab1cdba699b7df70d82c1c5cd",
+      "bytes": 4446776,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_replication-9bcefe4fc77d2f90",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/msrv-raft_replication-9bcefe4fc77d2f90.gz",
+      "sha256": "8038fd652a9a7629ac2a6dfd5b2a0bc89145c7ef74ec266f4674aa2d7ebbe12e",
+      "compressed_sha256": "4914d117e71427f01aa0d89b36430b6aaf3d7a458260bf0dabd81f26af0fa17e",
+      "bytes": 4302472,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_snapshot-12c7c0017cbf18bd",
+      "compressed": "/workspace/work/snapshot-runtime/retained-development-binaries/msrv-raft_snapshot-12c7c0017cbf18bd.gz",
+      "sha256": "340a8dfece20433cc202d81bc2a5f59921553ef4599d61b470099bc7652e058a",
+      "compressed_sha256": "d17032d990aabe08f415d4590381671ff0f596ed8ea682f4195d3c9bc89a2332",
+      "bytes": 1595280,
+      "mode": "0o700"
+    }
+  ]
+}

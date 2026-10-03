@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "scope": "Independent read-only storage arithmetic, ordering and hidden-work review; no executed storage/fault/transport or physical power-loss qualification",
+  "status": "candidate_no_blockers",
+  "pushed_source_sha": null,
+  "inspection_base_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "reviewed_files_sha256": {
+    "partitionline-broker/src/segments.rs": "6a56a0b46daab18c7d1d98891746ae39dab2bf2b6e700211b8c27b0fe4369aea",
+    "partitionline-broker/src/partition.rs": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+    "partitionline-broker/tests/segments.rs": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+    "partitionline-broker/tests/partition.rs": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
+  },
+  "findings": [],
+  "checks": [
+    {
+      "area": "Selected and victim counts",
+      "assessment": "V2 parse bounds selected sealed count below max_segments and selected+victim descriptors at most max_segments. Active successor plus retained old active adds one temporary physical journal; disk reserves before creation."
+    },
+    {
+      "area": "Retained allocation envelope",
+      "assessment": "Sealed Segment tables, manifest descriptors, victim table, dense active index, four checkpoint buffers and bounded directory-name table are included. Old retained victim capacity can overlap a fresh temporary victim Vec before move; the conservative two serialized-manifest-buffer allowance covers this extra descriptor allocation when those encoded buffers are absent. The old victim allocation drops on assignment before publishing the new manifest."
+    },
+    {
+      "area": "Disk publication peaks",
+      "assessment": "publish_floor reserves the full first V2 temp manifest, later clear-temp peak including growth above the old selected manifest, and 24-byte successor journal before any mutation. Victim data/index bytes remain charged until actual unlink. Existing bounded reserve_disk enumerates regular files including both generations and temp files."
+    },
+    {
+      "area": "Caller-confirmed deletion ceiling",
+      "assessment": "Both confirmed high watermark and retain_from must lie within current floor..durable end. Explicit deletion rejects offsets above either guard. Sweep selects only prefix descriptors whose end is no greater than min(HW,retain_from), with an explicit per-invocation segment cap. This is caller-confirmed ordinary RF1 safety, not a replication or transaction proof."
+    },
+    {
+      "area": "Durable floor and cleanup ordering",
+      "assessment": "Active retirement first certifies its old checked records and opens a synchronized empty successor. V2 file sync/rename/directory sync selects the new monotonic floor and bounded victim list before unlink. Cleanup syncs the directory, then clears victims through another synchronized manifest publication. Every ambiguous mutation error poisons the live handle."
+    },
+    {
+      "area": "Recovery authorization",
+      "assessment": "Manifest parse validates survivor continuity, victim continuity to physical_base, generations, nonempty entries, offset and minimum-byte consistency. Recorded victim names stay protected from generic staging cleanup. Selected active journal and all survivors are verified before recorded-victim unlink. Missing recorded victims can be completed idempotently; missing or corrupt selected files reject."
+    },
+    {
+      "area": "Offset and timestamp reads",
+      "assessment": "Logical floor rejects lower reads while physically retaining a containing batch. Existing checked sparse seek work remains charged through Partition/Store/Fetch. Timestamp search retains exact record order and strict prefix-max hints. Source-only review does not replace executed low-budget or restart cases."
+    },
+    {
+      "area": "Age and size policy",
+      "assessment": "Verified maximum>=0 is required for strict now-maximum>age eligibility. Entirely negative/unknown-time segments stay age-ineligible; guarded size/DeleteRecords remain available. Apache actual mutable-mtime fallback is an explicit component difference. Size uses payload bytes and removes a whole candidate only when remaining payload bytes meet target; age OR size applies to a bounded safe prefix."
+    },
+    {
+      "area": "Ownership and descriptor scope",
+      "assessment": "Storage remains exclusively owned by the existing blocking actor; these four files add no Tokio blocking filesystem operation or new ownership escape. Manifest paths use fixed offset/generation formats; no caller topic names enter the storage layout. The trusted-parent, single-owner and no cross-process locking limitations remain."
+    }
+  ],
+  "limitations": [
+    "The remote storage source pin is pending; candidate hashes are exact and will be rebound only after the coordinator pushes matching bytes.",
+    "Actual behavioral/fault/restart captures are owned separately by open_loop; independent raw manifest/data checking is owned by the coordinator.",
+    "No fresh runtime, native Kafka wire, multi-node quorum, benchmark, filesystem power-loss or hostile cross-process race claim."
+  ]
+}

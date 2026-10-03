@@ -1,0 +1,9 @@
+{
+  "command": [
+    "python3",
+    "-c",
+    "import sys;sys.path.insert(0,'docs/evidence/broker/KL11-15/oracle/history');import history_oracle"
+  ],
+  "exit_code": 1,
+  "scope": "Actual reproduction of development parser syntax failure before correction"
+}

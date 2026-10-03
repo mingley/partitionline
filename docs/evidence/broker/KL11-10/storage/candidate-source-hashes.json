@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "claim_commit": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "source_commit": null,
+  "status": "candidate awaiting independent review and coordinator source push",
+  "files": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "6a56a0b46daab18c7d1d98891746ae39dab2bf2b6e700211b8c27b0fe4369aea",
+      "git_blob": "9b9dc91c9c87f37f2338a6664fc96ebcc5f16866",
+      "bytes": 83875
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "git_blob": "0bc345c66535113193ed7c99eee1d6b05aa46d84",
+      "bytes": 16594
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "git_blob": "2bba4cea9cfaa0bc9f0c273a3fa7693b305c53ea",
+      "bytes": 29651
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "git_blob": "938d336e4560023e240a1867713f9de45d578db8",
+      "bytes": 13872
+    }
+  ]
+}

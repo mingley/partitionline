@@ -13,7 +13,7 @@
   ],
   "source_files": {
     "partitionline-broker/src/raft/replication.rs": "76bba6c7e2d6fada1cff41d3f93eaf12b70e2316ea0e67df3c164fad5a4fb89c",
-    "partitionline-broker/tests/raft_replication.rs": "5c5ee653184df6e73a5c73fc2ac76f2fbf1e4f3b3651a0c97b7934338bdf3f38",
+    "partitionline-broker/tests/raft_replication.rs": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
     "partitionline-broker/src/raft/snapshot.rs": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
     "partitionline-broker/tests/raft_snapshot.rs": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f"
   },
@@ -127,5 +127,37 @@
     "partial_peer_overlay": "development/stable-focused-second.log; archived old snapshot tests missed mutable load update, corrected peer tests consumed",
     "peer_term_expectation": "development/{stable-inner-node.log,msrv-inner-node.log}; term1 expected after campaign; peer corrected to actual term2",
     "compile_and_lint": "development/{replication-first.log,replication-safety-second.log,stable-clippy-first.log}; borrow, mutable Journal and redundant pattern corrected"
+  },
+  "post_freeze_correction": {
+    "reason": "Independent causal checker found actual parent capture clock regression after child exit",
+    "receipt": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/validation.json",
+    "original_source_pin": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+    "previous_freeze": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/source-freeze-before.json",
+    "focused_additional_commands": [
+      {
+        "command": "taskset -c 0-2,4 cargo test --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime -j1 --test raft_replication snapshot_process_history -- --nocapture",
+        "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-stable.log",
+        "exit_code": 0,
+        "sha256": "378bf343aaed7a29d3dbbf60f10057c4841253baabf1fead24128548bbd29d26"
+      },
+      {
+        "command": "taskset -c 0-2,4 cargo clippy --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime -j1 --test raft_replication -- -D warnings",
+        "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-clippy-stable.log",
+        "exit_code": 0,
+        "sha256": "ab72edcf0f03449366c0ebfe39c31014378ea37f3d2bb8764ad76d90130b5d7b"
+      },
+      {
+        "command": "taskset -c 0-2,4 cargo +1.85.0 test --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime-msrv -j1 --test raft_replication snapshot_process_history -- --nocapture",
+        "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-msrv.log",
+        "exit_code": 0,
+        "sha256": "d67fa221feb2b6271f26a68695e0e4df586ac7e29d3716046467604f4dfaaf6d"
+      },
+      {
+        "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime-msrv -j1 --test raft_replication -- -D warnings",
+        "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-clippy-msrv.log",
+        "exit_code": 0,
+        "sha256": "1ec95a9cf26f9c80097dc2e3ac6b33a5594a79610e6d77f7e31b2fe9109428ef"
+      }
+    ]
   }
 }

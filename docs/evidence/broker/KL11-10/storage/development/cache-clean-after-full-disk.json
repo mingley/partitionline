@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "reason": "filesystem reported zero free bytes after focused development gates",
+  "active_processes": "no active Cargo/rustc/cache users; two defunct Cargo zombies ignored",
+  "command": [
+    "env",
+    "CARGO_HOME=/workspace/work/cargo",
+    "RUSTUP_HOME=/workspace/work/rustup",
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cargo",
+    "+1.85.0",
+    "clean",
+    "--manifest-path",
+    "/workspace/work/retention-storage/source/partitionline-broker/Cargo.toml",
+    "--target-dir",
+    "/workspace/work/target-broker-segments"
+  ],
+  "exit_code": 0,
+  "stdout": "Removed591 generatedfiles,92.6MiB",
+  "preserved": [
+    "all09acceptedcopiedbinaries",
+    "09sourcearchives/rawproof/logs",
+    "10sourcearchive/developmentlogs/92rawstates"
+  ],
+  "final10source_binary_proof_removed": false
+}

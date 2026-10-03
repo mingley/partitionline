@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py", line 240, in verify
+    require((ordinal, node) in checkpoints and checkpoints[ordinal, node][0].selected == d and
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py", line 33, in require
+    raise Rejected(message)
+wal_oracle.Rejected: checkpoint missing local selecting WAL receipt
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/workspace/work/integration/check-snapshot-development.py", line 22, in <module>
+    result = verify(path)
+             ^^^^^^^^^^^^
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py", line 539, in verify
+    raise ValueError(f"event {ordinal} {event.get('kind')}: {error}") from error
+ValueError: event 20 checkpoint: checkpoint missing local selecting WAL receipt

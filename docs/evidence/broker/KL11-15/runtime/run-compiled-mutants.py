@@ -79,6 +79,8 @@ def main():
             binary = re.search(r'Running tests/raft_replication.rs \(([^)]+)\)', outcome)
             assert binary, 'no compiled runtime artifact: ' + name
             binary_path = Path(binary.group(1))
+            if not binary_path.is_absolute():
+                binary_path = root / binary_path
             saved = args.binaries / (name + '-' + digest(binary_path)[:16])
             shutil.copy2(binary_path, saved)
             row = {'name': name, 'source_sha': args.source_sha, 'argv': command,

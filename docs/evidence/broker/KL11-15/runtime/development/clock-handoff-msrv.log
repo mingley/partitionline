@@ -1,0 +1,10 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/snapshot-runtime/dev-source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.19s
+     Running tests/raft_replication.rs (work/target-snapshot-runtime-msrv/debug/deps/raft_replication-9bcefe4fc77d2f90)
+
+running 2 tests
+test actual_three_node_snapshot_process_history ... ok
+test actual_five_node_snapshot_process_history ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.06s
+

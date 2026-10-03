@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "parent_source_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "development_source": "efeb8e2af289ee00898d5b2dfe55069bf90672c4 plus frozen four-source overlay and test-only handoff correction",
+  "change": "Child writes final logical now_ms before process exit; parent parses it before owner reopen. Production sources unchanged. Old traces and failing independent checks preserved.",
+  "old_test_sha256": "5c5ee653184df6e73a5c73fc2ac76f2fbf1e4f3b3651a0c97b7934338bdf3f38",
+  "new_test_sha256": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
+  "commands": [
+    {
+      "command": "taskset -c 0-2,4 cargo test --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime -j1 --test raft_replication snapshot_process_history -- --nocapture",
+      "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-stable.log",
+      "exit_code": 0,
+      "sha256": "378bf343aaed7a29d3dbbf60f10057c4841253baabf1fead24128548bbd29d26"
+    },
+    {
+      "command": "taskset -c 0-2,4 cargo clippy --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime -j1 --test raft_replication -- -D warnings",
+      "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-clippy-stable.log",
+      "exit_code": 0,
+      "sha256": "ab72edcf0f03449366c0ebfe39c31014378ea37f3d2bb8764ad76d90130b5d7b"
+    },
+    {
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime-msrv -j1 --test raft_replication snapshot_process_history -- --nocapture",
+      "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-msrv.log",
+      "exit_code": 0,
+      "sha256": "d67fa221feb2b6271f26a68695e0e4df586ac7e29d3716046467604f4dfaaf6d"
+    },
+    {
+      "command": "taskset -c 0-2,4 cargo +1.85.0 clippy --manifest-path /workspace/work/snapshot-runtime/dev-source/partitionline-broker/Cargo.toml --target-dir /workspace/work/target-snapshot-runtime-msrv -j1 --test raft_replication -- -D warnings",
+      "log": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff-clippy-msrv.log",
+      "exit_code": 0,
+      "sha256": "1ec95a9cf26f9c80097dc2e3ac6b33a5594a79610e6d77f7e31b2fe9109428ef"
+    }
+  ],
+  "results": {
+    "tests_passed": 4,
+    "clippy_cells_passed": 2,
+    "traces": [
+      {
+        "lane": "stable",
+        "voters": 3,
+        "events": 69,
+        "restart_now_ms": 107,
+        "monotonic": true,
+        "path": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/stable/history-3/trace.json",
+        "sha256": "fb98c179dfc5de22f74af89624a58b59256dfef6e454764b76b37695093de7de"
+      },
+      {
+        "lane": "stable",
+        "voters": 5,
+        "events": 102,
+        "restart_now_ms": 107,
+        "monotonic": true,
+        "path": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/stable/history-5/trace.json",
+        "sha256": "69aa8a7f7057fff57f86f0ff8683d4365bb7c3827b787a03c69a635e016009cc"
+      },
+      {
+        "lane": "msrv",
+        "voters": 3,
+        "events": 69,
+        "restart_now_ms": 107,
+        "monotonic": true,
+        "path": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/msrv/history-3/trace.json",
+        "sha256": "fb98c179dfc5de22f74af89624a58b59256dfef6e454764b76b37695093de7de"
+      },
+      {
+        "lane": "msrv",
+        "voters": 5,
+        "events": 102,
+        "restart_now_ms": 107,
+        "monotonic": true,
+        "path": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/msrv/history-5/trace.json",
+        "sha256": "69aa8a7f7057fff57f86f0ff8683d4365bb7c3827b787a03c69a635e016009cc"
+      }
+    ]
+  },
+  "independent_failure_receipt": {
+    "logs": [
+      "docs/evidence/broker/KL11-15/oracle/history/development/attempt-4/history-3.failure.log",
+      "docs/evidence/broker/KL11-15/oracle/history/development/attempt-4/history-5.failure.log"
+    ],
+    "source_inputs": "docs/evidence/broker/KL11-15/oracle/history/development/attempt-4/source-inputs.json",
+    "scope": "Root WORK checker validates all preceding causal/raw state checks, then rejects regressing parent now_ms. Retained authentic traces unchanged.",
+    "results": "docs/evidence/broker/KL11-15/oracle/history/development/attempt-4/results.json"
+  }
+}

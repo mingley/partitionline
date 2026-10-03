@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "base_commit": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "dirty_four_file_overlay": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "3d02d801746d4b050a98279646582f5d973772d13c0689bd5350c3ce5c08109a"
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90"
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "ce710302a5ebb5a1bb3b6dba5883b2f2e2c2f3dfe0dc6f177a4e76430d6d414d"
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
+    }
+  ],
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--test",
+    "segments",
+    "--test",
+    "partition",
+    "--",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "elapsed_seconds": 10.065226015001826,
+  "not_frozen_source_qualification": true
+}

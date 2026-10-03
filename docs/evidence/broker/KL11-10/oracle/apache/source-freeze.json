@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "scope": "Independent actual Apache UnifiedLog components; source freeze for later immutable qualification, not full KL11-10 acceptance",
+  "inspection_base_sha": "0cff69bb8f1d06c49397f46b851dade8f8054cb2",
+  "files_sha256": {
+    "docs/evidence/broker/KL11-10/oracle/apache/ApacheRetentionProbe.java": "6baf400bff87c3453a8c3d6f5975b92c6bb93942faffff5d7b798a6993c76d35",
+    "docs/evidence/broker/KL11-10/oracle/apache/prepare-and-run.py": "17d2fa12764548bf08b22a7c5a6accca4e3e51c3b0e94fca029a3ab392b8873c",
+    "docs/evidence/broker/KL11-10/oracle/apache/pins.json": "3cfe94fbaa655092a31a4694148f00b9504a42863b313d4fc4d83022d156389b",
+    "docs/evidence/broker/KL11-10/oracle/apache/selected-source-files.json": "8d1295e3687114295b02dcb2e55bc9e264611ccdb8c5e9ae85ddd8153d20936a",
+    "docs/evidence/broker/KL11-10/oracle/apache/reviewed-source-annotations.json": "1d43450091523ad99e8ddb344e27081ab7359ed2a3388299ab36f392ea94bea9",
+    "docs/evidence/broker/KL11-10/oracle/apache/README.md": "ba2078679e67065021731506100b4fef3512d2d83efce6084534c57ced9d7391"
+  },
+  "development_receipt": {
+    "path": "docs/evidence/broker/KL11-10/oracle/apache/development/matrix-02/validation.json",
+    "sha256": "5a5e4b3f97a192f4ba88fbbce05974ee184b203134c7ade1d4af88420e7f8cc1",
+    "actual_assertions": 402,
+    "named_controlled_failures": 12,
+    "commands": 22,
+    "releases": [
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ]
+  },
+  "independent_storage_review": {
+    "path": "docs/evidence/broker/KL11-10/oracle/apache/independent-storage-review.json",
+    "sha256": "b3d164e4422e6b6e309f3956160a7ee45bfe05bd5a35954b8fd3fbd73bd3aa46",
+    "qualification": "read-only candidate hashes, no runtime assertion"
+  },
+  "limitations": [
+    "Official classes execute on a real local filesystem with public clock and scheduler inputs; no Kafka broker/controller/network execution.",
+    "Replay uses caller-supplied logical floor checkpoint; no component fsync durability inference.",
+    "Apache mtime age fallback and first-segment timestamp-search empty result are deliberate local policy differences.",
+    "Final exact pushed-source execution is still required."
+  ]
+}

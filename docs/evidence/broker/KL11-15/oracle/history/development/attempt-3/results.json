@@ -1,0 +1,18 @@
+{
+  "scope": "Development WORK checker only; immutable final source and controlled corruption checks pending",
+  "command": [
+    "/workspace/work/integration/check-snapshot-development.py",
+    "attempt-3"
+  ],
+  "results": [
+    {
+      "voters": 3,
+      "passed": false
+    },
+    {
+      "voters": 5,
+      "passed": false
+    }
+  ],
+  "independent_inner_cut_states": 24
+}

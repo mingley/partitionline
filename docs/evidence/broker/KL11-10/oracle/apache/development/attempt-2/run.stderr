@@ -1,0 +1,16 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.IllegalArgumentException: Received invalid partition leader epoch entry EpochEntry[epoch=-1, startOffset=0]
+	at org.apache.kafka.storage.internals.epoch.LeaderEpochFileCache.assign(LeaderEpochFileCache.java:126)
+	at org.apache.kafka.storage.internals.epoch.LeaderEpochFileCache.assign(LeaderEpochFileCache.java:105)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.assignEpochStartOffset(UnifiedLog.java:1295)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.lambda$append$4(UnifiedLog.java:1215)
+	at java.base/java.lang.Iterable.forEach(Iterable.java:75)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.lambda$append$1(UnifiedLog.java:1213)
+	at org.apache.kafka.storage.internals.log.LocalLog.maybeHandleIOException(LocalLog.java:816)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.maybeHandleIOException(UnifiedLog.java:2497)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.append(UnifiedLog.java:1138)
+	at org.apache.kafka.storage.internals.log.UnifiedLog.appendAsFollower(UnifiedLog.java:1081)
+	at ApacheRetentionProbe.noTimestamp(ApacheRetentionProbe.java:267)
+	at ApacheRetentionProbe.main(ApacheRetentionProbe.java:295)

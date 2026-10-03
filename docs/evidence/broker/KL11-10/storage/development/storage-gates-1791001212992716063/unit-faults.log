@@ -1,0 +1,93 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-storage/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.65s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 6 tests
+test segments::tests::every_roll_publication_failure_preserves_prior_acknowledgments ... roll failure IndexWritten: acknowledged payload preserved
+roll failure IndexSynced: acknowledged payload preserved
+roll failure IndexRenamed: acknowledged payload preserved
+roll failure NewActiveSynced: acknowledged payload preserved
+roll failure ManifestWritten: acknowledged payload preserved
+roll failure ManifestSynced: acknowledged payload preserved
+roll failure ManifestRenamed: acknowledged payload preserved
+roll failure DirectorySynced: acknowledged payload preserved
+ok
+test segments::tests::process_exit_at_each_roll_publication_stage_recovers_committed_payloads ... process exit IndexWritten: prior durable append recovered
+process exit IndexSynced: prior durable append recovered
+process exit IndexRenamed: prior durable append recovered
+process exit NewActiveSynced: prior durable append recovered
+process exit ManifestWritten: prior durable append recovered
+process exit ManifestSynced: prior durable append recovered
+process exit ManifestRenamed: prior durable append recovered
+process exit DirectorySynced: prior durable append recovered
+ok
+test segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor ... retention process exit ManifestWritten/target3: acknowledged floor preserved
+retention process exit ManifestSynced/target3: acknowledged floor preserved
+retention process exit ManifestRenamed/target3: acknowledged floor preserved
+retention process exit DirectorySynced/target3: acknowledged floor preserved
+retention process exit RetentionDataRemoved/target3: acknowledged floor preserved
+retention process exit RetentionIndexRemoved/target3: acknowledged floor preserved
+retention process exit RetentionCleanupSynced/target3: acknowledged floor preserved
+retention process exit RetentionClearWritten/target3: acknowledged floor preserved
+retention process exit RetentionClearSynced/target3: acknowledged floor preserved
+retention process exit RetentionClearRenamed/target3: acknowledged floor preserved
+retention process exit RetentionClearDirectorySynced/target3: acknowledged floor preserved
+retention process exit NewActiveSynced/target5: acknowledged floor preserved
+retention process exit ManifestWritten/target5: acknowledged floor preserved
+retention process exit ManifestSynced/target5: acknowledged floor preserved
+retention process exit ManifestRenamed/target5: acknowledged floor preserved
+retention process exit DirectorySynced/target5: acknowledged floor preserved
+retention process exit RetentionDataRemoved/target5: acknowledged floor preserved
+retention process exit RetentionIndexRemoved/target5: acknowledged floor preserved
+retention process exit RetentionCleanupSynced/target5: acknowledged floor preserved
+retention process exit RetentionClearWritten/target5: acknowledged floor preserved
+retention process exit RetentionClearSynced/target5: acknowledged floor preserved
+retention process exit RetentionClearRenamed/target5: acknowledged floor preserved
+retention process exit RetentionClearDirectorySynced/target5: acknowledged floor preserved
+ok
+test segments::tests::process_exit_during_partial_copy_and_each_replacement_publication_recovers_all_records ... replacement process exit CopyEntrySynced: all4 durable payloads recovered
+replacement process exit IndexWritten: all4 durable payloads recovered
+replacement process exit IndexSynced: all4 durable payloads recovered
+replacement process exit IndexRenamed: all4 durable payloads recovered
+replacement process exit ManifestWritten: all4 durable payloads recovered
+replacement process exit ManifestSynced: all4 durable payloads recovered
+replacement process exit ManifestRenamed: all4 durable payloads recovered
+replacement process exit DirectorySynced: all4 durable payloads recovered
+replacement process exit OldDataRemoved: all4 durable payloads recovered
+ok
+test segments::tests::replacement_publication_and_cleanup_failures_select_complete_generations ... replacement failure IndexWritten: both acknowledged payloads preserved
+replacement failure IndexSynced: both acknowledged payloads preserved
+replacement failure IndexRenamed: both acknowledged payloads preserved
+replacement failure ManifestWritten: both acknowledged payloads preserved
+replacement failure ManifestSynced: both acknowledged payloads preserved
+replacement failure ManifestRenamed: both acknowledged payloads preserved
+replacement failure DirectorySynced: both acknowledged payloads preserved
+replacement failure OldDataRemoved: both acknowledged payloads preserved
+ok
+test segments::tests::retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor ... retention error ManifestWritten/target3: floor and surviving bytes recovered
+retention error ManifestSynced/target3: floor and surviving bytes recovered
+retention error ManifestRenamed/target3: floor and surviving bytes recovered
+retention error DirectorySynced/target3: floor and surviving bytes recovered
+retention error RetentionDataRemoved/target3: floor and surviving bytes recovered
+retention error RetentionIndexRemoved/target3: floor and surviving bytes recovered
+retention error RetentionCleanupSynced/target3: floor and surviving bytes recovered
+retention error RetentionClearWritten/target3: floor and surviving bytes recovered
+retention error RetentionClearSynced/target3: floor and surviving bytes recovered
+retention error RetentionClearRenamed/target3: floor and surviving bytes recovered
+retention error RetentionClearDirectorySynced/target3: floor and surviving bytes recovered
+retention error NewActiveSynced/target5: floor and surviving bytes recovered
+retention error ManifestWritten/target5: floor and surviving bytes recovered
+retention error ManifestSynced/target5: floor and surviving bytes recovered
+retention error ManifestRenamed/target5: floor and surviving bytes recovered
+retention error DirectorySynced/target5: floor and surviving bytes recovered
+retention error RetentionDataRemoved/target5: floor and surviving bytes recovered
+retention error RetentionIndexRemoved/target5: floor and surviving bytes recovered
+retention error RetentionCleanupSynced/target5: floor and surviving bytes recovered
+retention error RetentionClearWritten/target5: floor and surviving bytes recovered
+retention error RetentionClearSynced/target5: floor and surviving bytes recovered
+retention error RetentionClearRenamed/target5: floor and surviving bytes recovered
+retention error RetentionClearDirectorySynced/target5: floor and surviving bytes recovered
+ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 28 filtered out; finished in 0.13s
+

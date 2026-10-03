@@ -1,0 +1,36 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/retention-apache/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/metrics-core-2.2.0.jar",
+      "-d",
+      "/workspace/work/retention-apache/classes/4.3.1",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/ApacheRetentionProbe.java"
+    ],
+    "exit_code": 0
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/retention-apache/classes/4.3.1:/workspace/work/retention-apache/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/retention-apache/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/jars/4.3.1/metrics-core-2.2.0.jar",
+      "ApacheRetentionProbe",
+      "/workspace/work/retention-apache/attempt-2",
+      "/workspace/partitionline/partitionline-broker/tests/fixtures/fetch/4.3.1"
+    ],
+    "exit_code": 1
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "base_commit": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "scope": "complete Git archive with four explicitly dirty claimed source/test overlays; not committed-source proof",
+  "overlays": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "0bbb215cbc8454fd4c5b81f2b3bc5412150843f00df0dd4e773ab5454de252d1"
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "895729ea4ae0dadd1ee7d46868967c68cc68a01322419599f3d9c1b039a47733"
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "7665f2656ed40a2a2fc55059724ca2dfa4fe7083207d1e9934b4cb7b9ab159ad"
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "179c066d24d039c1cfa66662634d4b8251d69cfeb9dcc6a63461621f0dc109bf"
+    }
+  ]
+}

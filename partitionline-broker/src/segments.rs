@@ -5,8 +5,10 @@
 //! are rejected and rebuilt from verified records. Publication synchronizes
 //! files, atomically renames the manifest, then synchronizes its directory;
 //! ambiguous failures poison the handle. Run exclusively on a blocking storage
-//! owner. Process-local ownership is not cross-process locking. No retention,
-//! compaction, replication, physical power-loss or production claim is implied.
+//! owner. Explicit retention publishes a version-two manifest containing a
+//! monotonic logical floor and cleanup victims before unlinking files. Opening
+//! or appending a version-one log never migrates it. Process-local ownership is
+//! not cross-process locking; no replication or physical power-loss claim.
 
 use crate::{journal, records};
 use std::fs::{self, File, OpenOptions};
@@ -17,8 +19,10 @@ use std::path::{Path, PathBuf};
 const MANIFEST: &str = "manifest";
 const MANIFEST_TEMP: &str = "manifest.tmp";
 const MANIFEST_MAGIC: &[u8; 8] = b"PLSEGM01";
+const RETENTION_MAGIC: &[u8; 8] = b"PLSEGM02";
 const INDEX_MAGIC: &[u8; 8] = b"PLSEEK01";
 const MANIFEST_HEADER: usize = 44;
+const RETENTION_HEADER: usize = 64;
 const DESCRIPTOR_BYTES: usize = 56;
 const CHECKPOINT_BYTES: usize = 24;
 const EMPTY_TIME: i64 = i64::MIN;
@@ -84,7 +88,8 @@ impl Limits {
     pub fn max_index_bytes(self) -> usize {
         self.index_bytes
     }
-    /// Maximum simultaneous referenced data segments, including the active one.
+    /// Maximum selected data segments, including the active one. Replacement
+    /// or active retirement may briefly retain one additional charged old file.
     pub fn max_segments(self) -> usize {
         self.max_segments
     }
@@ -96,7 +101,7 @@ impl Limits {
             .and_then(|n| n.checked_mul(size_of::<Checkpoint>()))
             .and_then(|n| {
                 n.checked_add(self.max_segments.checked_mul(
-                    size_of::<Segment>() + size_of::<Descriptor>() + DESCRIPTOR_BYTES * 2,
+                    size_of::<Segment>() + size_of::<Descriptor>() * 2 + DESCRIPTOR_BYTES * 2,
                 )?)
             })
             .and_then(|n| n.checked_add(self.max_entries.checked_mul(128)?))
@@ -140,6 +145,12 @@ impl Default for Limits {
 pub enum Error {
     /// Invalid or inconsistent positive/aggregate bounds.
     InvalidLimits,
+    /// A guard is negative or outside the current logical/durable range.
+    InvalidRetentionBounds,
+    /// The requested logical floor is negative or above confirmed high watermark.
+    OffsetOutOfRange,
+    /// The requested floor would remove caller-protected records.
+    ProtectedRecords,
     /// A referenced manifest/file or unexpected directory entry is invalid.
     InvalidLayout,
     /// Derived bundle is not a verified index for its selected segment.
@@ -184,6 +195,82 @@ impl From<journal::Error> for Error {
     }
 }
 
+/// Caller-confirmed deletion ceilings, not a fabricated replication guarantee.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeletionGuard {
+    confirmed_high_watermark: i64,
+    retain_from: i64,
+}
+impl DeletionGuard {
+    /// Both nonnegative bounds are checked against the actual log on each call.
+    pub fn new(confirmed_high_watermark: i64, retain_from: i64) -> Result<Self, Error> {
+        if confirmed_high_watermark < 0 || retain_from < 0 {
+            return Err(Error::InvalidRetentionBounds);
+        }
+        Ok(Self {
+            confirmed_high_watermark,
+            retain_from,
+        })
+    }
+    /// Highest caller-confirmed durable record boundary eligible for deletion.
+    pub fn confirmed_high_watermark(self) -> i64 {
+        self.confirmed_high_watermark
+    }
+    /// Earliest boundary required by the caller's retained-record constraint.
+    pub fn retain_from(self) -> i64 {
+        self.retain_from
+    }
+}
+
+/// Completed durable floor publication and cleanup result.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DeletionOutcome {
+    /// Monotonic logical start, independent of the containing segment's base.
+    pub log_start_offset: i64,
+    /// Actual data and seek files removed by this operation.
+    pub reclaimed_files: usize,
+    /// Lengths of those removed files; manifest size changes are excluded.
+    pub reclaimed_bytes: u64,
+}
+
+/// Explicit caller-driven age/record-payload size policy; no background timer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RetentionPolicy {
+    retention_ms: Option<u64>,
+    retention_bytes: Option<u64>,
+    max_segments: usize,
+}
+impl RetentionPolicy {
+    /// Zero thresholds are valid; absent thresholds disable that criterion.
+    /// At most 1..=1024 whole sealed segments are selected per invocation.
+    pub fn new(
+        retention_ms: Option<u64>,
+        retention_bytes: Option<u64>,
+        max_segments: usize,
+    ) -> Result<Self, Error> {
+        if !(1..=1024).contains(&max_segments) {
+            return Err(Error::InvalidLimits);
+        }
+        Ok(Self {
+            retention_ms,
+            retention_bytes,
+            max_segments,
+        })
+    }
+    /// Optional strict age threshold in milliseconds.
+    pub fn retention_ms(self) -> Option<u64> {
+        self.retention_ms
+    }
+    /// Optional total retained record-payload byte target, excluding file headers.
+    pub fn retention_bytes(self) -> Option<u64> {
+        self.retention_bytes
+    }
+    /// Maximum prefix segments selected by one bounded sweep.
+    pub fn max_segments(self) -> usize {
+        self.max_segments
+    }
+}
+
 /// Explicit recovery outcomes; rejected caches never supply seek positions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Recovery {
@@ -197,6 +284,10 @@ pub struct Recovery {
     pub truncated_bytes: u64,
     /// Recovered exclusive durable end offset.
     pub next_offset: u64,
+    /// Recovered monotonic logical start (may be inside the first physical batch).
+    pub log_start_offset: u64,
+    /// Recorded retention victims completed during recovery.
+    pub removed_retention_files: usize,
 }
 /// Bounded payload work examined during a checked physical seek.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -229,9 +320,13 @@ struct Segment {
 struct Manifest {
     revision: u64,
     base: u64,
+    physical_base: u64,
+    floor: u64,
+    retention: bool,
     active_base: u64,
     active_generation: u64,
     sealed: Vec<Descriptor>,
+    victims: Vec<Descriptor>,
 }
 
 /// Exclusive synchronous rolling log for validated assigned ordinary batches.
@@ -315,18 +410,42 @@ fn buffer(size: usize) -> Result<Vec<u8>, Error> {
     Ok(v)
 }
 fn manifest_bytes(m: &Manifest) -> Result<Vec<u8>, Error> {
-    let mut out = buffer(MANIFEST_HEADER + m.sealed.len() * DESCRIPTOR_BYTES + 4)?;
-    out.extend_from_slice(MANIFEST_MAGIC);
-    for n in [m.revision, m.base, m.active_base, m.active_generation] {
-        out.extend_from_slice(&n.to_be_bytes());
+    let mut out = buffer(manifest_size(m))?;
+    if m.retention {
+        out.extend_from_slice(RETENTION_MAGIC);
+        for n in [
+            m.revision,
+            m.base,
+            m.physical_base,
+            m.floor,
+            m.active_base,
+            m.active_generation,
+        ] {
+            out.extend_from_slice(&n.to_be_bytes());
+        }
+        out.extend_from_slice(&(m.sealed.len() as u32).to_be_bytes());
+        out.extend_from_slice(&(m.victims.len() as u32).to_be_bytes());
+    } else {
+        out.extend_from_slice(MANIFEST_MAGIC);
+        for n in [m.revision, m.base, m.active_base, m.active_generation] {
+            out.extend_from_slice(&n.to_be_bytes());
+        }
+        out.extend_from_slice(&(m.sealed.len() as u32).to_be_bytes());
     }
-    out.extend_from_slice(&(m.sealed.len() as u32).to_be_bytes());
-    for d in &m.sealed {
+    for d in m.sealed.iter().chain(&m.victims) {
         put_descriptor(&mut out, *d);
     }
     let crc = crc32c::crc32c(&out);
     out.extend_from_slice(&crc.to_be_bytes());
     Ok(out)
+}
+fn manifest_size(m: &Manifest) -> usize {
+    (if m.retention {
+        RETENTION_HEADER
+    } else {
+        MANIFEST_HEADER
+    }) + (m.sealed.len() + m.victims.len()) * DESCRIPTOR_BYTES
+        + 4
 }
 fn bundle_bytes(segment: &Segment) -> Result<Vec<u8>, Error> {
     let mut out = buffer(72 + segment.checkpoints.len() * CHECKPOINT_BYTES)?;
@@ -360,12 +479,25 @@ fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>, Error> {
     Ok(out)
 }
 fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, Error> {
-    if bytes.len() < 48 || bytes.get(..8) != Some(MANIFEST_MAGIC) {
+    let retention = bytes.get(..8) == Some(RETENTION_MAGIC);
+    let header = if retention {
+        RETENTION_HEADER
+    } else {
+        MANIFEST_HEADER
+    };
+    if bytes.len() < header + 4 || (!retention && bytes.get(..8) != Some(MANIFEST_MAGIC)) {
         return Err(Error::InvalidLayout);
     }
-    let n = count(bytes, 40)? as usize;
+    let n = count(bytes, if retention { 56 } else { 40 })? as usize;
+    let victims = if retention {
+        count(bytes, 60)? as usize
+    } else {
+        0
+    };
     if n >= limits.max_segments
-        || bytes.len() != 48 + n * DESCRIPTOR_BYTES
+        || n.checked_add(victims)
+            .is_none_or(|n| n > limits.max_segments)
+        || bytes.len() != header + 4 + (n + victims) * DESCRIPTOR_BYTES
         || crc32c::crc32c(&bytes[..bytes.len() - 4]) != count(bytes, bytes.len() - 4)?
     {
         return Err(Error::InvalidLayout);
@@ -373,26 +505,32 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     let mut m = Manifest {
         revision: number(bytes, 8)?,
         base: number(bytes, 16)?,
-        active_base: number(bytes, 24)?,
-        active_generation: number(bytes, 32)?,
+        physical_base: if retention { number(bytes, 24)? } else { base },
+        floor: if retention { number(bytes, 32)? } else { base },
+        retention,
+        active_base: number(bytes, if retention { 40 } else { 24 })?,
+        active_generation: number(bytes, if retention { 48 } else { 32 })?,
         sealed: Vec::new(),
+        victims: Vec::new(),
     };
-    if m.base != base || m.active_generation > m.revision {
+    if m.base != base
+        || m.active_generation > m.revision
+        || m.physical_base < base
+        || m.floor < m.physical_base
+        || i64::try_from(m.floor).is_err()
+    {
         return Err(Error::InvalidLayout);
     }
     m.sealed
         .try_reserve_exact(limits.max_segments)
         .map_err(|_| Error::AllocationFailed)?;
-    let mut next = base;
-    for at in (44..44 + n * DESCRIPTOR_BYTES).step_by(DESCRIPTOR_BYTES) {
+    m.victims
+        .try_reserve_exact(victims)
+        .map_err(|_| Error::AllocationFailed)?;
+    let mut next = m.physical_base;
+    for at in (header..header + n * DESCRIPTOR_BYTES).step_by(DESCRIPTOR_BYTES) {
         let d = parse_descriptor(bytes, at)?;
-        if d.base != next
-            || d.end <= d.base
-            || d.generation > m.revision
-            || d.entries == 0
-            || d.entries > limits.max_entries as u64
-            || d.bytes < 57
-        {
+        if d.base != next || !valid_descriptor(d, limits, m.revision) {
             return Err(Error::InvalidLayout);
         }
         next = d.end;
@@ -401,7 +539,36 @@ fn parse_manifest(bytes: &[u8], limits: Limits, base: u64) -> Result<Manifest, E
     if next != m.active_base {
         return Err(Error::InvalidLayout);
     }
+    let mut end = None;
+    for at in (header + n * DESCRIPTOR_BYTES..header + (n + victims) * DESCRIPTOR_BYTES)
+        .step_by(DESCRIPTOR_BYTES)
+    {
+        let d = parse_descriptor(bytes, at)?;
+        if !valid_descriptor(d, limits, m.revision)
+            || d.base < base
+            || d.end > m.physical_base
+            || end.is_some_and(|end| end != d.base)
+        {
+            return Err(Error::InvalidLayout);
+        }
+        end = Some(d.end);
+        m.victims.push(d);
+    }
+    if end.is_some_and(|end| end != m.physical_base) {
+        return Err(Error::InvalidLayout);
+    }
     Ok(m)
+}
+fn valid_descriptor(d: Descriptor, limits: Limits, revision: u64) -> bool {
+    d.end > d.base
+        && i64::try_from(d.end).is_ok()
+        && d.generation <= revision
+        && d.entries != 0
+        && d.entries <= limits.max_entries as u64
+        && d.base
+            .checked_add(d.entries)
+            .is_some_and(|minimum| d.end >= minimum)
+        && d.bytes >= 24 + d.entries * 33
 }
 fn summarize(entry: &journal::Entry, limits: records::Limits) -> Result<i64, Error> {
     let checked = records::validate(&entry.payload, limits).map_err(|_| Error::CorruptData)?;
@@ -464,6 +631,13 @@ enum Phase {
     ManifestRenamed,
     DirectorySynced,
     OldDataRemoved,
+    RetentionDataRemoved,
+    RetentionIndexRemoved,
+    RetentionCleanupSynced,
+    RetentionClearWritten,
+    RetentionClearSynced,
+    RetentionClearRenamed,
+    RetentionClearDirectorySynced,
 }
 impl Log {
     /// Recover selected generations and certify every payload within bounded work.
@@ -504,7 +678,10 @@ impl Log {
         let mut initial = false;
         let manifest = if manifest_path.try_exists()? {
             parse_manifest(
-                &read_bounded(&manifest_path, 48 + limits.max_segments * DESCRIPTOR_BYTES)?,
+                &read_bounded(
+                    &manifest_path,
+                    RETENTION_HEADER + 4 + limits.max_segments * DESCRIPTOR_BYTES,
+                )?,
                 limits,
                 base,
             )?
@@ -520,9 +697,13 @@ impl Log {
             Manifest {
                 revision: 0,
                 base,
+                physical_base: base,
+                floor: base,
+                retention: false,
                 active_base: base,
                 active_generation: 0,
                 sealed,
+                victims: Vec::new(),
             }
         };
         let mut sealed = Vec::new();
@@ -564,6 +745,9 @@ impl Log {
         let (active, recovered) =
             journal::Journal::open(&active_path, result.manifest.active_base, journal_limits)?;
         result.committed_next = active.next_offset();
+        if result.manifest.floor > result.committed_next {
+            return Err(Error::InvalidLayout);
+        }
         result.active = Some(active);
         let mut recovery = Recovery {
             truncated_bytes: recovered.truncated_bytes,
@@ -593,6 +777,10 @@ impl Log {
             }
             result.sealed.push(segment);
         }
+        if !result.manifest.victims.is_empty() {
+            let (removed, _) = result.finish_retention_cleanup()?;
+            recovery.removed_retention_files = removed;
+        }
         if initial {
             result.publish_manifest()?;
         }
@@ -600,6 +788,7 @@ impl Log {
         File::open(&result.directory)?.sync_all()?;
         recovery.segments = result.sealed.len() + 1;
         recovery.next_offset = result.next_offset();
+        recovery.log_start_offset = result.base_offset();
         Ok((result, recovery))
     }
     fn active(&self) -> Result<&journal::Journal, Error> {
@@ -626,9 +815,13 @@ impl Log {
                 .as_ref()
                 .is_none_or(journal::Journal::is_poisoned)
     }
-    /// First logical offset. Retention is not implemented.
+    /// Monotonic logical floor, possibly inside the first physical atomic input.
     pub fn base_offset(&self) -> u64 {
-        self.manifest.base
+        self.manifest.floor
+    }
+    /// Kafka signed-domain logical start; opening validated its range.
+    pub fn log_start_offset(&self) -> i64 {
+        self.manifest.floor as i64
     }
     /// Exclusive committed end; failures do not advance this value in memory.
     pub fn next_offset(&self) -> u64 {
@@ -654,6 +847,7 @@ impl Log {
     /// allocator/ownership/path/OS metadata and caller payload output are separate.
     pub fn retained_index_bytes(&self) -> usize {
         self.manifest.sealed.capacity() * size_of::<Descriptor>()
+            + self.manifest.victims.capacity() * size_of::<Descriptor>()
             + self.sealed.capacity() * size_of::<Segment>()
             + self.active_checkpoints.capacity() * size_of::<Checkpoint>()
             + self
@@ -725,6 +919,9 @@ impl Log {
         Ok(())
     }
     fn publish_manifest(&mut self) -> Result<(), Error> {
+        self.publish_manifest_kind(false)
+    }
+    fn publish_manifest_kind(&mut self, cleanup: bool) -> Result<(), Error> {
         let bytes = manifest_bytes(&self.manifest)?;
         self.reserve_disk(bytes.len() as u64)?;
         let mut file = OpenOptions::new()
@@ -732,17 +929,33 @@ impl Log {
             .create_new(true)
             .open(self.directory.join(MANIFEST_TEMP))?;
         file.write_all(&bytes)?;
-        self.hit(Phase::ManifestWritten)?;
+        self.hit(if cleanup {
+            Phase::RetentionClearWritten
+        } else {
+            Phase::ManifestWritten
+        })?;
         file.sync_all()?;
-        self.hit(Phase::ManifestSynced)?;
+        self.hit(if cleanup {
+            Phase::RetentionClearSynced
+        } else {
+            Phase::ManifestSynced
+        })?;
         drop(file);
         fs::rename(
             self.directory.join(MANIFEST_TEMP),
             self.directory.join(MANIFEST),
         )?;
-        self.hit(Phase::ManifestRenamed)?;
+        self.hit(if cleanup {
+            Phase::RetentionClearRenamed
+        } else {
+            Phase::ManifestRenamed
+        })?;
         File::open(&self.directory)?.sync_all()?;
-        self.hit(Phase::DirectorySynced)?;
+        self.hit(if cleanup {
+            Phase::RetentionClearDirectorySynced
+        } else {
+            Phase::DirectorySynced
+        })?;
         Ok(())
     }
     fn scan(&self, base: u64, generation: u64) -> Result<Segment, Error> {
@@ -854,6 +1067,12 @@ impl Log {
                 selected |= name == data_name(d.base, d.generation)
                     || name == index_name(d.base, d.generation);
             }
+            // Only an authoritative version-two manifest may authorize these
+            // names for deletion; recovery validates survivors first.
+            for d in &self.manifest.victims {
+                selected |= name == data_name(d.base, d.generation)
+                    || name == index_name(d.base, d.generation);
+            }
             if selected {
                 continue;
             }
@@ -917,9 +1136,11 @@ impl Log {
             .revision
             .checked_add(1)
             .ok_or(Error::GenerationOverflow)?;
-        let extra =
-            (72 + self.active_checkpoints.len() * 24 + 24 + 48 + (self.sealed.len() + 1) * 56)
-                as u64;
+        let extra = (72
+            + self.active_checkpoints.len() * 24
+            + 24
+            + manifest_size(&self.manifest)
+            + DESCRIPTOR_BYTES) as u64;
         self.reserve_disk(extra.checked_add(append_charge).ok_or(Error::DiskBudget)?)?;
         drop(self.active.take());
         let segment = self.scan(self.manifest.active_base, self.manifest.active_generation)?;
@@ -1004,19 +1225,17 @@ impl Log {
         self.alive()?;
         for segment in &self.sealed {
             if segment.descriptor.max_time >= wanted {
-                return Ok(time_checkpoint(
-                    &segment.checkpoints,
-                    wanted,
-                    segment.descriptor.base,
-                ));
+                return Ok(
+                    time_checkpoint(&segment.checkpoints, wanted, segment.descriptor.base)
+                        .max(self.base_offset()),
+                );
             }
         }
         if self.active_max >= wanted {
-            Ok(time_checkpoint(
-                &self.active_checkpoints,
-                wanted,
-                self.manifest.active_base,
-            ))
+            Ok(
+                time_checkpoint(&self.active_checkpoints, wanted, self.manifest.active_base)
+                    .max(self.base_offset()),
+            )
         } else {
             Ok(self.next_offset())
         }
@@ -1172,6 +1391,237 @@ impl Log {
         }
         Ok(out)
     }
+    fn check_guard(&self, guard: DeletionGuard) -> Result<u64, Error> {
+        let floor = self.log_start_offset();
+        let end = self.next_offset() as i64;
+        if !(floor..=end).contains(&guard.confirmed_high_watermark)
+            || !(floor..=end).contains(&guard.retain_from)
+        {
+            return Err(Error::InvalidRetentionBounds);
+        }
+        Ok(guard.confirmed_high_watermark.min(guard.retain_from) as u64)
+    }
+    /// Publish a monotonic logical start before unlinking whole sealed files.
+    ///
+    /// A containing batch/segment and the active journal remain physical. Reads
+    /// below the new floor fail. Guards describe caller-confirmed safety only;
+    /// ordinary RF1 owners may use their synchronized end for both bounds.
+    /// A successful operation includes complete, directory-synchronized cleanup.
+    /// Any ambiguous publication/deletion failure poisons this handle; reopening
+    /// replays the bounded protected victim list. This explicitly migrates V1
+    /// to V2; older V1 readers then reject the manifest rather than reset its floor.
+    pub fn delete_records(
+        &mut self,
+        offset: i64,
+        guard: DeletionGuard,
+    ) -> Result<DeletionOutcome, Error> {
+        self.alive()?;
+        self.check_guard(guard)?;
+        if offset < 0 || offset > guard.confirmed_high_watermark {
+            return Err(Error::OffsetOutOfRange);
+        }
+        if offset > guard.retain_from {
+            return Err(Error::ProtectedRecords);
+        }
+        let requested = (offset as u64).max(self.base_offset());
+        let retire_active = requested == self.next_offset() && self.active()?.entry_count() != 0;
+        self.publish_floor(requested, None, retire_active)
+    }
+    fn publish_floor(
+        &mut self,
+        requested: u64,
+        victim_limit: Option<usize>,
+        retire_active: bool,
+    ) -> Result<DeletionOutcome, Error> {
+        let count = self
+            .sealed
+            .iter()
+            .take_while(|s| s.descriptor.end <= requested)
+            .take(victim_limit.unwrap_or(usize::MAX))
+            .count();
+        if requested == self.base_offset()
+            && !retire_active
+            && (victim_limit.is_none() || count == 0)
+        {
+            return Ok(DeletionOutcome {
+                log_start_offset: self.log_start_offset(),
+                reclaimed_files: 0,
+                reclaimed_bytes: 0,
+            });
+        }
+        let revision = self
+            .manifest
+            .revision
+            .checked_add(1)
+            .ok_or(Error::GenerationOverflow)?;
+        let mut victims = Vec::new();
+        victims
+            .try_reserve_exact(count + usize::from(retire_active))
+            .map_err(|_| Error::AllocationFailed)?;
+        victims.extend(self.manifest.sealed.iter().take(count).copied());
+        // Reserve the initial temp manifest and the worst later clear-temp peak
+        // before changing state. Victim files stay in disk_bytes until unlink.
+        let new_size = RETENTION_HEADER
+            + 4
+            + (self.manifest.sealed.len() + usize::from(retire_active)) * DESCRIPTOR_BYTES;
+        let extra = new_size
+            .checked_add(new_size.saturating_sub(manifest_size(&self.manifest)))
+            .and_then(|n| n.checked_add(if retire_active { 24 } else { 0 }))
+            .ok_or(Error::DiskBudget)?;
+        self.reserve_disk(extra as u64)?;
+        let result = (|| {
+            if retire_active {
+                // Certify before authorizing deletion. Drop the dense old index
+                // before opening its synchronized empty successor.
+                drop(self.active.take());
+                let old = self.scan(self.manifest.active_base, self.manifest.active_generation)?;
+                if old.descriptor.end != requested || count != self.sealed.len() {
+                    return Err(Error::CorruptData);
+                }
+                victims.push(old.descriptor);
+                let (active, _) = journal::Journal::open(
+                    self.data_path(requested, revision),
+                    requested,
+                    self.journal_limits,
+                )?;
+                self.hit(Phase::NewActiveSynced)?;
+                self.active = Some(active);
+                self.manifest.active_base = requested;
+                self.manifest.active_generation = revision;
+            }
+            self.manifest.revision = revision;
+            self.manifest.retention = true;
+            self.manifest.floor = requested;
+            self.manifest.physical_base = victims
+                .last()
+                .map_or(self.manifest.physical_base, |d| d.end);
+            self.manifest.victims = victims;
+            self.manifest.sealed.drain(..count);
+            self.publish_manifest()?;
+            self.sealed.drain(..count);
+            if retire_active {
+                self.active_checkpoints.clear();
+                self.active_max = EMPTY_TIME;
+            }
+            let (reclaimed_files, reclaimed_bytes) = if self.manifest.victims.is_empty() {
+                (0, 0)
+            } else {
+                self.finish_retention_cleanup()?
+            };
+            Ok(DeletionOutcome {
+                log_start_offset: self.log_start_offset(),
+                reclaimed_files,
+                reclaimed_bytes,
+            })
+        })();
+        if result.is_err() {
+            self.poisoned = true;
+        }
+        result
+    }
+    /// Select only an age/size-eligible safe sealed prefix, capped per invocation.
+    ///
+    /// Age is strict `now - segment_max_timestamp > retention_ms`, and requires
+    /// a nonnegative verified maximum. Entirely negative/unknown-time segments
+    /// are retained by age; unlike Apache, mutable file modification times do
+    /// not supply a retention clock. Explicit deletion/size still apply. Size counts
+    /// payload bytes, excluding journal and entry headers. Size selects a segment
+    /// only when its removal leaves at least the configured target. Age OR size
+    /// makes a prefix segment eligible; selection stops at a protected boundary
+    /// or a first ineligible segment. A fully eligible active segment is retired
+    /// to a synchronized empty successor, which is always retained. A protected
+    /// boundary or sweep cap can prevent attaining the target.
+    pub fn apply_retention(
+        &mut self,
+        now_ms: i64,
+        policy: RetentionPolicy,
+        guard: DeletionGuard,
+    ) -> Result<DeletionOutcome, Error> {
+        self.alive()?;
+        let ceiling = self.check_guard(guard)?;
+        if now_ms < 0 {
+            return Err(Error::InvalidRetentionBounds);
+        }
+        let mut payload_bytes = self
+            .active()?
+            .file_bytes()
+            .checked_sub(24 + self.active()?.entry_count() as u64 * 32)
+            .ok_or(Error::CorruptData)?;
+        for s in &self.sealed {
+            payload_bytes = payload_bytes
+                .checked_add(descriptor_payload(s.descriptor)?)
+                .ok_or(Error::DiskBudget)?;
+        }
+        let mut target = self.base_offset();
+        let mut selected = 0usize;
+        for s in self.sealed.iter().take(policy.max_segments) {
+            let d = s.descriptor;
+            if d.end > ceiling {
+                break;
+            }
+            let aged = age_eligible(now_ms, policy.retention_ms, d.max_time);
+            let segment_bytes = descriptor_payload(d)?;
+            let sized = policy
+                .retention_bytes
+                .is_some_and(|limit| payload_bytes.saturating_sub(segment_bytes) >= limit);
+            if !aged && !sized {
+                break;
+            }
+            payload_bytes -= segment_bytes;
+            target = target.max(d.end);
+            selected += 1;
+        }
+        let active_bytes =
+            self.active()?.file_bytes() - 24 - self.active()?.entry_count() as u64 * 32;
+        let retire_active = selected == self.sealed.len()
+            && selected < policy.max_segments
+            && self.active()?.entry_count() != 0
+            && self.next_offset() <= ceiling
+            && (age_eligible(now_ms, policy.retention_ms, self.active_max)
+                || policy
+                    .retention_bytes
+                    .is_some_and(|limit| payload_bytes.saturating_sub(active_bytes) >= limit));
+        if retire_active {
+            target = self.next_offset();
+        }
+        // A later roll may seal an active file entirely below an already
+        // acknowledged floor. A sweep can clean that prefix without moving it.
+        self.publish_floor(target, Some(selected), retire_active)
+    }
+    fn finish_retention_cleanup(&mut self) -> Result<(usize, u64), Error> {
+        let mut removed = 0usize;
+        let mut bytes = 0u64;
+        for n in 0..self.manifest.victims.len() {
+            let d = self.manifest.victims[n];
+            for (name, phase) in [
+                (data_name(d.base, d.generation), Phase::RetentionDataRemoved),
+                (
+                    index_name(d.base, d.generation),
+                    Phase::RetentionIndexRemoved,
+                ),
+            ] {
+                let path = self.directory.join(name);
+                match fs::symlink_metadata(&path) {
+                    Ok(meta) => {
+                        if !meta.file_type().is_file() {
+                            return Err(Error::InvalidLayout);
+                        }
+                        bytes = bytes.checked_add(meta.len()).ok_or(Error::DiskBudget)?;
+                        fs::remove_file(path)?;
+                        removed += 1;
+                        self.hit(phase)?;
+                    }
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(e) => return Err(e.into()),
+                }
+            }
+        }
+        File::open(&self.directory)?.sync_all()?;
+        self.hit(Phase::RetentionCleanupSynced)?;
+        self.manifest.victims.clear();
+        self.publish_manifest_kind(true)?;
+        Ok((removed, bytes))
+    }
     /// Atomically replace one sealed generation with an identical checked copy.
     /// Both generations remain charged until durable manifest publication and
     /// cleanup. This removes no records and implements no compaction policy.
@@ -1191,7 +1641,7 @@ impl Log {
         let extra = old
             .bytes
             .checked_add(
-                (72 + self.sealed[position].checkpoints.len() * 24 + 48 + self.sealed.len() * 56)
+                (72 + self.sealed[position].checkpoints.len() * 24 + manifest_size(&self.manifest))
                     as u64,
             )
             .ok_or(Error::DiskBudget)?;
@@ -1238,6 +1688,15 @@ impl Log {
         }
         result
     }
+}
+fn age_eligible(now_ms: i64, retention_ms: Option<u64>, maximum: i64) -> bool {
+    maximum >= 0
+        && retention_ms.is_some_and(|ms| i128::from(now_ms) - i128::from(maximum) > i128::from(ms))
+}
+fn descriptor_payload(d: Descriptor) -> Result<u64, Error> {
+    d.bytes
+        .checked_sub(24 + d.entries * 32)
+        .ok_or(Error::CorruptData)
 }
 fn time_checkpoint(checkpoints: &[Checkpoint], wanted: i64, base: u64) -> u64 {
     checkpoints
@@ -1463,6 +1922,200 @@ mod tests {
             retain_fault_files(&path, "replace-exit", *phase, "recovered", 4)?;
             println!("replacement process exit {phase:?}: all4 durable payloads recovered");
         }
+        Ok(())
+    }
+
+    const RETENTION_PHASES: [Phase; 12] = [
+        Phase::NewActiveSynced,
+        Phase::ManifestWritten,
+        Phase::ManifestSynced,
+        Phase::ManifestRenamed,
+        Phase::DirectorySynced,
+        Phase::RetentionDataRemoved,
+        Phase::RetentionIndexRemoved,
+        Phase::RetentionCleanupSynced,
+        Phase::RetentionClearWritten,
+        Phase::RetentionClearSynced,
+        Phase::RetentionClearRenamed,
+        Phase::RetentionClearDirectorySynced,
+    ];
+    fn retention_seed(path: &Path) -> Result<Log, Error> {
+        let (mut log, _) = open(path)?;
+        for n in 0..5 {
+            log.append(1, &payload(n))?;
+        }
+        log.delete_records(1, DeletionGuard::new(5, 5)?)?;
+        Ok(log)
+    }
+    fn expected_retention_floor(phase: Phase, target: i64) -> i64 {
+        if matches!(
+            phase,
+            Phase::NewActiveSynced | Phase::ManifestWritten | Phase::ManifestSynced
+        ) {
+            1
+        } else {
+            target
+        }
+    }
+    fn retain_retention_files(
+        path: &Path,
+        kind: &str,
+        phase: Phase,
+        stage: &str,
+        target: i64,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PARTITIONLINE_RETENTION_FAULT_DIR") else {
+            return Ok(());
+        };
+        let out = PathBuf::from(root)
+            .join(kind)
+            .join(target.to_string())
+            .join(format!("{phase:?}"))
+            .join(stage);
+        fs::create_dir_all(&out)?;
+        let mut count = 0usize;
+        for item in fs::read_dir(path)? {
+            let item = item?;
+            count += 1;
+            if count > 72 || !item.file_type()?.is_file() || item.metadata()?.len() > 32768 {
+                return Err("bounded retention capture".into());
+            }
+            fs::copy(item.path(), out.join(item.file_name()))?;
+        }
+        let expected = expected_retention_floor(phase, target);
+        let receipt = format!("{{\"schema\":1,\"kind\":\"{kind}\",\"phase\":\"{phase:?}\",\"stage\":\"{stage}\",\"previous_acknowledged_floor\":1,\"requested_floor\":{target},\"expected_recovered_floor\":{expected},\"durable_end\":5,\"confirmed_high_watermark\":5,\"retain_from\":5,\"seed\":\"valid-basic.bin assigned to offsets 0..4, prior acknowledged deletion through 1\",\"physical_power_loss_claim\":false}}\n");
+        File::create(out.join("case.json"))?.write_all(receipt.as_bytes())?;
+        Ok(())
+    }
+    fn verify_retention_recovery(path: &Path, phase: Phase, target: i64) -> Result<Log, Error> {
+        let (mut log, recovery) = open(path)?;
+        let expected = expected_retention_floor(phase, target);
+        assert_eq!(log.log_start_offset(), expected, "{phase:?}/target{target}");
+        assert_eq!(recovery.log_start_offset, expected as u64);
+        assert_eq!(log.next_offset(), 5);
+        for n in expected..5 {
+            assert_eq!(log.fetch(n as u64, 1, 4096)?[0].payload, payload(n as u64));
+        }
+        assert!(matches!(
+            log.fetch(expected as u64 - 1, 1, 4096),
+            Err(Error::Storage(journal::Error::OffsetBeforeBase))
+        ));
+        assert!(log.manifest.victims.is_empty());
+        Ok(log)
+    }
+    #[test]
+    fn retention_publication_partial_unlink_and_active_retirement_failures_preserve_acknowledged_floor(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for target in [3, 5] {
+            for phase in RETENTION_PHASES {
+                if target == 3 && phase == Phase::NewActiveSynced {
+                    continue;
+                }
+                let temp = Temp::new()?;
+                let path = temp.0.join("log");
+                let mut log = retention_seed(&path)?;
+                let before_disk = log.disk_bytes()?;
+                log.fault = Some((phase, false));
+                assert!(
+                    log.delete_records(target, DeletionGuard::new(5, 5)?)
+                        .is_err(),
+                    "{phase:?}/{target}"
+                );
+                assert!(log.is_poisoned());
+                assert_eq!(log.next_offset(), 5);
+                if matches!(phase, Phase::ManifestWritten | Phase::ManifestSynced) {
+                    assert!(log.disk_bytes()? >= before_disk);
+                }
+                assert!(matches!(
+                    log.delete_records(target, DeletionGuard::new(5, 5)?),
+                    Err(Error::Poisoned)
+                ));
+                retain_retention_files(&path, "retention-error", phase, "interrupted", target)?;
+                drop(log);
+                let mut log = verify_retention_recovery(&path, phase, target)?;
+                retain_retention_files(&path, "retention-error", phase, "recovered", target)?;
+                log.delete_records(target, DeletionGuard::new(5, 5)?)?;
+                assert_eq!(log.log_start_offset(), target);
+                assert_eq!(log.append(1, &payload(5))?.first_offset, 5);
+                println!(
+                    "retention error {phase:?}/target{target}: floor and surviving bytes recovered"
+                );
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(path) = std::env::var_os("PL_RETENTION_CRASH_PATH") {
+            let phase = std::env::var("PL_RETENTION_CRASH_PHASE")?.parse::<usize>()?;
+            let target = std::env::var("PL_RETENTION_CRASH_TARGET")?.parse::<i64>()?;
+            let mut log = retention_seed(Path::new(&path))?;
+            log.fault = Some((RETENTION_PHASES[phase], true));
+            log.delete_records(target, DeletionGuard::new(5, 5)?)?;
+            return Err("retention fault was not reached".into());
+        }
+        for target in [3, 5] {
+            for (n, phase) in RETENTION_PHASES.iter().enumerate() {
+                if target == 3 && *phase == Phase::NewActiveSynced {
+                    continue;
+                }
+                let temp = Temp::new()?;
+                let path = temp.0.join("log");
+                let child = std::process::Command::new(std::env::current_exe()?)
+                    .args(["--exact", "segments::tests::process_exit_at_retention_publication_partial_unlink_and_active_retirement_recovers_monotonic_floor", "--nocapture"])
+                    .env("PL_RETENTION_CRASH_PATH", &path).env("PL_RETENTION_CRASH_PHASE", n.to_string()).env("PL_RETENTION_CRASH_TARGET", target.to_string()).output()?;
+                assert!(
+                    child.status.success(),
+                    "{phase:?}/{target}: {}",
+                    String::from_utf8_lossy(&child.stderr)
+                );
+                retain_retention_files(&path, "retention-exit", *phase, "interrupted", target)?;
+                let mut log = verify_retention_recovery(&path, *phase, target)?;
+                retain_retention_files(&path, "retention-exit", *phase, "recovered", target)?;
+                log.delete_records(target, DeletionGuard::new(5, 5)?)?;
+                assert_eq!(log.log_start_offset(), target);
+                assert_eq!(log.append(1, &payload(5))?.first_offset, 5);
+                println!(
+                    "retention process exit {phase:?}/target{target}: acknowledged floor preserved"
+                );
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn checksum_valid_impossible_victim_descriptor_is_rejected_before_unlink(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let temp = Temp::new()?;
+        let path = temp.0.join("log");
+        let mut log = retention_seed(&path)?;
+        log.fault = Some((Phase::ManifestRenamed, false));
+        assert!(log.delete_records(3, DeletionGuard::new(5, 5)?).is_err());
+        drop(log);
+        let manifest = path.join(MANIFEST);
+        let mut bytes = read_bounded(&manifest, 4096)?;
+        let selected = count(&bytes, 56)? as usize;
+        let victim = RETENTION_HEADER + selected * DESCRIPTOR_BYTES;
+        // A nonempty journal cannot have a header-only length. Recompute the
+        // checksum to exercise structural victim validation rather than CRC.
+        bytes[victim + 24..victim + 32].copy_from_slice(&24u64.to_be_bytes());
+        let end = bytes.len() - 4;
+        let crc = crc32c::crc32c(&bytes[..end]);
+        bytes[end..].copy_from_slice(&crc.to_be_bytes());
+        File::create(&manifest)?.write_all(&bytes)?;
+        let mut before = Vec::new();
+        for item in fs::read_dir(&path)? {
+            before.push(item?.file_name());
+        }
+        before.sort();
+        assert!(matches!(open(&path), Err(Error::InvalidLayout)));
+        let mut after = Vec::new();
+        for item in fs::read_dir(&path)? {
+            after.push(item?.file_name());
+        }
+        after.sort();
+        assert_eq!(before, after);
+        assert_eq!(read_bounded(&manifest, 4096)?, bytes);
         Ok(())
     }
 }

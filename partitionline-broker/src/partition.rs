@@ -14,6 +14,8 @@ use std::path::Path;
 pub enum Error {
     /// Negative base or recovery output budget smaller than a possible entry.
     InvalidLimits,
+    /// Retention requires explicitly selected rolling storage.
+    RetentionUnsupported,
     /// Input exceeds the configured journal entry bound.
     InputTooLarge,
     /// Assigned offsets exceed the nonnegative signed Kafka offset domain.
@@ -274,6 +276,45 @@ impl Partition {
     pub fn next_offset(&self) -> i64 {
         self.next_offset
     }
+    /// Monotonic logical start; a containing batch may start before this offset.
+    pub fn log_start_offset(&self) -> i64 {
+        match &self.journal {
+            Backend::Journal(log) => log.base_offset() as i64,
+            Backend::Segments(log) => log.log_start_offset(),
+        }
+    }
+    /// Durably advance rolling storage's logical start within caller safety bounds.
+    ///
+    /// Negative values and wire sentinel conversion belong to the caller. Whole
+    /// sealed files ending at/below the requested boundary may be removed; the
+    /// containing batch and active file are preserved. An ambiguous failure
+    /// poisons the rolling handle and reopening completes recorded victims.
+    /// Monolithic journals reject retention without mutating their format.
+    pub fn delete_records(
+        &mut self,
+        offset: i64,
+        guard: segments::DeletionGuard,
+    ) -> Result<segments::DeletionOutcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.delete_records(offset, guard)?),
+            Backend::Journal(_) => Err(Error::RetentionUnsupported),
+        }
+    }
+    /// Explicit bounded whole-prefix age/size sweep on rolling storage.
+    /// No clock task or retention policy is enabled by opening/appending a log.
+    pub fn apply_retention(
+        &mut self,
+        now_ms: i64,
+        policy: segments::RetentionPolicy,
+        guard: segments::DeletionGuard,
+    ) -> Result<segments::DeletionOutcome, Error> {
+        self.check_alive()?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.apply_retention(now_ms, policy, guard)?),
+            Backend::Journal(_) => Err(Error::RetentionUnsupported),
+        }
+    }
     /// Retained atomic journal entries, bounded by the configured index budget.
     pub fn entry_count(&self) -> usize {
         self.journal.entry_count()
@@ -289,7 +330,7 @@ impl Partition {
     ///
     /// The storage owner must serialize this with all append/read operations.
     /// Monolithic storage has no sealed generation and rejects the operation.
-    /// This implements no retention, compaction or Kafka administration API.
+    /// This operation implements no compaction or Kafka administration API.
     pub fn replace_sealed(&mut self, base_offset: i64) -> Result<(), Error> {
         self.check_alive()?;
         let base = u64::try_from(base_offset).map_err(|_| Error::OffsetOverflow)?;

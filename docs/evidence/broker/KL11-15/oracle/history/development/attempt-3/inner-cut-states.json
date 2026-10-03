@@ -1,0 +1,386 @@
+[
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-0/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-0/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-1/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-1/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-2/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/exit-2/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-0/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-0/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-1/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-1/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-2/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/1.85.0/histories/io-2/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-0/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-0/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-1/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-1/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-2/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/exit-2/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-0/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-0/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-1/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-1/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-2/interrupted/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  },
+  {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/stable/histories/io-2/recovered/node.wal",
+    "sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+    "selected": {
+      "generation": "01010101010101010101010101010101",
+      "base": {
+        "term": 2,
+        "index": 2
+      },
+      "records": 2,
+      "payload_bytes": 7,
+      "bytes": 215,
+      "checksum": 3714187908
+    },
+    "committed_end": 3
+  }
+]

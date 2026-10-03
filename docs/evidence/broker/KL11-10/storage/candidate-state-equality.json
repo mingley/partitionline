@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "scope": "two developmental exact-owned-source overlays; final immutable proof pending",
+  "equal_file_count": 566,
+  "histories_per_lane": 46,
+  "states_per_lane": 92,
+  "file_map_sha256": "3275591de281b8c53ec2fd599cd2727b1eaaabfc5c2a3fe895759eff03b115e0"
+}

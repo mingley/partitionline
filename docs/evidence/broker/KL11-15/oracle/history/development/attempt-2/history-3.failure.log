@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py", line 226, in verify
+    require(args["sha256"] == hashlib.sha256(payload).hexdigest(), "proposal digest")
+            ~~~~^^^^^^^^^^
+KeyError: 'sha256'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<stdin>", line 8, in <module>
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py", line 538, in verify
+    raise ValueError(f"event {ordinal} {event.get('kind')}: {error}") from error
+ValueError: event 5 propose: 'sha256'

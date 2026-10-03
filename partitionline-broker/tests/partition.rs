@@ -322,3 +322,80 @@ fn rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_re
     assert_eq!(part.append(BASIC)?.base_offset, 12);
     Ok(())
 }
+
+#[test]
+fn retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor() -> Result {
+    use partitionline_broker::segments::{DeletionGuard, Limits};
+    let temp = Temp::new()?;
+    let mut flat = open(temp.path("flat"), 7)?;
+    flat.append(BASIC)?;
+    let before = read_file(temp.path("flat"))?;
+    assert_eq!(flat.log_start_offset(), 7);
+    assert!(matches!(
+        flat.delete_records(8, DeletionGuard::new(8, 8)?),
+        Err(partition::Error::RetentionUnsupported)
+    ));
+    assert_eq!(read_file(temp.path("flat"))?, before);
+    let limits = Limits::new(150, 8, 4, 2, 1024 * 1024, 65536, 4096)?;
+    let source = journal::Limits::new(1024, 8192, 16, 4096)?;
+    let path = temp.path("rolling-retention");
+    let (mut part, _) =
+        partition::Partition::open_segmented(&path, 7, source, records::Limits::default(), limits)?;
+    part.append(MULTIPLE)?;
+    part.append(BASIC)?;
+    let containing = part.fetch(9, 1, 4096)?;
+    part.delete_records(9, DeletionGuard::new(12, 12)?)?;
+    assert_eq!(part.log_start_offset(), 9);
+    assert_eq!(part.next_offset(), 12);
+    assert!(matches!(
+        part.fetch(8, 1, 4096),
+        Err(partition::Error::Storage(journal::Error::OffsetBeforeBase))
+    ));
+    assert_eq!(part.fetch(9, 1, 4096)?, containing);
+    drop(part);
+    let (mut part, recovery) =
+        partition::Partition::open_segmented(&path, 7, source, records::Limits::default(), limits)?;
+    assert_eq!(recovery.log_start_offset, 9);
+    assert_eq!(part.fetch(10, 1, 4096)?, containing);
+    assert_eq!(part.append(BASIC)?.base_offset, 12);
+    Ok(())
+}
+
+#[test]
+fn partition_retention_preserves_protected_records_and_synchronized_end() -> Result {
+    use partitionline_broker::segments::{
+        DeletionGuard, Error as SegmentError, Limits, RetentionPolicy,
+    };
+    let temp = Temp::new()?;
+    let limits = Limits::new(150, 8, 4, 2, 1024 * 1024, 65536, 4096)?;
+    let source = journal::Limits::new(1024, 8192, 16, 4096)?;
+    let path = temp.path("safe-retention");
+    let (mut part, _) =
+        partition::Partition::open_segmented(&path, 0, source, records::Limits::default(), limits)?;
+    for _ in 0..5 {
+        part.append(BASIC)?;
+    }
+    assert!(matches!(
+        part.delete_records(4, DeletionGuard::new(5, 3)?),
+        Err(partition::Error::Segments(SegmentError::ProtectedRecords))
+    ));
+    assert!(matches!(
+        part.delete_records(5, DeletionGuard::new(4, 5)?),
+        Err(partition::Error::Segments(SegmentError::OffsetOutOfRange))
+    ));
+    assert_eq!(part.log_start_offset(), 0);
+    let policy = RetentionPolicy::new(None, Some(0), 8)?;
+    assert_eq!(
+        part.apply_retention(2000, policy, DeletionGuard::new(4, 3)?)?
+            .log_start_offset,
+        3
+    );
+    assert_eq!(part.next_offset(), 5);
+    assert_eq!(part.fetch(3, 2, 4096)?.len(), 2);
+    drop(part);
+    let (mut part, recovery) =
+        partition::Partition::open_segmented(&path, 0, source, records::Limits::default(), limits)?;
+    assert_eq!(recovery.log_start_offset, 3);
+    assert_eq!(part.fetch(3, 2, 4096)?.len(), 2);
+    Ok(())
+}

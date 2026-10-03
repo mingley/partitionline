@@ -1,0 +1,31 @@
+{
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LogSegment.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LocalLog.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LogConfig.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LogStartOffsetIncrementReason.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LogLoader.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/LogValidator.java",
+    "storage/src/main/java/org/apache/kafka/storage/internals/log/ProducerStateManagerConfig.java",
+    "clients/src/main/java/org/apache/kafka/common/utils/Time.java",
+    "server-common/src/main/java/org/apache/kafka/server/util/Scheduler.java",
+    "server-common/src/main/java/org/apache/kafka/server/util/KafkaScheduler.java",
+    "core/src/main/scala/kafka/cluster/Partition.scala",
+    "core/src/main/scala/kafka/server/KafkaApis.scala",
+    "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+    "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsResponse.java",
+    "clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+    "clients/src/main/resources/common/message/DeleteRecordsResponse.json"
+  ],
+  "record_files": [
+    "FileRecords",
+    "MemoryRecords",
+    "RecordBatch"
+  ],
+  "record_path_4_3": "clients/src/main/java/org/apache/kafka/common/record/internal/",
+  "record_path_older": "clients/src/main/java/org/apache/kafka/common/record/",
+  "reason": "Actual UnifiedLog/LogSegment execution; public clock/scheduler inputs; separate source-only Partition/KafkaApis DeleteRecords facade and no immediate floor checkpoint distinction"
+}

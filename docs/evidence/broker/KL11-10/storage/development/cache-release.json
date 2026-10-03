@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "preserved_binaries": [
+    {
+      "path": "/workspace/work/segments-final-45582234/bin/stable/fetch",
+      "sha256": "d759464d3b7d5058d8d272158c15c79cdc7b495935fc576d2c7f117bc90c3540"
+    },
+    {
+      "path": "/workspace/work/segments-final-45582234/bin/1.85.0/fetch",
+      "sha256": "c9cfb51bc3025a1ec5de8d6f7d985fe62eb4f2da2590d4ea8edeff132dc81683"
+    }
+  ],
+  "active_cache_refs": [],
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cargo",
+    "+stable",
+    "clean",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--target-dir",
+    "/workspace/work/target-broker-segments"
+  ],
+  "exit_code": 0,
+  "source_archives_and_raw_logs_preserved": true
+}

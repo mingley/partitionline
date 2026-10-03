@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "scope": "Source-only guards and explanation, not runtime assertions or full broker execution",
+  "references": [
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "We don't have to write the log start offset to log-start-offset-checkpoint immediately.",
+      "interpretation": "Checkpoint replay is caller-supplied, not a synchronous logical-floor receipt.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 1331,
+          "text": "// We don't have to write the log start offset to log-start-offset-checkpoint immediately."
+        }
+      ]
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "if (newLogStartOffset > highWatermark())",
+      "interpretation": "Logical floor above high watermark rejects.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 1338,
+          "text": "if (newLogStartOffset > highWatermark()) {"
+        }
+      ]
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "if (newLogStartOffset > logStartOffset)",
+      "interpretation": "Monotonic floor update.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 1349,
+          "text": "if (newLogStartOffset > logStartOffset) {"
+        }
+      ]
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "boolean delete = startMs - segment.largestTimestamp() > retentionMs;",
+      "interpretation": "Strict age boundary.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 1982,
+          "text": "boolean delete = startMs - segment.largestTimestamp() > retentionMs;"
+        }
+      ]
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "boolean delete = diff.get() - segmentSize >= 0;",
+      "interpretation": "Whole segment size removal leaves at least target.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 2019,
+          "text": "boolean delete = diff.get() - segmentSize >= 0;"
+        }
+      ]
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "return segment.findOffsetByTimestamp(targetTimestamp, startOffset);",
+      "interpretation": "First historically qualifying segment search returns immediately, including empty result.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "source_sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "matches": [
+        {
+          "line": 1786,
+          "text": "return segment.findOffsetByTimestamp(targetTimestamp, startOffset);"
+        }
+      ]
+    },
+    {
+      "file_suffix": "LogSegment.java",
+      "needle": "return lastModified();",
+      "interpretation": "Negative maximum uses file modification time, unlike conservative local age policy.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/LogSegment.java",
+      "source_sha256": "8828e1097e86f79e7906fbfeeb3b828e2d31158f2ff0bd25404495df3b9a939f",
+      "matches": [
+        {
+          "line": 860,
+          "text": "return lastModified();"
+        }
+      ]
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "offset == DeleteRecordsRequest.HIGH_WATERMARK",
+      "interpretation": "Source-only facade -1 conversion; no executed Partition/controller claim.",
+      "source_file": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "source_sha256": "fd6a8681c94d5cf7c43c8de6a7e554da41dc94814fdb5becb0d652831ff5d8dc",
+      "matches": [
+        {
+          "line": 1525,
+          "text": "val convertedOffset = if (offset == DeleteRecordsRequest.HIGH_WATERMARK)"
+        }
+      ]
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "if (convertedOffset < 0)",
+      "interpretation": "Source-only facade negative-offset rejection.",
+      "source_file": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "source_sha256": "fd6a8681c94d5cf7c43c8de6a7e554da41dc94814fdb5becb0d652831ff5d8dc",
+      "matches": [
+        {
+          "line": 1530,
+          "text": "if (convertedOffset < 0)"
+        }
+      ]
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "leaderLog.maybeIncrementLogStartOffset(convertedOffset, LogStartOffsetIncrementReason.ClientRecordDeletion)",
+      "interpretation": "Source-only facade invokes tested floor component.",
+      "source_file": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "source_sha256": "fd6a8681c94d5cf7c43c8de6a7e554da41dc94814fdb5becb0d652831ff5d8dc",
+      "matches": [
+        {
+          "line": 1533,
+          "text": "leaderLog.maybeIncrementLogStartOffset(convertedOffset, LogStartOffsetIncrementReason.ClientRecordDeletion)"
+        }
+      ]
+    },
+    {
+      "file_suffix": "KafkaApis.scala",
+      "needle": "authorizedForDeleteTopicOffsets += (topicPartition -> offset)",
+      "interpretation": "Source-only mapped duplicate entries replace earlier offsets; ordering unspecified.",
+      "source_file": "core/src/main/scala/kafka/server/KafkaApis.scala",
+      "source_sha256": "16907072bbddf8884557db74460bacf3ff2521ac4e7e948110dc77d52c538ac2",
+      "matches": [
+        {
+          "line": 1554,
+          "text": "authorizedForDeleteTopicOffsets += (topicPartition -> offset)"
+        }
+      ]
+    },
+    {
+      "file_suffix": "LogConfig.java",
+      "needle": "defineInternal(INTERNAL_SEGMENT_BYTES_CONFIG",
+      "interpretation": "Small test segment size uses the pinned public internal configuration override; production topic minimum is larger.",
+      "source_file": "storage/src/main/java/org/apache/kafka/storage/internals/log/LogConfig.java",
+      "source_sha256": "a586a92c896a8b0e8c83b8df970847d3d5156c08cf1af8d17367694a4db92861",
+      "matches": [
+        {
+          "line": 250,
+          "text": ".defineInternal(INTERNAL_SEGMENT_BYTES_CONFIG, INT, null, null, MEDIUM, INTERNAL_SEGMENT_BYTES_DOC);"
+        }
+      ]
+    }
+  ]
+}

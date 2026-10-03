@@ -525,3 +525,293 @@ fn sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets() -
     }
     Ok(())
 }
+
+#[test]
+fn logical_floor_preserves_containing_input_and_only_explicitly_migrates_layout() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 8)?;
+    let mut assigned = MULTIPLE.to_vec();
+    assigned[74..82].copy_from_slice(&1i64.to_be_bytes());
+    log.append(4, &assigned)?;
+    log.append(1, &payload(4, 1000))?;
+    assert_eq!(&read_file(temp.log().join("manifest"))?[..8], b"PLSEGM01");
+    let guard = segments::DeletionGuard::new(5, 5)?;
+    let deleted = log.delete_records(2, guard)?;
+    assert_eq!(deleted.log_start_offset, 2);
+    assert_eq!(deleted.reclaimed_files, 0);
+    assert_eq!(log.segment_count(), 2);
+    assert_eq!(&read_file(temp.log().join("manifest"))?[..8], b"PLSEGM02");
+    assert!(matches!(
+        log.fetch(1, 1, 4096),
+        Err(segments::Error::Storage(journal::Error::OffsetBeforeBase))
+    ));
+    assert_eq!(log.fetch(2, 1, 4096)?[0].payload, assigned);
+    assert_eq!(log.timestamp_start(0)?, 2);
+    let manifest = read_file(temp.log().join("manifest"))?;
+    assert_eq!(log.delete_records(0, guard)?.log_start_offset, 2);
+    assert_eq!(read_file(temp.log().join("manifest"))?, manifest);
+    drop(log);
+    let (mut log, recovery) = open(temp.log(), 8)?;
+    assert_eq!(recovery.log_start_offset, 2);
+    assert_eq!(log.next_offset(), 5);
+    assert_eq!(log.fetch(3, 1, 4096)?[0].payload, assigned);
+    let before = log.disk_bytes()?;
+    let deleted = log.delete_records(4, guard)?;
+    assert_eq!(deleted.reclaimed_files, 2);
+    assert!(deleted.reclaimed_bytes > assigned.len() as u64);
+    assert!(log.disk_bytes()? < before);
+    assert_eq!(log.segment_count(), 1);
+    log.append(1, &payload(5, 1001))?;
+    drop(log);
+    let (mut log, recovery) = open(temp.log(), 8)?;
+    assert_eq!(recovery.log_start_offset, 4);
+    assert_eq!(recovery.removed_retention_files, 0);
+    assert_eq!(log.fetch(4, 2, 4096)?.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn deletion_guards_reject_unconfirmed_and_protected_ranges_before_mutation() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 8)?;
+    for n in 0..5 {
+        log.append(1, &payload(n, 1000))?;
+    }
+    let before = read_file(temp.log().join("manifest"))?;
+    assert!(segments::DeletionGuard::new(-1, 5).is_err());
+    for (offset, guard, kind) in [
+        (-1, segments::DeletionGuard::new(5, 5)?, "range"),
+        (5, segments::DeletionGuard::new(4, 5)?, "range"),
+        (4, segments::DeletionGuard::new(5, 3)?, "protected"),
+        (2, segments::DeletionGuard::new(6, 5)?, "bounds"),
+    ] {
+        let error = log.delete_records(offset, guard).unwrap_err();
+        assert!(matches!(
+            (kind, error),
+            ("range", segments::Error::OffsetOutOfRange)
+                | ("protected", segments::Error::ProtectedRecords)
+                | ("bounds", segments::Error::InvalidRetentionBounds)
+        ));
+        assert_eq!(read_file(temp.log().join("manifest"))?, before);
+        assert_eq!(log.log_start_offset(), 0);
+        assert_eq!(log.next_offset(), 5);
+        assert!(!log.is_poisoned());
+    }
+    let outcome = log.delete_records(3, segments::DeletionGuard::new(4, 3)?)?;
+    assert_eq!(outcome.reclaimed_files, 6);
+    assert_eq!(log.fetch(3, 2, 4096)?.len(), 2);
+    assert!(matches!(
+        log.delete_records(3, segments::DeletionGuard::new(2, 5)?),
+        Err(segments::Error::InvalidRetentionBounds)
+    ));
+    Ok(())
+}
+
+#[test]
+fn age_is_strict_prefix_ordered_and_size_keeps_whole_segment_target() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 16)?;
+    // A newer prefix member blocks an older later segment. Retention cannot
+    // create a hole merely because a later timestamp regresses.
+    for (n, time) in [1000, 1007, 999, 1010, 1000].iter().enumerate() {
+        log.append(1, &payload(n as u64, *time))?;
+    }
+    let guard = segments::DeletionGuard::new(5, 5)?;
+    let age = segments::RetentionPolicy::new(Some(10), None, 16)?;
+    assert_eq!(log.apply_retention(1010, age, guard)?.log_start_offset, 0);
+    assert_eq!(log.apply_retention(1011, age, guard)?.log_start_offset, 1);
+    assert_eq!(log.apply_retention(1018, age, guard)?.log_start_offset, 3);
+    assert_eq!(log.fetch(3, 2, 4096)?.len(), 2);
+    let size = segments::RetentionPolicy::new(None, Some(BASIC.len() as u64 + 1), 16)?;
+    // Two remaining payloads; removing one would undershoot the target.
+    assert_eq!(log.apply_retention(2000, size, guard)?.reclaimed_files, 0);
+    let exact = segments::RetentionPolicy::new(None, Some(BASIC.len() as u64), 16)?;
+    assert_eq!(log.apply_retention(2000, exact, guard)?.log_start_offset, 4);
+    assert_eq!(log.segment_count(), 1);
+    assert_eq!(log.next_offset(), 5);
+    Ok(())
+}
+
+#[test]
+fn sweep_limit_and_protected_boundary_bound_physical_prefix_progress() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 16)?;
+    for n in 0..6 {
+        log.append(1, &payload(n, 1000))?;
+    }
+    let policy = segments::RetentionPolicy::new(Some(0), Some(0), 1)?;
+    let protected = segments::DeletionGuard::new(6, 2)?;
+    assert_eq!(
+        log.apply_retention(1001, policy, protected)?
+            .log_start_offset,
+        1
+    );
+    assert_eq!(
+        log.apply_retention(1001, policy, protected)?
+            .log_start_offset,
+        2
+    );
+    let unchanged = read_file(temp.log().join("manifest"))?;
+    assert_eq!(
+        log.apply_retention(1001, policy, protected)?
+            .reclaimed_files,
+        0
+    );
+    assert_eq!(read_file(temp.log().join("manifest"))?, unchanged);
+    assert_eq!(log.fetch(2, 4, 4096)?.len(), 4);
+    drop(log);
+    let (mut log, recovery) = open(temp.log(), 16)?;
+    assert_eq!(recovery.log_start_offset, 2);
+    assert_eq!(
+        log.apply_retention(1001, policy, segments::DeletionGuard::new(6, 6)?)?
+            .log_start_offset,
+        3
+    );
+    Ok(())
+}
+
+#[test]
+fn end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 8)?;
+    log.append(1, &payload(0, 1000))?;
+    let deleted = log.delete_records(1, segments::DeletionGuard::new(1, 1)?)?;
+    assert_eq!(deleted.reclaimed_files, 1);
+    assert_eq!(log.segment_count(), 1);
+    assert!(log.fetch(1, 1, 4096)?.is_empty());
+    log.append(1, &payload(1, 1001))?;
+    assert_eq!(log.segment_count(), 1);
+    let guard = segments::DeletionGuard::new(2, 2)?;
+    let disabled = segments::RetentionPolicy::new(None, None, 1)?;
+    assert_eq!(
+        log.apply_retention(2000, disabled, guard)?.reclaimed_files,
+        0
+    );
+    let outcome = log.apply_retention(
+        2000,
+        segments::RetentionPolicy::new(Some(0), None, 1)?,
+        guard,
+    )?;
+    assert_eq!(outcome.log_start_offset, 2);
+    assert_eq!(outcome.reclaimed_files, 1);
+    assert_eq!(log.segment_count(), 1);
+    assert!(log.fetch(2, 1, 4096)?.is_empty());
+    drop(log);
+    let (log, recovery) = open(temp.log(), 8)?;
+    assert_eq!(log.log_start_offset(), 2);
+    assert_eq!(recovery.next_offset, 2);
+    Ok(())
+}
+
+#[test]
+fn one_segment_limit_can_reclaim_active_and_continue_appending() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 1)?;
+    for n in 0..8 {
+        log.append(1, &payload(n, 1000))?;
+        let result = log.delete_records(
+            n as i64 + 1,
+            segments::DeletionGuard::new(n as i64 + 1, n as i64 + 1)?,
+        )?;
+        assert_eq!(result.reclaimed_files, 1);
+        assert_eq!(log.segment_count(), 1);
+        assert_eq!(files(&temp.log(), ".journal")?.len(), 1);
+        assert!(log.retained_index_bytes() <= limits(1)?.max_index_bytes());
+        assert!(log.disk_bytes()? < 256);
+    }
+    drop(log);
+    let (mut log, recovery) = open(temp.log(), 1)?;
+    assert_eq!(recovery.log_start_offset, 8);
+    assert_eq!(log.next_offset(), 8);
+    log.append(1, &payload(8, 1000))?;
+    assert_eq!(log.fetch(8, 1, 4096)?[0].payload, payload(8, 1000));
+    Ok(())
+}
+
+#[test]
+fn v2_corrupt_floor_or_victim_descriptors_fail_closed_with_valid_checksum() -> Result {
+    for field in [24, 32, 60] {
+        let temp = Temp::new()?;
+        let (mut log, _) = open(temp.log(), 8)?;
+        for n in 0..3 {
+            log.append(1, &payload(n, 1000))?;
+        }
+        log.delete_records(1, segments::DeletionGuard::new(3, 3)?)?;
+        drop(log);
+        let path = temp.log().join("manifest");
+        let mut bytes = read_file(&path)?;
+        if field == 60 {
+            bytes[field..field + 4].copy_from_slice(&1u32.to_be_bytes());
+        } else {
+            bytes[field..field + 8].copy_from_slice(&4u64.to_be_bytes());
+        }
+        let end = bytes.len() - 4;
+        let crc = crc32c::crc32c(&bytes[..end]);
+        bytes[end..].copy_from_slice(&crc.to_be_bytes());
+        write_file(&path, &bytes)?;
+        assert!(open(temp.log(), 8).is_err(), "field{field}");
+        assert_eq!(read_file(&path)?, bytes);
+    }
+    Ok(())
+}
+
+#[test]
+fn unknown_negative_timestamps_have_no_age_clock_but_size_and_guarded_delete_work() -> Result {
+    let temp = Temp::new()?;
+    let (mut log, _) = open(temp.log(), 8)?;
+    for (n, time) in [-1, -1000, 1000].iter().enumerate() {
+        log.append(1, &payload(n as u64, *time))?;
+    }
+    let guard = segments::DeletionGuard::new(3, 3)?;
+    let age = segments::RetentionPolicy::new(Some(0), None, 8)?;
+    let before = read_file(temp.log().join("manifest"))?;
+    // Even an old filesystem modification time cannot manufacture a verified
+    // clock for unknown timestamps. A negative prefix also blocks a later
+    // otherwise age-eligible segment instead of creating a hole.
+    for file in files(&temp.log(), ".journal")? {
+        fs::File::open(file)?.set_modified(std::time::UNIX_EPOCH)?;
+    }
+    assert_eq!(
+        log.apply_retention(i64::MAX, age, guard)?.reclaimed_files,
+        0
+    );
+    assert_eq!(read_file(temp.log().join("manifest"))?, before);
+    log.replace_sealed(0)?;
+    assert_eq!(
+        log.apply_retention(i64::MAX, age, guard)?.log_start_offset,
+        0
+    );
+    drop(log);
+    let (mut log, _) = open(temp.log(), 8)?;
+    assert_eq!(
+        log.apply_retention(i64::MAX, age, guard)?.reclaimed_files,
+        0
+    );
+    assert_eq!(log.fetch(0, 3, 4096)?.len(), 3);
+    let size = segments::RetentionPolicy::new(None, Some(BASIC.len() as u64 * 2), 8)?;
+    assert_eq!(log.apply_retention(2000, size, guard)?.log_start_offset, 1);
+    assert_eq!(log.delete_records(2, guard)?.log_start_offset, 2);
+    assert_eq!(log.apply_retention(1001, age, guard)?.log_start_offset, 3);
+    assert_eq!(log.segment_count(), 1);
+    assert!(log.fetch(3, 1, 4096)?.is_empty());
+
+    let single = Temp::new()?;
+    let (mut log, _) = open(single.log(), 1)?;
+    log.append(1, &payload(0, -1))?;
+    let guard = segments::DeletionGuard::new(1, 1)?;
+    assert_eq!(
+        log.apply_retention(i64::MAX, age, guard)?.reclaimed_files,
+        0
+    );
+    assert_eq!(log.fetch(0, 1, 4096)?[0].payload, payload(0, -1));
+    assert_eq!(
+        log.apply_retention(
+            2000,
+            segments::RetentionPolicy::new(None, Some(0), 1)?,
+            guard
+        )?
+        .log_start_offset,
+        1
+    );
+    Ok(())
+}

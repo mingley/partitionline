@@ -1,0 +1,2790 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Actual official UnifiedLog/LogSegment components; no full Kafka broker or partitionline durability qualification",
+  "probe_sha256": "6baf400bff87c3453a8c3d6f5975b92c6bb93942faffff5d7b798a6993c76d35",
+  "runner_sha256": "3b7e26c34e1f078b114c1b85ed4174f9b3f4766a7190786a0b3c4ad0d3d83020",
+  "pins_sha256": "3cfe94fbaa655092a31a4694148f00b9504a42863b313d4fc4d83022d156389b",
+  "source_selection_sha256": "8d1295e3687114295b02dcb2e55bc9e264611ccdb8c5e9ae85ddd8153d20936a",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.032,
+      "stdout": "java-version.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "java-version.stderr",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2",
+        "/workspace/work/retention-apache/development-matrix-01/adapted/4.1.2/ApacheRetentionProbe.java"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.669,
+      "stdout": "4.1.2-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.1.2-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.1.2-replay-1",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.468,
+      "stdout": "4.1.2-replay-1.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.1.2-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.1.2-replay-2",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.469,
+      "stdout": "4.1.2-replay-2.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.1.2-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.1.2-wrong-floor",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2",
+        "--wrong-floor"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.319,
+      "stdout": "4.1.2-wrong-floor.stdout",
+      "stdout_sha256": "4d41e5bd497544921d79fd71135b9e3208ac7dd5d4ec23678d1e45bd36d20d28",
+      "stderr": "4.1.2-wrong-floor.stderr",
+      "stderr_sha256": "273474596856a5b3f62d21f905da6edb9c17a969a65ad5493b8e354cafe38ce1"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.1.2-wrong-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2",
+        "--wrong-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.415,
+      "stdout": "4.1.2-wrong-age.stdout",
+      "stdout_sha256": "fcbd02b0a29a6ff2bd87875f6f08d7ba21a4b611abe5aef3b0db6cbcd69a3f65",
+      "stderr": "4.1.2-wrong-age.stderr",
+      "stderr_sha256": "e0396e414499310c141f084d0023e9c407a1834cfab2c806ecba2c483c148d04"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.1.2-wrong-size",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2",
+        "--wrong-size"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.42,
+      "stdout": "4.1.2-wrong-size.stdout",
+      "stdout_sha256": "3b836a73c4f2413aa7ccff363e22e7a9197d4e77ebfd48e20d04184bfd81c039",
+      "stderr": "4.1.2-wrong-size.stderr",
+      "stderr_sha256": "7ac0de88cf3a1ef3b1831a224557168562d4dd47184804005decf35cbaa195a6"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.1.2:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.1.2-wrong-unknown-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.1.2",
+        "--wrong-unknown-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.422,
+      "stdout": "4.1.2-wrong-unknown-age.stdout",
+      "stdout_sha256": "15012c56d71adc3042c871ade163d1fc02baa8563c8913ca5134ecca5a95029a",
+      "stderr": "4.1.2-wrong-unknown-age.stderr",
+      "stderr_sha256": "fe31d5f430067e73f732714ac8eae16950a36120b26e045e7c6a095cbe53dd75"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1",
+        "/workspace/work/retention-apache/development-matrix-01/adapted/4.2.1/ApacheRetentionProbe.java"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.667,
+      "stdout": "4.2.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.2.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.2.1-replay-1",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.569,
+      "stdout": "4.2.1-replay-1.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.2.1-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.2.1-replay-2",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.515,
+      "stdout": "4.2.1-replay-2.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.2.1-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.2.1-wrong-floor",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1",
+        "--wrong-floor"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.365,
+      "stdout": "4.2.1-wrong-floor.stdout",
+      "stdout_sha256": "4d41e5bd497544921d79fd71135b9e3208ac7dd5d4ec23678d1e45bd36d20d28",
+      "stderr": "4.2.1-wrong-floor.stderr",
+      "stderr_sha256": "273474596856a5b3f62d21f905da6edb9c17a969a65ad5493b8e354cafe38ce1"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.2.1-wrong-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1",
+        "--wrong-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.415,
+      "stdout": "4.2.1-wrong-age.stdout",
+      "stdout_sha256": "fcbd02b0a29a6ff2bd87875f6f08d7ba21a4b611abe5aef3b0db6cbcd69a3f65",
+      "stderr": "4.2.1-wrong-age.stderr",
+      "stderr_sha256": "e0396e414499310c141f084d0023e9c407a1834cfab2c806ecba2c483c148d04"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.2.1-wrong-size",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1",
+        "--wrong-size"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.415,
+      "stdout": "4.2.1-wrong-size.stdout",
+      "stdout_sha256": "3b836a73c4f2413aa7ccff363e22e7a9197d4e77ebfd48e20d04184bfd81c039",
+      "stderr": "4.2.1-wrong-size.stderr",
+      "stderr_sha256": "7ac0de88cf3a1ef3b1831a224557168562d4dd47184804005decf35cbaa195a6"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.2.1:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.2.1-wrong-unknown-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.2.1",
+        "--wrong-unknown-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.515,
+      "stdout": "4.2.1-wrong-unknown-age.stdout",
+      "stdout_sha256": "15012c56d71adc3042c871ade163d1fc02baa8563c8913ca5134ecca5a95029a",
+      "stderr": "4.2.1-wrong-unknown-age.stderr",
+      "stderr_sha256": "fe31d5f430067e73f732714ac8eae16950a36120b26e045e7c6a095cbe53dd75"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1",
+        "/workspace/work/retention-apache/development-matrix-01/adapted/4.3.1/ApacheRetentionProbe.java"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.666,
+      "stdout": "4.3.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.3.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.3.1-replay-1",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.465,
+      "stdout": "4.3.1-replay-1.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.3.1-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/retention-4.3.1-replay-2",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.466,
+      "stdout": "4.3.1-replay-2.stdout",
+      "stdout_sha256": "0a35c6039a1ad83dcd72a4f360b86e686f7b33730eb0c891a67b52f1e1c3634e",
+      "stderr": "4.3.1-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.3.1-wrong-floor",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1",
+        "--wrong-floor"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.365,
+      "stdout": "4.3.1-wrong-floor.stdout",
+      "stdout_sha256": "4d41e5bd497544921d79fd71135b9e3208ac7dd5d4ec23678d1e45bd36d20d28",
+      "stderr": "4.3.1-wrong-floor.stderr",
+      "stderr_sha256": "273474596856a5b3f62d21f905da6edb9c17a969a65ad5493b8e354cafe38ce1"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.3.1-wrong-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1",
+        "--wrong-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.415,
+      "stdout": "4.3.1-wrong-age.stdout",
+      "stdout_sha256": "fcbd02b0a29a6ff2bd87875f6f08d7ba21a4b611abe5aef3b0db6cbcd69a3f65",
+      "stderr": "4.3.1-wrong-age.stderr",
+      "stderr_sha256": "e0396e414499310c141f084d0023e9c407a1834cfab2c806ecba2c483c148d04"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.3.1-wrong-size",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1",
+        "--wrong-size"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.465,
+      "stdout": "4.3.1-wrong-size.stdout",
+      "stdout_sha256": "3b836a73c4f2413aa7ccff363e22e7a9197d4e77ebfd48e20d04184bfd81c039",
+      "stderr": "4.3.1-wrong-size.stderr",
+      "stderr_sha256": "7ac0de88cf3a1ef3b1831a224557168562d4dd47184804005decf35cbaa195a6"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-apache/development-matrix-01/classes/4.3.1:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/development-matrix-01/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheRetentionProbe",
+        "/workspace/work/retention-apache/development-matrix-01/negative-4.3.1-wrong-unknown-age",
+        "/workspace/work/retention-apache/development-matrix-01/seeds/4.3.1",
+        "--wrong-unknown-age"
+      ],
+      "cwd": "/workspace/work/retention-apache/development-matrix-01",
+      "exit_code": 1,
+      "expected": "named deliberate assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.465,
+      "stdout": "4.3.1-wrong-unknown-age.stdout",
+      "stdout_sha256": "15012c56d71adc3042c871ade163d1fc02baa8563c8913ca5134ecca5a95029a",
+      "stderr": "4.3.1-wrong-unknown-age.stderr",
+      "stderr_sha256": "fe31d5f430067e73f732714ac8eae16950a36120b26e045e7c6a095cbe53dd75"
+    }
+  ],
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "retained_archive": "apache-components-4.1.2.tar.gz",
+      "retained_archive_sha256": "d6abb2b67ff9a9b90154d3e9e4ab26c4ebcd2c67da18de0ac401910595d2ac79",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/record/FileRecords.java": "5232fceb7d7e17885449524633cb67a203f99d8317ad4cbd0af5a433c48ad8c2",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecords.java": "91e2bdf8c50b8c4b18711faa0f9155ba36594baaece33c9d8f08ec81b3eb53fd",
+        "clients/src/main/java/org/apache/kafka/common/record/RecordBatch.java": "65c27cfebb58c51702e94d4788c9613006d64c43a80427819715f84b4d6494d2",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsResponse.java": "8690e334529132e5e4de57a1de5f2731a8996e94412c34689fd0ce3ee3ce7e5e",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/DeleteRecordsRequest.json": "d0803d9643a3d9e58a3e2c83c5e429ee3dd9d9bd6279f73a3d57f5d980198f56",
+        "clients/src/main/resources/common/message/DeleteRecordsResponse.json": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+        "core/src/main/scala/kafka/cluster/Partition.scala": "ffeb9bae9386191d82f9ebc7549b8bee17ca7d84098134b003523f647c46c9de",
+        "core/src/main/scala/kafka/server/KafkaApis.scala": "130b24805702460598f3f0cedcf33cd149f607e351018d5e9d391ee7fb69439d",
+        "server-common/src/main/java/org/apache/kafka/server/util/KafkaScheduler.java": "c4ecccd4c5ff461e77abdc7e141795c11d9607e6d995459f534b01085d9d358f",
+        "server-common/src/main/java/org/apache/kafka/server/util/Scheduler.java": "a992bca86350dfd795943879c8b3a32d2a77d079377c2baeb9781e47cc15e858",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LocalLog.java": "45e71e11cd06df3e1f33176a0c7b47e1616288f307e06cfb37fa72ea621f1dc4",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogConfig.java": "06b6f9823c2ae0269e3d840e2746c8bf04bb5c4151a621895a4b92e18ed35616",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogLoader.java": "a7246637d1ad14894684bddb561b2d419469aec7f36abcd836f1ab11ac16b1d9",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogSegment.java": "a7761bb4a541934ce5367a2c1af403d41d2a075cb93e5b57f5fc02a916ad6af3",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogStartOffsetIncrementReason.java": "f8c1f36a21306dcf1c57c03e31854c48d9ffc26e518cc76dd009dc5a9acf6b89",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogValidator.java": "5c63c41e014ec9d5eb5cdc340006fd025a79b87e64fc079246f55ac28af7f3c9",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/ProducerStateManagerConfig.java": "22c755acc98abfba7c88ade5e8fb93c1d1e21c5c312a7ab4a4fef5c27d962cec",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java": "8046d72f5c1699dff3c5548a2e0f9581761a3ac608f245b92fa913736e56878d"
+      },
+      "jars": {
+        "kafka-storage-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-4.1.2.jar",
+          "bytes": 591039,
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        "kafka-storage-api-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-api-4.1.2.jar",
+          "bytes": 26987,
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        "kafka-server-common-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar",
+          "bytes": 371073,
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        "kafka-clients-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "seeds_sha256": {
+        "log-batch-0.bin": "61dae9007a52f260109d8cc3f566c6706393dc899258285b04fdfd24f61024af",
+        "log-batch-3.bin": "cf998bb21286d4515cd911f653a24f09211a931065ed1cfaa5e318a7bbb2adbd"
+      },
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 3
+        }
+      ],
+      "adapted_source_file": "ApacheRetentionProbe-4.1.2.adapted.java",
+      "adapted_source_sha256": "3cf06c9dbee0f85eae91185964a3d79294a48d2b613c2830f52436f1cc7d7ff1",
+      "compiled_class_sha256": {
+        "ApacheRetentionProbe$Clock.class": "8b4601ebb72a8261317a81fcc6a257fb6ccd54c246492b2953891e4cf5b52cb0",
+        "ApacheRetentionProbe$Fixture.class": "cb23f885b520a7441aa7bd442d7c2dd3ca348a824d50b875aba30755055f6fd3",
+        "ApacheRetentionProbe.class": "48049155c4d9e8d0346cca60f3ded9d09fd05ac31a7f5b4a8342f85fe6890e7e"
+      },
+      "raw_histories": [
+        {
+          "file": "4.1.2-replay-1.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "file": "4.1.2-replay-2.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "deliberate_failures": [
+        {
+          "option": "--wrong-floor",
+          "case": "floor.logical",
+          "actual": "2",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-age",
+          "case": "age.strict-equality-keeps",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-size",
+          "case": "size.target-79-whole-removal",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-unknown-age",
+          "case": "unknown.apache-mtime-one-ms-over-deletes",
+          "actual": "1",
+          "incorrect_expected": "0"
+        }
+      ],
+      "positive_checks_per_replay": 67,
+      "positive_replays": 2
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "embedded_client_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "retained_archive": "apache-components-4.2.1.tar.gz",
+      "retained_archive_sha256": "6736cc3b9cbf1e4c485f54a4bdfbd57e019d4a91c59e104097557e668149f407",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/record/FileRecords.java": "5232fceb7d7e17885449524633cb67a203f99d8317ad4cbd0af5a433c48ad8c2",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecords.java": "819fe7e89337dd0b3feb9b95ca9db9686598c62e2f184a4a8ef7f0e797ff85d8",
+        "clients/src/main/java/org/apache/kafka/common/record/RecordBatch.java": "65c27cfebb58c51702e94d4788c9613006d64c43a80427819715f84b4d6494d2",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsResponse.java": "8690e334529132e5e4de57a1de5f2731a8996e94412c34689fd0ce3ee3ce7e5e",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/DeleteRecordsRequest.json": "f674928482624112db4af9c114339918c42b0f74263aaa168b776d0677ca23f9",
+        "clients/src/main/resources/common/message/DeleteRecordsResponse.json": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+        "core/src/main/scala/kafka/cluster/Partition.scala": "fd6a8681c94d5cf7c43c8de6a7e554da41dc94814fdb5becb0d652831ff5d8dc",
+        "core/src/main/scala/kafka/server/KafkaApis.scala": "16907072bbddf8884557db74460bacf3ff2521ac4e7e948110dc77d52c538ac2",
+        "server-common/src/main/java/org/apache/kafka/server/util/KafkaScheduler.java": "c4ecccd4c5ff461e77abdc7e141795c11d9607e6d995459f534b01085d9d358f",
+        "server-common/src/main/java/org/apache/kafka/server/util/Scheduler.java": "a992bca86350dfd795943879c8b3a32d2a77d079377c2baeb9781e47cc15e858",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LocalLog.java": "914a0c90ff36489141a168081dfaecbb04bf40fed850646bd9b91a231c3fc0fb",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogConfig.java": "a586a92c896a8b0e8c83b8df970847d3d5156c08cf1af8d17367694a4db92861",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogLoader.java": "0c35e1a74c42e4d54fbb7339a618572a40738efbde8ac7bb7c8c92fe6f0207b7",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogSegment.java": "8828e1097e86f79e7906fbfeeb3b828e2d31158f2ff0bd25404495df3b9a939f",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogStartOffsetIncrementReason.java": "f8c1f36a21306dcf1c57c03e31854c48d9ffc26e518cc76dd009dc5a9acf6b89",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogValidator.java": "78b674609b63d8f3a13518c1f4a12de21854728ead53cb2ac78036af81aa0e15",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/ProducerStateManagerConfig.java": "22c755acc98abfba7c88ade5e8fb93c1d1e21c5c312a7ab4a4fef5c27d962cec",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16"
+      },
+      "jars": {
+        "kafka-storage-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-4.2.1.jar",
+          "bytes": 604826,
+          "sha256": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767"
+        },
+        "kafka-storage-api-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-api-4.2.1.jar",
+          "bytes": 28388,
+          "sha256": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d"
+        },
+        "kafka-server-common-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-server-common-4.2.1.jar",
+          "bytes": 384007,
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        "kafka-clients-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "seeds_sha256": {
+        "log-batch-0.bin": "61dae9007a52f260109d8cc3f566c6706393dc899258285b04fdfd24f61024af",
+        "log-batch-3.bin": "cf998bb21286d4515cd911f653a24f09211a931065ed1cfaa5e318a7bbb2adbd"
+      },
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 3
+        }
+      ],
+      "adapted_source_file": "ApacheRetentionProbe-4.2.1.adapted.java",
+      "adapted_source_sha256": "3cf06c9dbee0f85eae91185964a3d79294a48d2b613c2830f52436f1cc7d7ff1",
+      "compiled_class_sha256": {
+        "ApacheRetentionProbe$Clock.class": "8b4601ebb72a8261317a81fcc6a257fb6ccd54c246492b2953891e4cf5b52cb0",
+        "ApacheRetentionProbe$Fixture.class": "cb23f885b520a7441aa7bd442d7c2dd3ca348a824d50b875aba30755055f6fd3",
+        "ApacheRetentionProbe.class": "48049155c4d9e8d0346cca60f3ded9d09fd05ac31a7f5b4a8342f85fe6890e7e"
+      },
+      "raw_histories": [
+        {
+          "file": "4.2.1-replay-1.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "file": "4.2.1-replay-2.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "deliberate_failures": [
+        {
+          "option": "--wrong-floor",
+          "case": "floor.logical",
+          "actual": "2",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-age",
+          "case": "age.strict-equality-keeps",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-size",
+          "case": "size.target-79-whole-removal",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-unknown-age",
+          "case": "unknown.apache-mtime-one-ms-over-deletes",
+          "actual": "1",
+          "incorrect_expected": "0"
+        }
+      ],
+      "positive_checks_per_replay": 67,
+      "positive_replays": 2
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "embedded_client_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "retained_archive": "apache-components-4.3.1.tar.gz",
+      "retained_archive_sha256": "784d654462c72784ead4819435694a301e4a26318894b8a957ed0e7c05f7913d",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/FileRecords.java": "4e20b7c4cbc51f547611b8365b7c1d7903bd72c480959b434392bdf50515065a",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/MemoryRecords.java": "a2bd3ba79511315971eeaac6645722b249bf9b1ac83549522442cd5f3e33d724",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/RecordBatch.java": "b22b12e27debe24645e70199b7ec227901df5d45fb02d1cc497c0205bcac8b7f",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+        "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsResponse.java": "8690e334529132e5e4de57a1de5f2731a8996e94412c34689fd0ce3ee3ce7e5e",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/DeleteRecordsRequest.json": "f674928482624112db4af9c114339918c42b0f74263aaa168b776d0677ca23f9",
+        "clients/src/main/resources/common/message/DeleteRecordsResponse.json": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+        "core/src/main/scala/kafka/cluster/Partition.scala": "7953a613ae11a5d4e25d79400d7eb022d2921ed0d8418d3397600efe506bbe58",
+        "core/src/main/scala/kafka/server/KafkaApis.scala": "f93449b57e580b8460fd5179d64c192efe7c3dc009bb3a454610e2fb232f83ca",
+        "server-common/src/main/java/org/apache/kafka/server/util/KafkaScheduler.java": "c4ecccd4c5ff461e77abdc7e141795c11d9607e6d995459f534b01085d9d358f",
+        "server-common/src/main/java/org/apache/kafka/server/util/Scheduler.java": "a992bca86350dfd795943879c8b3a32d2a77d079377c2baeb9781e47cc15e858",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LocalLog.java": "ec80fc34c0c0c7dbc55bb25acf1fbc28f99a5a08dc275a418e37356ad7e2e703",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogConfig.java": "49b97b3278c897ec4d71835164a07e84a717e39cd638eda4a4c66454f85a14d9",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogLoader.java": "0c35e1a74c42e4d54fbb7339a618572a40738efbde8ac7bb7c8c92fe6f0207b7",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogSegment.java": "829e947774953fdf88578c076aced031012949ac216a0bf4534d10e2080ff5c2",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogStartOffsetIncrementReason.java": "f8c1f36a21306dcf1c57c03e31854c48d9ffc26e518cc76dd009dc5a9acf6b89",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogValidator.java": "8e09abcefe48a4dff44c50a39283e49e33f879fb3ca88c69127946bf4c7da68b",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/ProducerStateManagerConfig.java": "22c755acc98abfba7c88ade5e8fb93c1d1e21c5c312a7ab4a4fef5c27d962cec",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java": "264cc9ec5245a6c0b4dc12b345e93f6e2c1d224b863b443c871532d78966066e"
+      },
+      "jars": {
+        "kafka-storage-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-4.3.1.jar",
+          "bytes": 610223,
+          "sha256": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7"
+        },
+        "kafka-storage-api-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-api-4.3.1.jar",
+          "bytes": 28500,
+          "sha256": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9"
+        },
+        "kafka-server-common-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-server-common-4.3.1.jar",
+          "bytes": 389964,
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        "kafka-clients-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "seeds_sha256": {
+        "log-batch-0.bin": "61dae9007a52f260109d8cc3f566c6706393dc899258285b04fdfd24f61024af",
+        "log-batch-3.bin": "cf998bb21286d4515cd911f653a24f09211a931065ed1cfaa5e318a7bbb2adbd"
+      },
+      "api_adaptations": [],
+      "adapted_source_file": "ApacheRetentionProbe-4.3.1.adapted.java",
+      "adapted_source_sha256": "6baf400bff87c3453a8c3d6f5975b92c6bb93942faffff5d7b798a6993c76d35",
+      "compiled_class_sha256": {
+        "ApacheRetentionProbe$Clock.class": "8b4601ebb72a8261317a81fcc6a257fb6ccd54c246492b2953891e4cf5b52cb0",
+        "ApacheRetentionProbe$Fixture.class": "ca6c5683f5714aaa9452c463e6a7b983825dda229a9fe8e6cce9e0969064805b",
+        "ApacheRetentionProbe.class": "d332cce489c93ae6da370eba116ac14df738246bafda2bc2d673591da2d4ecda"
+      },
+      "raw_histories": [
+        {
+          "file": "4.3.1-replay-1.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "file": "4.3.1-replay-2.history.tar.gz",
+          "sha256": "f4b9117f391206ad397bb6741e825b8d4d0a32fe177fc8023d2c185d547b7811",
+          "files": {
+            "active-expiry/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "active-expiry/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "active-expiry/alpha-0/00000000000000000003.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000003.log.deleted": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "active-expiry/alpha-0/00000000000000000003.snapshot.deleted": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000003.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "active-expiry/alpha-0/00000000000000000004.log": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "active-expiry/alpha-0/00000000000000000004.timeindex": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "active-expiry/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "active-expiry/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "age/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "age/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "age/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "age/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "age/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "age/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "floor/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "floor/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "floor/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "floor/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "floor/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "floor/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "floor/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "421a6b52273f8fcf6131cabe2ff8a3edb817c6b52f043b4737ef21ce69776d4d"
+            },
+            "floor/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "hw-protection/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "hw-protection/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "hw-protection/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "hw-protection/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "hw-protection/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "hw-protection/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "hw-protection/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "hw-protection/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-78/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-78/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-78/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-78/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-78/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-78/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-78/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "170736c24f9e091fc93e74e1d5952fd6ee8255eb42d02170fa3eee0d0603afae"
+            },
+            "size-78/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "size-79/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "size-79/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "size-79/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "size-79/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "size-79/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "size-79/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "size-79/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb"
+            },
+            "size-79/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.index.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.log.deleted": {
+              "bytes": 69,
+              "sha256": "3f3789fcf8bda5475b8996c04556e7b2028f10c39dd9670232981ef273359691"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000000.timeindex.deleted": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.log": {
+              "bytes": 69,
+              "sha256": "d05f4f04908127a1502b7431a35ff29eb35333dc8fefddb4ce5721004840da2a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000001.timeindex": {
+              "bytes": 12,
+              "sha256": "d5c806e6bf2b7cb65ef4d30c0b137a207a17977815a07b44a76b8ffa5cbf942a"
+            },
+            "unknown-timestamp/alpha-0/00000000000000000002.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unknown-timestamp/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "7b8716aead5a802cbaa1ea2884c402cdaa57dfcb20d932427ed09d7c35c17676"
+            },
+            "unknown-timestamp/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.log": {
+              "bytes": 104,
+              "sha256": "b53493264853207823abc75ecaa0fa2661795d8d96299a11e4c146f38b0d6590"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000000.timeindex": {
+              "bytes": 12,
+              "sha256": "b4f59349a039b6f8b9c0c91bc2c1ea2dde40ef9118e15c2354ad991fce22ce08"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.index": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.log": {
+              "bytes": 78,
+              "sha256": "c15543791f441de97b03da8f749c5503ff26e5019762afd641d48734903b9cb0"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000003.timeindex": {
+              "bytes": 12,
+              "sha256": "2d72273d477156a3c683adce439a71abcc4b4d446a962867e641f312d7a51724"
+            },
+            "unsupplied-checkpoint/alpha-0/00000000000000000004.snapshot": {
+              "bytes": 10,
+              "sha256": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2"
+            },
+            "unsupplied-checkpoint/alpha-0/leader-epoch-checkpoint": {
+              "bytes": 8,
+              "sha256": "1d297421a6a4e3e1d02656977a0ed260526fe9c5f0df8c28125225ef8260cdd0"
+            },
+            "unsupplied-checkpoint/alpha-0/partition.metadata": {
+              "bytes": 43,
+              "sha256": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "deliberate_failures": [
+        {
+          "option": "--wrong-floor",
+          "case": "floor.logical",
+          "actual": "2",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-age",
+          "case": "age.strict-equality-keeps",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-size",
+          "case": "size.target-79-whole-removal",
+          "actual": "0",
+          "incorrect_expected": "1"
+        },
+        {
+          "option": "--wrong-unknown-age",
+          "case": "unknown.apache-mtime-one-ms-over-deletes",
+          "actual": "1",
+          "incorrect_expected": "0"
+        }
+      ],
+      "positive_checks_per_replay": 67,
+      "positive_replays": 2
+    }
+  ],
+  "known_policy_differences": [
+    "Apache does not write the logical-floor checkpoint immediately; supplied checkpoint replay is distinct from local synchronous V2 manifest durability.",
+    "Apache NO_TIMESTAMP age falls back to mutable file mtime; local policy retains all-negative/unknown-time segments under age.",
+    "Apache timestamp search stops at the first historically qualifying segment even when its qualifying record is below floor; local bounded full scan can find a later retained match."
+  ],
+  "positive_checks": 402,
+  "deliberate_failures_detected": 12,
+  "assertions_identical_across_replays_and_releases": true
+}

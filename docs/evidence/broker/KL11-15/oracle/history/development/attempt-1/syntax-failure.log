@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py", line 278
+    image_path = next((path.parent / c["images_dir"] / ("snapshot-" + offer["descriptor"]["generation"] + ".image")
+                     ^
+SyntaxError: '(' was never closed

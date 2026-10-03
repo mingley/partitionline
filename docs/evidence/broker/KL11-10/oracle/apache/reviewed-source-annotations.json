@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "scope": "Source-only guards and explanation, not runtime assertions or full broker execution",
+  "annotations": [
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "We don't have to write the log start offset to log-start-offset-checkpoint immediately.",
+      "interpretation": "Checkpoint replay is caller-supplied, not a synchronous logical-floor receipt."
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "if (newLogStartOffset > highWatermark())",
+      "interpretation": "Logical floor above high watermark rejects."
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "if (newLogStartOffset > logStartOffset)",
+      "interpretation": "Monotonic floor update."
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "boolean delete = startMs - segment.largestTimestamp() > retentionMs;",
+      "interpretation": "Strict age boundary."
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "boolean delete = diff.get() - segmentSize >= 0;",
+      "interpretation": "Whole segment size removal leaves at least target."
+    },
+    {
+      "file_suffix": "UnifiedLog.java",
+      "needle": "return segment.findOffsetByTimestamp(targetTimestamp, startOffset);",
+      "interpretation": "First historically qualifying segment search returns immediately, including empty result."
+    },
+    {
+      "file_suffix": "LogSegment.java",
+      "needle": "return lastModified();",
+      "interpretation": "Negative maximum uses file modification time, unlike conservative local age policy."
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "offset == DeleteRecordsRequest.HIGH_WATERMARK",
+      "interpretation": "Source-only facade -1 conversion; no executed Partition/controller claim."
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "if (convertedOffset < 0)",
+      "interpretation": "Source-only facade negative-offset rejection."
+    },
+    {
+      "file_suffix": "Partition.scala",
+      "needle": "leaderLog.maybeIncrementLogStartOffset(convertedOffset, LogStartOffsetIncrementReason.ClientRecordDeletion)",
+      "interpretation": "Source-only facade invokes tested floor component."
+    },
+    {
+      "file_suffix": "KafkaApis.scala",
+      "needle": "authorizedForDeleteTopicOffsets += (topicPartition -> offset)",
+      "interpretation": "Source-only mapped duplicate entries replace earlier offsets; ordering unspecified."
+    },
+    {
+      "file_suffix": "LogConfig.java",
+      "needle": "defineInternal(INTERNAL_SEGMENT_BYTES_CONFIG",
+      "interpretation": "Small test segment size uses the pinned public internal configuration override; production topic minimum is larger."
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"schema":1,"kind":"retention-error","phase":"RetentionClearRenamed","stage":"interrupted","previous_acknowledged_floor":1,"requested_floor":5,"expected_recovered_floor":5,"durable_end":5,"seed":"valid-basic.bin assigned to offsets 0..4, prior acknowledged deletion through 1","physical_power_loss_claim":false}
