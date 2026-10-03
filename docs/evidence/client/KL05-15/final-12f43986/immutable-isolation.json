@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "verified_paths": 69144,
+  "exact_canonical_path_set": true,
+  "verified_git_modes": true,
+  "filesystem_modes": {
+    "0o600": 69057,
+    "0o700": 87
+  },
+  "worktree_shared_file_inodes": [],
+  "archive_receipt_sha256": "afb3408c23640591767c3110112f993bdb5597401af99c8a75001fd30985c564",
+  "captured_at": "2026-10-03T09:06:14.688786+00:00",
+  "scope": "Verified immutable source only; no Cargo or runtime qualification executed."
+}

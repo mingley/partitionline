@@ -1,0 +1,29 @@
+--- canonical-fb2-run-current-docker.sh
++++ executed-cpu01-run-current-docker.sh
+@@ -31,7 +31,7 @@
+ docker_local info --format '{{.ServerVersion}}' >"$report_root/docker-version.log"
+ docker_local image inspect "$reference" --format '{{json .RepoDigests}}' >"$report_root/image-digests.json"
+ phase=broker-create
+-docker_local create --name "$name" --cpuset-cpus '0-2,4' -p "127.0.0.1:$port:9092" \
++docker_local create --name "$name" --cpuset-cpus '0,1' -p "127.0.0.1:$port:9092" \
+   -e KAFKA_HEAP_OPTS='-Xms128m -Xmx512m' \
+   -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
+   -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
+@@ -90,7 +90,7 @@
+ export PATH=/workspace/work/cargo/bin:$PATH CARGO_TARGET_DIR=/workspace/work/client-share-target
+ export CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
+ export KAFKA_BOOTSTRAP="127.0.0.1:$port" PL_COMPAT_REFERENCE="$reference" PL_COMPAT_SOURCE_SHA="$source_sha" PL_SHARE_PREFIX="$prefix"
+-taskset -c 0-2,4 cargo test --offline --locked --test share_semantics -- --ignored --exact live_current_v2_share_delivery_renew_release_expiry_accept --nocapture >"$report_root/runtime.log" 2>&1
++taskset -c 0,1 cargo test --offline --locked --test share_semantics -- --ignored --exact live_current_v2_share_delivery_renew_release_expiry_accept --nocapture >"$report_root/runtime.log" 2>&1
+ phase=independent-java-read
+ # The four ordinary persisted records must also decode with this pinned broker's Java CLI.
+ docker_local exec "$name" /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9094 --topic "$prefix-records" --from-beginning --max-messages 4 --timeout-ms 20000 \
+@@ -111,7 +111,7 @@
+ assert runtime['finalized_features']['share.version'][0]>=1
+ assert (root/'broker-version.log').read_text().startswith('4.3.1')
+ assert (root/'container-image-id.log').read_text()==(root/'expected-image-id.log').read_text()
+-assert json.loads((root/'cpuset.json').read_text())=='0-2,4'
++assert json.loads((root/'cpuset.json').read_text())=='0,1'
+ assert any(ref.split('@',1)[1] in digest for digest in json.loads((root/'image-digests.json').read_text()))
+ api=(root/'readiness.log').read_text();assert re.search(r'ShareFetch\(78\): 1 to 2',api) and re.search(r'ShareAcknowledge\(79\): 1 to 2',api)
+ lines=(root/'java-records.log').read_text().splitlines(); assert len(lines)==4

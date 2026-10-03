@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only frozen review candidate: exact51 names/flags/metadata/permissions/compressed-source audit matched OpenLoop and consumer contracts; no actual merged broker or client outcome.",
+  "input_expected_actual_commands": 51,
+  "input_expected_actual_broker_cells": 12,
+  "toolchains": [
+    "stable",
+    "1.85.0"
+  ],
+  "profiles": [
+    "default",
+    "tls",
+    "sasl",
+    "sasl+tls",
+    "oidc",
+    "all-features"
+  ],
+  "expected_gate_names": [
+    "clean-before-source-switch",
+    "format",
+    "clean-between-toolchains",
+    "stable-default-all-targets",
+    "stable-default-strict-clippy",
+    "stable-default-strict-doc",
+    "stable-default-strict-doctest",
+    "stable-tls-all-targets",
+    "stable-tls-strict-clippy",
+    "stable-tls-strict-doc",
+    "stable-tls-strict-doctest",
+    "stable-sasl-all-targets",
+    "stable-sasl-strict-clippy",
+    "stable-sasl-strict-doc",
+    "stable-sasl-strict-doctest",
+    "stable-sasl+tls-all-targets",
+    "stable-sasl+tls-strict-clippy",
+    "stable-sasl+tls-strict-doc",
+    "stable-sasl+tls-strict-doctest",
+    "stable-oidc-all-targets",
+    "stable-oidc-strict-clippy",
+    "stable-oidc-strict-doc",
+    "stable-oidc-strict-doctest",
+    "stable-all-features-all-targets",
+    "stable-all-features-strict-clippy",
+    "stable-all-features-strict-doc",
+    "stable-all-features-strict-doctest",
+    "1.85.0-default-all-targets",
+    "1.85.0-default-strict-clippy",
+    "1.85.0-default-strict-doc",
+    "1.85.0-default-strict-doctest",
+    "1.85.0-tls-all-targets",
+    "1.85.0-tls-strict-clippy",
+    "1.85.0-tls-strict-doc",
+    "1.85.0-tls-strict-doctest",
+    "1.85.0-sasl-all-targets",
+    "1.85.0-sasl-strict-clippy",
+    "1.85.0-sasl-strict-doc",
+    "1.85.0-sasl-strict-doctest",
+    "1.85.0-sasl+tls-all-targets",
+    "1.85.0-sasl+tls-strict-clippy",
+    "1.85.0-sasl+tls-strict-doc",
+    "1.85.0-sasl+tls-strict-doctest",
+    "1.85.0-oidc-all-targets",
+    "1.85.0-oidc-strict-clippy",
+    "1.85.0-oidc-strict-doc",
+    "1.85.0-oidc-strict-doctest",
+    "1.85.0-all-features-all-targets",
+    "1.85.0-all-features-strict-clippy",
+    "1.85.0-all-features-strict-doc",
+    "1.85.0-all-features-strict-doctest"
+  ],
+  "selected_public_peer_lanes": [
+    "stable-default-all-targets",
+    "stable-all-features-all-targets",
+    "1.85.0-default-all-targets",
+    "1.85.0-all-features-all-targets"
+  ],
+  "copied_fetch_paths": [
+    "bin/stable/fetch",
+    "bin/stable/fetch-all-features",
+    "bin/1.85.0/fetch",
+    "bin/1.85.0/fetch-all-features"
+  ],
+  "own_archive_sha256_may_be_null": "Only with explicit reused complete tree and externally bound origin receipt, plus independent complete Git before/after guards on all51 commands.",
+  "draft_helper_sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+  "repository_sources_changed": false,
+  "actual_merged_broker_commands": 0,
+  "actual_compaction_peer_jobs": 0,
+  "runner_contract_source": {
+    "path": "/workspace/work/compaction-final-preparation/run-merged-final.py",
+    "sha256_at_review": "5c23b8642b8cbad8c976d6c6dd4f665527e1ed6310903b454d6389cfdfb7c56a"
+  },
+  "qualification_matrix_required": {
+    "toolchains": [
+      "stable",
+      "1.85.0"
+    ],
+    "profiles": [
+      {
+        "name": "default",
+        "cargo_flags": []
+      },
+      {
+        "name": "tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "tls"
+        ]
+      },
+      {
+        "name": "sasl",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl"
+        ]
+      },
+      {
+        "name": "sasl+tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl,tls"
+        ]
+      },
+      {
+        "name": "oidc",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "oidc"
+        ]
+      },
+      {
+        "name": "all-features",
+        "cargo_flags": [
+          "--all-features"
+        ]
+      }
+    ],
+    "test_cells": 12,
+    "behavior_lint_doc_gates": 48,
+    "expected_command_count": 51,
+    "dependency_flags": [
+      "--offline",
+      "--locked"
+    ],
+    "peer_profiles": [
+      "default",
+      "all-features"
+    ],
+    "gates_per_cell": [
+      "all-targets",
+      "strict-clippy",
+      "strict-doc",
+      "strict-doctest"
+    ],
+    "format_gates": 1,
+    "package_clean_commands": 2
+  },
+  "actual_binary_mode_field": "original_mode (full0o7777), copied_bytes_and_mode_verified:true, toolchain matching actual rustc -Vv receipt",
+  "external_origin_receipt_shape": {
+    "path": "actual external receipt path",
+    "sha256": "actual content SHA256 independently reread; source_origin may bind materialization lineage while current complete Git guards establish the qualified commit."
+  },
+  "source_guards_required": {
+    "all_git_blobs_match": true,
+    "all_baseline_permission_modes_match": true,
+    "file_count": "same complete count before/after/final",
+    "set_and_blob_sha256": "same complete path/blob/Git mode/full-permission digest before/after/final"
+  },
+  "source_manifest_required": "Stream-verify SHA256/bytes/full permission mode of actual uncompressed or gzip audit; logical uncompressed digest matches source_manifest_sha256; no new uncompressed artifact created; logical audit bound64MiB."
+}

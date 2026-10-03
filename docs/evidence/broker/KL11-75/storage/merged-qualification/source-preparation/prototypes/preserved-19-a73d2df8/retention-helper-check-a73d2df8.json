@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "driver_sha256": "a73d2df8483f728ee91946fee79c2959c598ade8f15b507f0bf705b1ad95f453",
+  "scope": "tiny stdlib/real ELF helper controls only; no Cargo, actual source extraction or real target access",
+  "checks": [
+    {
+      "name": "actual_failed_ELF_retained_before_overwrite",
+      "exit_code": 1,
+      "sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "original_mode": 489
+    },
+    {
+      "name": "same_path_new_bytes_preserves_both_generations_and_modes",
+      "objects": 2,
+      "restored_bytes_and_full_permission_modes_match": true
+    },
+    {
+      "name": "corrupted_retained_object_blocks_clean",
+      "rejection": "BadGzipFile"
+    },
+    {
+      "name": "active_cache_owner_detected_before_clean",
+      "owner": {
+        "pid": 1062894,
+        "executable_name": "sleeper",
+        "cache_references": [
+          "/workspace/work/compaction-final-preparation/retention-helper-check-a73d2df8/toy-cache/sleeper"
+        ]
+      },
+      "clean_would_be_blocked": true
+    },
+    {
+      "name": "released_cache_has_no_owners",
+      "owners": []
+    },
+    {
+      "name": "external_tool_exact_path_bytes_and_full_mode_bound",
+      "controlled_changed_mode_rejected": true
+    },
+    {
+      "name": "reused_source_set_and_blob_guard",
+      "controlled_mutation_and_extra_file_rejected": true
+    },
+    {
+      "name": "nineteen_exact_command_contract",
+      "commands": 19,
+      "capture_cells": [
+        "stable-default-all-targets",
+        "stable-all-features-all-targets",
+        "1.85.0-default-all-targets",
+        "1.85.0-all-features-all-targets"
+      ]
+    }
+  ],
+  "elf_objects": [
+    {
+      "path": "bin/elf-objects/d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf.gz",
+      "sha256": "975033cb9596e30c3ee4fc31f27903008855ba6ac28bb99dfc6a97ba0d176609",
+      "uncompressed_sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff.gz",
+      "sha256": "52f8ed5ad35154f1d30ae254339ba46899e05b4d0ca2f515aaf4b9eef0e79106",
+      "uncompressed_sha256": "b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    }
+  ],
+  "source_unchanged": true
+}

@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "scope": "Additive source-only51qualification+10maintenance normalizer preparation. No actual matrix/compiler/broker/publicpeer execution. Mockfixturebytes remain WORK.",
+  "input_count": 24,
+  "actual_broker_commands": 0,
+  "actual_public_peers": 0,
+  "current_helper_sha256": "6ea783ab34aa2e9b8ccb31939002de79a1a0257de3efec9b16481af0359cabf4",
+  "final_synthetic_controls": {
+    "positive": 1,
+    "negative": 31,
+    "all_passed": true
+  },
+  "checksum_base": "docs/evidence/broker/KL11-75/oracle/peers",
+  "files": [
+    {
+      "path": "normalization-61-preparation/README.md",
+      "sha256": "54d1c6a2bca04d932b4f1e7fb5a4bfdf93ed71cc1fc37cefdc749e5f04355790",
+      "bytes": 3338,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/check-maintenance-contract.py",
+      "sha256": "004e724da44de9f2191be5ad3b2db71e7f4f5fd29301dea767a20d696e9957b0",
+      "bytes": 12474,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/contract-controls-attempt-1/helper-controls.json",
+      "sha256": "b9f39e956b09a759d168be84872e15a78826ba27389a63e9487f08d9927cf9e2",
+      "bytes": 3327,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/contract-controls-attempt-2/helper-controls.json",
+      "sha256": "6fe75e511b63c45d339d63f9894269c28dfe07ed3552112f92de3c8d801317b0",
+      "bytes": 3482,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/contract-controls-attempt-3/helper-controls.json",
+      "sha256": "539095e0324ce096710108c347a73fce124c1c760a32ca15f779917ec8a39670",
+      "bytes": 4300,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/contract-controls-attempt-4/helper-controls.json",
+      "sha256": "ef577203194a0f8c41943c3cf8520ccdad60b5fcec7d8a9ea5471f65de36461d",
+      "bytes": 5273,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/draft-contract.json",
+      "sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+      "bytes": 5401,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-14f78e77/draft-contract.json",
+      "sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+      "bytes": 5401,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-14f78e77/freeze.json",
+      "sha256": "1e79c62299acff9472187c9a0ba7ea4d736d96a447aa1c8e18e991b27aa153a7",
+      "bytes": 532,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-14f78e77/normalize-broker-proof-51.py",
+      "sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+      "bytes": 12796,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-993261a1/check-maintenance-contract.py",
+      "sha256": "fcaddb339fe5ddf3cdb6fba8e08b8e4031e7db50001a6b7507e23f09e7a43fe5",
+      "bytes": 10015,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-993261a1/freeze.json",
+      "sha256": "526086c3362a6ec90b41f8d37d0d1752a99196b48638b2158c67e9bd51063879",
+      "bytes": 1019,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-993261a1/helper-controls.json",
+      "sha256": "6fe75e511b63c45d339d63f9894269c28dfe07ed3552112f92de3c8d801317b0",
+      "bytes": 3482,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-993261a1/maintenance-contract.json",
+      "sha256": "881dd108acb52cef2dfe37f3605b05c2a79beb3a57fdf870828e2ff80bbadc49",
+      "bytes": 2231,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/frozen-993261a1/normalize-broker-proof-51-maintenance.py",
+      "sha256": "993261a134a897ca0826e7319aaff553767e8b6f090355c53b968b97da38e9ea",
+      "bytes": 11178,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/maintenance-contract-v2.json",
+      "sha256": "452f44251843c62f5f8fe9b0fa351319646df8a286fcca5568f04310370c1bef",
+      "bytes": 2873,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/maintenance-contract.json",
+      "sha256": "881dd108acb52cef2dfe37f3605b05c2a79beb3a57fdf870828e2ff80bbadc49",
+      "bytes": 2231,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/mock-work-restore-map.json",
+      "sha256": "6898163f5d5abcce41211ddbeff72c7425bea7e74d39643e167c156c650eb13e",
+      "bytes": 104792,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/normalize-broker-proof-51-maintenance.py",
+      "sha256": "6ea783ab34aa2e9b8ccb31939002de79a1a0257de3efec9b16481af0359cabf4",
+      "bytes": 13538,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/normalize-broker-proof-51.py",
+      "sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+      "bytes": 12796,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/origin.json",
+      "sha256": "2df1219b9c7beb57da348e457152027f8b5ec19c9d0f83252d1658677c8d6380",
+      "bytes": 255,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/original-normalizer-19.py",
+      "sha256": "3e29ec2dfb2f58c5649ca4363e495aaf30da401c95e13a6994221d3423ac8df7",
+      "bytes": 4487,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalization-61-preparation/predecessor-51-SHA256SUMS",
+      "sha256": "c72a2fa56fc6f5a332037e76fc069aaa34d6711dee6fc604259dad475a5cabf5",
+      "bytes": 351,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    },
+    {
+      "path": "normalize-broker-proof-61.py",
+      "sha256": "8d8d1ef1b1e495771faba13cc57559d5f12c884f8fa0a7676ff11bc7119b72f3",
+      "bytes": 329,
+      "full_permission_mode": 384,
+      "git_executable_class": false
+    }
+  ]
+}

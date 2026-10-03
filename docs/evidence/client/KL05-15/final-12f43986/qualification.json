@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "source_tree_files": 69144,
+  "frozen_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4",
+    "tests/protocol_oracles.rs": "0bbe21185275a6eec21f34cb088737cb41e194bfba64bc966dd02a4afcc5794f"
+  },
+  "full_client_qa": {
+    "stable-default": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "stable",
+      "features": "default",
+      "all_target_counts": {
+        "passed": 1835,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "stable-all": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "stable",
+      "features": "all",
+      "all_target_counts": {
+        "passed": 1836,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "msrv-default": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "1.85.0",
+      "features": "default",
+      "all_target_counts": {
+        "passed": 1835,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "msrv-all": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "1.85.0",
+      "features": "all",
+      "all_target_counts": {
+        "passed": 1836,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    }
+  },
+  "full_client_qa_totals": {
+    "passed_tests": 7342,
+    "passed_doctests": 16,
+    "commands": 36,
+    "whole_source_before_after_checks": 72,
+    "failed": 0,
+    "distinct_live_cases_ignored_per_unit_lane": 5
+  },
+  "genuine_current_docker": {
+    "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+    "runtime": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          30,
+          30
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "runtime_version": 2,
+      "acquire_mode": "record_limit",
+      "lock_ms": 15000,
+      "accepted_offsets": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "release_delivery_count": 3,
+      "expiry_delivery_count": 2,
+      "renew": "successful",
+      "disposition": "supported"
+    },
+    "independent_java_records": 4,
+    "independent_persisted_batches": 1,
+    "source_before_after_checks": 2,
+    "cpu_affinity": "0,1",
+    "original_helper_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+    "executed_helper_sha256": "edb27abbb161b8bec2308774649780b02cf6c69b913579691a21c57073598f73",
+    "helper_overlay_scope": "Exactly three CPU affinity substitutions only; the real Cargo command and all identity, runtime, Java, and persisted-batch assertions remain unchanged. No Cargo shim.",
+    "cleanup": "The owned container was removed and its absence was independently verified."
+  },
+  "qualification_scope": {
+    "client_workspace": "The root partitionline client crate only; partitionline-broker is separate and excluded. Default resolves default + zlib-rs; all features adds tracing. All-targets includes 24 example harnesses. Only the two required standalone verifiable command-line binaries were built.",
+    "controlled_fault_proof": "Partial acknowledgement success, retry, and terminal handling; coordinator movement; session reset; and delayed stale-reply cancellation use real controlled TCP socket tests. They are not genuine multi-broker fault claims.",
+    "genuine_delivery_proof": "One current genuine digest-pinned Kafka 4.3.1 broker: v2 acquisition, renewal, expiry and delivery count, release, acceptance, and independently persisted four record IDs in one actual four-record batch. This does not claim Share semantics from the ordinary single-node product server.",
+    "budget_claim": "The budget bounds decoded record and acquisition logical storage. It does not bound process RSS or decoder scratch RSS.",
+    "prior_scoped_evidence": "The df, 81, 0cff, 070, 962, 005, and 255 failures, corrected preparations, and prior scoped passes remain retained. None is silently upgraded to this full 12f4 qualification.",
+    "three_release_whole_client_compatibility": "Pending separate root-owned genuine digest-pinned Kafka 4.1.2, 4.2.1, and 4.3.1 complete client compatibility cells. This receipt does not claim those gates.",
+    "wire_sdk_bodyproof": "The earlier 32 valid bodies from three Java SDKs remain independent evidence. Wire code and fixture bytes are unchanged. Forced serialization of v2 outside the Kafka 4.1.2 SDK supported range remains unsupported and quarantined."
+  }
+}

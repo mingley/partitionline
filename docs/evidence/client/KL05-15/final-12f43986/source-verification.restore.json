@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "raw_file": "source-verification.json",
+  "raw_sha256": "afb3408c23640591767c3110112f993bdb5597401af99c8a75001fd30985c564",
+  "raw_bytes": 22610755,
+  "raw_mode": 384,
+  "gzip_file": "source-verification.json.gz",
+  "gzip_sha256": "c7666b0cf253b2c8418e4f48b1a70f495af274a5c182db5382f72ba9cd835e69",
+  "gzip_bytes": 2387953,
+  "encoding": "gzip, compression level 9, mtime 0, empty filename; two independent encodings equal",
+  "restore": "Decompress source-verification.json.gz to source-verification.json, then chmod to raw_mode. Verify the exact raw byte count and SHA-256. Every existing archive_receipt_sha256 remains bound to the raw receipt.",
+  "retained_raw_work_paths": [
+    "/workspace/work/client-share-assessment/final-12f43986/source-verification.json",
+    "/workspace/work/client-share-assessment/sealed-source-audit-12f43986/source-verification.json"
+  ],
+  "qualification_scope": "Lossless publication packaging only. The source audit was produced by the actual full source verification; no runtime commands or qualification results changed."
+}

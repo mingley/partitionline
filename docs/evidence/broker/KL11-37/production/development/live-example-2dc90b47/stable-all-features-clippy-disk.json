@@ -1,0 +1,1 @@
+{"minimum_free": 1427902464, "sampling_s": 0.5, "samples": [{"elapsed_s": 0.001, "free": 1427927040}, {"elapsed_s": 0.503, "free": 1427902464}, {"elapsed_s": 1.003, "free": 1427902464}, {"elapsed_s": 1.504, "free": 1427902464}, {"elapsed_s": 2.004, "free": 1427902464}, {"elapsed_s": 2.505, "free": 1427902464}], "interrupted": false}

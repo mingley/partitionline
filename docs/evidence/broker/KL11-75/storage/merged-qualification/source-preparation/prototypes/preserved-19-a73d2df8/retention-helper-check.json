@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "driver_sha256": "b2dc575b2c34f8e277519e4cf4fe2387b719bff98259ec19c688eb97584e9455",
+  "scope": "tiny stdlib/real ELF helper controls only; no Cargo, actual source extraction or real target access",
+  "checks": [
+    {
+      "name": "actual_failed_ELF_retained_before_overwrite",
+      "exit_code": 1,
+      "sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "original_mode": 489
+    },
+    {
+      "name": "same_path_new_bytes_preserves_both_generations_and_modes",
+      "objects": 2,
+      "restored_bytes_and_full_permission_modes_match": true
+    },
+    {
+      "name": "corrupted_retained_object_blocks_clean",
+      "rejection": "BadGzipFile"
+    },
+    {
+      "name": "active_cache_owner_detected_before_clean",
+      "owner": {
+        "pid": 1062438,
+        "executable_name": "sleeper",
+        "cache_references": [
+          "/workspace/work/compaction-final-preparation/retention-helper-check/toy-cache/sleeper"
+        ]
+      },
+      "clean_would_be_blocked": true
+    },
+    {
+      "name": "released_cache_has_no_owners",
+      "owners": []
+    },
+    {
+      "name": "nineteen_exact_command_contract",
+      "commands": 19,
+      "capture_cells": [
+        "stable-default-all-targets",
+        "stable-all-features-all-targets",
+        "1.85.0-default-all-targets",
+        "1.85.0-all-features-all-targets"
+      ]
+    }
+  ],
+  "elf_objects": [
+    {
+      "path": "bin/elf-objects/d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf.gz",
+      "sha256": "b00ea9c0173fde61b3cf7194e9425989adde80252cafaaf53ef5047e705d61a2",
+      "uncompressed_sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff.gz",
+      "sha256": "c7ec61d2e26646011ab83323632bedef33501594d9740349b782db9ebbe58d23",
+      "uncompressed_sha256": "b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    }
+  ],
+  "source_unchanged": true
+}

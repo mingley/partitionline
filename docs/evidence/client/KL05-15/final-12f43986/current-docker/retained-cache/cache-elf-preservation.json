@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "profile": "stable-default-current-live",
+  "cache": "/workspace/work/client-share-target",
+  "archive": "/workspace/work/client-share-assessment/final-12f43986/current-docker/retained-cache/cache-elfs.tar.gz",
+  "archive_sha256": "d3e01f5d691ae7e75893725814db9b8963ed03921ee0e547c35f9f01163a4985",
+  "archive_bytes": 9762761,
+  "elf_paths_preserved": 52,
+  "unique_elf_members": 42,
+  "preserved_logical_bytes": 40458280,
+  "unique_elf_bytes": 33485976,
+  "verified_roundtrip_bytes_and_modes": true,
+  "files": {
+    "debug/build/crc32c-8d7d3e05d0424bcb/build-script-build": {
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "bytes": 756016,
+      "mode": 448,
+      "archive_member": "elf/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2-700"
+    },
+    "debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb": {
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "bytes": 756016,
+      "mode": 448,
+      "archive_member": "elf/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2-700"
+    },
+    "debug/build/crc32fast-e79e6dce85ff99e8/build-script-build": {
+      "sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "bytes": 558104,
+      "mode": 448,
+      "archive_member": "elf/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0-700"
+    },
+    "debug/build/crc32fast-e79e6dce85ff99e8/build_script_build-e79e6dce85ff99e8": {
+      "sha256": "c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0",
+      "bytes": 558104,
+      "mode": 448,
+      "archive_member": "elf/c6ab7c21ce42fe878038271da29dfa03b438910d0fec207684e1349c8b0bc0c0-700"
+    },
+    "debug/build/getrandom-b56168953075a26e/build-script-build": {
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "bytes": 478224,
+      "mode": 448,
+      "archive_member": "elf/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30-700"
+    },
+    "debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e": {
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "bytes": 478224,
+      "mode": 448,
+      "archive_member": "elf/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30-700"
+    },
+    "debug/build/libc-d69758f4542b08f1/build-script-build": {
+      "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "bytes": 638632,
+      "mode": 448,
+      "archive_member": "elf/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0-700"
+    },
+    "debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1": {
+      "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "bytes": 638632,
+      "mode": 448,
+      "archive_member": "elf/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0-700"
+    },
+    "debug/build/parking_lot_core-a246dadcf9145965/build-script-build": {
+      "sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "bytes": 478304,
+      "mode": 448,
+      "archive_member": "elf/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec-700"
+    },
+    "debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965": {
+      "sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "bytes": 478304,
+      "mode": 448,
+      "archive_member": "elf/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec-700"
+    },
+    "debug/build/proc-macro2-346fa1be638f98f3/build-script-build": {
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "bytes": 613824,
+      "mode": 448,
+      "archive_member": "elf/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900-700"
+    },
+    "debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3": {
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "bytes": 613824,
+      "mode": 448,
+      "archive_member": "elf/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900-700"
+    },
+    "debug/build/quote-281b1bc39d16de7f/build-script-build": {
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "bytes": 556632,
+      "mode": 448,
+      "archive_member": "elf/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7-700"
+    },
+    "debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f": {
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "bytes": 556632,
+      "mode": 448,
+      "archive_member": "elf/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7-700"
+    },
+    "debug/build/ring-0736e2c027c95dce/build-script-build": {
+      "sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "bytes": 1953736,
+      "mode": 448,
+      "archive_member": "elf/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f-700"
+    },
+    "debug/build/ring-0736e2c027c95dce/build_script_build-0736e2c027c95dce": {
+      "sha256": "cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f",
+      "bytes": 1953736,
+      "mode": 448,
+      "archive_member": "elf/cebe06261bf209c9bd4de70dadd4f363838dd93512e2cace87f9b9e1807f1c3f-700"
+    },
+    "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery.o": {
+      "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "bytes": 85024,
+      "mode": 384,
+      "archive_member": "elf/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/00c879ee3285a50d-montgomery_inv.o": {
+      "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "bytes": 79792,
+      "mode": 384,
+      "archive_member": "elf/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/0bbbd18bda93c05b-aes_nohw.o": {
+      "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "bytes": 124880,
+      "mode": 384,
+      "archive_member": "elf/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519.o": {
+      "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "bytes": 232480,
+      "mode": 384,
+      "archive_member": "elf/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/25ac62e5b3c53843-curve25519_64_adx.o": {
+      "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "bytes": 557112,
+      "mode": 384,
+      "archive_member": "elf/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-ecp_nistz.o": {
+      "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "bytes": 79832,
+      "mode": 384,
+      "archive_member": "elf/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p256.o": {
+      "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "bytes": 79392,
+      "mode": 384,
+      "archive_member": "elf/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-gfp_p384.o": {
+      "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "bytes": 121248,
+      "mode": 384,
+      "archive_member": "elf/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256-nistz.o": {
+      "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "bytes": 262240,
+      "mode": 384,
+      "archive_member": "elf/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a0330e891e733f4e-p256.o": {
+      "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "bytes": 79824,
+      "mode": 384,
+      "archive_member": "elf/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-constant_time_test.o": {
+      "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "bytes": 91208,
+      "mode": 384,
+      "archive_member": "elf/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-cpu_intel.o": {
+      "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "bytes": 81200,
+      "mode": 384,
+      "archive_member": "elf/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-crypto.o": {
+      "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "bytes": 72296,
+      "mode": 384,
+      "archive_member": "elf/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/a4019cc0736b0423-mem.o": {
+      "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "bytes": 78392,
+      "mode": 384,
+      "archive_member": "elf/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/aaa1ba3e455ee2e1-limbs.o": {
+      "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "bytes": 102792,
+      "mode": 384,
+      "archive_member": "elf/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o": {
+      "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "bytes": 8904,
+      "mode": 384,
+      "archive_member": "elf/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o": {
+      "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "bytes": 7728,
+      "mode": 384,
+      "archive_member": "elf/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-aesni-x86_64-elf.o": {
+      "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "bytes": 9176,
+      "mode": 384,
+      "archive_member": "elf/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha-x86_64-elf.o": {
+      "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "bytes": 11760,
+      "mode": 384,
+      "archive_member": "elf/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o": {
+      "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "bytes": 62048,
+      "mode": 384,
+      "archive_member": "elf/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-ghash-x86_64-elf.o": {
+      "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "bytes": 8976,
+      "mode": 384,
+      "archive_member": "elf/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-p256-x86_64-asm-elf.o": {
+      "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "bytes": 29824,
+      "mode": 384,
+      "archive_member": "elf/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha256-x86_64-elf.o": {
+      "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "bytes": 21160,
+      "mode": 384,
+      "archive_member": "elf/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-sha512-x86_64-elf.o": {
+      "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "bytes": 16328,
+      "mode": 384,
+      "archive_member": "elf/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-vpaes-x86_64-elf.o": {
+      "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "bytes": 7952,
+      "mode": 384,
+      "archive_member": "elf/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont-elf.o": {
+      "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "bytes": 8632,
+      "mode": 384,
+      "archive_member": "elf/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/c322a0bcc369f531-x86_64-mont5-elf.o": {
+      "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "bytes": 18816,
+      "mode": 384,
+      "archive_member": "elf/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/d5a9841f3dc6e253-poly1305.o": {
+      "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "bytes": 89096,
+      "mode": 384,
+      "archive_member": "elf/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_mul.o": {
+      "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "bytes": 3680,
+      "mode": 384,
+      "archive_member": "elf/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121-600"
+    },
+    "debug/build/ring-e5097587e983a339/out/e165cd818145c705-fiat_curve25519_adx_square.o": {
+      "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "bytes": 3472,
+      "mode": 384,
+      "archive_member": "elf/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb-600"
+    },
+    "debug/build/rustls-e9f91de87a16cf3c/build-script-build": {
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "bytes": 438184,
+      "mode": 448,
+      "archive_member": "elf/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad-700"
+    },
+    "debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c": {
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "bytes": 438184,
+      "mode": 448,
+      "archive_member": "elf/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad-700"
+    },
+    "debug/build/snap-6e3d3ff8099b40dd/build-script-build": {
+      "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "bytes": 500648,
+      "mode": 448,
+      "archive_member": "elf/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd-700"
+    },
+    "debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd": {
+      "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "bytes": 500648,
+      "mode": 448,
+      "archive_member": "elf/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd-700"
+    },
+    "debug/deps/libtokio_macros-34a490cab0b7a6f9.so": {
+      "sha256": "414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6",
+      "bytes": 3480328,
+      "mode": 448,
+      "archive_member": "elf/414ac645e9be701b101afe7ae28a9e7d27434a7c63771407ee80e346cd7808c6-700"
+    },
+    "debug/deps/share_semantics-30b3c9323593945c": {
+      "sha256": "0eba12551084945343c53408c736a0a3aa02d1fcdee7a3cf22ac41b4c6db0aa8",
+      "bytes": 20598080,
+      "mode": 448,
+      "archive_member": "elf/0eba12551084945343c53408c736a0a3aa02d1fcdee7a3cf22ac41b4c6db0aa8-700"
+    }
+  },
+  "cleanup_authorization": "Root authorized sequential same-cache lanes after accepted CLI/test ELF preservation; cache generated files only, source/rawlogs/fixture/proof files retained."
+}

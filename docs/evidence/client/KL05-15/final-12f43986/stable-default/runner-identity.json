@@ -1,0 +1,18 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "toolchain": "stable",
+  "features": "default",
+  "cpuset": "0,1",
+  "free_bytes_before_launch": 1551552512,
+  "launch_guard_bytes": 1205862400,
+  "live_floor_bytes": 367001600,
+  "jobs": 1,
+  "debug": 0,
+  "incremental": 0,
+  "compiler_lease": "Explicit parent GO after consumer24focus release",
+  "captured_at": "2026-10-03T09:35:03.422379+00:00",
+  "runner_sha256": {
+    "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+    "verify-existing-source.py": "af5a98cb489841488661a4d6f4e8a247e0c57d447c80d2d4b0849ca1185e4b3b"
+  }
+}

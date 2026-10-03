@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "verified_source_files": 69144,
+  "toolchain": "stable",
+  "features": "all",
+  "all_target_counts": {
+    "passed": 1836,
+    "failed": 0,
+    "ignored": 5
+  },
+  "doctest_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0
+  },
+  "command_receipts": 9,
+  "source_before_after_receipts": 18,
+  "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "canonical_helper_path": "/workspace/work/client-share-assessment/immutable-12f43986/docs/evidence/client/KL05-15/live-test-correction/run-current-docker.sh",
+  "canonical_helper_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+  "executed_helper_path": "/workspace/work/client-share-assessment/final-12f43986/current-docker/run-current-docker.sh",
+  "executed_helper_sha256": "edb27abbb161b8bec2308774649780b02cf6c69b913579691a21c57073598f73",
+  "exclusive_helper_overlay": "Only3CPUaffinity substitutions0-2,4=>0,1: genuinecontainercpuset, realcargo taskset, exactcpusetassert. No pin/assertion/test/Cargo command change or shim; canonicalsource untouched.",
+  "parent_instruction": "Afterfull4PASS genuine4.3delivery CPU0,1; broker51 usesCPU2,4.",
+  "container_cpuset": "0,1",
+  "host_cpuset": "0,1",
+  "cached_image_reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+  "cached_image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+  "existing_image_logical_bytes": 441599684,
+  "new_image_pull_bytes": 0,
+  "captured_at": "2026-10-03T10:18:29.177560+00:00"
+}

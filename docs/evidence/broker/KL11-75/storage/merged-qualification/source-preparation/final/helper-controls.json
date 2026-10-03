@@ -1,0 +1,413 @@
+{
+  "schema": 1,
+  "driver_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "scope": "tiny stdlib/real ELF helper controls only; no Cargo, actual source extraction or real target access",
+  "checks": [
+    {
+      "name": "actual_failed_ELF_retained_before_overwrite",
+      "exit_code": 1,
+      "sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "original_mode": 489
+    },
+    {
+      "name": "same_path_new_bytes_preserves_both_generations_and_modes",
+      "objects": 2,
+      "restored_bytes_and_full_permission_modes_match": true
+    },
+    {
+      "name": "corrupted_retained_object_blocks_clean",
+      "rejection": "BadGzipFile"
+    },
+    {
+      "name": "active_cache_owner_detected_before_clean",
+      "owner": {
+        "pid": 1105500,
+        "executable_name": "sleeper",
+        "cache_references": [
+          "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-cache/sleeper",
+          "mapped:/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-cache/sleeper"
+        ]
+      },
+      "clean_would_be_blocked": true
+    },
+    {
+      "name": "released_cache_has_no_owners",
+      "owners": []
+    },
+    {
+      "name": "external_tool_exact_path_bytes_and_full_mode_bound",
+      "controlled_changed_mode_rejected": true
+    },
+    {
+      "name": "reused_source_set_blob_and_full_permission_guard",
+      "controlled_mutation_extra_file_and_permission_change_rejected": true
+    },
+    {
+      "name": "audit_gzip_restores_raw_hash_bytes_and_full_mode",
+      "audit": {
+        "path": "source-integrity-control.json.gz",
+        "sha256": "69fd6c7a96fed3b3afad28f4aec793c0a843c636d09cc8e3728680f5f22084c4",
+        "uncompressed_sha256": "eeaa01db2cc468941264bccd78f319166cc5c30bba12c36f113cf5306a71fabe",
+        "uncompressed_bytes": 1149,
+        "original_mode": 384,
+        "restore_path": "source-integrity-control.json",
+        "compression": "gzip",
+        "decompression_verified": true,
+        "compressed_mode": 384
+      },
+      "production_threshold_bytes": 4194304
+    },
+    {
+      "name": "healthy_live_monitor_command_completes",
+      "exit_code": 0,
+      "monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 368050176,
+        "samples": 3,
+        "triggered": false,
+        "trigger": null,
+        "actual_process_exit_code": 0,
+        "sample_log_sha256": "b940398d43adaa76788e1e1b483065dd77656d5852ca35ec8f7611025ea3a020"
+      },
+      "probe_scope": "synthetic free-space observations"
+    },
+    {
+      "name": "live_floor_stops_only_owned_parent_child_group",
+      "exit_code": -15,
+      "monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 367001599,
+        "samples": 3,
+        "triggered": true,
+        "trigger": {
+          "utc_unix_seconds": 1791024048.867072,
+          "free_bytes": 367001599,
+          "process_group": 1105502,
+          "below_reserve": true
+        },
+        "actual_process_exit_code": -15,
+        "sample_log_sha256": "063e5dd5607e5ca1fc02bdc3cd52408474578ef82ea1be011e33f28febacb881"
+      },
+      "child_no_longer_running": true,
+      "probe_scope": "synthetic threshold crossing; real child processes"
+    },
+    {
+      "name": "final_low_sample_rejects_zero_exit_before_next_command",
+      "exit_code": 75,
+      "monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 367001599,
+        "samples": 3,
+        "triggered": true,
+        "trigger": {
+          "utc_unix_seconds": 1791024048.8748593,
+          "free_bytes": 367001599,
+          "process_group": 1105504,
+          "below_reserve": true,
+          "process_completed": true
+        },
+        "actual_process_exit_code": 0,
+        "sample_log_sha256": "fd2ec59b93611d6a2af5161b5add1c9b0bcf62b20df4fdab96a5371949ff6f44"
+      },
+      "probe_scope": "synthetic free-space observations"
+    },
+    {
+      "name": "monitor_error_stops_owned_process_before_propagating",
+      "controlled_error_rejected": true
+    },
+    {
+      "name": "compressed_retention_forecast_refuses_before_writes",
+      "required_free_bytes": 368180709,
+      "unretained_elfs": 3,
+      "no_cleanup_or_gzip_written": true
+    },
+    {
+      "name": "noncompiler_environment_cache_owner_guard",
+      "owner": {
+        "pid": 1105506,
+        "executable_name": "sleep",
+        "cache_references": [
+          "CARGO_TARGET_DIR=/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-cache"
+        ]
+      },
+      "released": true
+    },
+    {
+      "name": "mapped_cache_owner_after_closed_descriptor_guard",
+      "owner": {
+        "pid": 1105507,
+        "executable_name": "python3.12",
+        "cache_references": [
+          "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-cache/failed-harness",
+          "mapped:/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-cache/failed-harness"
+        ]
+      },
+      "released": true
+    },
+    {
+      "name": "explicit_cpu_affinity_binds_canonical_ids_and_rejects_reserved_cpu3",
+      "default_cpu_ids": [
+        2,
+        4
+      ],
+      "invalid_controls": 5
+    },
+    {
+      "name": "forced_strict_and_capture_environment_is_recorded_when_inherited_equal",
+      "unrelated_inherited_values_not_recorded": true
+    },
+    {
+      "name": "all_live_disk_samples_including_prelaunch_reconstruct_count_minimum_and_trigger",
+      "actual_control_files": 3,
+      "source_of_free_values": "explicit synthetic probes; no disk filling"
+    },
+    {
+      "name": "ten_separate_between_profile_full_cache_cleans",
+      "qualification_commands": 51,
+      "maintenance_commands": 10,
+      "actual_commands": 61,
+      "operations": [
+        {
+          "name": "stable-maintenance-after-default",
+          "after_profile": "default",
+          "toolchain": "stable",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+stable",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "stable-maintenance-after-tls",
+          "after_profile": "tls",
+          "toolchain": "stable",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+stable",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "stable-maintenance-after-sasl",
+          "after_profile": "sasl",
+          "toolchain": "stable",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+stable",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "stable-maintenance-after-sasl+tls",
+          "after_profile": "sasl+tls",
+          "toolchain": "stable",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+stable",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "stable-maintenance-after-oidc",
+          "after_profile": "oidc",
+          "toolchain": "stable",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+stable",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "1.85.0-maintenance-after-default",
+          "after_profile": "default",
+          "toolchain": "1.85.0",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+1.85.0",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "1.85.0-maintenance-after-tls",
+          "after_profile": "tls",
+          "toolchain": "1.85.0",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+1.85.0",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "1.85.0-maintenance-after-sasl",
+          "after_profile": "sasl",
+          "toolchain": "1.85.0",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+1.85.0",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "1.85.0-maintenance-after-sasl+tls",
+          "after_profile": "sasl+tls",
+          "toolchain": "1.85.0",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+1.85.0",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        },
+        {
+          "name": "1.85.0-maintenance-after-oidc",
+          "after_profile": "oidc",
+          "toolchain": "1.85.0",
+          "argv": [
+            "taskset",
+            "-c",
+            "2,4",
+            "cargo",
+            "+1.85.0",
+            "clean",
+            "--offline",
+            "--locked",
+            "--manifest-path",
+            "partitionline-broker/Cargo.toml",
+            "--target-dir",
+            "/fake-target"
+          ],
+          "operation": "full-generated-cache-clean"
+        }
+      ]
+    },
+    {
+      "name": "fifty_one_exact_command_six_profile_contract",
+      "commands": 51,
+      "capture_cells": [
+        "stable-default-all-targets",
+        "stable-tls-all-targets",
+        "stable-sasl-all-targets",
+        "stable-sasl+tls-all-targets",
+        "stable-oidc-all-targets",
+        "stable-all-features-all-targets",
+        "1.85.0-default-all-targets",
+        "1.85.0-tls-all-targets",
+        "1.85.0-sasl-all-targets",
+        "1.85.0-sasl+tls-all-targets",
+        "1.85.0-oidc-all-targets",
+        "1.85.0-all-features-all-targets"
+      ]
+    }
+  ],
+  "elf_objects": [
+    {
+      "path": "bin/elf-objects/d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf.gz",
+      "sha256": "7303a299505702b614563a71896b73dcac82bd0c9eb9f7838622abde392cbb7c",
+      "uncompressed_sha256": "d22a87e4d3bac34db5025ba813f9275244336880b297a5ae0bcbc19206454ddf",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff.gz",
+      "sha256": "ef2880a001b24843c07cf47697a7072682dd8028842d92a8a3f33c9b5a3de031",
+      "uncompressed_sha256": "b381cc8c55ec524b9fa92897f0882e855357468b4a763519cec47e05994d61ff",
+      "uncompressed_bytes": 43432,
+      "compression": "gzip",
+      "decompression_verified": true
+    }
+  ],
+  "source_unchanged": true
+}

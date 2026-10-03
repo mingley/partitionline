@@ -1,0 +1,7 @@
+Dumping /tmp/kafka-logs/pl-share-v2-12f439866204-records-0/00000000000000000000.log
+Log starting offset: 0
+baseOffset: 0 lastOffset: 3 count: 4 baseSequence: -1 lastSequence: -1 producerId: -1 producerEpoch: -1 partitionLeaderEpoch: 0 isTransactional: false isControl: false deleteHorizonMs: OptionalLong.empty position: 0 CreateTime: 1003 size: 137 magic: 2 compresscodec: none crc: 2511930316 isvalid: true
+| offset: 0 CreateTime: 1000 keySize: 5 valueSize: 7 sequence: -1 headerKeys: [] key: key-0 payload: value-0
+| offset: 1 CreateTime: 1001 keySize: 5 valueSize: 7 sequence: -1 headerKeys: [] key: key-1 payload: value-1
+| offset: 2 CreateTime: 1002 keySize: 5 valueSize: 7 sequence: -1 headerKeys: [] key: key-2 payload: value-2
+| offset: 3 CreateTime: 1003 keySize: 5 valueSize: 7 sequence: -1 headerKeys: [] key: key-3 payload: value-3

@@ -1,0 +1,19 @@
+{
+  "scope": "Unchanged WORK51 normalizer/control-contract before separate10-maintenance derivative",
+  "files": [
+    {
+      "path": "normalize-broker-proof-51.py",
+      "sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+      "bytes": 12796,
+      "mode": 384
+    },
+    {
+      "path": "draft-contract.json",
+      "sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+      "bytes": 5401,
+      "mode": 384
+    }
+  ],
+  "actual_broker_commands": 0,
+  "actual_live_jobs": 0
+}

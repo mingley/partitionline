@@ -1,0 +1,11 @@
+[2026-10-03 10:19:59,739] WARN [LegacyAdminClient clientId=admin-1] Connection to node -1 (localhost/127.0.0.1:9094) could not be established. Node may not be available. (org.apache.kafka.clients.NetworkClient)
+[2026-10-03 10:19:59,750] WARN [LegacyAdminClient clientId=admin-1] Bootstrap broker localhost:9094 (id: -1 rack: null isFenced: false) disconnected (org.apache.kafka.clients.NetworkClient)
+Request METADATA failed on brokers [localhost:9094 (id: -1 rack: null isFenced: false)]
+java.lang.RuntimeException: Request METADATA failed on brokers [localhost:9094 (id: -1 rack: null isFenced: false)]
+	at org.apache.kafka.tools.BrokerApiVersionsCommand$AdminClient.sendAnyNode(BrokerApiVersionsCommand.java:241)
+	at org.apache.kafka.tools.BrokerApiVersionsCommand$AdminClient.findAllBrokers(BrokerApiVersionsCommand.java:272)
+	at org.apache.kafka.tools.BrokerApiVersionsCommand$AdminClient.awaitBrokers(BrokerApiVersionsCommand.java:264)
+	at org.apache.kafka.tools.BrokerApiVersionsCommand.execute(BrokerApiVersionsCommand.java:86)
+	at org.apache.kafka.tools.BrokerApiVersionsCommand.mainNoExit(BrokerApiVersionsCommand.java:74)
+	at org.apache.kafka.tools.BrokerApiVersionsCommand.main(BrokerApiVersionsCommand.java:69)
+

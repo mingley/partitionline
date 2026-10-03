@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "scope": "WORK helper contract only; zero actual compiler/broker/publicpeer executions",
+  "original_51_helper_sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+  "original_51_contract_sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+  "qualification_commands": 51,
+  "cache_maintenance_commands": 10,
+  "total_executed_commands": 61,
+  "feature_cells": 12,
+  "selected_public_compaction_lanes": 4,
+  "separate_ledgers": [
+    "commands",
+    "maintenance_commands"
+  ],
+  "source_guards": "full tracked Git blobs/path-set/executable classes and original0o7777 filesystem permission modes before/after all61 commands",
+  "preclean_guards": [
+    "owners_before/after via cwd/exe/fd/CARGO_TARGET_DIR_environment/maps",
+    "lossless independently decompressed gzip ELF bytes and original full-mode restore metadata",
+    "sufficient conservative worst-case gzip +1MiBmetadata+350MiBreserve",
+    "exact reviewed package/full cachecleanargv and generatedtarget",
+    "canonical actual CPU affinity excluding3"
+  ],
+  "synthetic_controls": {
+    "positive": 1,
+    "negative": 20,
+    "all_passed": true
+  },
+  "inputs": [
+    {
+      "path": "frozen-14f78e77/normalize-broker-proof-51.py",
+      "sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+      "bytes": 12796,
+      "permission_mode": 384
+    },
+    {
+      "path": "frozen-14f78e77/draft-contract.json",
+      "sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+      "bytes": 5401,
+      "permission_mode": 384
+    },
+    {
+      "path": "normalize-broker-proof-51-maintenance.py",
+      "sha256": "993261a134a897ca0826e7319aaff553767e8b6f090355c53b968b97da38e9ea",
+      "bytes": 11178,
+      "permission_mode": 384
+    },
+    {
+      "path": "check-maintenance-contract.py",
+      "sha256": "fcaddb339fe5ddf3cdb6fba8e08b8e4031e7db50001a6b7507e23f09e7a43fe5",
+      "bytes": 10015,
+      "permission_mode": 384
+    },
+    {
+      "path": "contract-controls-attempt-2/helper-controls.json",
+      "sha256": "6fe75e511b63c45d339d63f9894269c28dfe07ed3552112f92de3c8d801317b0",
+      "bytes": 3482,
+      "permission_mode": 384
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "phase": "strict-clippy",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--all-targets",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cpuset": "0,1"
+}

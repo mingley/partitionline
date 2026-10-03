@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "scope": "WORK strict compile only; no live peer",
+  "passed": true,
+  "rows": [
+    {
+      "release": "4.1.2",
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/compile-attempt-2/4.1.2/classes",
+        "/workspace/work/oauth-java-preparation/OAuthMetadataPeer.java"
+      ],
+      "source_sha256": "0d2e22f23cc5e2f44eab16c5c611bcf627edab668d701d6d342e76e3196a1086",
+      "classes": [
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.1.2/classes/OAuthMetadataPeer.class",
+          "sha256": "cb16ec463e07a35b996eac9d9b31193067050df197be7f9d768526a935fec8e0"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.1.2/classes/OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "cabaf0c929549638319f4581c4ef7dd1f8db9780769c5027adce0dc7324299d9"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.1.2/classes/OAuthMetadataPeer$Clients.class",
+          "sha256": "f6e717ec75f7392119de9f22378c7062422e966a27eb56e2a9edc5bd7c33803e"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/compile-attempt-2/4.2.1/classes",
+        "/workspace/work/oauth-java-preparation/OAuthMetadataPeer.java"
+      ],
+      "source_sha256": "0d2e22f23cc5e2f44eab16c5c611bcf627edab668d701d6d342e76e3196a1086",
+      "classes": [
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.2.1/classes/OAuthMetadataPeer.class",
+          "sha256": "cb16ec463e07a35b996eac9d9b31193067050df197be7f9d768526a935fec8e0"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.2.1/classes/OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "cabaf0c929549638319f4581c4ef7dd1f8db9780769c5027adce0dc7324299d9"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.2.1/classes/OAuthMetadataPeer$Clients.class",
+          "sha256": "f6e717ec75f7392119de9f22378c7062422e966a27eb56e2a9edc5bd7c33803e"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "exit_code": 0,
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/compile-attempt-2/4.3.1/classes",
+        "/workspace/work/oauth-java-preparation/OAuthMetadataPeer.java"
+      ],
+      "source_sha256": "0d2e22f23cc5e2f44eab16c5c611bcf627edab668d701d6d342e76e3196a1086",
+      "classes": [
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.3.1/classes/OAuthMetadataPeer.class",
+          "sha256": "cb16ec463e07a35b996eac9d9b31193067050df197be7f9d768526a935fec8e0"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.3.1/classes/OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "cabaf0c929549638319f4581c4ef7dd1f8db9780769c5027adce0dc7324299d9"
+        },
+        {
+          "path": "/workspace/work/oauth-java-preparation/compile-attempt-2/4.3.1/classes/OAuthMetadataPeer$Clients.class",
+          "sha256": "f6e717ec75f7392119de9f22378c7062422e966a27eb56e2a9edc5bd7c33803e"
+        }
+      ]
+    }
+  ]
+}

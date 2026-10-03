@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "reason": "Preserve reviewed99326151+10 derivative before additive raw disk-observation binding",
+  "files": [
+    {
+      "original": "normalize-broker-proof-51-maintenance.py",
+      "file": "normalize-broker-proof-51-maintenance.py",
+      "sha256": "993261a134a897ca0826e7319aaff553767e8b6f090355c53b968b97da38e9ea",
+      "mode": 384
+    },
+    {
+      "original": "maintenance-contract.json",
+      "file": "maintenance-contract.json",
+      "sha256": "881dd108acb52cef2dfe37f3605b05c2a79beb3a57fdf870828e2ff80bbadc49",
+      "mode": 384
+    },
+    {
+      "original": "check-maintenance-contract.py",
+      "file": "check-maintenance-contract.py",
+      "sha256": "fcaddb339fe5ddf3cdb6fba8e08b8e4031e7db50001a6b7507e23f09e7a43fe5",
+      "mode": 384
+    },
+    {
+      "original": "contract-controls-attempt-2/helper-controls.json",
+      "file": "helper-controls.json",
+      "sha256": "6fe75e511b63c45d339d63f9894269c28dfe07ed3552112f92de3c8d801317b0",
+      "mode": 384
+    }
+  ]
+}

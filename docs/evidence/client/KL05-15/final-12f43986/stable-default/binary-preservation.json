@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "accepted_lane": "/workspace/work/client-share-assessment/final-12f43986/stable-default",
+  "accepted_lane_receipt_sha256": "9f3a6a7be2c6baefc4931d492ce86bbde8442bbcbdfbc3503467b0b4d8103c39",
+  "verified_source_files": 69144,
+  "source_guard_receipts": 18,
+  "scope": "Fresh actual12f4 stable/default build and complete1835test/4doctest pass provenance. Live ignored in this lane; fullfourcell and freshgenuineDocker barriers remain pending. Retained direct executable paths for transparent root reuse; no Cargo shim.",
+  "files": {
+    "verifiable_producer": {
+      "source_path": "/workspace/work/client-share-target/debug/examples/verifiable_producer",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-12f43986/verifiable_producer",
+      "sha256": "d706888af0abbeace75640e2b43e8c59772c64d66778ea9a232ff20c4886373a",
+      "bytes": 13030584,
+      "mode": 448,
+      "verified_bytes_and_mode": true
+    },
+    "verifiable_consumer": {
+      "source_path": "/workspace/work/client-share-target/debug/examples/verifiable_consumer",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-12f43986/verifiable_consumer",
+      "sha256": "b8a6796f0830934e3db626feab880750b6751411dab9b45d8ba6130d97f592e7",
+      "bytes": 15105664,
+      "mode": 448,
+      "verified_bytes_and_mode": true
+    },
+    "broker_compatibility.elf": {
+      "source_path": "/workspace/work/client-share-target/debug/deps/broker_compatibility-504f1bc62ad9b1df",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-12f43986/broker_compatibility.elf",
+      "sha256": "27a00aec19b20434bb513429de86984a5eb53f8b36d750d73071daee722442cf",
+      "bytes": 20513192,
+      "mode": 448,
+      "verified_bytes_and_mode": true
+    },
+    "share_semantics.elf": {
+      "source_path": "/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-12f43986/share_semantics.elf",
+      "sha256": "0eba12551084945343c53408c736a0a3aa02d1fcdee7a3cf22ac41b4c6db0aa8",
+      "bytes": 20598080,
+      "mode": 448,
+      "verified_bytes_and_mode": true
+    }
+  }
+}

@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "rows": [
+    {
+      "release": "4.1.2",
+      "source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "retained_source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/build-attempt-3/4.1.2/classes",
+        "/workspace/work/oauth-java-preparation/compile-attempt-3/4.1.2/OAuthMetadataPeer.java"
+      ],
+      "exit_code": 0,
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.1.2.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar"
+        },
+        {
+          "file": "jackson-annotations-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-annotations-2.19.4.jar",
+          "bytes": 79311,
+          "sha256": "ab26383fa3c10c0df1ffd1bb035d81161c059b1af71927d73c24473c058baa16",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar"
+        },
+        {
+          "file": "jackson-core-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-core-2.19.4.jar",
+          "bytes": 591409,
+          "sha256": "466ae4dc4f7054f51525f4211df411d9a64d65cc169995d32bf49e20e6f586e5",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar"
+        },
+        {
+          "file": "jackson-databind-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-databind-2.19.4.jar",
+          "bytes": 1679441,
+          "sha256": "b781c431be870deb0bf84421e99e774c256a701f4ba678df80248f55cd16ff74",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar"
+        }
+      ],
+      "log": "/workspace/work/oauth-java-preparation/compile-attempt-3/4.1.2/compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "classes_dir": "/workspace/work/oauth-java-preparation/build-attempt-3/4.1.2/classes",
+      "classes": [
+        {
+          "file": "OAuthMetadataPeer$Clients.class",
+          "sha256": "11af515144b988081d3056666229aa32ae7a9c3ba39385758b4332b93872c209",
+          "bytes": 11463
+        },
+        {
+          "file": "OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "8181de681b9efc71f6d2f89055f739cc3e0367a99e498e6ae66680e0721c3ab4",
+          "bytes": 1939
+        },
+        {
+          "file": "OAuthMetadataPeer.class",
+          "sha256": "8455f786c67d5e9ff160ade4c4b3ff23a8c73f614990eb870ec1a71d067e95c4",
+          "bytes": 16056
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "retained_source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/build-attempt-3/4.2.1/classes",
+        "/workspace/work/oauth-java-preparation/compile-attempt-3/4.2.1/OAuthMetadataPeer.java"
+      ],
+      "exit_code": 0,
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.2.1.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar"
+        }
+      ],
+      "log": "/workspace/work/oauth-java-preparation/compile-attempt-3/4.2.1/compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "classes_dir": "/workspace/work/oauth-java-preparation/build-attempt-3/4.2.1/classes",
+      "classes": [
+        {
+          "file": "OAuthMetadataPeer$Clients.class",
+          "sha256": "11af515144b988081d3056666229aa32ae7a9c3ba39385758b4332b93872c209",
+          "bytes": 11463
+        },
+        {
+          "file": "OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "8181de681b9efc71f6d2f89055f739cc3e0367a99e498e6ae66680e0721c3ab4",
+          "bytes": 1939
+        },
+        {
+          "file": "OAuthMetadataPeer.class",
+          "sha256": "8455f786c67d5e9ff160ade4c4b3ff23a8c73f614990eb870ec1a71d067e95c4",
+          "bytes": 16056
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "retained_source_sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/oauth-java-preparation/build-attempt-3/4.3.1/classes",
+        "/workspace/work/oauth-java-preparation/compile-attempt-3/4.3.1/OAuthMetadataPeer.java"
+      ],
+      "exit_code": 0,
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.3.1.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar"
+        }
+      ],
+      "log": "/workspace/work/oauth-java-preparation/compile-attempt-3/4.3.1/compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "classes_dir": "/workspace/work/oauth-java-preparation/build-attempt-3/4.3.1/classes",
+      "classes": [
+        {
+          "file": "OAuthMetadataPeer$Clients.class",
+          "sha256": "11af515144b988081d3056666229aa32ae7a9c3ba39385758b4332b93872c209",
+          "bytes": 11463
+        },
+        {
+          "file": "OAuthMetadataPeer$ObservedLoginCallback.class",
+          "sha256": "8181de681b9efc71f6d2f89055f739cc3e0367a99e498e6ae66680e0721c3ab4",
+          "bytes": 1939
+        },
+        {
+          "file": "OAuthMetadataPeer.class",
+          "sha256": "8455f786c67d5e9ff160ade4c4b3ff23a8c73f614990eb870ec1a71d067e95c4",
+          "bytes": 16056
+        }
+      ]
+    }
+  ],
+  "java": {
+    "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+    "version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n"
+  },
+  "source_pins_sha256": "18fe2c223df2b099646fba7c73994a5fa42393f45a2ea74215252946e539d4af",
+  "build_script_sha256": "1e65b048579cb9de61a6ab0beaea40e5102753df0ee5ea2cf986a62f528fb470",
+  "scope": "Strict source compilation only. No HTTPS token retrieval, broker auth, metadata, read/write, or lifecycle runtime result.",
+  "actual_live_peers": 0
+}

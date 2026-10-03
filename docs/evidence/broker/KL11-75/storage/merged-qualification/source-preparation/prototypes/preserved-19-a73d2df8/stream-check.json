@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "classification": "synthetic streaming archive/source-mode verification; no Cargo or repository qualification",
+  "driver_sha256": "768d89f58900d18ccd7da68f9d7143fcde58cd3449f803abccdf9f709035a722",
+  "archive_sha256": "03436acc579d329ee9607a401bbaaebbe6c73420ac6a03a1bb47ed377a604059",
+  "positive": {
+    "file_count": 3,
+    "all_git_blobs_match": true,
+    "set_and_blob_sha256": "e59d4498e31de957c0298d9429ac32ee111bc6d8ef9ec8940cc0007a4293193c"
+  },
+  "negative_controls": [
+    "wrong executable mode rejected",
+    "wrong content rejected"
+  ],
+  "restored_positive": true
+}

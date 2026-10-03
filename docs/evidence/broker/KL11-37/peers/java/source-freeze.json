@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen source-only JavaOAuth peer preparation; strictcompilation3, actualruntime0",
+  "source_preparation_base": "1b6298bc2f933ddde3ee4266b5ce02122b0d017d",
+  "file_count": 54,
+  "files": [
+    {
+      "path": "OAuthMetadataPeer.java",
+      "sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "bytes": 24703,
+      "permission_mode": 384
+    },
+    {
+      "path": "README.md",
+      "sha256": "778adbbce05db2db99ab29d7111eba8f55eb16cfa83ef28165ab13c8c7acd22b",
+      "bytes": 4688,
+      "permission_mode": 384
+    },
+    {
+      "path": "build-java.py",
+      "sha256": "1e65b048579cb9de61a6ab0beaea40e5102753df0ee5ea2cf986a62f528fb470",
+      "bytes": 3308,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-1/4.1.2/compile.log",
+      "sha256": "f68e9d9c0ab3d6744432b34a641c28054e90f7ba15fac1c9f66688891ccc8b39",
+      "bytes": 372,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-1/4.2.1/compile.log",
+      "sha256": "f68e9d9c0ab3d6744432b34a641c28054e90f7ba15fac1c9f66688891ccc8b39",
+      "bytes": 372,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-1/4.3.1/compile.log",
+      "sha256": "f68e9d9c0ab3d6744432b34a641c28054e90f7ba15fac1c9f66688891ccc8b39",
+      "bytes": 372,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-1/validation.json",
+      "sha256": "cabd8de4ef9d08fec14f17ad2fe306d2e9d9bd690fb05cccf27a10bb6be34381",
+      "bytes": 3463,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-2/4.1.2/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-2/4.2.1/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-2/4.3.1/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-2/validation.json",
+      "sha256": "678d458c21130308e1283e6e5b2c8f541be3086da735e8bac56f8c63a47b91ff",
+      "bytes": 4400,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.1.2/OAuthMetadataPeer.java",
+      "sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "bytes": 24703,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.1.2/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.2.1/OAuthMetadataPeer.java",
+      "sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "bytes": 24703,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.2.1/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.3.1/OAuthMetadataPeer.java",
+      "sha256": "82b810d3e78d6ea76e9ae75d8a9c782b52a9ffea993ee4b72c41c91d62336e1a",
+      "bytes": 24703,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/4.3.1/compile.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "permission_mode": 384
+    },
+    {
+      "path": "compile-attempt-3/validation.json",
+      "sha256": "f2995883cb307fadefd7055490b6d3fcf373215d1b4c0a5c3f3f1c2d756dc841",
+      "bytes": 13607,
+      "permission_mode": 384
+    },
+    {
+      "path": "launch-plan.py",
+      "sha256": "df61fe19402f8208f61617d1931961c00fa2e1e361b9358e80fdc33c36ceccf8",
+      "bytes": 4075,
+      "permission_mode": 384
+    },
+    {
+      "path": "peer-config.template.properties",
+      "sha256": "4bb0f0337cec707614fa0b8a4c7a5618844522a2860fb9fc0a0e4e452f8b07db",
+      "bytes": 421,
+      "permission_mode": 384
+    },
+    {
+      "path": "pins.json",
+      "sha256": "18fe2c223df2b099646fba7c73994a5fa42393f45a2ea74215252946e539d4af",
+      "bytes": 21781,
+      "permission_mode": 384
+    },
+    {
+      "path": "source-preparation.json",
+      "sha256": "2023420f89e90ab6e10631a1db754f3c00f81bd873b9d85474bdc5756c34c31e",
+      "bytes": 3287,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/ClientCredentialsJwtRetriever.java",
+      "sha256": "0df7028aba3e75810c533a5664818a2c15af88b84f7f61ce28641894b5948c97",
+      "bytes": 10613,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/ClientCredentialsRequestFormatter.java",
+      "sha256": "aeaab7970a8200344ea8593bbc412821236160d07d62737f51169f1b4eb54732",
+      "bytes": 3681,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/HttpJwtRetriever.java",
+      "sha256": "d682646a142bae6c7a92b1d2876ea8e7354ee5b2d786de861c12aa5c393705a9",
+      "bytes": 14370,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/JaasOptionsUtils.java",
+      "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+      "bytes": 4729,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/JwtRetriever.java",
+      "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2",
+      "bytes": 2459,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/JwtValidator.java",
+      "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+      "bytes": 2998,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/OAuthBearerLoginCallbackHandler.java",
+      "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce",
+      "bytes": 12044,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/OAuthBearerLoginCallbackHandlerTest.java",
+      "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732",
+      "bytes": 11471,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/OAuthBearerLoginModule.java",
+      "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c",
+      "bytes": 19700,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/OAuthBearerTokenCallback.java",
+      "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274",
+      "bytes": 4001,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.1.2/SaslConfigs.java",
+      "sha256": "47f0cb0fc28f90efd1af59c190e191e1f824f1e5f3e98f256ff13987cfd83099",
+      "bytes": 40014,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/ClientCredentialsJwtRetriever.java",
+      "sha256": "0df7028aba3e75810c533a5664818a2c15af88b84f7f61ce28641894b5948c97",
+      "bytes": 10613,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/ClientCredentialsRequestFormatter.java",
+      "sha256": "aeaab7970a8200344ea8593bbc412821236160d07d62737f51169f1b4eb54732",
+      "bytes": 3681,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/HttpJwtRetriever.java",
+      "sha256": "d682646a142bae6c7a92b1d2876ea8e7354ee5b2d786de861c12aa5c393705a9",
+      "bytes": 14370,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/JaasOptionsUtils.java",
+      "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+      "bytes": 4729,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/JwtRetriever.java",
+      "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2",
+      "bytes": 2459,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/JwtValidator.java",
+      "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+      "bytes": 2998,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/OAuthBearerLoginCallbackHandler.java",
+      "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce",
+      "bytes": 12044,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/OAuthBearerLoginCallbackHandlerTest.java",
+      "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732",
+      "bytes": 11471,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/OAuthBearerLoginModule.java",
+      "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c",
+      "bytes": 19700,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/OAuthBearerTokenCallback.java",
+      "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274",
+      "bytes": 4001,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.2.1/SaslConfigs.java",
+      "sha256": "fb09c0d01c65451ae78992329c2cad7d658d3783d3534d10e550849007096eca",
+      "bytes": 40099,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/ClientCredentialsJwtRetriever.java",
+      "sha256": "0aec70b1d2430a1ba5f939ef5333ae0cbb47a64c574b366f5aa93043c8b11a65",
+      "bytes": 5524,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/HttpJwtRetriever.java",
+      "sha256": "73b131f2e17e73081eca2c2338d84d3b7bb06fde6c0b60eab011b7bae3fd30bf",
+      "bytes": 14552,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/JaasOptionsUtils.java",
+      "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+      "bytes": 4729,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/JwtRetriever.java",
+      "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2",
+      "bytes": 2459,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/JwtValidator.java",
+      "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+      "bytes": 2998,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/OAuthBearerLoginCallbackHandler.java",
+      "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce",
+      "bytes": 12044,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/OAuthBearerLoginCallbackHandlerTest.java",
+      "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732",
+      "bytes": 11471,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/OAuthBearerLoginModule.java",
+      "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c",
+      "bytes": 19700,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/OAuthBearerTokenCallback.java",
+      "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274",
+      "bytes": 4001,
+      "permission_mode": 384
+    },
+    {
+      "path": "upstream/4.3.1/SaslConfigs.java",
+      "sha256": "9a3da1c3f3811191586c8d7bec1d316c4f623cdb419595924fa6434182cdbf5b",
+      "bytes": 40354,
+      "permission_mode": 384
+    }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "scope": "Synthetic source-only normalizer controls; fake ELF magic fixture, zero Cargo/broker/client executions",
+  "positive_baseline_passed": true,
+  "negative_controls": [
+    {
+      "name": "missing_maintenance",
+      "rejected": true,
+      "reason": "ten actual maintenance rows remain separate from51 qualification gates"
+    },
+    {
+      "name": "duplicate_maintenance",
+      "rejected": true,
+      "reason": "ten actual maintenance rows remain separate from51 qualification gates"
+    },
+    {
+      "name": "changed_execution_order",
+      "rejected": true,
+      "reason": "actual61 interleaved execution order required"
+    },
+    {
+      "name": "wrong_total_count",
+      "rejected": true,
+      "reason": "explicit ten-maintenance/61-actual ledger counts required"
+    },
+    {
+      "name": "active_owner_before",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "active_owner_after",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "missing_maps_guard",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "unverified_elf",
+      "rejected": true,
+      "reason": "pre-clean original ELF byte and full permission-mode restore receipt required"
+    },
+    {
+      "name": "lost_original_mode",
+      "rejected": true,
+      "reason": "every forecast ELF must be retained with exact original bytes/mode before clean"
+    },
+    {
+      "name": "optimistic_gzip_forecast",
+      "rejected": true,
+      "reason": "full unknown ELF retention forecast must reconcile"
+    },
+    {
+      "name": "insufficient_reserve",
+      "rejected": true,
+      "reason": "actual sufficient pre-clean lossless-retention reserve required"
+    },
+    {
+      "name": "maintenance_package_only",
+      "rejected": true,
+      "reason": "exact ordered bounded full-cache maintenance plan required"
+    },
+    {
+      "name": "changed_target",
+      "rejected": true,
+      "reason": "exact isolated generated-cache target required"
+    },
+    {
+      "name": "changed_source",
+      "rejected": true,
+      "reason": "complete identical Git bytes and baseline modes required around clean"
+    },
+    {
+      "name": "failed_maintenance",
+      "rejected": true,
+      "reason": "every actual command must bind successful execution and canonical affinity"
+    },
+    {
+      "name": "disk_cutoff",
+      "rejected": true,
+      "reason": "actual monitored commands must preserve350MiB reserve"
+    },
+    {
+      "name": "reserved_cpu3",
+      "rejected": true,
+      "reason": "actual canonical CPU affinity excluding reservedCPU3 required"
+    },
+    {
+      "name": "unsupported_peer_profile",
+      "rejected": true,
+      "reason": "explicit twelve-cell/six-profile qualification metadata required"
+    },
+    {
+      "name": "changed_elf_sha",
+      "rejected": true,
+      "reason": "actual lossless retained ELF bytes required"
+    }
+  ],
+  "passed": true,
+  "helper_sha256": "002c80f7f2a9f4f0e734bdc7da15d7dfbe68a3e65902029fa9e0e02919f45bad",
+  "actual_qualification_commands": 0,
+  "actual_public_peers": 0
+}

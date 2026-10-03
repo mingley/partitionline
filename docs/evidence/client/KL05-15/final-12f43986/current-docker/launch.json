@@ -1,0 +1,24 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "argv": [
+    "bash",
+    "/workspace/work/client-share-assessment/final-12f43986/current-docker/run-current-docker.sh",
+    "/workspace/work/client-share-assessment/immutable-12f43986",
+    "12f4398662044947ae653f07923290127457f2ef",
+    "/workspace/work/client-share-assessment/final-12f43986/current-docker"
+  ],
+  "free_bytes_before_launch": 1657225216,
+  "live_floor_bytes": 367001600,
+  "cpuset": "0,1",
+  "real_cargo": true,
+  "cached_genuine_image": {
+    "Id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+    "RepoDigests": [
+      "apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837"
+    ],
+    "Size": 441599684,
+    "Architecture": "amd64",
+    "Os": "linux"
+  },
+  "captured_at": "2026-10-03T10:19:56.784715+00:00"
+}

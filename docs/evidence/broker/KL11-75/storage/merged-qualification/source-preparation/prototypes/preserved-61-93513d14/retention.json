@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "scope": "preserve93513 candidate before explicit inherited strict-env recording correction",
+  "files": [
+    {
+      "path": "/workspace/work/compaction-final-preparation/run-merged-final.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/run-merged-final.py",
+      "sha256": "93513d14b7fa9ff4fde34aca96b4125cbf6e9ddd07b3dadd92f185ee21df6c68",
+      "mode": 420
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/check-merged-runner.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/check-merged-runner.py",
+      "sha256": "c6e560a118f9bcdb8feb0baeea119b1c72223e13b652cfecb6d5c57349c29290",
+      "mode": 384
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/command-contract-61-93513d14.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/command-contract-61-93513d14.json",
+      "sha256": "e574ff26726d7fb009499745810ad84560f2b342ed153db4a63c2a888c29c236",
+      "mode": 384
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/merged-helper-check-93513d14.json",
+      "sha256": "df825db8f288edd0ba23ac20033ff90b6f43409db061971cdfa1360fe8d8bac2",
+      "mode": 384
+    }
+  ]
+}

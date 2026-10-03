@@ -1,0 +1,166 @@
+{
+  "schema_version": 1,
+  "scope": "Synthetic source-only normalizer controls; fake ELF magic fixture, zero Cargo/broker/client executions",
+  "positive_baseline_passed": true,
+  "negative_controls": [
+    {
+      "name": "missing_maintenance",
+      "rejected": true,
+      "reason": "ten actual maintenance rows remain separate from51 qualification gates"
+    },
+    {
+      "name": "duplicate_maintenance",
+      "rejected": true,
+      "reason": "ten actual maintenance rows remain separate from51 qualification gates"
+    },
+    {
+      "name": "changed_execution_order",
+      "rejected": true,
+      "reason": "actual61 interleaved execution order required"
+    },
+    {
+      "name": "wrong_total_count",
+      "rejected": true,
+      "reason": "explicit ten-maintenance/61-actual ledger counts required"
+    },
+    {
+      "name": "wrong_actual_counts",
+      "rejected": true,
+      "reason": "actual separate-ledger execution counts must reconcile51+10=61"
+    },
+    {
+      "name": "active_owner_before",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "active_owner_after",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "missing_maps_guard",
+      "rejected": true,
+      "reason": "two actual process-owner guards and explicit clean authorization required"
+    },
+    {
+      "name": "unverified_elf",
+      "rejected": true,
+      "reason": "pre-clean original ELF byte and full permission-mode restore receipt required"
+    },
+    {
+      "name": "lost_original_mode",
+      "rejected": true,
+      "reason": "every forecast ELF must be retained with exact original bytes/mode before clean"
+    },
+    {
+      "name": "optimistic_gzip_forecast",
+      "rejected": true,
+      "reason": "full unknown ELF retention forecast must reconcile"
+    },
+    {
+      "name": "insufficient_reserve",
+      "rejected": true,
+      "reason": "actual sufficient pre-clean lossless-retention reserve required"
+    },
+    {
+      "name": "maintenance_package_only",
+      "rejected": true,
+      "reason": "exact ordered bounded full-cache maintenance plan required"
+    },
+    {
+      "name": "changed_target",
+      "rejected": true,
+      "reason": "exact isolated generated-cache target required"
+    },
+    {
+      "name": "changed_source",
+      "rejected": true,
+      "reason": "complete identical Git bytes and baseline modes required around clean"
+    },
+    {
+      "name": "failed_maintenance",
+      "rejected": true,
+      "reason": "every actual command must bind successful execution and canonical affinity"
+    },
+    {
+      "name": "disk_cutoff",
+      "rejected": true,
+      "reason": "actual monitored commands must preserve350MiB reserve"
+    },
+    {
+      "name": "reserved_cpu3",
+      "rejected": true,
+      "reason": "actual canonical CPU affinity excluding reservedCPU3 required"
+    },
+    {
+      "name": "unsupported_peer_profile",
+      "rejected": true,
+      "reason": "explicit twelve-cell/six-profile qualification metadata required"
+    },
+    {
+      "name": "changed_elf_sha",
+      "rejected": true,
+      "reason": "actual lossless retained ELF bytes required"
+    },
+    {
+      "name": "changed_command_log_sha",
+      "rejected": true,
+      "reason": "actual command log binding required"
+    },
+    {
+      "name": "changed_disk_log_sha",
+      "rejected": true,
+      "reason": "bounded actual disk-observation log binding required"
+    },
+    {
+      "name": "optimistic_disk_minimum",
+      "rejected": true,
+      "reason": "exact raw disk sample/minimum/final-completion/exit/trigger reconciliation required"
+    },
+    {
+      "name": "missing_disk_sample_count",
+      "rejected": true,
+      "reason": "exact raw disk sample/minimum/final-completion/exit/trigger reconciliation required"
+    },
+    {
+      "name": "failed_actual_process",
+      "rejected": true,
+      "reason": "exact raw disk sample/minimum/final-completion/exit/trigger reconciliation required"
+    },
+    {
+      "name": "raw_missing_prelaunch",
+      "rejected": true,
+      "reason": "raw pre-launch disk sample required"
+    },
+    {
+      "name": "raw_below_reserve",
+      "rejected": true,
+      "reason": "actual disk samples must preserve reserve and bind a finite isolated process group"
+    },
+    {
+      "name": "raw_changed_process_group",
+      "rejected": true,
+      "reason": "one actual pre-launch sample and consistent command process group required"
+    },
+    {
+      "name": "raw_nonfinite_timestamp",
+      "rejected": true,
+      "reason": "actual disk samples must preserve reserve and bind a finite isolated process group"
+    },
+    {
+      "name": "raw_missing_completion",
+      "rejected": true,
+      "reason": "exact raw disk sample/minimum/final-completion/exit/trigger reconciliation required"
+    },
+    {
+      "name": "raw_premature_completion",
+      "rejected": true,
+      "reason": "completion must be final disk observation"
+    }
+  ],
+  "passed": true,
+  "helper_sha256": "6ea783ab34aa2e9b8ccb31939002de79a1a0257de3efec9b16481af0359cabf4",
+  "actual_qualification_commands": 0,
+  "actual_public_peers": 0
+}

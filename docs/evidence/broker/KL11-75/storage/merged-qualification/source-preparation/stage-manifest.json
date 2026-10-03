@@ -1,0 +1,563 @@
+{
+  "schema": 1,
+  "classification": "preparation only: zero actual Cargo or broker matrix executions",
+  "actual_cargo_commands": 0,
+  "actual_broker_qualification_commands": 0,
+  "planned_qualification_commands": 51,
+  "planned_maintenance_commands": 10,
+  "planned_actual_commands": 61,
+  "successful_mock_controls": 20,
+  "files": [
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/README.md",
+      "sha256": "b562c5828e902b0efe3667993d6af2d851f5e6eb6d7aa0d5cf1204ab99e00820",
+      "bytes": 2112,
+      "full_mode": 384,
+      "kind": "scope-and-replay-documentation"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/check-merged-runner.py",
+      "sha256": "0873a4cc7b9191d062ad68ab31959e6d011af7889b81244c119aaa8d5164f2d0",
+      "bytes": 18441,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/check-merged-runner.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/command-contract.json",
+      "sha256": "156ba8b5d89d999d6bd2f8377512ba21e39bcc18b8c350cfbbf25d76ead741d7",
+      "bytes": 35715,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/command-contract-61-3be705a6.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/helper-controls.json",
+      "sha256": "900c93f8352ddf3b4ac6f593d927b3ee421385746eb49102cf342ccd4506f215",
+      "bytes": 12723,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/run-merged-final.py",
+      "sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+      "bytes": 38861,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/run-merged-final.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/mock-fixture-restore-map.json",
+      "sha256": "53cabb763e97961e76783e87c0663b16c8d3b5442d32987fb5ff6fede2da07d3",
+      "bytes": 17669,
+      "full_mode": 384,
+      "kind": "work-only-executable-restore-map"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/check-runner.py",
+      "sha256": "817efc6d8f5193ffbeceb4f58f9861fbd5acf79b595bc7779c783e6d8842b95a",
+      "bytes": 7563,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/check-runner.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/command-contract.json",
+      "sha256": "d5c9f7a4374963e556cfbbacbaf21b3c45a6a90e95aca06758834490779edb56",
+      "bytes": 6067,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/command-contract.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention-helper-check-a73d2df8.json",
+      "sha256": "f1049227eb3116c6910400dd2fdcc5da036b6b69ef60e56d9c4ab2513611d2ee",
+      "bytes": 2505,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/retention-helper-check-a73d2df8.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention-helper-check.json",
+      "sha256": "270edc88ea3ddaecaa903ae701b424771a466358735ab5687afbd4ad073b5887",
+      "bytes": 2247,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/retention-helper-check.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention.json",
+      "sha256": "e03b0e0ff4029b226585f1cccd006d2b0dd2e1dae5dbe4a6ca09098c2d4caaf7",
+      "bytes": 2167,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/retention.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/run-final.py",
+      "sha256": "a73d2df8483f728ee91946fee79c2959c598ade8f15b507f0bf705b1ad95f453",
+      "bytes": 23767,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/run-final.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/stream-check.json",
+      "sha256": "6b747dc23c3a62976bae5c20d3e7241ebbb0d05fa2838186bba223eeef3dca36",
+      "bytes": 602,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/stream-check.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/check-merged-runner.py",
+      "sha256": "0bc5560e59f40f4d1a6b1ec1f29cedb546aea56c75715c732266758b318fcd00",
+      "bytes": 12744,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/check-merged-runner.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/command-contract-51-5c23b864.json",
+      "sha256": "a2a4e2dbfbcc731baefc3ba5296301db7573b3a7180dbb49684afe99ae314d8f",
+      "bytes": 26287,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/command-contract-51-5c23b864.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/merged-helper-check-5c23b864.json",
+      "sha256": "35f7462d4e31ff90dab9a4a69d0f185c123c610bef6ef00386653805b0fec837",
+      "bytes": 5518,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/merged-helper-check-5c23b864.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/retention.json",
+      "sha256": "c52c39d4defd6981559c82ecfda4f5fa6bfdda8b85a5fc53d5921d6fef1a2ddc",
+      "bytes": 1540,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/retention.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/run-merged-final.py",
+      "sha256": "5c23b8642b8cbad8c976d6c6dd4f665527e1ed6310903b454d6389cfdfb7c56a",
+      "bytes": 32235,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/run-merged-final.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/check-merged-runner.py",
+      "sha256": "c6e560a118f9bcdb8feb0baeea119b1c72223e13b652cfecb6d5c57349c29290",
+      "bytes": 16400,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/check-merged-runner.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/command-contract-61-93513d14.json",
+      "sha256": "e574ff26726d7fb009499745810ad84560f2b342ed153db4a63c2a888c29c236",
+      "bytes": 35518,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/command-contract-61-93513d14.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/merged-helper-check-93513d14.json",
+      "sha256": "df825db8f288edd0ba23ac20033ff90b6f43409db061971cdfa1360fe8d8bac2",
+      "bytes": 12350,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/merged-helper-check-93513d14.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/retention.json",
+      "sha256": "de3862e5b25c356dd668fbf4c47db577696faed381708217704c24c7a13fcf1b",
+      "bytes": 1413,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/retention.json",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/run-merged-final.py",
+      "sha256": "93513d14b7fa9ff4fde34aca96b4125cbf6e9ddd07b3dadd92f185ee21df6c68",
+      "bytes": 38236,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/preserved-61-93513d14/run-merged-final.py",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/mapped-ready",
+      "sha256": "b24d6d33736ecd5604a4b17bc9c6481039fac362bb7df044ef1c10a2bfd21db6",
+      "bytes": 5,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/mapped-ready",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-child.pid",
+      "sha256": "3158c5b175f4d3e676694f20f5725e5df184d15dafd79ac91dc4079756c3b67f",
+      "bytes": 7,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-child.pid",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-error.jsonl",
+      "sha256": "f01361122ac92e0c77509bae4e73d0d384a8f468e3785c3b400704977b6009b9",
+      "bytes": 250,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-error.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-error.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-error.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-final-low.jsonl",
+      "sha256": "fd2ec59b93611d6a2af5161b5add1c9b0bcf62b20df4fdab96a5371949ff6f44",
+      "bytes": 393,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-final-low.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-final-low.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-final-low.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-stop.jsonl",
+      "sha256": "063e5dd5607e5ca1fc02bdc3cd52408474578ef82ea1be011e33f28febacb881",
+      "bytes": 366,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-stop.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-stop.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-stop.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-success.jsonl",
+      "sha256": "b940398d43adaa76788e1e1b483065dd77656d5852ca35ec8f7611025ea3a020",
+      "bytes": 395,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-success.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-success.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/monitor-success.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/source-integrity-control.json.gz",
+      "sha256": "69fd6c7a96fed3b3afad28f4aec793c0a843c636d09cc8e3728680f5f22084c4",
+      "bytes": 115,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/source-integrity-control.json.gz",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/toy-source/source.txt",
+      "sha256": "789df8fc2e5c5f44e22f22db3578ec419c81666bd18ad3ece071cb16d18de77e",
+      "bytes": 30,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-3be705a6/toy-source/source.txt",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-child.pid",
+      "sha256": "7e8d71304e54269cff5e682e6dedb9d09496017acb4c842aa193144330dedede",
+      "bytes": 7,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-child.pid",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-error.jsonl",
+      "sha256": "cffccc2718dcaae23e03083503196d87f5acf5c505db5d2e968f760d6965a077",
+      "bytes": 116,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-error.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-error.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-error.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-final-low.jsonl",
+      "sha256": "6dc8475581e465dc3850e1bde4c2fc8d9aca18bc78e500c9015b433db9451fd0",
+      "bytes": 258,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-final-low.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-final-low.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-final-low.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-stop.jsonl",
+      "sha256": "1954db85d5343730eb514d1507b4598ee4c4483795c43f2c15ab849ca9aba24d",
+      "bytes": 231,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-stop.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-stop.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-stop.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-success.jsonl",
+      "sha256": "2ec8dcdb3f257bb5d30d4360ac846b3eb8c91ac46c3d5c4fc490eaeb0a3c2e4c",
+      "bytes": 259,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-success.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-success.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/monitor-success.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/source-integrity-control.json.gz",
+      "sha256": "69fd6c7a96fed3b3afad28f4aec793c0a843c636d09cc8e3728680f5f22084c4",
+      "bytes": 115,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/source-integrity-control.json.gz",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/toy-source/source.txt",
+      "sha256": "789df8fc2e5c5f44e22f22db3578ec419c81666bd18ad3ece071cb16d18de77e",
+      "bytes": 30,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864/toy-source/source.txt",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/mapped-ready",
+      "sha256": "b24d6d33736ecd5604a4b17bc9c6481039fac362bb7df044ef1c10a2bfd21db6",
+      "bytes": 5,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/mapped-ready",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-child.pid",
+      "sha256": "a7339dfb9777efb8cd79cc21a7fe72babceaf4481b2ac6c125f423e71cdf58e4",
+      "bytes": 7,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-child.pid",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-error.jsonl",
+      "sha256": "ee76851f1c0f54e21a750b600cb1bfa01be79fc5f4494d01e42bf34009aed581",
+      "bytes": 116,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-error.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-error.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-error.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-final-low.jsonl",
+      "sha256": "140c37453f6e65dafc903f89b8422d967dcf6d140bf53465afc99bd11fc7921c",
+      "bytes": 258,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-final-low.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-final-low.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-final-low.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-stop.jsonl",
+      "sha256": "83620506233b2ebd3b03ec9f3f4d5ca513efc5cc938e2dae9c012f378f482535",
+      "bytes": 231,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-stop.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-stop.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-stop.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-success.jsonl",
+      "sha256": "64c243c02ce5f57760d6f95d51c2052a56d25d6a959a50fd3e8b7833d875a2bb",
+      "bytes": 257,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-success.jsonl",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-success.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/monitor-success.log",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/source-integrity-control.json.gz",
+      "sha256": "69fd6c7a96fed3b3afad28f4aec793c0a843c636d09cc8e3728680f5f22084c4",
+      "bytes": 115,
+      "full_mode": 384,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/source-integrity-control.json.gz",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/toy-source/source.txt",
+      "sha256": "789df8fc2e5c5f44e22f22db3578ec419c81666bd18ad3ece071cb16d18de77e",
+      "bytes": 30,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/merged-helper-check-93513d14/toy-source/source.txt",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/retention-helper-check-a73d2df8/toy-source/source.txt",
+      "sha256": "789df8fc2e5c5f44e22f22db3578ec419c81666bd18ad3ece071cb16d18de77e",
+      "bytes": 30,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/retention-helper-check-a73d2df8/toy-source/source.txt",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/stream-check/normal.txt",
+      "sha256": "b13408bef4e47a6e9649e53a2c1251e8f27c086f0b9fab29726a26192e400864",
+      "bytes": 8,
+      "full_mode": 420,
+      "source": "/workspace/work/compaction-final-preparation/stream-check/normal.txt",
+      "kind": "preparation-source-or-receipt"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/stream-check/space name.sh",
+      "sha256": "9ab8fabc8c72bfa0416414631e26bd71b01f9dfae98dcf4656b1e2d78307876a",
+      "bytes": 15,
+      "full_mode": 493,
+      "source": "/workspace/work/compaction-final-preparation/stream-check/space name.sh",
+      "kind": "preparation-source-or-receipt"
+    }
+  ],
+  "stage_paths": [
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/README.md",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/check-merged-runner.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/command-contract.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/helper-controls.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/run-merged-final.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/mock-fixture-restore-map.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/check-runner.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/command-contract.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention-helper-check-a73d2df8.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention-helper-check.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/retention.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/run-final.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-19-a73d2df8/stream-check.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/check-merged-runner.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/command-contract-51-5c23b864.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/merged-helper-check-5c23b864.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/retention.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-51-5c23b864/run-merged-final.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/check-merged-runner.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/command-contract-61-93513d14.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/merged-helper-check-93513d14.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/retention.json",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/prototypes/preserved-61-93513d14/run-merged-final.py",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/mapped-ready",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-child.pid",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-error.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-error.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-final-low.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-final-low.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-stop.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-stop.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-success.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/monitor-success.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/source-integrity-control.json.gz",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-3be705a6/toy-source/source.txt",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-child.pid",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-error.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-error.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-final-low.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-final-low.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-stop.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-stop.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-success.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/monitor-success.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/source-integrity-control.json.gz",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-5c23b864/toy-source/source.txt",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/mapped-ready",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-child.pid",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-error.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-error.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-final-low.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-final-low.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-stop.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-stop.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-success.jsonl",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/monitor-success.log",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/source-integrity-control.json.gz",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/merged-helper-check-93513d14/toy-source/source.txt",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/retention-helper-check-a73d2df8/toy-source/source.txt",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/stream-check/normal.txt",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/raw-mock-controls/stream-check/space name.sh",
+    "docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/stage-manifest.json"
+  ],
+  "manifest_self_hash_note": "The coordinator handoff records this manifest SHA256 separately to avoid a recursive self-hash."
+}

@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "scope": "preserved19-command runner and successful helper/static controls before independent51-command WORK derivative",
+  "files": [
+    {
+      "original": "/workspace/work/compaction-final-preparation/run-final.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/run-final.py",
+      "sha256": "a73d2df8483f728ee91946fee79c2959c598ade8f15b507f0bf705b1ad95f453",
+      "bytes": 23767,
+      "mode": 420
+    },
+    {
+      "original": "/workspace/work/compaction-final-preparation/check-runner.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/check-runner.py",
+      "sha256": "817efc6d8f5193ffbeceb4f58f9861fbd5acf79b595bc7779c783e6d8842b95a",
+      "bytes": 7563,
+      "mode": 384
+    },
+    {
+      "original": "/workspace/work/compaction-final-preparation/retention-helper-check-a73d2df8.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/retention-helper-check-a73d2df8.json",
+      "sha256": "f1049227eb3116c6910400dd2fdcc5da036b6b69ef60e56d9c4ab2513611d2ee",
+      "bytes": 2505,
+      "mode": 384
+    },
+    {
+      "original": "/workspace/work/compaction-final-preparation/retention-helper-check.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/retention-helper-check.json",
+      "sha256": "270edc88ea3ddaecaa903ae701b424771a466358735ab5687afbd4ad073b5887",
+      "bytes": 2247,
+      "mode": 384
+    },
+    {
+      "original": "/workspace/work/compaction-final-preparation/command-contract.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/command-contract.json",
+      "sha256": "d5c9f7a4374963e556cfbbacbaf21b3c45a6a90e95aca06758834490779edb56",
+      "bytes": 6067,
+      "mode": 384
+    },
+    {
+      "original": "/workspace/work/compaction-final-preparation/stream-check.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-19-a73d2df8/stream-check.json",
+      "sha256": "6b747dc23c3a62976bae5c20d3e7241ebbb0d05fa2838186bba223eeef3dca36",
+      "bytes": 602,
+      "mode": 384
+    }
+  ]
+}

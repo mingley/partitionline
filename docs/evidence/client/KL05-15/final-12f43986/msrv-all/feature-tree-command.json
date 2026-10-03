@@ -1,0 +1,17 @@
+{
+  "phase": "feature-tree",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "tree",
+    "--offline",
+    "--locked",
+    "-e",
+    "features",
+    "-p",
+    "partitionline",
+    "--all-features"
+  ],
+  "cpuset": "0,1"
+}

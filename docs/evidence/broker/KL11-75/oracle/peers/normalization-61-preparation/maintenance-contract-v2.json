@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "scope": "WORK helper contract only; zero actual compiler/broker/publicpeer executions",
+  "original_51_helper_sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+  "original_51_contract_sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+  "qualification_commands": 51,
+  "cache_maintenance_commands": 10,
+  "total_executed_commands": 61,
+  "feature_cells": 12,
+  "selected_public_compaction_lanes": 4,
+  "separate_ledgers": [
+    "commands",
+    "maintenance_commands"
+  ],
+  "source_guards": "full tracked Git blobs/path-set/executable classes and original0o7777 filesystem permission modes before/after all61 commands",
+  "preclean_guards": [
+    "owners_before/after via cwd/exe/fd/CARGO_TARGET_DIR_environment/maps",
+    "lossless independently decompressed gzip ELF bytes and original full-mode restore metadata",
+    "sufficient conservative worst-case gzip +1MiBmetadata+350MiBreserve",
+    "exact reviewed package/full cachecleanargv and generatedtarget",
+    "canonical actual CPU affinity excluding3"
+  ],
+  "synthetic_controls": {
+    "positive": 1,
+    "negative": 31,
+    "all_passed": true
+  },
+  "inputs": [
+    {
+      "path": "frozen-14f78e77/normalize-broker-proof-51.py",
+      "sha256": "14f78e770b0be02e8486b7c8f48884e77877e71652bf7c854e289c78a14c178a",
+      "bytes": 12796,
+      "permission_mode": 384
+    },
+    {
+      "path": "frozen-14f78e77/draft-contract.json",
+      "sha256": "c16a1c7bb170bf20d94d2b2eaa80ca12f689043dcbd0bfec52393c99a56ca99d",
+      "bytes": 5401,
+      "permission_mode": 384
+    },
+    {
+      "path": "frozen-993261a1/normalize-broker-proof-51-maintenance.py",
+      "sha256": "993261a134a897ca0826e7319aaff553767e8b6f090355c53b968b97da38e9ea",
+      "bytes": 11178,
+      "permission_mode": 384
+    },
+    {
+      "path": "normalize-broker-proof-51-maintenance.py",
+      "sha256": "6ea783ab34aa2e9b8ccb31939002de79a1a0257de3efec9b16481af0359cabf4",
+      "bytes": 13538,
+      "permission_mode": 384
+    },
+    {
+      "path": "check-maintenance-contract.py",
+      "sha256": "004e724da44de9f2191be5ad3b2db71e7f4f5fd29301dea767a20d696e9957b0",
+      "bytes": 12474,
+      "permission_mode": 384
+    },
+    {
+      "path": "contract-controls-attempt-4/helper-controls.json",
+      "sha256": "ef577203194a0f8c41943c3cf8520ccdad60b5fcec7d8a9ea5471f65de36461d",
+      "bytes": 5273,
+      "permission_mode": 384
+    }
+  ],
+  "contract_revision": 2,
+  "predecessor_contract_sha256": "881dd108acb52cef2dfe37f3605b05c2a79beb3a57fdf870828e2ff80bbadc49",
+  "additional_actual_raw_log_guards": [
+    "rehash all61 command.log and disk-monitor.jsonl files",
+    "exact prelaunch+running+completion rawsample counts/minima and isolated processgroup",
+    "rawsample reserve/finiteclock/completion consistency, actualprocess exit0 and no trigger"
+  ]
+}

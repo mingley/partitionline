@@ -1,0 +1,375 @@
+{
+  "schema_version": 1,
+  "source_preparation_base": "1b6298bc2f933ddde3ee4266b5ce02122b0d017d",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "client_jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "selected_sources": [
+        {
+          "file": "upstream/4.1.2/ClientCredentialsJwtRetriever.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientCredentialsJwtRetriever.java",
+          "bytes": 10613,
+          "sha256": "0df7028aba3e75810c533a5664818a2c15af88b84f7f61ce28641894b5948c97"
+        },
+        {
+          "file": "upstream/4.1.2/ClientCredentialsRequestFormatter.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClientCredentialsRequestFormatter.java",
+          "bytes": 3681,
+          "sha256": "aeaab7970a8200344ea8593bbc412821236160d07d62737f51169f1b4eb54732"
+        },
+        {
+          "file": "upstream/4.1.2/HttpJwtRetriever.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/HttpJwtRetriever.java",
+          "bytes": 14370,
+          "sha256": "d682646a142bae6c7a92b1d2876ea8e7354ee5b2d786de861c12aa5c393705a9"
+        },
+        {
+          "file": "upstream/4.1.2/JaasOptionsUtils.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java",
+          "bytes": 4729,
+          "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6"
+        },
+        {
+          "file": "upstream/4.1.2/JwtRetriever.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtRetriever.java",
+          "bytes": 2459,
+          "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2"
+        },
+        {
+          "file": "upstream/4.1.2/JwtValidator.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java",
+          "bytes": 2998,
+          "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b"
+        },
+        {
+          "file": "upstream/4.1.2/OAuthBearerLoginCallbackHandler.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandler.java",
+          "bytes": 12044,
+          "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce"
+        },
+        {
+          "file": "upstream/4.1.2/OAuthBearerLoginCallbackHandlerTest.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/test/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandlerTest.java",
+          "bytes": 11471,
+          "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732"
+        },
+        {
+          "file": "upstream/4.1.2/OAuthBearerLoginModule.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginModule.java",
+          "bytes": 19700,
+          "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c"
+        },
+        {
+          "file": "upstream/4.1.2/OAuthBearerTokenCallback.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerTokenCallback.java",
+          "bytes": 4001,
+          "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274"
+        },
+        {
+          "file": "upstream/4.1.2/SaslConfigs.java",
+          "archive_member": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java",
+          "bytes": 40014,
+          "sha256": "47f0cb0fc28f90efd1af59c190e191e1f824f1e5f3e98f256ff13987cfd83099"
+        }
+      ],
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.1.2.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar"
+        },
+        {
+          "file": "jackson-annotations-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-annotations-2.19.4.jar",
+          "bytes": 79311,
+          "sha256": "ab26383fa3c10c0df1ffd1bb035d81161c059b1af71927d73c24473c058baa16",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar"
+        },
+        {
+          "file": "jackson-core-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-core-2.19.4.jar",
+          "bytes": 591409,
+          "sha256": "466ae4dc4f7054f51525f4211df411d9a64d65cc169995d32bf49e20e6f586e5",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar"
+        },
+        {
+          "file": "jackson-databind-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-databind-2.19.4.jar",
+          "bytes": 1679441,
+          "sha256": "b781c431be870deb0bf84421e99e774c256a701f4ba678df80248f55cd16ff74",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar"
+        }
+      ],
+      "embedded_client_version": "commitId=c82fd9b934b4c1e6\nversion=4.1.2"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "client_jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "selected_sources": [
+        {
+          "file": "upstream/4.2.1/ClientCredentialsJwtRetriever.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientCredentialsJwtRetriever.java",
+          "bytes": 10613,
+          "sha256": "0df7028aba3e75810c533a5664818a2c15af88b84f7f61ce28641894b5948c97"
+        },
+        {
+          "file": "upstream/4.2.1/ClientCredentialsRequestFormatter.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClientCredentialsRequestFormatter.java",
+          "bytes": 3681,
+          "sha256": "aeaab7970a8200344ea8593bbc412821236160d07d62737f51169f1b4eb54732"
+        },
+        {
+          "file": "upstream/4.2.1/HttpJwtRetriever.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/HttpJwtRetriever.java",
+          "bytes": 14370,
+          "sha256": "d682646a142bae6c7a92b1d2876ea8e7354ee5b2d786de861c12aa5c393705a9"
+        },
+        {
+          "file": "upstream/4.2.1/JaasOptionsUtils.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java",
+          "bytes": 4729,
+          "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6"
+        },
+        {
+          "file": "upstream/4.2.1/JwtRetriever.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtRetriever.java",
+          "bytes": 2459,
+          "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2"
+        },
+        {
+          "file": "upstream/4.2.1/JwtValidator.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java",
+          "bytes": 2998,
+          "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b"
+        },
+        {
+          "file": "upstream/4.2.1/OAuthBearerLoginCallbackHandler.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandler.java",
+          "bytes": 12044,
+          "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce"
+        },
+        {
+          "file": "upstream/4.2.1/OAuthBearerLoginCallbackHandlerTest.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/test/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandlerTest.java",
+          "bytes": 11471,
+          "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732"
+        },
+        {
+          "file": "upstream/4.2.1/OAuthBearerLoginModule.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginModule.java",
+          "bytes": 19700,
+          "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c"
+        },
+        {
+          "file": "upstream/4.2.1/OAuthBearerTokenCallback.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerTokenCallback.java",
+          "bytes": 4001,
+          "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274"
+        },
+        {
+          "file": "upstream/4.2.1/SaslConfigs.java",
+          "archive_member": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java",
+          "bytes": 40099,
+          "sha256": "fb09c0d01c65451ae78992329c2cad7d658d3783d3534d10e550849007096eca"
+        }
+      ],
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.2.1.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar"
+        }
+      ],
+      "embedded_client_version": "commitId=18d5ecd939c8d510\nversion=4.2.1"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "client_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "selected_sources": [
+        {
+          "file": "upstream/4.3.1/ClientCredentialsJwtRetriever.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientCredentialsJwtRetriever.java",
+          "bytes": 5524,
+          "sha256": "0aec70b1d2430a1ba5f939ef5333ae0cbb47a64c574b366f5aa93043c8b11a65"
+        },
+        {
+          "file": "upstream/4.3.1/HttpJwtRetriever.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/HttpJwtRetriever.java",
+          "bytes": 14552,
+          "sha256": "73b131f2e17e73081eca2c2338d84d3b7bb06fde6c0b60eab011b7bae3fd30bf"
+        },
+        {
+          "file": "upstream/4.3.1/JaasOptionsUtils.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java",
+          "bytes": 4729,
+          "sha256": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6"
+        },
+        {
+          "file": "upstream/4.3.1/JwtRetriever.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtRetriever.java",
+          "bytes": 2459,
+          "sha256": "3771c3acacf065c63234716220dda7abfdcc9ce3f5d57977711606c7ab7997b2"
+        },
+        {
+          "file": "upstream/4.3.1/JwtValidator.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java",
+          "bytes": 2998,
+          "sha256": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b"
+        },
+        {
+          "file": "upstream/4.3.1/OAuthBearerLoginCallbackHandler.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandler.java",
+          "bytes": 12044,
+          "sha256": "c06a4ff1488d89afc34f6c131e6d316f8b3da9c766e1e4d5360e65aad56693ce"
+        },
+        {
+          "file": "upstream/4.3.1/OAuthBearerLoginCallbackHandlerTest.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/test/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginCallbackHandlerTest.java",
+          "bytes": 11471,
+          "sha256": "6577f09b2f90fcf46452353183555ca9a58d4be70cf6118f6658bb63e6eac732"
+        },
+        {
+          "file": "upstream/4.3.1/OAuthBearerLoginModule.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerLoginModule.java",
+          "bytes": 19700,
+          "sha256": "93d6ac56ef331c6afb71499949188fbd961ee5649531297afafdc2874b859f8c"
+        },
+        {
+          "file": "upstream/4.3.1/OAuthBearerTokenCallback.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/security/oauthbearer/OAuthBearerTokenCallback.java",
+          "bytes": 4001,
+          "sha256": "d3438dd87242837421215067b45f3daef4cd50f5e11088e9d849cb58641ed274"
+        },
+        {
+          "file": "upstream/4.3.1/SaslConfigs.java",
+          "archive_member": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java",
+          "bytes": 40354,
+          "sha256": "9a3da1c3f3811191586c8d7bec1d316c4f623cdb419595924fa6434182cdbf5b"
+        }
+      ],
+      "runtime_jars": [
+        {
+          "file": "kafka-clients-4.3.1.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b",
+          "path": "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar"
+        }
+      ],
+      "embedded_client_version": "commitId=26b251a451ce941d\nversion=4.3.1"
+    }
+  ],
+  "slf4j_binding": "none; no Kafka diagnostic/token/exception-message logger enabled",
+  "origin_component_receipt": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/validation.json",
+    "sha256": "2ee38697d0aa5044ff750c12ad8e57d87ac36d558748292012dd74ea803263df"
+  },
+  "scope": "Existing official SDK/jar dependencies verified without new downloads; no copied third-party executables/JARs in repository"
+}

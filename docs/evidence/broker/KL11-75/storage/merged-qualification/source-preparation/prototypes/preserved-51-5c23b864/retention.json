@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "scope": "preserved51 qualification command prototype and successful13 controls before authorized separate10-maintenance derivative",
+  "files": [
+    {
+      "path": "/workspace/work/compaction-final-preparation/run-merged-final.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/run-merged-final.py",
+      "sha256": "5c23b8642b8cbad8c976d6c6dd4f665527e1ed6310903b454d6389cfdfb7c56a",
+      "bytes": 32235,
+      "mode": 420
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/check-merged-runner.py",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/check-merged-runner.py",
+      "sha256": "0bc5560e59f40f4d1a6b1ec1f29cedb546aea56c75715c732266758b318fcd00",
+      "bytes": 12744,
+      "mode": 384
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/command-contract-51-5c23b864.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/command-contract-51-5c23b864.json",
+      "sha256": "a2a4e2dbfbcc731baefc3ba5296301db7573b3a7180dbb49684afe99ae314d8f",
+      "bytes": 26287,
+      "mode": 384
+    },
+    {
+      "path": "/workspace/work/compaction-final-preparation/merged-helper-check-5c23b864.json",
+      "retained": "/workspace/work/compaction-final-preparation/preserved-51-5c23b864/merged-helper-check-5c23b864.json",
+      "sha256": "35f7462d4e31ff90dab9a4a69d0f185c123c610bef6ef00386653805b0fec837",
+      "bytes": 5518,
+      "mode": 384
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+/workspace/work/oauth-java-preparation/OAuthMetadataPeer.java:252: warning: [deprecation] close(Duration) in KafkaConsumer has been deprecated
+        @Override public void close() { consumer.close(Duration.ofSeconds(2)); admin.close(Duration.ofSeconds(2)); }
+                                                ^
+error: warnings found and -Werror specified
+1 error
+1 warning

@@ -1,0 +1,8 @@
+{
+  "raw_sha256": "afb3408c23640591767c3110112f993bdb5597401af99c8a75001fd30985c564",
+  "raw_bytes": 22610755,
+  "raw_mode": 384,
+  "sealed_raw_work_path": "/workspace/work/client-share-assessment/sealed-source-audit-12f43986/source-verification.json",
+  "exact_decode_and_actual_write_chmod_restore_verified": true,
+  "restore_check_disposable_file_removed": true
+}
