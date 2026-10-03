@@ -1,0 +1,13 @@
+{
+  "stage": "frozen delegated gate candidate; coordinator source push precedes immutable final receipts",
+  "base_handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "files_sha256": {
+    "scripts/check-broker-api-matrix.py": "0a46a399315d1f8480f834245a428af4bc87d1873b98535ce2ffc9377c36a1f0",
+    "tests/ci/test_broker_api_matrix.py": "dbea482e2dff355bb4b472297ec41c46add79133ca82891c49968c6023cc5f0a",
+    "tests/conformance/broker/implemented-api-versions.json": "840e2bbcee55e8a5d60359cb36b85244e3f41f8efa2187d7396eda4bacecf656",
+    "tests/conformance/broker/features.json": "7718a5ca944108f012351c2af75115b6f288061cf1d89c5b2a8c5ca09eec3e46"
+  },
+  "verifier_tests": 43,
+  "development_failure": "profile-verifier-ci-02 boolean schema acceptance exposed in legacy metadata report; exact integer schemas now checked",
+  "qualification": "not_run"
+}

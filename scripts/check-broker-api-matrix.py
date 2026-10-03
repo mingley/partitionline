@@ -6,6 +6,7 @@ Registry source/fixture checks do not establish production qualification. An
 optional report from the compiled Rust golden test verifies actual response bytes.
 """
 import argparse
+import csv
 import gzip
 import hashlib
 import io
@@ -62,6 +63,30 @@ IMPLEMENTED = [
     {"api_key": 20, "min_version": 1, "max_version": 6},
 ]
 IMPLEMENTED_BY_KEY = {row["api_key"]: row for row in IMPLEMENTED}
+DATA_APIS = [{"api_key": 0, "min_version": 3, "max_version": 13}] + IMPLEMENTED
+CONTROLLER_APIS = [IMPLEMENTED_BY_KEY[18]] + [
+    {"api_key": key, "min_version": 0, "max_version": 0} for key in (52, 53, 54)
+]
+PROFILE_SOURCE_PATHS = {
+    "produce_source": "partitionline-broker/src/produce.rs",
+    "produce_test_source": "partitionline-broker/tests/produce.rs",
+    "controller_source": "partitionline-broker/src/raft/protocol.rs",
+    "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
+    "election_source": "partitionline-broker/src/raft/election.rs",
+    "raft_module_source": "partitionline-broker/src/raft/mod.rs",
+}
+PRODUCE_MANIFEST_SHA256 = {
+    "4.1.2": "f0d9e7cceb398633978a7a9bffc8986b85f95d8d509c7df4a69a6e3dfd25a0a1",
+    "4.2.1": "828d66746cfa4ae4e0b8e92818d9c782ded209a9194220dc41212decf9dda3de",
+    "4.3.1": "e03751cdd9541dad4e133e86a5d0385c917d961a2778e5bfadf2e22cac5b36d7",
+}
+CONTROLLER_MANIFEST_SHA256 = "c61bdd119c59a0786eb8fb1cdb44a10610cc6e5621ee32dee2b2017ace3747b5"
+PROFILE_NOTES = {
+    0: "Optional ordinary data router Produce3-13; one magic2 batch/partition, local fsync/RF1 only; transactions/idempotence/control unsupported; qualification not_run.",
+    52: "Optional fixed trusted controller Vote0 with pinned handler/policy distinctions; modern Vote/pre-vote versions missing; qualification not_run.",
+    53: "Optional fixed trusted controller BeginQuorumEpoch0; modern membership/endpoint versions missing; qualification not_run.",
+    54: "Optional fixed trusted controller EndQuorumEpoch0 with bounded configured successors; modern membership versions missing; qualification not_run.",
+}
 SOURCE_PATHS = {
     "protocol_source": "partitionline-broker/src/protocol.rs",
     "test_source": "partitionline-broker/tests/protocol.rs",
@@ -99,9 +124,18 @@ def checked_implemented(value):
     return value
 
 
-def verify_implementation(registry_path, repository_root, inventories, handler_report=None, metadata_handler_report=None):
+def verify_implementation(registry_path, repository_root, inventories, handler_report=None, metadata_handler_report=None,
+                          produce_handler_report=None, controller_handler_report=None, controller_tcp_responses=None, data_api_versions_report=None):
     registry = load_json(registry_path)
-    require(registry.get("schema_version") == 1 and
+    fields = {"schema_version", "scope", "implementation_gate", "implemented_api_versions", "qualification",
+              "behavior_check", "standalone_api_versions", "fixture_root", "fixtures_sha256",
+              "metadata_fixture_root", "metadata_fixtures_sha256", "produce_fixture_root", "produce_fixtures_sha256",
+              "controller_fixture_root", "controller_fixtures_sha256", "data_api_versions", "controller_api_versions",
+              "data_implementation_gate", "controller_implementation_gate"}
+    for label in {**SOURCE_PATHS, **PROFILE_SOURCE_PATHS}:
+        fields.update({label, label + "_sha256"})
+    require(registry.keys() == fields, "missing/extra registry fields or unreviewed profile claim")
+    require(type(registry.get("schema_version")) is int and registry["schema_version"] == 1 and
             registry.get("scope") == "Checked local handler registry; production qualification remains not_run" and
             registry.get("implementation_gate") == "KL11-05" and
             registry.get("qualification") == "not_run", "invalid implementation registry scope/gate")
@@ -153,6 +187,8 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
                     require((root / path).read_bytes() == bytes.fromhex(value), "golden byte mismatch")
     require(actual.keys() == expected_paths, "missing/extra implementation fixtures")
     metadata_expected = verify_metadata_fixtures(registry, repository_root)
+    profiles = verify_profiles(registry, repository_root, inventories,
+                               produce_handler_report, controller_handler_report, controller_tcp_responses, data_api_versions_report)
     metadata_checked = False
     if metadata_handler_report is not None:
         verify_compiled_report(metadata_handler_report, registry, metadata_expected, ("metadata_source", "metadata_test_source"))
@@ -161,7 +197,7 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
     if handler_report is not None:
         report = load_json(handler_report)
         checked_implemented(report.get("implemented_api_versions"))
-        require(report.get("schema_version") == 1 and
+        require(type(report.get("schema_version")) is int and report["schema_version"] == 1 and
                 all(report.get(label + "_sha256") == registry[label + "_sha256"]
                     for label in ("protocol_source", "test_source")),
                 "compiled handler report/source/registry mismatch")
@@ -184,6 +220,7 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
                       "metadata_local_rejections": sum(value is None for value in metadata_expected.values()),
                       "compiled_metadata_report_checked": metadata_checked,
                       "compiled_handler_report_checked": report_checked,
+                      **profiles,
                       "qualification": "not_run"}
 
 
@@ -280,7 +317,7 @@ def verify_metadata_fixtures(registry, repository_root):
 def verify_compiled_report(path, registry, expected, labels):
     report = load_json(path)
     checked_implemented(report.get("implemented_api_versions"))
-    require(report.get("schema_version") == 1 and
+    require(type(report.get("schema_version")) is int and report["schema_version"] == 1 and
             all(report.get(label + "_sha256") == registry[label + "_sha256"] for label in labels),
             "compiled metadata report/source/registry mismatch")
     rows = report.get("case_results")
@@ -292,6 +329,305 @@ def verify_compiled_report(path, registry, expected, labels):
         require(pair not in observed, "duplicate compiled metadata case")
         observed[pair] = row.get("response_hex")
     require(observed == expected, "compiled metadata/golden response mismatch")
+
+
+def checked_profile(value, expected, label):
+    require(isinstance(value, list) and value == expected and
+            all(isinstance(row, dict) and row.keys() == {"api_key", "min_version", "max_version"} and
+                all(type(number) is int for number in row.values()) for row in value),
+            f"{label}: forged/extra/out-of-range profile claim")
+
+
+def fixture_map(registry, repository_root, label, expected_root, expected_count):
+    require(registry.get(label + "_fixture_root") == expected_root,
+            f"{label}: unexpected fixture path")
+    root = repository_root / expected_root
+    require(root.is_dir() and not root.is_symlink(), f"{label}: unsafe fixture directory")
+    files = [path for path in sorted(root.rglob("*")) if path.is_file() or path.is_symlink()]
+    require(len(files) == expected_count and
+            all(not path.is_symlink() and path.stat().st_size <= 512 * 1024 for path in files),
+            f"{label}: unbounded/symlink/missing/extra fixtures")
+    actual = {str(path.relative_to(root)): digest(path.read_bytes()) for path in files}
+    require(registry.get(label + "_fixtures_sha256") == actual,
+            f"{label}: fixture checksum map mismatch")
+    return root, actual
+
+
+def verify_produce_fixtures(registry, repository_root):
+    root, actual = fixture_map(registry, repository_root, "produce",
+                               "partitionline-broker/tests/fixtures/produce", 1290)
+    paths, expected = set(), {}
+    for release in TARGETS:
+        manifest = root / release / "goldens.json"
+        require(digest(manifest.read_bytes()) == PRODUCE_MANIFEST_SHA256[release],
+                f"{release}: independent Produce manifest checksum mismatch")
+        golden = load_json(manifest)
+        require(golden.get("release") == release and len(golden.get("cases", [])) == 236,
+                "missing/incorrect Produce golden cases")
+        paths.update({f"{release}/goldens.json", f"{release}/cases.tsv"})
+        rows, versions, counts = [], set(), {}
+        for case in golden["cases"]:
+            name, key, version, seed, outcome = (case.get(field) for field in
+                ("name", "api_key", "api_version", "seed", "expected_outcome"))
+            require(isinstance(name, str) and re.fullmatch(r"[a-z0-9-]+", name) and
+                    (release, name) not in expected and type(key) is int and key == 0 and
+                    type(version) is int and 3 <= version <= 13 and
+                    seed in ("fixture", "fixture_small_entry") and
+                    outcome in ("response", "no_response_keep_open", "close", "structural_reject"),
+                    "invalid/duplicate Produce case")
+            require(isinstance(case.get("basis"), str) and bool(case["basis"]),
+                    "Produce component/local-policy basis missing")
+            versions.add(version)
+            counts[outcome] = counts.get(outcome, 0) + 1
+            response = case.get("response_hex")
+            require((outcome == "response") == isinstance(response, str) and
+                    (response is not None or outcome != "response"), "Produce response/outcome mismatch")
+            if outcome != "response":
+                require(response is None, "Produce forbidden response frame")
+            expected[(release, name)] = (outcome, response)
+            for direction in ("request", "response"):
+                value = case.get(direction + "_hex")
+                if value is None:
+                    require(direction == "response" and case.get(direction + "_sha256") is None,
+                            "missing Produce request/incorrect null response hash")
+                    continue
+                require(isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2})*", value),
+                        "invalid Produce hex")
+                raw = bytes.fromhex(value)
+                path = f"{release}/{name}.{direction}.bin"
+                paths.add(path)
+                require(digest(raw) == case.get(direction + "_sha256") and (root / path).read_bytes() == raw,
+                        "Produce golden byte/hash mismatch")
+            rows.append(f"{name}\t{key}\t{version}\t{seed}\t{outcome}\n")
+        require(versions == set(range(3, 14)) and counts ==
+                {"response": 192, "no_response_keep_open": 11, "close": 11, "structural_reject": 22},
+                "incomplete Produce version/outcome coverage")
+        require((root / release / "cases.tsv").read_text(encoding="utf-8") == "".join(rows),
+                "Produce golden index mismatch")
+    require(actual.keys() == paths, "missing/extra Produce fixture paths")
+    return expected
+
+
+def verify_controller_fixtures(registry, repository_root):
+    root, actual = fixture_map(registry, repository_root, "controller",
+                               "partitionline-broker/tests/fixtures/raft-protocol", 953)
+    manifest = root / "manifest.json"
+    require(digest(manifest.read_bytes()) == CONTROLLER_MANIFEST_SHA256,
+            "independent controller manifest checksum mismatch")
+    golden = load_json(manifest)
+    releases = golden.get("releases")
+    require(type(golden.get("schema_version")) is int and golden["schema_version"] == 1 and isinstance(releases, list) and
+            [row.get("release") for row in releases] == list(TARGETS), "controller manifest release mismatch")
+    paths, expected = {"manifest.json", "README.md"}, {}
+    columns = ("name", "key", "version", "correlation", "request_file", "response_file", "setup",
+               "expected_disposition", "core_term", "voted_for", "leader", "deadline_ms")
+    for release in releases:
+        version = release["release"]
+        directory = root / version
+        rows = list(csv.DictReader(io.StringIO((directory / "cases.tsv").read_text()), delimiter="\t"))
+        cases = release.get("cases")
+        require(release.get("case_count") == len(rows) == len(cases) == 67 and
+                all(tuple(row) == columns for row in rows), "missing/invalid controller case index")
+        require(digest((directory / "cases.tsv").read_bytes()) == release.get("case_table_sha256") and
+                digest((directory / "observations.json").read_bytes()) == release.get("observations_sha256"),
+                "controller table/actual observation checksum mismatch")
+        observation = load_json(directory / "observations.json")
+        observed_components = {case["name"]: case for case in observation["cases"]}
+        require(len(observed_components) == 67 and observation.get("case_count") == 67,
+                "missing/duplicate actual Apache controller observations")
+        file_map = release.get("file_sha256")
+        require(isinstance(file_map, dict) and len(file_map) == 316 and
+                all(isinstance(name, str) and re.fullmatch(r"[a-z0-9.-]+", name) for name in file_map),
+                "unsafe/incomplete controller file map")
+        for filename, checksum in file_map.items():
+            paths.add(f"{version}/{filename}")
+            require(digest((directory / filename).read_bytes()) == checksum,
+                    "controller retained file checksum mismatch")
+        paths.add(f"{version}/observations.json")
+        pairs = set()
+        for index, case in enumerate(cases):
+            require(all(rows[index].get(field) == case.get(field) for field in columns),
+                    "controller indexed input/fault history mismatch")
+            name = case.get("name")
+            require(isinstance(name, str) and re.fullmatch(r"[a-z0-9-]+", name) and
+                    (version, name) not in expected, "unsafe/duplicate controller case")
+            key, api_version = int(case["key"]), int(case["version"])
+            pairs.add((key, api_version))
+            outcome = case.get("expected_disposition")
+            require(outcome in ("response", "close") and
+                    case.get("policy") in golden["policy_notes"], "controller missing actual/local policy")
+            component = observed_components[name]
+            require(component.get("policy") == case["policy"] and
+                    component.get("key") == key and component.get("version") == api_version,
+                    "controller actual Apache observation mismatch")
+            response_hex = None
+            for direction in ("request", "response"):
+                filename = case[direction + "_file"]
+                if filename == "-":
+                    require(direction == "response" and outcome == "close" and
+                            case.get(direction + "_sha256") is None, "controller missing required frame")
+                    continue
+                require(filename == f"{name}.{direction}.bin", "controller unsafe frame path")
+                raw = (directory / filename).read_bytes()
+                require(digest(raw) == case[direction + "_sha256"], "controller golden frame hash mismatch")
+                frame = (directory / filename.replace(".bin", ".frame.bin")).read_bytes()
+                require(len(frame) >= 4 and int.from_bytes(frame[:4], "big", signed=True) == len(raw) and
+                        frame[4:] == raw, "controller TCP frame length/payload mismatch")
+                if direction == "response":
+                    require(outcome == "response", "controller forbidden close response")
+                    response_hex = raw.hex()
+            require((outcome == "response") == (response_hex is not None), "controller disposition/response mismatch")
+            expected[(version, name)] = response_hex
+        require({(18, v) for v in range(5)} | {(key, 0) for key in (52, 53, 54)} <= pairs,
+                "controller advertised pair missing from goldens")
+    require(actual.keys() == paths, "missing/extra controller fixture paths")
+    return expected
+
+
+def verify_data_wire_profile(path):
+    report = load_json(path)
+    require(report.get("source_sha") == "c34bdfd3fbba65492ea49b3804dd0ae5311364b0" and
+            report.get("passed") is True and report.get("actual_exchanges") == 30,
+            "data wire profile source/count/verdict mismatch")
+    cases = report.get("cases")
+    require(isinstance(cases, list) and len(cases) == 30, "incomplete data wire profile exchanges")
+    seen = set()
+    for case in cases:
+        tool, release, version, correlation = (case.get(field) for field in
+            ("toolchain", "release", "api_version", "correlation_id"))
+        require(tool in ("stable", "1-85-0") and release in TARGETS and
+                type(version) is int and 0 <= version <= 4 and type(correlation) is int and
+                0 <= correlation <= 2147483647 and case.get("api_key") == 18,
+                "invalid data wire case")
+        require((tool, release, version) not in seen, "duplicate data wire profile exchange")
+        seen.add((tool, release, version))
+        for direction in ("request", "response"):
+            value = case.get(direction + "_hex")
+            require(isinstance(value, str) and len(value) <= 8192 and re.fullmatch(r"(?:[0-9a-f]{2})+", value),
+                    "invalid data wire profile hex")
+        request, response = bytes.fromhex(case["request_hex"]), bytes.fromhex(case["response_hex"])
+        require(len(request) >= 10 and int.from_bytes(request[:2], "big", signed=True) == 18 and
+                int.from_bytes(request[2:4], "big", signed=True) == version and
+                int.from_bytes(request[4:8], "big", signed=True) == correlation and
+                case.get("request_header_version") == (2 if version >= 3 else 1) and
+                case.get("response_header_version") == 0, "data wire request header mismatch")
+        cursor = 0
+        def take(count):
+            nonlocal cursor
+            require(count >= 0 and cursor + count <= len(response), "truncated data wire response")
+            result = response[cursor:cursor + count]
+            cursor += count
+            return result
+        require(int.from_bytes(take(4), "big", signed=True) == correlation and take(2) == b"\x00\x00",
+                "data wire correlation/error mismatch")
+        count = take(1)[0] - 1 if version >= 3 else int.from_bytes(take(4), "big", signed=True)
+        require(count == 5, "data wire advertised API count mismatch")
+        apis = []
+        for _ in range(count):
+            apis.append(dict(zip(("api_key", "min_version", "max_version"),
+                (int.from_bytes(take(2), "big", signed=True) for _ in range(3)))))
+            if version >= 3:
+                require(take(1) == b"\x00", "data wire unexpected API tags")
+        checked_profile(apis, DATA_APIS, "actual data wire")
+        if version >= 1:
+            require(take(4) == b"\x00" * 4, "data wire unexpected throttle")
+        if version >= 3:
+            require(take(1) == b"\x00", "data wire unexpected response tags")
+        require(cursor == len(response), "data wire response trailing bytes")
+    require(seen == {(tool, release, version) for tool in ("stable", "1-85-0")
+                    for release in TARGETS for version in range(5)}, "missing data wire profile version")
+    return {"exchanges_checked": len(seen), "api_versions": list(range(5)),
+            "source_sha": report["source_sha"], "report_sha256": digest(path.read_bytes()),
+            "scope": "Independently decoded captured response fields and complete pair coverage; actual execution provenance is the retained KL11-68 peer/source/command evidence."}
+
+
+def verify_controller_tcp(directory, expected):
+    require(directory.is_dir() and not directory.is_symlink(), "unsafe/missing controller TCP captures")
+    names = [f"api-versions-{version}" for version in range(5)] + ["vote-positive"]
+    expected_paths = {f"{release}/{name}.actual-{kind}.bin" for release in TARGETS
+                      for name in names for kind in ("response", "frame")}
+    files = [path for path in directory.rglob("*") if path.is_file() or path.is_symlink()]
+    require(len(files) == 36 and all(not path.is_symlink() and path.stat().st_size <= 512 * 1024 for path in files),
+            "unbounded/symlink/missing/extra controller TCP captures")
+    actual = {str(path.relative_to(directory)): digest(path.read_bytes()) for path in files}
+    require(actual.keys() == expected_paths, "missing/extra controller TCP capture paths")
+    for release in TARGETS:
+        for name in names:
+            payload = (directory / release / (name + ".actual-response.bin")).read_bytes()
+            frame = (directory / release / (name + ".actual-frame.bin")).read_bytes()
+            require(payload.hex() == expected[(release, name)], "controller TCP response/golden mismatch")
+            require(len(frame) >= 4 and int.from_bytes(frame[:4], "big", signed=True) == len(payload) and
+                    frame[4:] == payload, "controller TCP length/payload mismatch")
+    return dict(sorted(actual.items()))
+
+
+def verify_profiles(registry, repository_root, inventories, produce_report, controller_report, controller_tcp_responses=None, data_api_versions_report=None):
+    for label, expected in PROFILE_SOURCE_PATHS.items():
+        require(registry.get(label) == expected, f"{label}: unexpected profile source path")
+        require(registry.get(label + "_sha256") == digest((repository_root / expected).read_bytes()),
+                f"{label}: profile source checksum mismatch")
+    for label, apis, gate, listener in (("data", DATA_APIS, "KL11-06", "broker"),
+                                       ("controller", CONTROLLER_APIS, "KL11-13", "controller")):
+        checked_profile(registry.get(label + "_api_versions"), apis, label)
+        require(registry.get(label + "_implementation_gate") == gate, f"{label}: profile gate mismatch")
+        for release, inventory in inventories.items():
+            for implemented in apis:
+                source = inventory[implemented["api_key"]]
+                require(source["disposition"] == "active" and listener in source["listeners"],
+                        f"{release}: profile outside upstream listener contract")
+                for direction in ("request", "response"):
+                    require(set(range(implemented["min_version"], implemented["max_version"] + 1)) <=
+                            set(expand_versions(source[direction]["valid_versions"])),
+                            f"{release}: profile outside upstream version contract")
+    produce_expected = verify_produce_fixtures(registry, repository_root)
+    controller_expected = verify_controller_fixtures(registry, repository_root)
+    if produce_report is not None:
+        report = load_json(produce_report)
+        require(type(report.get("schema_version")) is int and report["schema_version"] == 1,
+                "invalid compiled Produce schema")
+        checked_profile(report.get("data_api_versions"), DATA_APIS, "compiled data")
+        rows = report.get("case_results")
+        require(isinstance(rows, list) and len(rows) == 708, "incomplete compiled Produce report")
+        observed = {}
+        for row in rows:
+            require(isinstance(row, dict) and row.keys() == {"release", "case", "outcome", "response_hex"},
+                    "invalid compiled Produce case shape")
+            pair = (row.get("release"), row.get("case"))
+            require(pair not in observed, "duplicate compiled Produce case")
+            observed[pair] = (row.get("outcome"), row.get("response_hex"))
+        require(observed == produce_expected, "compiled Produce/golden outcome or bytes mismatch")
+    if controller_report is not None:
+        report = load_json(controller_report)
+        require(type(report.get("schema_version")) is int and report["schema_version"] == 1 and
+                report.get("profile") == "fixed-controller-v0" and
+                report.get("qualification") == "not_run" and report.get("independent_fixture_cases") == 201,
+                "invalid compiled controller scope/count")
+        checked_profile(report.get("implemented_api_versions"), CONTROLLER_APIS, "compiled controller")
+        for label in ("controller_source", "controller_test_source", "election_source", "raft_module_source"):
+            require(report.get(label + "_sha256") == registry[label + "_sha256"],
+                    "compiled controller reflected source label mismatch")
+        rows = report.get("case_results")
+        require(isinstance(rows, list) and len(rows) == 201, "incomplete compiled controller report")
+        observed = {}
+        for row in rows:
+            require(isinstance(row, dict) and row.keys() == {"release", "case", "response_hex"},
+                    "invalid compiled controller case shape")
+            pair = (row.get("release"), row.get("case"))
+            require(pair not in observed, "duplicate compiled controller case")
+            observed[pair] = row.get("response_hex")
+        require(observed == controller_expected, "compiled controller/golden response mismatch")
+    tcp = verify_controller_tcp(controller_tcp_responses, controller_expected) if controller_tcp_responses is not None else {}
+    data_wire = verify_data_wire_profile(data_api_versions_report) if data_api_versions_report is not None else {}
+    return {"data_api_versions": DATA_APIS, "controller_api_versions": CONTROLLER_APIS,
+            "produce_golden_cases": len(produce_expected), "controller_golden_cases": len(controller_expected),
+            "compiled_produce_report_checked": produce_report is not None,
+            "compiled_controller_report_checked": controller_report is not None,
+            "controller_tcp_capture_bytes_checked": bool(tcp), "controller_tcp_capture_pairs": len(tcp) // 2,
+            "controller_tcp_capture_sha256": tcp,
+            "data_api_versions_wire": data_wire,
+            "source_hash_scope": "Verifier hashes actual source files; compiled controller/protocol/metadata hash fields reflect registry labels. Actual execution provenance requires the retained immutable-source command reports.",
+            "controller_core_state_reported": False,
+            "wire_advertisement_scope": "Compiled static ranges and golden ApiVersions bytes; actual live TCP profile evidence is retained separately in KL11-68/KL11-69."}
 
 
 def require(condition, message):
@@ -615,9 +951,10 @@ def projected_feature(row_by_version):
 
 
 def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
-           repository_root=None, handler_report=None, metadata_handler_report=None):
+           repository_root=None, handler_report=None, metadata_handler_report=None,
+           produce_handler_report=None, controller_handler_report=None, controller_tcp_responses=None, data_api_versions_report=None):
     matrix, features = load_json(matrix_path), load_json(features_path)
-    require(matrix.get("schema_version") == 1 and matrix.get("scope") == SCOPE and
+    require(type(matrix.get("schema_version")) is int and matrix["schema_version"] == 1 and matrix.get("scope") == SCOPE and
             matrix.get("implementation_claim") is False, "invalid broker inventory schema/scope")
     releases = matrix.get("releases")
     require(isinstance(releases, list) and [r.get("version") for r in releases] == list(TARGETS), "missing/duplicate/unexpected release pins")
@@ -648,15 +985,23 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
                         "removed_api_keys": [row["api_key"] for row in inventory if row["disposition"] != "active"],
                         "unstable_latest_api_keys": [row["api_key"] for row in inventory if row["latest_version_unstable"]],
                         "header_version_pairs": sum(len(row["headers"]) for row in inventory)})
-    require(features.get("schema_version") == 1 and features.get("target_releases") == list(TARGETS) and
+    require(features.keys() == {"schema_version", "scope", "target_releases", "upstream_pin_gate",
+                                "implemented_api_versions", "features", "implementation_registry",
+                                "data_api_versions", "controller_api_versions"},
+            "missing/extra feature fields or unreviewed profile claim")
+    require(type(features.get("schema_version")) is int and features["schema_version"] == 1 and features.get("target_releases") == list(TARGETS) and
             features.get("upstream_pin_gate") == "KL11-57", "features release/inventory gate mismatch")
     registry, implementation = verify_implementation(
         registry_path or ROOT / REGISTRY_PATH, repository_root or ROOT,
-        inventories, handler_report, metadata_handler_report)
+        inventories, handler_report, metadata_handler_report, produce_handler_report, controller_handler_report, controller_tcp_responses, data_api_versions_report)
     checked_implemented(features.get("implemented_api_versions"))
     require(features.get("implemented_api_versions") == registry["implemented_api_versions"] and
             features.get("implementation_registry") == REGISTRY_PATH,
             "features/implementation registry mismatch")
+    for label, expected in (("data", DATA_APIS), ("controller", CONTROLLER_APIS)):
+        checked_profile(features.get(label + "_api_versions"), expected, label)
+        require(features[label + "_api_versions"] == registry[label + "_api_versions"],
+                f"{label}: features/profile registry mismatch")
     feature_rows = features.get("features")
     require(isinstance(feature_rows, list), "missing feature rows")
     ids = [row.get("id") for row in feature_rows]
@@ -670,19 +1015,26 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
             api_features[key] = row
     require(api_features.keys() == EXPECTED_KEYS, "missing API features")
     for key, row in api_features.items():
-        require(row.get("id") == f"api.{key}" and row.get("implementation") == (("partial" if key == 19 else "implemented") if key in IMPLEMENTED_BY_KEY else "missing") and
+        require(row.get("id") == f"api.{key}" and row.get("implementation") == ("partial" if key in PROFILE_NOTES or key == 19 else "implemented" if key in IMPLEMENTED_BY_KEY else "missing") and
                 row.get("qualification") == "not_run", f"API {key}: unsupported implementation/qualification claim")
         if key in IMPLEMENTED_BY_KEY:
             implemented = IMPLEMENTED_BY_KEY[key]
             expected_range = f"{implemented['min_version']}-{implemented['max_version']}"
-            require(row.get("implemented_versions") == expected_range and row.get("implementation_gate") == "KL11-05",
+            require(row.get("implemented_versions") == expected_range and row.get("implementation_gate") == "KL11-05" and
+                    "implementation_profile" not in row,
                     f"API{key} implementation version/gate mismatch")
+        elif key in PROFILE_NOTES:
+            gate, versions, profile = ("KL11-06", "3-13", "ordinary-data") if key == 0 else ("KL11-13", "0", "fixed-controller-v0")
+            require(row.get("implementation_gate") == gate and row.get("implemented_versions") == versions and
+                    row.get("implementation_profile") == profile, f"API {key}: optional profile version/gate mismatch")
         else:
-            require("implemented_versions" not in row and "implementation_gate" not in row,
+            require("implemented_versions" not in row and "implementation_gate" not in row and "implementation_profile" not in row,
                     f"API {key}: forged implementation metadata")
         projection = projected_feature({version: inventory[key] for version, inventory in inventories.items()})
         if key in IMPLEMENTED_BY_KEY:
             projection["note"] = IMPLEMENTED_NOTES[key]
+        elif key in PROFILE_NOTES:
+            projection["note"] = PROFILE_NOTES[key]
         require(all(row.get(field) == value for field, value in projection.items()), f"API {key}: feature/source classification mismatch")
     return {"schema_version": 1, "verdict": "passed", "implementation_claim": False,
             "releases": reports, "local_implementation": implementation, "checks": ["immutable source pins", "bounded archives without extraction",
@@ -704,10 +1056,19 @@ def main():
                         help="JSON emitted by the compiled Rust protocol golden test")
     parser.add_argument("--metadata-handler-report", type=Path,
                         help="JSON emitted by the compiled Rust metadata/admin golden test")
+    parser.add_argument("--produce-handler-report", type=Path,
+                        help="Actual outcomes/response bytes from the compiled Produce golden test")
+    parser.add_argument("--controller-handler-report", type=Path,
+                        help="Actual response bytes from the compiled fixed-controller golden test")
+    parser.add_argument("--controller-tcp-responses", type=Path,
+                        help="Retained 18 actual TCP payload/frame pairs; execution provenance is separate")
+    parser.add_argument("--data-api-versions-report", type=Path,
+                        help="Independent KL11-68 captured data-profile API18 v0-4 exchanges")
     args = parser.parse_args()
     try:
         report = verify(args.matrix, args.features, registry_path=args.registry,
-                        handler_report=args.handler_report, metadata_handler_report=args.metadata_handler_report)
+                        handler_report=args.handler_report, metadata_handler_report=args.metadata_handler_report,
+                        produce_handler_report=args.produce_handler_report, controller_handler_report=args.controller_handler_report, controller_tcp_responses=args.controller_tcp_responses, data_api_versions_report=args.data_api_versions_report)
     except (ValueError, KeyError, TypeError, OSError, EOFError, tarfile.TarError) as error:
         report = {"schema_version": 1, "verdict": "failed", "implementation_claim": False, "error": str(error)}
     if args.report:

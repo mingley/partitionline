@@ -312,17 +312,20 @@ class BrokerApiMatrix(unittest.TestCase):
             self.assertIn("immutable source pin mismatch", result["error"])
 
 
-    def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None, mutate_metadata_report=None):
+    def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None, mutate_metadata_report=None,
+                                mutate_produce_report=None, mutate_controller_report=None):
         """Synthetic report exercises validation; Rust tests prove real behavior."""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             registry = MATRIX.load_json(ROOT / MATRIX.REGISTRY_PATH)
-            for label in MATRIX.SOURCE_PATHS:
+            for label in {**MATRIX.SOURCE_PATHS, **MATRIX.PROFILE_SOURCE_PATHS}:
                 target = root / registry[label]
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / registry[label], target)
             shutil.copytree(ROOT / registry["fixture_root"], root / registry["fixture_root"])
             shutil.copytree(ROOT / registry["metadata_fixture_root"], root / registry["metadata_fixture_root"])
+            for label in ("produce", "controller"):
+                shutil.copytree(ROOT / registry[label + "_fixture_root"], root / registry[label + "_fixture_root"])
             report = {"schema_version": 1, "implemented_api_versions": copy.deepcopy(MATRIX.IMPLEMENTED),
                       "protocol_source_sha256": registry["protocol_source_sha256"],
                       "test_source_sha256": registry["test_source_sha256"], "case_results": []}
@@ -337,6 +340,27 @@ class BrokerApiMatrix(unittest.TestCase):
                 golden = MATRIX.load_json(root / registry["metadata_fixture_root"] / version / "goldens.json")
                 metadata_report["case_results"].extend({"release": version, "case": case["name"],
                                                         "response_hex": case["response_hex"]} for case in golden["cases"])
+            produce_report = {"schema_version": 1, "data_api_versions": copy.deepcopy(MATRIX.DATA_APIS),
+                              "case_results": []}
+            for release in MATRIX.TARGETS:
+                golden = MATRIX.load_json(root / registry["produce_fixture_root"] / release / "goldens.json")
+                produce_report["case_results"].extend({"release": release, "case": case["name"],
+                    "outcome": case["expected_outcome"], "response_hex": case["response_hex"]} for case in golden["cases"])
+            controller_report = {"schema_version": 1, "profile": "fixed-controller-v0",
+                                 "qualification": "not_run", "independent_fixture_cases": 201,
+                                 "implemented_api_versions": copy.deepcopy(MATRIX.CONTROLLER_APIS),
+                                 "case_results": []}
+            for label in ("controller_source", "controller_test_source", "election_source", "raft_module_source"):
+                controller_report[label + "_sha256"] = registry[label + "_sha256"]
+            controller = MATRIX.load_json(root / registry["controller_fixture_root"] / "manifest.json")
+            for release in controller["releases"]:
+                controller_report["case_results"].extend({"release": release["release"], "case": case["name"],
+                    "response_hex": (root / registry["controller_fixture_root"] / release["release"] / case["response_file"]).read_bytes().hex()
+                    if case["expected_disposition"] == "response" else None} for case in release["cases"])
+            if mutate_produce_report:
+                mutate_produce_report(produce_report)
+            if mutate_controller_report:
+                mutate_controller_report(controller_report)
             if mutate_metadata_report:
                 mutate_metadata_report(metadata_report)
             if mutate_registry:
@@ -351,7 +375,11 @@ class BrokerApiMatrix(unittest.TestCase):
             metadata_path = root / "metadata-report.json"
             metadata_path.write_text(json.dumps(metadata_report), encoding="utf-8")
             inventories = {row["version"]: row["inventory"] for row in self.matrix["releases"]}
-            return MATRIX.verify_implementation(registry_path, root, inventories, report_path, metadata_path)
+            produce_path, controller_path = root / "produce-report.json", root / "controller-report.json"
+            produce_path.write_text(json.dumps(produce_report), encoding="utf-8")
+            controller_path.write_text(json.dumps(controller_report), encoding="utf-8")
+            return MATRIX.verify_implementation(registry_path, root, inventories, report_path, metadata_path,
+                                                produce_path, controller_path)
 
     def test_checked_registry_and_synthetic_report_gate(self):
         registry, report = self.implementation_mutation()
@@ -444,6 +472,7 @@ class BrokerApiMatrix(unittest.TestCase):
                 self.implementation_mutation(lambda registry: registry.__setitem__(field, value))
         for mutate in (
             lambda report: report.__setitem__("metadata_source_sha256", "0" * 64),
+            lambda report: report.__setitem__("schema_version", True),
             lambda report: report["case_results"].pop(),
             lambda report: report["case_results"].__setitem__(0, report["case_results"][1]),
             lambda report: report["case_results"][0].__setitem__("response_hex", "00"),
@@ -464,6 +493,182 @@ class BrokerApiMatrix(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 self.verify_mutation(mutate_features=mutate)
+
+
+    def test_optional_profiles_positive_baseline_is_scoped(self):
+        registry, report = self.implementation_mutation()
+        self.assertEqual(registry["implemented_api_versions"], MATRIX.IMPLEMENTED)
+        self.assertEqual(registry["data_api_versions"], MATRIX.DATA_APIS)
+        self.assertEqual(registry["controller_api_versions"], MATRIX.CONTROLLER_APIS)
+        self.assertEqual(report["produce_golden_cases"], 708)
+        self.assertEqual(report["controller_golden_cases"], 201)
+        self.assertTrue(report["compiled_produce_report_checked"])
+        self.assertTrue(report["compiled_controller_report_checked"])
+        self.assertFalse(report["controller_core_state_reported"])
+        self.assertIn("reflect registry", report["source_hash_scope"])
+        self.assertEqual(report["qualification"], "not_run")
+
+    def test_profile_registry_ranges_sources_and_gates_fail_closed(self):
+        for field, value in (("data_api_versions", MATRIX.IMPLEMENTED),
+                             ("controller_api_versions", MATRIX.CONTROLLER_APIS * 2),
+                             ("data_implementation_gate", "none"),
+                             ("controller_implementation_gate", "none"),
+                             ("produce_source", "../outside"),
+                             ("controller_source_sha256", "0" * 64),
+                             ("election_source_sha256", "0" * 64),
+                             ("raft_module_source_sha256", "0" * 64),
+                             ("produce_fixture_root", "../outside")):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.implementation_mutation(lambda registry: registry.__setitem__(field, value))
+        for profile in ("data_api_versions", "controller_api_versions"):
+            for invalid in (False, 0.0, -1, 99):
+                with self.subTest(profile=profile, invalid=invalid), self.assertRaises(ValueError):
+                    self.implementation_mutation(lambda registry: registry[profile][0].__setitem__("min_version", invalid))
+        with self.assertRaisesRegex(ValueError, "profile source checksum"):
+            self.implementation_mutation(mutate_files=lambda root, registry:
+                (root / registry["produce_source"]).write_text("forged"))
+
+    def test_produce_report_missing_forged_bytes_outcomes_and_profiles_fail(self):
+        for mutate in (
+            lambda report: report.__setitem__("schema_version", True),
+            lambda report: report["case_results"].pop(),
+            lambda report: report["case_results"].__setitem__(0, report["case_results"][1]),
+            lambda report: report["case_results"][0].__setitem__("response_hex", "00"),
+            lambda report: report["case_results"][0].__setitem__("outcome", "close"),
+            lambda report: report["case_results"][0].__setitem__("release", "unreviewed"),
+            lambda report: next(row for row in report["case_results"] if row["outcome"] == "no_response_keep_open").__setitem__("response_hex", ""),
+            lambda report: next(row for row in report["case_results"] if row["outcome"] == "close").__setitem__("outcome", "no_response_keep_open"),
+            lambda report: report["data_api_versions"][0].__setitem__("min_version", 0),
+            lambda report: report["data_api_versions"].append({"api_key": 1, "min_version": 4, "max_version": 6}),
+        ):
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_produce_report=mutate)
+
+    def test_controller_report_missing_forged_bytes_labels_and_profiles_fail(self):
+        for mutate in (
+            lambda report: report.__setitem__("schema_version", True),
+            lambda report: report["case_results"].pop(),
+            lambda report: report["case_results"].__setitem__(0, report["case_results"][1]),
+            lambda report: report["case_results"][0].__setitem__("response_hex", "00"),
+            lambda report: report["case_results"][0].__setitem__("case", "forged"),
+            lambda report: next(row for row in report["case_results"] if row["response_hex"] is None).__setitem__("response_hex", "00"),
+            lambda report: report.__setitem__("election_source_sha256", "0" * 64),
+            lambda report: report.__setitem__("raft_module_source_sha256", "0" * 64),
+            lambda report: report.__setitem__("controller_source_sha256", "0" * 64),
+            lambda report: report["implemented_api_versions"][1].__setitem__("max_version", 1),
+            lambda report: report.__setitem__("qualification", "passed"),
+            lambda report: report.__setitem__("profile", "full-kraft"),
+        ):
+            with self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_controller_report=mutate)
+
+    def test_produce_and_controller_rehashed_manifest_forgery_fails(self):
+        for label, filename, mutate in (
+            ("produce", "4.3.1/goldens.json", lambda manifest: manifest["cases"][0].__setitem__("response_hex", "00")),
+            ("controller", "manifest.json", lambda manifest: manifest["releases"][0]["cases"][0].__setitem__("core_term", "999")),
+        ):
+            def corrupt(root, registry):
+                path = root / registry[label + "_fixture_root"] / filename
+                manifest = MATRIX.load_json(path)
+                mutate(manifest)
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                registry[label + "_fixtures_sha256"][filename] = MATRIX.digest(path.read_bytes())
+            with self.subTest(label=label), self.assertRaisesRegex(ValueError, "independent .*manifest checksum"):
+                self.implementation_mutation(mutate_files=corrupt)
+
+    def test_profile_fixture_corruption_missing_extra_and_index_fail(self):
+        for label, filename in (("produce", "4.3.1/produce-v3-acks1.response.bin"),
+                                ("controller", "4.3.1/vote-positive.response.frame.bin")):
+            for action in ("delete", "corrupt", "index", "extra"):
+                def mutate(root, registry):
+                    base = root / registry[label + "_fixture_root"]
+                    path = base / filename
+                    if action == "delete":
+                        path.unlink()
+                    elif action == "corrupt":
+                        path.write_bytes(b"forged")
+                        registry[label + "_fixtures_sha256"][filename] = MATRIX.digest(path.read_bytes())
+                    elif action == "index":
+                        path = base / "4.3.1/cases.tsv"
+                        path.write_text("forged", encoding="utf-8")
+                        registry[label + "_fixtures_sha256"]["4.3.1/cases.tsv"] = MATRIX.digest(path.read_bytes())
+                    else:
+                        path = base / "extra.bin"
+                        path.write_bytes(b"extra")
+                        registry[label + "_fixtures_sha256"]["extra.bin"] = MATRIX.digest(path.read_bytes())
+                with self.subTest(label=label, action=action), self.assertRaises(ValueError):
+                    self.implementation_mutation(mutate_files=mutate)
+
+    def test_data_wire_profile_actual_baseline_and_forged_fields_fail(self):
+        report = MATRIX.load_json(ROOT / "docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "wire.json"
+            path.write_text(json.dumps(report), encoding="utf-8")
+            self.assertEqual(MATRIX.verify_data_wire_profile(path)["exchanges_checked"], 30)
+            for mutate in (
+                lambda value: value["cases"].pop(),
+                lambda value: value["cases"].__setitem__(0, value["cases"][1]),
+                lambda value: value["cases"][0].__setitem__("response_hex", value["cases"][0]["response_hex"] + "00"),
+                lambda value: value["cases"][0].__setitem__("response_hex", "00"),
+                lambda value: value["cases"][0].__setitem__("response_hex", value["cases"][0]["response_hex"][:28] + "0000" + value["cases"][0]["response_hex"][32:]),
+                lambda value: value["cases"][0].__setitem__("correlation_id", 99),
+                lambda value: value["cases"][0].__setitem__("api_version", False),
+                lambda value: value.__setitem__("source_sha", "0" * 40),
+            ):
+                value = copy.deepcopy(report)
+                mutate(value)
+                path.write_text(json.dumps(value), encoding="utf-8")
+                with self.assertRaises(ValueError):
+                    MATRIX.verify_data_wire_profile(path)
+
+    def test_controller_tcp_bytes_and_frames_positive_and_corrupt_controls(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            expected = {}
+            names = [f"api-versions-{version}" for version in range(5)] + ["vote-positive"]
+            for release in MATRIX.TARGETS:
+                target = directory / release
+                target.mkdir()
+                for name in names:
+                    base = ROOT / "partitionline-broker/tests/fixtures/raft-protocol" / release
+                    payload = (base / (name + ".response.bin")).read_bytes()
+                    expected[(release, name)] = payload.hex()
+                    (target / (name + ".actual-response.bin")).write_bytes(payload)
+                    shutil.copyfile(base / (name + ".response.frame.bin"), target / (name + ".actual-frame.bin"))
+            self.assertEqual(len(MATRIX.verify_controller_tcp(directory, expected)), 36)
+            frame = directory / "4.3.1/api-versions-0.actual-frame.bin"
+            original = frame.read_bytes()
+            for forged in (b"forged", original[:3] + b"\x00" + original[4:], original + b"\x00"):
+                frame.write_bytes(forged)
+                with self.assertRaises(ValueError):
+                    MATRIX.verify_controller_tcp(directory, expected)
+            frame.write_bytes(original)
+            payload = directory / "4.3.1/api-versions-0.actual-response.bin"
+            payload.write_bytes(b"forged")
+            with self.assertRaisesRegex(ValueError, "response/golden"):
+                MATRIX.verify_controller_tcp(directory, expected)
+            payload.unlink()
+            with self.assertRaisesRegex(ValueError, "missing/extra"):
+                MATRIX.verify_controller_tcp(directory, expected)
+
+    def test_unreviewed_global_profile_claims_fail(self):
+        with self.assertRaisesRegex(ValueError, "unreviewed profile"):
+            self.implementation_mutation(lambda registry:
+                registry.__setitem__("full_broker_api_versions", [{"api_key": 0, "min_version": 0, "max_version": 99}]))
+        with self.assertRaisesRegex(ValueError, "unreviewed profile"):
+            self.verify_mutation(mutate_features=lambda features:
+                features.__setitem__("full_controller_api_versions", MATRIX.CONTROLLER_APIS))
+
+    def test_optional_feature_dispositions_cannot_claim_full_or_modern_support(self):
+        for key in (0, 52, 53, 54):
+            for field, value in (("implementation", "implemented"), ("implemented_versions", "0-99"),
+                                 ("implementation_profile", "default"), ("qualification", "passed")):
+                with self.subTest(key=key, field=field), self.assertRaises(ValueError):
+                    self.verify_mutation(mutate_features=lambda features:
+                        features["features"][key].__setitem__(field, value))
+        for field in ("data_api_versions", "controller_api_versions"):
+            with self.assertRaises(ValueError):
+                self.verify_mutation(mutate_features=lambda features: features[field].pop())
 
 
 if __name__ == "__main__":

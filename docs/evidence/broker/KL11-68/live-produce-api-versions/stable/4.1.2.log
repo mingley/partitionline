@@ -1,0 +1,4 @@
+$ taskset -c 0-2,4 java -Xmx64m -cp /workspace/work/broker-log-oracle/profile-peer/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar ProfilePeer 4.1.2 19135 /workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/stable/4.1.2.json
+{"release":"4.1.2","exchanges":5,"assertions":65,"passed":true}
+
+exit_code=0

@@ -1,0 +1,14 @@
+...............F.........................
+======================================================================
+FAIL: test_metadata_source_and_report_cannot_forge_runtime_coverage (__main__.BrokerApiMatrix.test_metadata_source_and_report_cannot_forge_runtime_coverage)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/partitionline/tests/ci/test_broker_api_matrix.py", line 483, in test_metadata_source_and_report_cannot_forge_runtime_coverage
+    with self.assertRaises(ValueError):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ValueError not raised
+
+----------------------------------------------------------------------
+Ran 41 tests in 38.261s
+
+FAILED (failures=1)

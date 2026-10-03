@@ -1,0 +1,90 @@
+[
+  {
+    "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "verifier_stage": "uncommitted scoped development candidate; final pinned verifier check follows source push",
+    "lane": "stable-default",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/protocol-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/produce-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/default/compiled-report.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gate-development/stable-default.json"
+    ],
+    "exit_code": 0,
+    "log": "docs/evidence/broker/KL11-06/final/profile-gate-development/stable-default.log"
+  },
+  {
+    "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "verifier_stage": "uncommitted scoped development candidate; final pinned verifier check follows source push",
+    "lane": "stable-all-features",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/protocol-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/produce-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/all-features/compiled-report.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gate-development/stable-all-features.json"
+    ],
+    "exit_code": 0,
+    "log": "docs/evidence/broker/KL11-06/final/profile-gate-development/stable-all-features.log"
+  },
+  {
+    "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "verifier_stage": "uncommitted scoped development candidate; final pinned verifier check follows source push",
+    "lane": "msrv-default",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/protocol-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/produce-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/default/compiled-report.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gate-development/msrv-default.json"
+    ],
+    "exit_code": 0,
+    "log": "docs/evidence/broker/KL11-06/final/profile-gate-development/msrv-default.log"
+  },
+  {
+    "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "verifier_stage": "uncommitted scoped development candidate; final pinned verifier check follows source push",
+    "lane": "msrv-all-features",
+    "command": [
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/protocol-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/produce-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/all-features/compiled-report.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gate-development/msrv-all-features.json"
+    ],
+    "exit_code": 0,
+    "log": "docs/evidence/broker/KL11-06/final/profile-gate-development/msrv-all-features.log"
+  }
+]

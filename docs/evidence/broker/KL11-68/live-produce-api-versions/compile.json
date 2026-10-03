@@ -1,0 +1,71 @@
+{
+  "source_sha256": "aef8538ad78e314b2a00eba564ea42370647e786837e2b3740aee3c212646cbb",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/profile-peer/4.1.2",
+        "docs/evidence/broker/KL11-68/ProfilePeer.java"
+      ],
+      "exit_code": 0,
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "class_sha256": "e4d77684e40f4ddc2af89786e085340dd2a0466945f548bba96dc1cf062002a8"
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/profile-peer/4.2.1",
+        "docs/evidence/broker/KL11-68/ProfilePeer.java"
+      ],
+      "exit_code": 0,
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "class_sha256": "e4d77684e40f4ddc2af89786e085340dd2a0466945f548bba96dc1cf062002a8"
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "-d",
+        "/workspace/work/broker-log-oracle/profile-peer/4.3.1",
+        "docs/evidence/broker/KL11-68/ProfilePeer.java"
+      ],
+      "exit_code": 0,
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "class_sha256": "e4d77684e40f4ddc2af89786e085340dd2a0466945f548bba96dc1cf062002a8"
+    }
+  ]
+}
