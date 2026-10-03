@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "state": "WORK-only4 deterministicofflinecoretest preparation; no compiler/Cargo/JVM/broker/test launches, no main changes",
+  "basis": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "sources": [
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/src/raft/replication.rs",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "fullmode": 384
+    },
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/tests/raft_membership.rs",
+      "sha256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+      "bytes": 92404,
+      "fullmode": 384
+    }
+  ],
+  "plan": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/selective66-candidate-plan.json",
+    "sha256": "9abe7b5d2cc416dde3ff6f52ce27e0f8a7d9319729c1a165ee5b615c1a7b4bc5"
+  },
+  "syntax_commands": [
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/src/raft/replication.rs",
+        "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/src/raft/replication.rs",
+        "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "source_selection": "completeoriginalea973171 guardedbeforeafter; selected66 actualGitinputrows with64unchanged+core47a9/testdeclaredoverlays; alloriginalversions preserved",
+  "review_controls": {
+    "exact_InvalidPeer_for15_full_offer_mutations": true,
+    "mutated_fields": [
+      "peer directory",
+      "leader directory",
+      "configuration_epoch",
+      "term",
+      "leader",
+      "sequence",
+      "request.peer",
+      "leader_commit",
+      "descriptor.generation",
+      "descriptor.base.term",
+      "descriptor.base.index",
+      "descriptor.records",
+      "descriptor.payload_bytes",
+      "descriptor.bytes",
+      "descriptor.checksum"
+    ],
+    "unchanged_transfer_completes_Finish_and_reopens_after_mutants": true,
+    "real_non_null_vote_preserved_through_successful_install_reopen": true,
+    "deadline_equality_receiver_success_and_plus1_rejection": true,
+    "actual_local_candidacy_and_higher_term_knownleader_fences_oldtransfer": true,
+    "partial_staging_removed_after_abort_expiry_and_termchange": true,
+    "configuration_epoch_policy": "offered exactepoch binding; no unconditional currentepoch equality invented",
+    "configuration_only_directory_loss_policy": "context rejects without selecting image; current47a9 can retain bounded stagedcorefile untildeadline/disconnect/explicitabort; not claimed immediate cleanup or executed case",
+    "multi_chunk_success_through_follower_polls": {
+      "actual_configured_donor_chunk_bytes": 128,
+      "actual_image_size_at_baseline": 431,
+      "minimum_required_chunks_asserted": 3,
+      "produced_expected_chunks": 4,
+      "requires_actual_future_execution": true,
+      "production_defaults_unchanged": true
+    }
+  },
+  "actual_current_cache_matches_frozen_red02_complete_path_sha_mode_map": true,
+  "cache_paths": 2408,
+  "cache_map": {
+    "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/post-regression-cache-map.json",
+    "sha256": "22b03ad289802d61c60a9939b3f3f07cb6e8d6835435a51cac9f73540effae5d"
+  },
+  "serial_forecast": {
+    "required_free_bytes": 543211520,
+    "sampled_free_bytes": 761139200,
+    "fits_readonly_sample": true,
+    "execution_hold": true,
+    "not_a_parallel_or_build_lease": true
+  },
+  "expected_future_counts": {
+    "run": 4,
+    "ignored": 0,
+    "filtered": 27
+  },
+  "prior_candidate_plan_preserved": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-02-preparation/selective66-candidate-plan.json",
+    "sha256": "ffd612f9d53cad442aa5f334752e666e63101dde4c5b3fa1c82d8dc998c2eb76"
+  },
+  "reviewed_core_unchanged": true
+}

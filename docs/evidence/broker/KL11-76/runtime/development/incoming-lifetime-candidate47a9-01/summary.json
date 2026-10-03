@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "basis": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "scope": "offline selective66 correctedcore/test experiment; not whole-source or TCP qualification",
+  "actual_commands": [
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "clean",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-segments",
+      "--package",
+      "partitionline-broker"
+    ],
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--verbose",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_membership",
+      "incoming_dynamic_image_",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ]
+  ],
+  "actual_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 27
+  },
+  "fresh_compilation": "successful own-package clean actually removed priorbroker rlib; actualverbose LIB/test rustc invocations and relativecoredepfile+selectedpackage binding retained",
+  "core_sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+  "test_sha256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+  "original_runner_outcome": "posttest retention-helper failure parsing compiler cfg parentheses; originalwhole runner doesnotpass",
+  "original_receipt_sha256": "3778abf641eb43a6c0b461a8744758c9d8fc6be892bf293f9b2b6a1524aa7ae6",
+  "retention_only_supplement_sha256": "bd4001cf31681f7e4f0f05eb59753f4756b10dbc66b9fbea83e0a565794077dc",
+  "retention_only_no_rerun": true,
+  "physical_capture_files": 66,
+  "physical_capture_bytes": 73679,
+  "physical_phases": [
+    "before-poll",
+    "after-poll",
+    "after-first-chunk",
+    "after-finish",
+    "after-reopen",
+    "voted-after-reopen"
+  ],
+  "first_chunk_receiver_partial_bytes": 128,
+  "selected_image_bytes": 431,
+  "test_asserted_minimum_actual_chunks_per_success": 3,
+  "configured_real_donor_chunk_cap_bytes": 128,
+  "minimum_chunks_required_by_image_bytes_and_cap": 4,
+  "exact_chunks_not_logged": "completed source loops and cap imply4; raw phases do not individuallylogallchunkcalls",
+  "non_null_vote_observed": "voted-after-reopen: Key1/directory0202.../term2 in actual facts and retained raw election journal",
+  "fence_assertions_executed_inside_passed_cases": {
+    "full_offer_mutants": 15,
+    "per_mutant_exact_InvalidPeer_operations": 2,
+    "no_persistent_counter_changes_and_ready_unpoisoned": true,
+    "real_transfer_completes_after_mutants": true,
+    "receiving_deadline_equality_accepted_plus1_rejected_and_partial_removed": true,
+    "explicit_abort_fences_and_removes_partial": true,
+    "real_higherterm_and_localcampaign_fence": true,
+    "actual_filesystem_publication_error_poisons_and_fences": true
+  },
+  "full73171_and_selected66_final_source_guards": {
+    "original_full73171": {
+      "files": 73171,
+      "bytes": 675769376,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "fff76555f91513741967f5fcc16e1e61f3d007ee2ebc000359061a399e301837"
+    },
+    "selective66": {
+      "files": 66,
+      "bytes": 1788053,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "14bdac0ddb55fe6cb5cc644875c579e301e6318835d6ea66694f8c046330d8d5"
+    },
+    "selected_scope": "64 exact baseline rows plus two declared overlays; not a complete Git tree"
+  },
+  "cache_and_elf_proof": "all117currentELFpaths and allnewchangednonELFoutputs retainedhash/mode/decodeverified; binary/archivepayloads excludedpublication",
+  "limitations": [
+    "core patch not installed onto main",
+    "no candidate MSRV compilation or strict lint yet",
+    "no full-source broker QA",
+    "no completed actualTCP stream establishedbythisofflineproof",
+    "configuration-onlydirectoryeligibility loss canretain boundedstagedfileuntildeadline/disconnect/explicitabort; no unconditionalcurrentconfiguration_epoch equality"
+  ]
+}

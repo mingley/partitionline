@@ -1,0 +1,1 @@
+Attempt2 independently completed retained ELF/cache delta verification, then stopped at raw inventory schema: KeyError full_mode. Actual supplement capture entries use full07777. No receipt written; no source/runtime mutation.

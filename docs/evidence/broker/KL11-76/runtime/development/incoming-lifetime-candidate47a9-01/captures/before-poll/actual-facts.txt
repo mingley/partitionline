@@ -1,0 +1,6 @@
+actual declared experiment source; incoming-image phase receipt (source bindings in runner validation)
+phase=before-poll
+offer=DynamicSnapshotRequest { context: Context { leader: Key { id: 1, directory: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2] }, peer: Key { id: 4, directory: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5] }, configuration_epoch: 0 }, request: SnapshotRequest { leader: 1, peer: 4, sequence: 7, term: 2, leader_commit: 2, descriptor: Descriptor { generation: [61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61, 61], base: LogPosition { term: 2, index: 2 }, records: 2, payload_bytes: 23, bytes: 431, checksum: 729818836 } } }
+outcome=valid Begin completed
+receiver_state=State { local_id: 4, base_position: LogPosition { term: 0, index: 0 }, last_position: LogPosition { term: 0, index: 0 }, committed_end: 0, election: State { persistent: PersistentState { term: 2, voted_for: None, log: LogPosition { term: 0, index: 0 } }, role: Follower, leader: Some(1), deadline_ms: 26, granted_votes: 0, poisoned: false }, poisoned: false, ready: true, active_term: None, wal_durable_ops: 1, election_durable_states: 3, recovery: Recovery { original_file_bytes: 0, recovered_file_bytes: 24, recovered_entries: 0, truncated_bytes: 0, next_offset: 0, initialized: true } }
+receiver_vote=None

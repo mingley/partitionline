@@ -1,0 +1,2297 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "scope": "retention-only completion after real4testpass+helperfailure; no Cargo/test rerun or product install",
+  "original_failed_driver_receipt": {
+    "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/validation.json",
+    "sha256": "3778abf641eb43a6c0b461a8744758c9d8fc6be892bf293f9b2b6a1524aa7ae6",
+    "outcome": "AssertionError(('executed ELF missing before retention', PosixPath('/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/source/\"codecs\", \"default\", \"oidc\", \"sasl\", \"tls\"')))"
+  },
+  "commands": [],
+  "operations": [],
+  "before": {
+    "original_full73171": {
+      "files": 73171,
+      "bytes": 675769376,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "fff76555f91513741967f5fcc16e1e61f3d007ee2ebc000359061a399e301837"
+    },
+    "selective66": {
+      "files": 66,
+      "bytes": 1788053,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "14bdac0ddb55fe6cb5cc644875c579e301e6318835d6ea66694f8c046330d8d5"
+    },
+    "selected_scope": "64 exact baseline rows plus two declared overlays; not a complete Git tree"
+  },
+  "cache_owners_before": [],
+  "forecast": {
+    "sampled_free_bytes": 1005477888,
+    "new_or_changed_cache_bytes_to_preserve": 22759527,
+    "new_or_changed_cache_files_to_preserve": 3,
+    "cache_directories": 0,
+    "reserves": {
+      "complete_cache_archive": 22782315,
+      "all_new_elf_objects": 3693514,
+      "additional_generated_growth": 67108864,
+      "future_delta_and_elf_retention": 83886080,
+      "raw_capture_and_facts": 12632064,
+      "source_and_audit_metadata": 12582912,
+      "free_floor": 367001600
+    },
+    "required_free_bytes": 569687349,
+    "sufficient": true
+  },
+  "retention_forecasts": [
+    {
+      "command": "retention-only",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "sampled_free_bytes": 1005477888,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 3693514,
+      "required_free_bytes": 371743690,
+      "sufficient": true,
+      "unretained_elfs": [
+        {
+          "path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+          "raw_bytes": 3692320,
+          "gzip_upper_bound_bytes": 3693514,
+          "full_permission_mode": 448
+        }
+      ],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    }
+  ],
+  "retained_elf_objects": [
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1.gz",
+      "sha256": "22d8eebffc1359e4456616f7be39d5accd28afef0e66a089822f673308dca035",
+      "uncompressed_sha256": "c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1",
+      "uncompressed_bytes": 739200,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+      "sha256": "a256660a776562a476d41dca37794e881d576e6c83cc4f34b67c09d66bb79b95",
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2.gz",
+      "sha256": "67dc5adc62667281dc53910669c8fa890e90718297c00559da9707a458ca3c53",
+      "uncompressed_sha256": "72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2",
+      "uncompressed_bytes": 549816,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+      "sha256": "586ff17217510799ad0f67404f51c0049adc4c8fd0e10b964248c118452bbd5c",
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e.gz",
+      "sha256": "c2bc0cfea82830dc5de49e8b3ef6393c22e7af718faa4ab3dca1c93dcec5cf5a",
+      "uncompressed_sha256": "9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e",
+      "uncompressed_bytes": 467544,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314.gz",
+      "sha256": "eef38a977fa8f384f4a63d8968eb0baedd0668bfbabde6518b628f2b40b5b919",
+      "uncompressed_sha256": "f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314",
+      "uncompressed_bytes": 614592,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02.gz",
+      "sha256": "bdd5d8b1ed643180cc48b12bcf9da6f6190a96e7cb14fe7ee67b45faca41e788",
+      "uncompressed_sha256": "4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02",
+      "uncompressed_bytes": 612376,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f.gz",
+      "sha256": "31ce745d6853c1700f558d278261ecf1c49e36be9b27700be285c205901a3468",
+      "uncompressed_sha256": "e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f",
+      "uncompressed_bytes": 632592,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+      "sha256": "77b52ea6835ff8b3fda525adb70ac0d0446cf8ec1e38532b35cab9b235609fa2",
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+      "sha256": "900350825d1eee313e90856462474abecd7cb2c0ea1cfb6716ceda993955ac6f",
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643.gz",
+      "sha256": "266c63d249c332d94e7bf7b938956c7a7345975fd92c558c7aef10e08556a84a",
+      "uncompressed_sha256": "edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643",
+      "uncompressed_bytes": 611368,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+      "sha256": "644aee42946092a435ded89f53a7b0f37e258a00f903a5f34907fb464726c8d9",
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82.gz",
+      "sha256": "e9cdc92cda119246040e0163ea50dd9d62cbde3cfcfb21a0b864e0954a2c48b8",
+      "uncompressed_sha256": "29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82",
+      "uncompressed_bytes": 549248,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+      "sha256": "d44285307f37d77c8dfbd00fbed3f2606d846dd5fcddf9f8ecc0d02c1524c20d",
+      "uncompressed_sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "uncompressed_bytes": 2028648,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.gz",
+      "sha256": "cec3286e1fbb78f6b6d9ef9eb12bc71872a8f27ff83e536ee8a119d058f8236d",
+      "uncompressed_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "uncompressed_bytes": 85024,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.gz",
+      "sha256": "bf7482af49ec70332fdd8296a350f03a6db516df1aa97b914409a029f4373f9b",
+      "uncompressed_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "uncompressed_bytes": 79792,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.gz",
+      "sha256": "6f2e11eaaafc57b580b5372d9034a7eeaebdf1de6a33c922c33037f4c2f0eb03",
+      "uncompressed_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "uncompressed_bytes": 124880,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.gz",
+      "sha256": "3f6571acf9cbaf55088eed580313d67946f8cecdf7e948427599c7e0d5f6e873",
+      "uncompressed_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "uncompressed_bytes": 232480,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.gz",
+      "sha256": "28f29a248e843601c12a1d6e3106df583581587ba06dab3d9743e19d4f796726",
+      "uncompressed_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "uncompressed_bytes": 557112,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.gz",
+      "sha256": "92828aecff13b1119f30a9e1322b86af923f5fbc71f9c2f24704df735a754738",
+      "uncompressed_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "uncompressed_bytes": 79832,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.gz",
+      "sha256": "44c4e10343b6ff4cd85c48e85be5236977e59ba3962163c0b6ec50895be7c00d",
+      "uncompressed_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "uncompressed_bytes": 79392,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.gz",
+      "sha256": "34357b0a1d232981d8f72afe8bf5258069777b069b394165f35b03df2847e012",
+      "uncompressed_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "uncompressed_bytes": 121248,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.gz",
+      "sha256": "769df109912f92d210a9881951789bb90f8422401a53ba1ebfaea7cd4abc40d7",
+      "uncompressed_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "uncompressed_bytes": 262240,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.gz",
+      "sha256": "be3680c3ccb55a6a4488c41c72e5cce54ee386373a4d5c86c4e39466346a9d84",
+      "uncompressed_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "uncompressed_bytes": 79824,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.gz",
+      "sha256": "5c9ea65a97051c75a57bec768303cf1423ad48fc78eb83add5a4339273f82445",
+      "uncompressed_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "uncompressed_bytes": 91208,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.gz",
+      "sha256": "28e0f673204c0ceffd5b0cf4d7a7e6ca2d098ea9d0aa40d7a4f17c241c87d6d6",
+      "uncompressed_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "uncompressed_bytes": 81200,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.gz",
+      "sha256": "31af54fcabad382f2fa6a457dab4e9fc1836225ee6f4029d0239c234a066e1a4",
+      "uncompressed_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "uncompressed_bytes": 72296,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.gz",
+      "sha256": "f6a5bb13677c7ccefab6f62a4a3280cdf88786b304f0ce6fa8a41205d0c41463",
+      "uncompressed_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "uncompressed_bytes": 78392,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.gz",
+      "sha256": "c2c33f1d03f135026dc01e46ed8e5d94fd09ca9e7a9f22134ed8ca9f35d823f8",
+      "uncompressed_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "uncompressed_bytes": 102792,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.gz",
+      "sha256": "a13cab1794d0d3aa64cf3ae7f8d9a75abea173fd08349650646cc0d9ef360492",
+      "uncompressed_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "uncompressed_bytes": 8904,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.gz",
+      "sha256": "9259071f9e9bea1c7f34758306d0af72def22c14af693a72b46607538bfa2727",
+      "uncompressed_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "uncompressed_bytes": 7728,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.gz",
+      "sha256": "66fb7f88875c9095f4af729b9604b59e0f5ac9e79526efd013ba7a86bc2baa32",
+      "uncompressed_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "uncompressed_bytes": 9176,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.gz",
+      "sha256": "2f6d2d5170236fe80a4c3f767335d20225806aa68f236fa81b70970ddc0dfaf0",
+      "uncompressed_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "uncompressed_bytes": 11760,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.gz",
+      "sha256": "69c17e13433eaae1e34112f58d8d9005481f84ee0a04e7215b58ae99e734d935",
+      "uncompressed_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "uncompressed_bytes": 62048,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.gz",
+      "sha256": "6082813c544c278e71084976119161ba1792b0607fe1b9390e81e8009ad1c8bb",
+      "uncompressed_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "uncompressed_bytes": 8976,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.gz",
+      "sha256": "c005b51150363cfb502d735d936a586bbb4ff22fa8ea5a318b690bdc6bd823d7",
+      "uncompressed_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "uncompressed_bytes": 29824,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.gz",
+      "sha256": "b68d0399f701b497a6546bf84d41dfc8e4e34bcb4d084b0d926ec3bdfadc325a",
+      "uncompressed_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "uncompressed_bytes": 21160,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.gz",
+      "sha256": "eda6b5aeff91b6b4f34c22ae9fa78a60c04d235652e3ffa98c1c84716e270338",
+      "uncompressed_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "uncompressed_bytes": 16328,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.gz",
+      "sha256": "81e21276a03233bbd6667e65ae94773a880884d28abd2a4670803d25a9d59831",
+      "uncompressed_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "uncompressed_bytes": 7952,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.gz",
+      "sha256": "3e00ccf2499724d80fca6d16f75139f8eb096e5385f542200966b9af09647377",
+      "uncompressed_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "uncompressed_bytes": 8632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.gz",
+      "sha256": "a8362a688979189dcdc09cc1f69713cfd2a8ec5758e90e66385e427fe9d19889",
+      "uncompressed_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "uncompressed_bytes": 18816,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.gz",
+      "sha256": "59f840e35fd811460c4ef25e5da91ba1b3d177ebc6b959392ed1267636a95c28",
+      "uncompressed_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "uncompressed_bytes": 89096,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.gz",
+      "sha256": "46564429c6264d34898dfe916d3c898b15fed4d0c650b4d9d8f293f2f02a2087",
+      "uncompressed_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "uncompressed_bytes": 3680,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.gz",
+      "sha256": "46abdbb43aea84e0e84836cde45f54c032d45a23ee9177e4547a76879010f2dc",
+      "uncompressed_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "uncompressed_bytes": 3472,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94.gz",
+      "sha256": "17499d08764af87463e74a688f71d747980db3fd5c1c410d6b74333a2d35eec4",
+      "uncompressed_sha256": "606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94",
+      "uncompressed_bytes": 1905008,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6.gz",
+      "sha256": "3468a0ef03eada8c2879be9ef6a5fb744ca505a7efd0fcf67dab00b0349eda61",
+      "uncompressed_sha256": "23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6",
+      "uncompressed_bytes": 426408,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+      "sha256": "096db59b50442e909bbf33a9158918bb939e2e9ab0364aab4c5a03027f55ca18",
+      "uncompressed_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "uncompressed_bytes": 438184,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555.gz",
+      "sha256": "937018b8c693eb95e154825d03e3c1186267a40e7ab252da343aeb51732cc2bc",
+      "uncompressed_sha256": "bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555",
+      "uncompressed_bytes": 583624,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc.gz",
+      "sha256": "ed27cdc9ed80736dae85f668ba2c2b31aa1a6f22c98766c46b96c1ecabb07302",
+      "uncompressed_sha256": "a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc",
+      "uncompressed_bytes": 588056,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552.gz",
+      "sha256": "8c821856d2f1b19f928ec9d3cdaf148bdef2b04956d8576f32ce5db575bea91d",
+      "uncompressed_sha256": "c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552",
+      "uncompressed_bytes": 590864,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4.gz",
+      "sha256": "9c0f2e3ab64b7a8afa6dbb751cb70109e5edc07fbeada8351d32e9236c92e0b3",
+      "uncompressed_sha256": "38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4",
+      "uncompressed_bytes": 588432,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+      "sha256": "c30db9df524c58741a74d6e44496f8c4f4f99468dc5342deb2437988eba54c89",
+      "uncompressed_sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "uncompressed_bytes": 449968,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277.gz",
+      "sha256": "85fe352f00b2214c05d0a0c01e9af48984d59f49f2cf9e153036e6a80ee2ad6b",
+      "uncompressed_sha256": "87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277",
+      "uncompressed_bytes": 437392,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2.gz",
+      "sha256": "16bdb67b72efc831131cfccee37ee20370b6fa6ab84f0c452b691cf43ee9ccb0",
+      "uncompressed_sha256": "eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2",
+      "uncompressed_bytes": 489168,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64.gz",
+      "sha256": "c874d8adf74fa8739b54a6c97524df6ccc9970880fda99cbc674d99e47facef4",
+      "uncompressed_sha256": "7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64",
+      "uncompressed_bytes": 559392,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+      "sha256": "3aba5d3f580e8406bab567e72da73b9881e9c0cf16568bd686a2863ba19b817d",
+      "uncompressed_sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "uncompressed_bytes": 561760,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+      "sha256": "a21ba43f089df18ebb46c28bfeaf975b3d20723c065847da9b8472b07c647927",
+      "uncompressed_sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "uncompressed_bytes": 3482104,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337.gz",
+      "sha256": "5fe45cfa192acd862fbb909b85bfc9135c3994af33e46632696fb220904c05f9",
+      "uncompressed_sha256": "6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337",
+      "uncompressed_bytes": 3218784,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a.gz",
+      "sha256": "58d19cb859d0c2d4740af7cb011eed4fd6810c584e8e57b3210d7a51859178e2",
+      "uncompressed_sha256": "8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a",
+      "uncompressed_bytes": 12278120,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/bin/elf-objects/ea8343e499afc2f128fd8602226e513bfd57684859c5ef7b8ccf0cc520187cf0.gz",
+      "sha256": "65b3b9ec544c64ba3a567e5d61b2e2760f06dab98b24c1fa630e12b6771a1e68",
+      "uncompressed_sha256": "ea8343e499afc2f128fd8602226e513bfd57684859c5ef7b8ccf0cc520187cf0",
+      "uncompressed_bytes": 3597232,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2.gz",
+      "sha256": "dfc661e1a25c988b74cf33afa65ae5611eeddccc67229d95e758c8e3fc88c426",
+      "uncompressed_sha256": "4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2",
+      "uncompressed_bytes": 3692320,
+      "compression": "gzip",
+      "decompression_verified": true
+    }
+  ],
+  "all_current_elfs": [
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-7666d58a3c7e8780/build-script-build",
+      "sha256": "c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1",
+      "original_mode": 448,
+      "bytes": 739200,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-7666d58a3c7e8780/build_script_build-7666d58a3c7e8780",
+      "sha256": "c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1",
+      "original_mode": 448,
+      "bytes": 739200,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "original_mode": 448,
+      "bytes": 756016,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "original_mode": 448,
+      "bytes": 756016,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32fast-d7ee31a45f541d40/build-script-build",
+      "sha256": "72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2",
+      "original_mode": 448,
+      "bytes": 549816,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/crc32fast-d7ee31a45f541d40/build_script_build-d7ee31a45f541d40",
+      "sha256": "72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2",
+      "original_mode": 448,
+      "bytes": 549816,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build-script-build",
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "original_mode": 448,
+      "bytes": 478224,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "original_mode": 448,
+      "bytes": 478224,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-c89645aaa469201d/build-script-build",
+      "sha256": "9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e",
+      "original_mode": 448,
+      "bytes": 467544,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-c89645aaa469201d/build_script_build-c89645aaa469201d",
+      "sha256": "9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e",
+      "original_mode": 448,
+      "bytes": 467544,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-3e664ead7e51fa42/build-script-build",
+      "sha256": "f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314",
+      "original_mode": 448,
+      "bytes": 614592,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-3e664ead7e51fa42/build_script_build-3e664ead7e51fa42",
+      "sha256": "f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314",
+      "original_mode": 448,
+      "bytes": 614592,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-b5a3e939a60ea422/build-script-build",
+      "sha256": "4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02",
+      "original_mode": 448,
+      "bytes": 612376,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-b5a3e939a60ea422/build_script_build-b5a3e939a60ea422",
+      "sha256": "4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02",
+      "original_mode": 448,
+      "bytes": 612376,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4a91d7431361c6a3a1cb077b7c6a5041f4ff83ad26d75ef4e6f1d62eab9c7b02.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/libc-6e629b08ea253082/build-script-build",
+      "sha256": "e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f",
+      "original_mode": 448,
+      "bytes": 632592,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/libc-6e629b08ea253082/build_script_build-6e629b08ea253082",
+      "sha256": "e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f",
+      "original_mode": 448,
+      "bytes": 632592,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e78374909caec4d400a93fc431219ebe8e0c4a01ef4950abbb0dd89b245c998f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build-script-build",
+      "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "original_mode": 448,
+      "bytes": 638632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+      "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "original_mode": 448,
+      "bytes": 638632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "original_mode": 448,
+      "bytes": 613824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "original_mode": 448,
+      "bytes": 613824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-d8393a54897f3e81/build-script-build",
+      "sha256": "edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643",
+      "original_mode": 448,
+      "bytes": 611368,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-d8393a54897f3e81/build_script_build-d8393a54897f3e81",
+      "sha256": "edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643",
+      "original_mode": 448,
+      "bytes": 611368,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build-script-build",
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "original_mode": 448,
+      "bytes": 556632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "original_mode": 448,
+      "bytes": 556632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/quote-53475fe26c76c338/build-script-build",
+      "sha256": "29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82",
+      "original_mode": 448,
+      "bytes": 549248,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/quote-53475fe26c76c338/build_script_build-53475fe26c76c338",
+      "sha256": "29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82",
+      "original_mode": 448,
+      "bytes": 549248,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-010fb5496596defa/build-script-build",
+      "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "original_mode": 448,
+      "bytes": 2028648,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-010fb5496596defa/build_script_build-010fb5496596defa",
+      "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "original_mode": 448,
+      "bytes": 2028648,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/00c879ee3285a50d-montgomery.o",
+      "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "original_mode": 384,
+      "bytes": 85024,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/00c879ee3285a50d-montgomery_inv.o",
+      "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "original_mode": 384,
+      "bytes": 79792,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/0bbbd18bda93c05b-aes_nohw.o",
+      "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "original_mode": 384,
+      "bytes": 124880,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/25ac62e5b3c53843-curve25519.o",
+      "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "original_mode": 384,
+      "bytes": 232480,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "original_mode": 384,
+      "bytes": 557112,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-ecp_nistz.o",
+      "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "original_mode": 384,
+      "bytes": 79832,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-gfp_p256.o",
+      "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "original_mode": 384,
+      "bytes": 79392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-gfp_p384.o",
+      "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "original_mode": 384,
+      "bytes": 121248,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-p256-nistz.o",
+      "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "original_mode": 384,
+      "bytes": 262240,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-p256.o",
+      "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "original_mode": 384,
+      "bytes": 79824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-constant_time_test.o",
+      "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "original_mode": 384,
+      "bytes": 91208,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-cpu_intel.o",
+      "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "original_mode": 384,
+      "bytes": 81200,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-crypto.o",
+      "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "original_mode": 384,
+      "bytes": 72296,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-mem.o",
+      "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "original_mode": 384,
+      "bytes": 78392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/aaa1ba3e455ee2e1-limbs.o",
+      "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "original_mode": 384,
+      "bytes": 102792,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "original_mode": 384,
+      "bytes": 8904,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "original_mode": 384,
+      "bytes": 7728,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "original_mode": 384,
+      "bytes": 9176,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "original_mode": 384,
+      "bytes": 11760,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "original_mode": 384,
+      "bytes": 62048,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "original_mode": 384,
+      "bytes": 8976,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "original_mode": 384,
+      "bytes": 29824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "original_mode": 384,
+      "bytes": 21160,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "original_mode": 384,
+      "bytes": 16328,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "original_mode": 384,
+      "bytes": 7952,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "original_mode": 384,
+      "bytes": 8632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "original_mode": 384,
+      "bytes": 18816,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/d5a9841f3dc6e253-poly1305.o",
+      "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "original_mode": 384,
+      "bytes": 89096,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "original_mode": 384,
+      "bytes": 3680,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-540bfa03d7b275be/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "original_mode": 384,
+      "bytes": 3472,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery.o",
+      "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "original_mode": 384,
+      "bytes": 85024,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery_inv.o",
+      "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "original_mode": 384,
+      "bytes": 79792,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/0bbbd18bda93c05b-aes_nohw.o",
+      "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "original_mode": 384,
+      "bytes": 124880,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519.o",
+      "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "original_mode": 384,
+      "bytes": 232480,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "original_mode": 384,
+      "bytes": 557112,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-ecp_nistz.o",
+      "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "original_mode": 384,
+      "bytes": 79832,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p256.o",
+      "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "original_mode": 384,
+      "bytes": 79392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p384.o",
+      "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "original_mode": 384,
+      "bytes": 121248,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256-nistz.o",
+      "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "original_mode": 384,
+      "bytes": 262240,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256.o",
+      "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "original_mode": 384,
+      "bytes": 79824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-constant_time_test.o",
+      "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "original_mode": 384,
+      "bytes": 91208,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-cpu_intel.o",
+      "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "original_mode": 384,
+      "bytes": 81200,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-crypto.o",
+      "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "original_mode": 384,
+      "bytes": 72296,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-mem.o",
+      "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "original_mode": 384,
+      "bytes": 78392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/aaa1ba3e455ee2e1-limbs.o",
+      "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "original_mode": 384,
+      "bytes": 102792,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "original_mode": 384,
+      "bytes": 8904,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "original_mode": 384,
+      "bytes": 7728,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "original_mode": 384,
+      "bytes": 9176,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "original_mode": 384,
+      "bytes": 11760,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "original_mode": 384,
+      "bytes": 62048,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "original_mode": 384,
+      "bytes": 8976,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "original_mode": 384,
+      "bytes": 29824,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "original_mode": 384,
+      "bytes": 21160,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "original_mode": 384,
+      "bytes": 16328,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "original_mode": 384,
+      "bytes": 7952,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "original_mode": 384,
+      "bytes": 8632,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "original_mode": 384,
+      "bytes": 18816,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/d5a9841f3dc6e253-poly1305.o",
+      "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "original_mode": 384,
+      "bytes": 89096,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "original_mode": 384,
+      "bytes": 3680,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "original_mode": 384,
+      "bytes": 3472,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-7530bd4b15a3d744/build-script-build",
+      "sha256": "606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94",
+      "original_mode": 448,
+      "bytes": 1905008,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/ring-7530bd4b15a3d744/build_script_build-7530bd4b15a3d744",
+      "sha256": "606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94",
+      "original_mode": 448,
+      "bytes": 1905008,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-925e9dfa6585fd8e/build-script-build",
+      "sha256": "23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6",
+      "original_mode": 448,
+      "bytes": 426408,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-925e9dfa6585fd8e/build_script_build-925e9dfa6585fd8e",
+      "sha256": "23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6",
+      "original_mode": 448,
+      "bytes": 426408,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "original_mode": 448,
+      "bytes": 438184,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "original_mode": 448,
+      "bytes": 438184,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde-52fae6c5fc6ad2ed/build-script-build",
+      "sha256": "bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555",
+      "original_mode": 448,
+      "bytes": 583624,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde-52fae6c5fc6ad2ed/build_script_build-52fae6c5fc6ad2ed",
+      "sha256": "bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555",
+      "original_mode": 448,
+      "bytes": 583624,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/bbe24344b2aa37b680e2c84eb23bbc932df0fbe854b40f45eba6f10fd68d3555.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde-816d234d4ddf0de2/build-script-build",
+      "sha256": "a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc",
+      "original_mode": 448,
+      "bytes": 588056,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde-816d234d4ddf0de2/build_script_build-816d234d4ddf0de2",
+      "sha256": "a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc",
+      "original_mode": 448,
+      "bytes": 588056,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-379a79d6a7b391e5/build-script-build",
+      "sha256": "c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552",
+      "original_mode": 448,
+      "bytes": 590864,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-379a79d6a7b391e5/build_script_build-379a79d6a7b391e5",
+      "sha256": "c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552",
+      "original_mode": 448,
+      "bytes": 590864,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-4ec6c2413ab7fa0a/build-script-build",
+      "sha256": "38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4",
+      "original_mode": 448,
+      "bytes": 588432,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-4ec6c2413ab7fa0a/build_script_build-4ec6c2413ab7fa0a",
+      "sha256": "38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4",
+      "original_mode": 448,
+      "bytes": 588432,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/38e923ff8346537f87956de38079e0daed27449c1346bf06713d37b6c87232b4.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-2df4e160f567d3e9/build-script-build",
+      "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "original_mode": 448,
+      "bytes": 449968,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-2df4e160f567d3e9/build_script_build-2df4e160f567d3e9",
+      "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "original_mode": 448,
+      "bytes": 449968,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-cc09fb97eda35537/build-script-build",
+      "sha256": "87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277",
+      "original_mode": 448,
+      "bytes": 437392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-cc09fb97eda35537/build_script_build-cc09fb97eda35537",
+      "sha256": "87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277",
+      "original_mode": 448,
+      "bytes": 437392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/snap-9ac953883e3a3088/build-script-build",
+      "sha256": "eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2",
+      "original_mode": 448,
+      "bytes": 489168,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/snap-9ac953883e3a3088/build_script_build-9ac953883e3a3088",
+      "sha256": "eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2",
+      "original_mode": 448,
+      "bytes": 489168,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-0f44023b05156c84/build-script-build",
+      "sha256": "7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64",
+      "original_mode": 448,
+      "bytes": 559392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-0f44023b05156c84/build_script_build-0f44023b05156c84",
+      "sha256": "7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64",
+      "original_mode": 448,
+      "bytes": 559392,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-9224f156551122bc/build-script-build",
+      "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "original_mode": 448,
+      "bytes": 561760,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-9224f156551122bc/build_script_build-9224f156551122bc",
+      "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "original_mode": 448,
+      "bytes": 561760,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+      "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "original_mode": 448,
+      "bytes": 3482104,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-e99031ed9ca5c58a.so",
+      "sha256": "6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337",
+      "original_mode": 448,
+      "bytes": 3218784,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+      "sha256": "4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2",
+      "original_mode": 448,
+      "bytes": 3692320,
+      "retained_object": "bin/elf-objects/4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe",
+      "sha256": "8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a",
+      "original_mode": 448,
+      "bytes": 12278120,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    },
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-28ef880bb90a5d48",
+      "sha256": "8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a",
+      "original_mode": 448,
+      "bytes": 12278120,
+      "retained_object": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/bin/elf-objects/8b623d0263ef8a27db1b6369e25bb6841f764ed20af4c6ed83d044f3fade899a.gz",
+      "reason": "preserve every current actual artifact after helper failure beforeanyoverwrite",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    }
+  ],
+  "actual_test_log": {
+    "path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.log",
+    "sha256": "63683e429fdf87112bb2578add44fdfdb68df40a24ae7c160d9d524e6754b29d"
+  },
+  "actual_four_tests": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 27,
+    "fresh_library_and_test_rustc_logged": true
+  },
+  "actual_executed_harness": [
+    {
+      "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+      "sha256": "4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2",
+      "original_mode": 448,
+      "bytes": 3692320,
+      "retained_object": "bin/elf-objects/4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2.gz",
+      "reason": "actual verboseCargo harness execution",
+      "command": "retention-only",
+      "pre_clean_bytes_and_gzip_verified": true
+    }
+  ],
+  "generated_source_depfiles": [
+    {
+      "path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-b1c41f23d75d8ad5.d",
+      "sha256": "df475d8626bf68efedcf4c4d2907dcd8f4c4f008448ea8415788dff0b39c1294",
+      "relative_core_path": "src/raft/replication.rs",
+      "resolved_package_path": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/source/partitionline-broker",
+      "binding": "actualverbose selectedpackage compilerheader plusforcedremovedrlib andexactguardedsource"
+    }
+  ],
+  "after_elf_retention": {
+    "original_full73171": {
+      "files": 73171,
+      "bytes": 675769376,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "fff76555f91513741967f5fcc16e1e61f3d007ee2ebc000359061a399e301837"
+    },
+    "selective66": {
+      "files": 66,
+      "bytes": 1788053,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "14bdac0ddb55fe6cb5cc644875c579e301e6318835d6ea66694f8c046330d8d5"
+    },
+    "selected_scope": "64 exact baseline rows plus two declared overlays; not a complete Git tree"
+  },
+  "whole_cache_forecasts": [
+    {
+      "label": "post-candidate-retention-only",
+      "sampled_free_bytes": 1004339200,
+      "new_or_changed_cache_bytes_to_preserve": 22759527,
+      "new_or_changed_cache_files_to_preserve": 3,
+      "cache_directories": 0,
+      "reserves": {
+        "complete_cache_archive": 22782315,
+        "all_new_elf_objects": 0,
+        "additional_generated_growth": 67108864,
+        "future_delta_and_elf_retention": 83886080,
+        "raw_capture_and_facts": 12632064,
+        "source_and_audit_metadata": 12582912,
+        "free_floor": 367001600
+      },
+      "required_free_bytes": 565993835,
+      "sufficient": true
+    }
+  ],
+  "whole_cache_retention": [
+    {
+      "archive": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/post-candidate-retention-only-all-cache.tar.gz",
+      "archive_sha256": "5e793d77d2172d02e51a03285af5460490cc0d54ead210c2b30b38ad05a30b94",
+      "archive_bytes": 6040392,
+      "map": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/post-candidate-retention-only-cache-map.json",
+      "map_sha256": "54e57b32bc4bc430ccf997f92d1c60a9b03ff6d9f86a15ad8d790acd6062d60e",
+      "paths": 3,
+      "regular_files": 3,
+      "source_before_after_and_archive_pathset_sha256_bytes_full07777_verified": true,
+      "scope": "complete current map reconstructible from verified prior complete archive plus all new/changed outputs in this delta archive",
+      "inherited_archive": {
+        "archive": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/post-regression-all-cache.tar.gz",
+        "archive_sha256": "e825f5b4a04fcdbcc06aa5d757ef455cf2d5c488d97a1565f8b68502d5ec0ce1",
+        "archive_bytes": 6006139,
+        "map": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-02/post-regression-cache-map.json",
+        "map_sha256": "22b03ad289802d61c60a9939b3f3f07cb6e8d6835435a51cac9f73540effae5d",
+        "paths": 15,
+        "regular_files": 13,
+        "source_before_after_and_archive_pathset_sha256_bytes_full07777_verified": true,
+        "scope": "complete current map reconstructible from verified prior complete archive plus all new/changed outputs in this delta archive",
+        "inherited_archive": {
+          "archive": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/post-regression-all-cache.tar.gz",
+          "archive_sha256": "2bc62830c3c43b23d2bc8cd32c2deb4898166f5d43684c21313fafbfcf643680",
+          "archive_bytes": 139042781,
+          "map": "/workspace/work/raft-runtime-76/development/incoming-lifetime-ea9ff293-01/post-regression-cache-map.json",
+          "map_sha256": "95fd262ea2d79ff30dac298bea9e0c42ef63401f431f6d5e0ee7698c2cbdf326",
+          "paths": 2393,
+          "regular_files": 2009,
+          "source_before_after_and_archive_pathset_sha256_bytes_full07777_verified": true,
+          "scope": "all generated cache files, including rlib/rmeta/fingerprints/build outputs, before package clean"
+        },
+        "delta_rows": {
+          "debug/.fingerprint/partitionline-broker-b1c41f23d75d8ad5": {
+            "type": "directory",
+            "full_mode": 448
+          },
+          "debug/.fingerprint/partitionline-broker-b1c41f23d75d8ad5/dep-lib-partitionline_broker": {
+            "type": "file",
+            "bytes": 489,
+            "sha256": "b06992cc5742b72f3453c63e00b3f7b657895cb261285045a5ce63a40618531e",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-b1c41f23d75d8ad5/invoked.timestamp": {
+            "type": "file",
+            "bytes": 48,
+            "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-b1c41f23d75d8ad5/lib-partitionline_broker": {
+            "type": "file",
+            "bytes": 16,
+            "sha256": "1dee4ccf325bf388b3565083a565f7cae5a98054d342006277dd55131b674ba6",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-b1c41f23d75d8ad5/lib-partitionline_broker.json": {
+            "type": "file",
+            "bytes": 668,
+            "sha256": "97a06a9d0cf9658783927e0ccc857330a60ee7cbb1beb5862b9d932a5b6e2167",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-df70681fff0cc180": {
+            "type": "directory",
+            "full_mode": 448
+          },
+          "debug/.fingerprint/partitionline-broker-df70681fff0cc180/dep-test-integration-test-raft_membership": {
+            "type": "file",
+            "bytes": 44,
+            "sha256": "d49fbce164bd0c535d206f4a606a7baf7ae7ad79b2f028641054424531bd8d78",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-df70681fff0cc180/invoked.timestamp": {
+            "type": "file",
+            "bytes": 48,
+            "sha256": "5a109e6643e8d3e88642e3f35e85d2a83e639d07523aa6e99166c48178e965c3",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-df70681fff0cc180/test-integration-test-raft_membership": {
+            "type": "file",
+            "bytes": 16,
+            "sha256": "8cc0ca03c290904691388b496fddbe9aa8a29bbef47163c7e53352b02aaa5825",
+            "full_mode": 384
+          },
+          "debug/.fingerprint/partitionline-broker-df70681fff0cc180/test-integration-test-raft_membership.json": {
+            "type": "file",
+            "bytes": 754,
+            "sha256": "03e61eb81a3c46b44da584194ad40a646fcc9936ee2507a84fdc6d31e52d6503",
+            "full_mode": 384
+          },
+          "debug/deps/libpartitionline_broker-b1c41f23d75d8ad5.rlib": {
+            "type": "file",
+            "bytes": 15499554,
+            "sha256": "52c47fe90318ac0304620b28d18234236c330ff8e49b4af0b9797737b7999e9f",
+            "full_mode": 384
+          },
+          "debug/deps/libpartitionline_broker-b1c41f23d75d8ad5.rmeta": {
+            "type": "file",
+            "bytes": 3550380,
+            "sha256": "6a17b2805a824c661a13d14be2b965b0611fad5405a004317361d210f79cc77f",
+            "full_mode": 384
+          },
+          "debug/deps/partitionline_broker-b1c41f23d75d8ad5.d": {
+            "type": "file",
+            "bytes": 1790,
+            "sha256": "df475d8626bf68efedcf4c4d2907dcd8f4c4f008448ea8415788dff0b39c1294",
+            "full_mode": 384
+          },
+          "debug/deps/raft_membership-df70681fff0cc180": {
+            "type": "file",
+            "bytes": 3597232,
+            "sha256": "ea8343e499afc2f128fd8602226e513bfd57684859c5ef7b8ccf0cc520187cf0",
+            "full_mode": 448
+          },
+          "debug/deps/raft_membership-df70681fff0cc180.d": {
+            "type": "file",
+            "bytes": 248,
+            "sha256": "5f5be50a45f91f69619d4e7fed656905ad5cb0f857b59bb060d4ec348d5a3b17",
+            "full_mode": 384
+          }
+        },
+        "deleted_prior_paths": []
+      },
+      "delta_rows": {
+        "debug/deps/libpartitionline_broker-b1c41f23d75d8ad5.rlib": {
+          "type": "file",
+          "bytes": 15515436,
+          "sha256": "c1dea73ac4de65d7347e07b41646541af37a0814022d5a98a67cc2eeb09e7862",
+          "full_mode": 384
+        },
+        "debug/deps/libpartitionline_broker-b1c41f23d75d8ad5.rmeta": {
+          "type": "file",
+          "bytes": 3551771,
+          "sha256": "a97d15a1ae473f918500802950ecb6c478d64302391bdfff19bc5103090a7e10",
+          "full_mode": 384
+        },
+        "debug/deps/raft_membership-df70681fff0cc180": {
+          "type": "file",
+          "bytes": 3692320,
+          "sha256": "4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2",
+          "full_mode": 448
+        }
+      },
+      "deleted_prior_paths": []
+    }
+  ],
+  "capture_files": {
+    "after-finish/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-finish/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-finish/1-02020202020202020202020202020202.wal": {
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "after-finish/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-finish/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "after-finish/3-04040404040404040404040404040404.election": {
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-finish/3-04040404040404040404040404040404.wal": {
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-finish/4-05050505050505050505050505050505.election": {
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    "after-finish/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-finish/4-05050505050505050505050505050505.wal": {
+      "sha256": "3df361fd0c58e676995ec40dd35378539e0a1c2ceee8662e3ae9d2176619bbd3",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    "after-finish/actual-facts.txt": {
+      "sha256": "ecf78f6f456da03c186b4bc52d5a48633d75d3b35b4d8576e89f638f6335da1d",
+      "bytes": 1324,
+      "full07777": 384
+    },
+    "after-first-chunk/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-first-chunk/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-first-chunk/1-02020202020202020202020202020202.wal": {
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "after-first-chunk/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-first-chunk/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "after-first-chunk/3-04040404040404040404040404040404.election": {
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-first-chunk/3-04040404040404040404040404040404.wal": {
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-first-chunk/4-05050505050505050505050505050505.election": {
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-first-chunk/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+      "sha256": "bacb307676850080c94eb61dfef6147650d8219bab9937447861c25acae54924",
+      "bytes": 128,
+      "full07777": 384
+    },
+    "after-first-chunk/4-05050505050505050505050505050505.wal": {
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-first-chunk/actual-facts.txt": {
+      "sha256": "2668b0960d1ade7c06c953a771c4046d4b42e2994f7a0039f13ad3fafee5c1db",
+      "bytes": 1308,
+      "full07777": 384
+    },
+    "after-poll/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-poll/1-02020202020202020202020202020202.wal": {
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "after-poll/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-poll/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "after-poll/3-04040404040404040404040404040404.election": {
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-poll/3-04040404040404040404040404040404.wal": {
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-poll/4-05050505050505050505050505050505.election": {
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "after-poll/4-05050505050505050505050505050505.wal": {
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-poll/actual-facts.txt": {
+      "sha256": "3540142b0878b5580f944a259e524c8a21136c2be3391eaa67da1e418f7d5c99",
+      "bytes": 1328,
+      "full07777": 384
+    },
+    "after-reopen/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-reopen/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-reopen/1-02020202020202020202020202020202.wal": {
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "after-reopen/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "after-reopen/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "after-reopen/3-04040404040404040404040404040404.election": {
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "after-reopen/3-04040404040404040404040404040404.wal": {
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "after-reopen/4-05050505050505050505050505050505.election": {
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    "after-reopen/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "after-reopen/4-05050505050505050505050505050505.wal": {
+      "sha256": "3df361fd0c58e676995ec40dd35378539e0a1c2ceee8662e3ae9d2176619bbd3",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    "after-reopen/actual-facts.txt": {
+      "sha256": "2cfcf63055461f744c1c0f70fde9d554254241415e1e0959f029231ddcdb1a54",
+      "bytes": 1323,
+      "full07777": 384
+    },
+    "before-poll/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "before-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image": {
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "before-poll/1-02020202020202020202020202020202.wal": {
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "before-poll/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "before-poll/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "before-poll/3-04040404040404040404040404040404.election": {
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "before-poll/3-04040404040404040404040404040404.wal": {
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "before-poll/4-05050505050505050505050505050505.election": {
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    "before-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "before-poll/4-05050505050505050505050505050505.wal": {
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "before-poll/actual-facts.txt": {
+      "sha256": "9d823da9fe693683464ec3e92ae0e9025b79b54ac86f9f58fbf740923138ac29",
+      "bytes": 1317,
+      "full07777": 384
+    },
+    "voted-after-reopen/1-02020202020202020202020202020202.election": {
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "voted-after-reopen/1-02020202020202020202020202020202.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image": {
+      "sha256": "6b5b671444cadc7055d5d28c54ecfef7f14c1e0da4ed27bd7007ac062758e471",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "voted-after-reopen/1-02020202020202020202020202020202.wal": {
+      "sha256": "29d05a4e59812a2de7d60b52c03401d247f20f1ee9fc9797890f41a3751cfa74",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    "voted-after-reopen/2-03030303030303030303030303030303.election": {
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    "voted-after-reopen/2-03030303030303030303030303030303.wal": {
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    "voted-after-reopen/3-04040404040404040404040404040404.election": {
+      "sha256": "ef906ebb87a74601583f5db628fc2be9cca2c2b59ff437ddb5b11316bce1f82a",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    "voted-after-reopen/3-04040404040404040404040404040404.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image": {
+      "sha256": "6b5b671444cadc7055d5d28c54ecfef7f14c1e0da4ed27bd7007ac062758e471",
+      "bytes": 431,
+      "full07777": 384
+    },
+    "voted-after-reopen/3-04040404040404040404040404040404.wal": {
+      "sha256": "9694e5e7c86697c49f8419f0a596300c4311dc6dea828716ebfa5bedaf19d676",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    "voted-after-reopen/4-05050505050505050505050505050505.election": {
+      "sha256": "368192dcc20997dd79f68649cff562d4e343fabcc56311c568ea052b8cd6f5e2",
+      "bytes": 643,
+      "full07777": 384
+    },
+    "voted-after-reopen/4-05050505050505050505050505050505.wal": {
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    "voted-after-reopen/actual-facts.txt": {
+      "sha256": "c1cca7da1cb748b29879da7152c35025e0912cd27aa0ee9bc7ebba43bb7461fd",
+      "bytes": 1449,
+      "full07777": 384
+    }
+  },
+  "final_source_guards": {
+    "original_full73171": {
+      "files": 73171,
+      "bytes": 675769376,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "fff76555f91513741967f5fcc16e1e61f3d007ee2ebc000359061a399e301837"
+    },
+    "selective66": {
+      "files": 66,
+      "bytes": 1788053,
+      "exact_path_blob_sha256_and_full07777_match": true,
+      "repository_tracked_untracked_inodes_disjoint": true,
+      "audit_sha256": "14bdac0ddb55fe6cb5cc644875c579e301e6318835d6ea66694f8c046330d8d5"
+    },
+    "selected_scope": "64 exact baseline rows plus two declared overlays; not a complete Git tree"
+  },
+  "cache_owners_after": [],
+  "original_failed_receipt_unchanged": true,
+  "runner_outcome": "retention-only proof completed; original helper failure remains frozen; actual4candidate casespassed",
+  "free_bytes_final": 997711872
+}

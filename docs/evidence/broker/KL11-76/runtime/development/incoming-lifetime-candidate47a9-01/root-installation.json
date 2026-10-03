@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "exact_candidate_installed": true,
+  "packet_files": 86,
+  "independent_reviews_copied_unchanged": true,
+  "original_27_tests_byte_prefix_preserved": true,
+  "actual_candidate_tests": 4,
+  "original_wrapper_failure_preserved": true,
+  "task_still_in_progress": true,
+  "all_other_315_task_objects_unchanged": true,
+  "full_runtime_qualified": false,
+  "full_stable_msrv_default_all_qualified": false,
+  "product_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+    "partitionline-broker/tests/raft_membership.rs": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d"
+  }
+}

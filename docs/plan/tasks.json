@@ -49252,7 +49252,31 @@
         "Whole broker stable/Rust1.85 default/all strict checks with fresh real TCP fault histories.",
         "Independent byte/causal history checker and ownership saturation/shutdown guards."
       ],
-      "evidence": [],
+      "evidence": [
+  {
+    "schema_version": 1,
+    "task": "KL11-76",
+    "status": "in_progress",
+    "scope": "Focused incoming snapshot context lifetime fix; autonomous TCP/runtime qualification remains open.",
+    "old_source": "ea9ff293",
+    "core_sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+    "test_sha256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+    "actual_old_regression": "f1876594e68aa118df6de7c6eae6e679e158759d6f2fb5738a573738cb3636c4",
+    "actual_candidate_tests": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 27
+    },
+    "original_post_test_wrapper_failed": true,
+    "retention_only_supplement_sha256": "bd4001cf31681f7e4f0f05eb59753f4756b10dbc66b9fbea83e0a565794077dc",
+    "independent_review_sha256": "79688f491f33ed58cbcb56b4a9068d2ef89dbcd00cdb06b3feaa9881c96a2557",
+    "evidence": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/summary.json",
+    "independent_review": "docs/evidence/broker/KL11-76/runtime/independent/incoming-image-candidate-review-01/validation.json",
+    "full_runtime_qualified": false,
+    "full_stable_msrv_default_all_qualified": false
+  }
+],
       "write_set": [
         "partitionline-broker/src/raft/runtime.rs",
         "partitionline-broker/src/raft/peer_codec.rs",

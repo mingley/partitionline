@@ -1,0 +1,704 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "purpose": "publish actual4caseoffline pass plusoriginalhelper failure and completedretention supplement; no productinstall",
+  "rows": [
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/selected-source-manifest.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/selected-source-manifest.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/selected-source-manifest.json",
+      "sha256": "44f087d6c7132e445c8fda7d6ab0ab5428907b6cf00175daa5391357591051de",
+      "bytes": 17431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/validation.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/validation.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/validation.json",
+      "sha256": "3778abf641eb43a6c0b461a8744758c9d8fc6be892bf293f9b2b6a1524aa7ae6",
+      "bytes": 196602,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/command.log",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/command.log",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/package-clean/command.log",
+      "sha256": "930abfeddca8e92ed0b72ecc209949567a0bba7eded8b2dd13573ebc9e07c916",
+      "bytes": 37,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/command.exit",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/command.exit",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/package-clean/command.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/disk-monitor.jsonl",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/package-clean/disk-monitor.jsonl",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/package-clean/disk-monitor.jsonl",
+      "sha256": "e39784783df85705e15d484210a7dc84da0cc0f887ecb1e3d432843662b232a3",
+      "bytes": 397,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.log",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.log",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.log",
+      "sha256": "63683e429fdf87112bb2578add44fdfdb68df40a24ae7c160d9d524e6754b29d",
+      "bytes": 4021,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.exit",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.exit",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.exit",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "bytes": 2,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/disk-monitor.jsonl",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/disk-monitor.jsonl",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/disk-monitor.jsonl",
+      "sha256": "0d57a4ec7d717e1ea5f28f0ebfc72421d1ae90f11f5cedf03d2c11e49e07eff7",
+      "bytes": 2965,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/post-candidate-retention-only-cache-map.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/post-candidate-retention-only-cache-map.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/post-candidate-retention-only-cache-map.json",
+      "sha256": "54e57b32bc4bc430ccf997f92d1c60a9b03ff6d9f86a15ad8d790acd6062d60e",
+      "bytes": 463254,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/validation.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/validation.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/retention-supplement-01/validation.json",
+      "sha256": "bd4001cf31681f7e4f0f05eb59753f4756b10dbc66b9fbea83e0a565794077dc",
+      "bytes": 131607,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/actual-facts.txt",
+      "sha256": "3540142b0878b5580f944a259e524c8a21136c2be3391eaa67da1e418f7d5c99",
+      "bytes": 1328,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.wal",
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.wal",
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.election",
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/3-04040404040404040404040404040404.wal",
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.election",
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/actual-facts.txt",
+      "sha256": "2cfcf63055461f744c1c0f70fde9d554254241415e1e0959f029231ddcdb1a54",
+      "bytes": 1323,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.wal",
+      "sha256": "3df361fd0c58e676995ec40dd35378539e0a1c2ceee8662e3ae9d2176619bbd3",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.wal",
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.election",
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/3-04040404040404040404040404040404.wal",
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.election",
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/actual-facts.txt",
+      "sha256": "c1cca7da1cb748b29879da7152c35025e0912cd27aa0ee9bc7ebba43bb7461fd",
+      "bytes": 1449,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.wal",
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.wal",
+      "sha256": "29d05a4e59812a2de7d60b52c03401d247f20f1ee9fc9797890f41a3751cfa74",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.election",
+      "sha256": "ef906ebb87a74601583f5db628fc2be9cca2c2b59ff437ddb5b11316bce1f82a",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.wal",
+      "sha256": "9694e5e7c86697c49f8419f0a596300c4311dc6dea828716ebfa5bedaf19d676",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/4-05050505050505050505050505050505.election",
+      "sha256": "368192dcc20997dd79f68649cff562d4e343fabcc56311c568ea052b8cd6f5e2",
+      "bytes": 643,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/actual-facts.txt",
+      "sha256": "9d823da9fe693683464ec3e92ae0e9025b79b54ac86f9f58fbf740923138ac29",
+      "bytes": 1317,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.wal",
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.wal",
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.election",
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/3-04040404040404040404040404040404.wal",
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.election",
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/actual-facts.txt",
+      "sha256": "ecf78f6f456da03c186b4bc52d5a48633d75d3b35b4d8576e89f638f6335da1d",
+      "bytes": 1324,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.wal",
+      "sha256": "3df361fd0c58e676995ec40dd35378539e0a1c2ceee8662e3ae9d2176619bbd3",
+      "bytes": 1107,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.wal",
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.election",
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/3-04040404040404040404040404040404.wal",
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.election",
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/actual-facts.txt",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/actual-facts.txt",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/actual-facts.txt",
+      "sha256": "2668b0960d1ade7c06c953a771c4046d4b42e2994f7a0039f13ad3fafee5c1db",
+      "bytes": 1308,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.election",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/2-03030303030303030303030303030303.wal",
+      "sha256": "e0c0f38239a28b22970f2a07fd3975d7986b35f9e66f67791a3f2d2d37a79a56",
+      "bytes": 1444,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.election",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.wal",
+      "sha256": "0e16356587327dd1b408e57ba15c42e733f8d50d8a087611911722ed76e76d9a",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.wal",
+      "sha256": "34c63b2465e0a7949bfb3b227b9c842a062f49723aa87cebb4e8c7f87ff09db8",
+      "bytes": 2566,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.election",
+      "sha256": "4fac5b85d008e07850300a231a8b69ab99397aef92227dec2a8bb5b8a25a106e",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.wal",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.wal",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/3-04040404040404040404040404040404.wal",
+      "sha256": "b9d93fcbea10906eea4fbd40a28bf21bc9adc216ac783246554dbcb8ca04ec8f",
+      "bytes": 340,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.election",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.election",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.election",
+      "sha256": "7a54bd6192574752afc5b080e31689d95ddf6ec1d9ccbea0b7633c741937a909",
+      "bytes": 958,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-reopen/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/3-04040404040404040404040404040404.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "sha256": "6b5b671444cadc7055d5d28c54ecfef7f14c1e0da4ed27bd7007ac062758e471",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/voted-after-reopen/1-02020202020202020202020202020202.images/snapshot-3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e.image",
+      "sha256": "6b5b671444cadc7055d5d28c54ecfef7f14c1e0da4ed27bd7007ac062758e471",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/before-poll/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-finish/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/4-05050505050505050505050505050505.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.partial",
+      "sha256": "bacb307676850080c94eb61dfef6147650d8219bab9937447861c25acae54924",
+      "bytes": 128,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "copied_origin": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/captures/after-first-chunk/1-02020202020202020202020202020202.images/snapshot-3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d3d.image",
+      "sha256": "f0a1efd39105b563672341e61aa6db575fce89793b3bab16ba9767926390c049",
+      "bytes": 431,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/run-selective-candidate-03.py",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/run-selective-candidate-03.py",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/run-selective-candidate-03.py",
+      "sha256": "70c18f71949f209af62133dad7478061c63f874f323d3f119fc30e86fc587faf",
+      "bytes": 22424,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/retain-candidate-after-helper-failure.py",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/retain-candidate-after-helper-failure.py",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/retain-candidate-after-helper-failure.py",
+      "sha256": "48b0ba7e35ada0a8e40cdf8f02759b2d623ef04e2f2be721f8878e7091d4452b",
+      "bytes": 6222,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-handoff.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-handoff.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-handoff.json",
+      "sha256": "e7053ced05bee738f9b2f86b7f4c3784f7fe7c728d471acb74fe058a96ebef30",
+      "bytes": 3953,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/validation.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/validation.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/validation.json",
+      "sha256": "309a00901c01cd0fb5f34235b10c0ce6cddf23ebb44f5288326ed39297f51729",
+      "bytes": 4882,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/selective66-candidate-plan.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/selective66-candidate-plan.json",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/selective66-candidate-plan.json",
+      "sha256": "9abe7b5d2cc416dde3ff6f52ce27e0f8a7d9319729c1a165ee5b615c1a7b4bc5",
+      "bytes": 28300,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/replication.rs.patch",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/replication.rs.patch",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/replication.rs.patch",
+      "sha256": "edfa8b69563acfb41b741f788681c5ce836a57bbda322dedfd9b56de6f7357ea",
+      "bytes": 3570,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/raft_membership.rs.patch",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-selective66-review-03-preparation/raft_membership.rs.patch",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/raft_membership.rs.patch",
+      "sha256": "caa4de3ecbb2fdad7a64f91cd78530a2c40a9d663890e122bd96e360d22c4b40",
+      "bytes": 20736,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-replication.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-replication.rs",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/src/raft/replication.rs",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-raft_membership.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/drivers/candidate-raft_membership.rs",
+      "copied_origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/tests/raft_membership.rs",
+      "sha256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+      "bytes": 92404,
+      "full07777": 384
+    },
+    {
+      "repository_path": "docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/summary.json",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/publication-candidate-core-01/docs/evidence/broker/KL11-76/runtime/development/incoming-lifetime-candidate47a9-01/summary.json",
+      "sha256": "1f0b6f9857a27b32903cd91c53895e33fd51b5678b51ce1aada4a38a9a55f155",
+      "bytes": 4204,
+      "full07777": 384
+    }
+  ],
+  "files": 86,
+  "total_bytes": 1254438,
+  "all_copied_bytes_and_full_modes_verified": true,
+  "excluded": [
+    "allgzip/ELFbinarypayloads",
+    "hugewhole-cachearchivepayloads",
+    "duplicatecomplete-source23MB audit",
+    "selectivecompiler/fullsource tree"
+  ],
+  "summary_sha256": "1f0b6f9857a27b32903cd91c53895e33fd51b5678b51ce1aada4a38a9a55f155"
+}

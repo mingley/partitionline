@@ -1,0 +1,1 @@
+Attempt1 stopped before raw capture decoding or receipt creation. Retained object path bin/elf-objects/4f9e065b5480d6c3dc260fc62051710be645c561856ca0eebe62eff1d56d32a2.gz was relative to retention-supplement-01, but the reviewer treated it as relative to cwd. FileNotFoundError. Original proof inputs were read-only and unchanged; no Cargo/runtime run.

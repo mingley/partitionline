@@ -1,0 +1,97 @@
+--- a/partitionline-broker/src/raft/replication.rs
++++ b/partitionline-broker/src/raft/replication.rs
+@@ -1856,6 +1856,25 @@
+         Ok(())
+     }
+     fn reset_authority(&mut self) {
++        // Revoking outgoing leadership does not revoke a still-current incoming
++        // follower transfer. Its exact context lives until install/abort or a
++        // real term, leader, directory, deadline or poison fence invalidates it.
++        let state = self.controller.state();
++        let incoming = self.incoming_snapshot.and_then(|(request, deadline)| {
++            if self.poisoned
++                || state.poisoned
++                || state.role != Role::Follower
++                || state.persistent.term != request.term
++                || state.leader != Some(request.leader)
++                || self.now_ms > deadline
++            {
++                return None;
++            }
++            let context = self.dynamic.as_ref()?.incoming?;
++            self.validate_context(context, request.leader, request.peer, request.term)
++                .ok()?;
++            Some(context)
++        });
+         self.active_term = None;
+         self.outgoing_snapshot = None;
+         if let Some(store) = &mut self.log.snapshots {
+@@ -1874,7 +1893,7 @@
+             dynamic.votes.retain(|request| {
+                 state.role == Role::Candidate && request.request.term == state.persistent.term
+             });
+-            dynamic.incoming = None;
++            dynamic.incoming = incoming;
+         }
+     }
+     fn update_authority(&mut self) {
+@@ -2277,6 +2296,9 @@
+     }
+     /// Cancel a staged incoming transfer without selecting its image.
+     pub fn abort_snapshot(&mut self) -> Result<(), Error> {
++        if let Some(dynamic) = &mut self.dynamic {
++            dynamic.incoming = None;
++        }
+         if self.incoming_snapshot.take().is_some() {
+             let result = self.log.store()?.abort_receive().map_err(Error::from);
+             self.storage_result(result)?;
+@@ -4533,6 +4555,24 @@
+         {
+             return Err(Error::InvalidPeer);
+         }
++        if self
++            .incoming_snapshot
++            .is_none_or(|(expected, _)| expected != offer.request)
++        {
++            return Err(Error::InvalidPeer);
++        }
++        if self
++            .validate_context(
++                offer.context,
++                offer.request.leader,
++                offer.request.peer,
++                offer.request.term,
++            )
++            .is_err()
++        {
++            self.abort_snapshot()?;
++            return Err(Error::InvalidPeer);
++        }
+         self.receive_snapshot_chunk_inner(offer.request, offset, bytes, now_ms)
+     }
+     /// Synchronize image/WAL/configuration/local election before returning success.
+@@ -4550,6 +4590,24 @@
+         {
+             return Err(Error::InvalidPeer);
+         }
++        if self
++            .incoming_snapshot
++            .is_none_or(|(expected, _)| expected != offer.request)
++        {
++            return Err(Error::InvalidPeer);
++        }
++        if self
++            .validate_context(
++                offer.context,
++                offer.request.leader,
++                offer.request.peer,
++                offer.request.term,
++            )
++            .is_err()
++        {
++            self.abort_snapshot()?;
++            return Err(Error::InvalidPeer);
++        }
+         let response = self.finish_snapshot_inner(offer.request, now_ms)?;
+         self.dynamic.as_mut().ok_or(Error::Corrupt)?.incoming = None;
+         Ok(DynamicSnapshotResponse {

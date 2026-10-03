@@ -1,0 +1,30 @@
+       Fresh unicode-ident v1.0.26
+       Fresh proc-macro2 v1.0.107
+       Fresh libc v0.2.189
+       Fresh semver v1.0.28
+       Fresh rustc_version v0.4.1
+       Fresh quote v1.0.47
+       Fresh syn v3.0.6
+       Fresh tokio-macros v2.7.2
+       Fresh mio v1.2.3
+       Fresh socket2 v0.6.5
+       Fresh cfg-if v1.0.5
+       Fresh bytes v1.12.1
+       Fresh pin-project-lite v0.2.17
+       Fresh tokio v1.53.1
+       Fresh getrandom v0.4.3
+       Fresh crc32c v0.6.8
+   Compiling partitionline-broker v0.1.0 (/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/source/partitionline-broker)
+     Running `/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name partitionline_broker --edition=2021 src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no '--deny=clippy::unwrap_used' --deny=unused_must_use --forbid=unsafe_code --warn=unreachable_pub '--deny=clippy::unimplemented' '--deny=clippy::todo' '--deny=clippy::panic' --deny=missing_docs '--deny=clippy::expect_used' '--deny=clippy::await_holding_lock' --cfg 'feature="default"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("codecs", "default", "oidc", "sasl", "tls"))' -C metadata=069908b7adc16d14 -C extra-filename=-b1c41f23d75d8ad5 --out-dir /workspace/work/target-broker-segments/debug/deps -C strip=debuginfo -L dependency=/workspace/work/target-broker-segments/debug/deps --extern bytes=/workspace/work/target-broker-segments/debug/deps/libbytes-5c7552e459571a76.rmeta --extern crc32c=/workspace/work/target-broker-segments/debug/deps/libcrc32c-51ef0ec97eaac666.rmeta --extern getrandom=/workspace/work/target-broker-segments/debug/deps/libgetrandom-fb3cfbcc48460b33.rmeta --extern tokio=/workspace/work/target-broker-segments/debug/deps/libtokio-43fc6ddbd2ade184.rmeta`
+     Running `/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name raft_membership --edition=2021 tests/raft_membership.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --emit=dep-info,link -C embed-bitcode=no '--deny=clippy::unwrap_used' --deny=unused_must_use --forbid=unsafe_code --warn=unreachable_pub '--deny=clippy::unimplemented' '--deny=clippy::todo' '--deny=clippy::panic' --deny=missing_docs '--deny=clippy::expect_used' '--deny=clippy::await_holding_lock' --test --cfg 'feature="default"' --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("codecs", "default", "oidc", "sasl", "tls"))' -C metadata=7c33f0a274926d3e -C extra-filename=-df70681fff0cc180 --out-dir /workspace/work/target-broker-segments/debug/deps -C strip=debuginfo -L dependency=/workspace/work/target-broker-segments/debug/deps --extern bytes=/workspace/work/target-broker-segments/debug/deps/libbytes-5c7552e459571a76.rlib --extern crc32c=/workspace/work/target-broker-segments/debug/deps/libcrc32c-51ef0ec97eaac666.rlib --extern getrandom=/workspace/work/target-broker-segments/debug/deps/libgetrandom-fb3cfbcc48460b33.rlib --extern partitionline_broker=/workspace/work/target-broker-segments/debug/deps/libpartitionline_broker-b1c41f23d75d8ad5.rlib --extern tokio=/workspace/work/target-broker-segments/debug/deps/libtokio-43fc6ddbd2ade184.rlib`
+    Finished `test` profile [unoptimized] target(s) in 4.39s
+     Running `/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180 incoming_dynamic_image_ --test-threads=1 --nocapture`
+
+running 4 tests
+test incoming_dynamic_image_old_offer_cannot_survive_a_real_higher_term_known_leader ... ok
+test incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_finish ... ok
+test incoming_dynamic_image_rejects_changed_offer_and_abort_or_expiry_cannot_revive_it ... ok
+test incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 0.04s
+

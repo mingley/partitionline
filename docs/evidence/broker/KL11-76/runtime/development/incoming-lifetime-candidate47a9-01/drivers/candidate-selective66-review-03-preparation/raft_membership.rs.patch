@@ -1,0 +1,563 @@
+--- a/partitionline-broker/tests/raft_membership.rs
++++ b/partitionline-broker/tests/raft_membership.rs
+@@ -1892,3 +1892,560 @@
+     );
+     Ok(())
+ }
++
++fn polled_incoming_image_fixture() -> Result<(
++    DynamicGroup,
++    replication::DynamicSnapshotRequest,
++    Option<Key>,
++)> {
++    let mut group = DynamicGroup::new(3, voter(4)?)?;
++    group.elect(10)?;
++    group.catch_up(1, 11)?;
++    group.node(0)?.propose(b"committed image payload", 12)?;
++    group.catch_up(1, 13)?;
++    group.node(0)?.checkpoint([61; 16], 14)?;
++    group.probe(3, 15)?;
++    let key = group.key(3);
++    let vote = group.node(3)?.voted_directory()?;
++    let offer = group.node(0)?.prepare_dynamic_snapshot(key, 16)?;
++    group.node(3)?.begin_dynamic_snapshot(offer, 16)?;
++    Ok((group, offer, vote))
++}
++
++const POLLED_IMAGE_CHUNK_BYTES: usize = 128;
++
++// A narrower real donor Store makes the 431-byte canonical image require
++// multiple actual chunks without increasing record or capture-size budgets.
++fn reopen_polled_image_donor(group: &mut DynamicGroup) -> Result {
++    drop(group.nodes[0].take());
++    let local = &group.local[0];
++    let name = format!("{}-{}", local.key().id, hex_bytes(&local.key().directory)?);
++    let mut controller = protocol::Config::new(
++        local.key().id,
++        vec![local.key().id],
++        "membership-test".into(),
++    )?;
++    controller.election_timeouts = Timeouts::new(DYNAMIC_ELECTION_MIN_MS, DYNAMIC_ELECTION_MAX_MS)?;
++    let mut config = replication::Config::new(controller);
++    config.quorum_timeout_ms = DYNAMIC_QUORUM_TIMEOUT_MS;
++    let identity = snapshot::Identity::dynamic(
++        "membership-test".into(),
++        "__cluster_metadata".into(),
++        0,
++        group.genesis.clone(),
++    )?;
++    let defaults = snapshot::Limits::default();
++    let limits = snapshot::Limits::new(
++        defaults.image_bytes(),
++        defaults.records(),
++        defaults.payload_bytes(),
++        defaults.record_bytes(),
++        POLLED_IMAGE_CHUNK_BYTES,
++        defaults.generations(),
++        32,
++    )?;
++    let store = snapshot::Store::open(group.root.join(format!("{name}.images")), identity, limits)?;
++    group.nodes[0] = Some(Node::open_dynamic(
++        group.root.join(format!("{name}.wal")),
++        group.root.join(format!("{name}.election")),
++        config,
++        Bootstrap::new(local.clone(), group.genesis.clone(), "CONTROLLER".into())?,
++        Some(store),
++        0,
++    )?);
++    Ok(())
++}
++
++fn polled_incoming_multichunk_fixture() -> Result<(
++    DynamicGroup,
++    replication::DynamicSnapshotRequest,
++    Option<Key>,
++)> {
++    let mut group = DynamicGroup::new(3, voter(4)?)?;
++    reopen_polled_image_donor(&mut group)?;
++    group.elect(10)?;
++    group.catch_up(1, 11)?;
++    group.node(0)?.propose(b"committed image payload", 12)?;
++    group.catch_up(1, 13)?;
++    group.node(0)?.checkpoint([61; 16], 14)?;
++    group.probe(3, 15)?;
++    let key = group.key(3);
++    let vote = group.node(3)?.voted_directory()?;
++    let offer = group.node(0)?.prepare_dynamic_snapshot(key, 16)?;
++    group.node(3)?.begin_dynamic_snapshot(offer, 16)?;
++    Ok((group, offer, vote))
++}
++
++fn voting_incoming_image_fixture() -> Result<(
++    DynamicGroup,
++    replication::DynamicSnapshotRequest,
++    Option<Key>,
++)> {
++    let mut group = DynamicGroup::new(3, voter(4)?)?;
++    reopen_polled_image_donor(&mut group)?;
++    group.elect(10)?;
++    group.catch_up(1, 11)?;
++    group.node(0)?.propose(b"committed image payload", 12)?;
++    group.catch_up(1, 13)?;
++    group.node(0)?.checkpoint([62; 16], 14)?;
++    let key = group.key(2);
++    let vote = group.node(2)?.voted_directory()?;
++    assert_eq!(vote, Some(group.key(0)));
++    let offer = group.node(0)?.prepare_dynamic_snapshot(key, 16)?;
++    group.node(2)?.begin_dynamic_snapshot(offer, 16)?;
++    Ok((group, offer, vote))
++}
++
++fn assert_no_partial_image(group: &DynamicGroup, receiver: usize) -> Result {
++    let key = group.key(receiver);
++    let images = group
++        .root
++        .join(format!("{}-{}.images", key.id, hex_bytes(&key.directory)?));
++    for entry in fs::read_dir(images)? {
++        assert!(!entry?.file_name().to_string_lossy().ends_with(".partial"));
++    }
++    Ok(())
++}
++
++#[test]
++fn incoming_dynamic_image_survives_follower_polls_and_preserves_local_vote_on_reopen() -> Result {
++    let (mut group, offer, vote) = polled_incoming_multichunk_fixture()?;
++    assert_eq!(group.node(3)?.state().election.role, Role::Follower);
++    preserve_polled_image_fixture(&mut group, "before-poll", offer, "valid Begin completed")?;
++    group.node(3)?.poll(17)?;
++    preserve_polled_image_fixture(
++        &mut group,
++        "after-poll",
++        offer,
++        "unchanged Follower poll completed",
++    )?;
++    let mut chunks = 0;
++    loop {
++        let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++        chunks += 1;
++        assert!(chunk.bytes.len() <= POLLED_IMAGE_CHUNK_BYTES);
++        let result =
++            group
++                .node(3)?
++                .receive_dynamic_snapshot_chunk(offer, chunk.offset, &chunk.bytes, 17);
++        if chunk.offset == 0 {
++            preserve_polled_image_fixture(
++                &mut group,
++                "after-first-chunk",
++                offer,
++                &format!("{result:?}"),
++            )?;
++        }
++        result?;
++        group.node(3)?.poll(17)?;
++        if chunk.done {
++            break;
++        }
++    }
++    assert!(
++        chunks >= 3,
++        "successful path must consume multiple actual bounded chunks"
++    );
++    let response = group.node(3)?.finish_dynamic_snapshot(offer, 17)?;
++    group.node(0)?.acknowledge_dynamic_snapshot(response, 17)?;
++    preserve_polled_image_fixture(
++        &mut group,
++        "after-finish",
++        offer,
++        "actual Finish/ACK completed",
++    )?;
++    assert_eq!(
++        group.node(3)?.selected_snapshot()?,
++        Some(offer.request.descriptor)
++    );
++    assert_eq!(group.node(3)?.voted_directory()?, vote);
++    let committed = group.node(3)?.fetch_committed(1, 8, 2 * 1024 * 1024)?;
++    assert_eq!(committed.len() as u64, offer.request.descriptor.base.index);
++    group.reopen(3, 18)?;
++    preserve_polled_image_fixture(&mut group, "after-reopen", offer, "selected image reopened")?;
++    assert_eq!(
++        group.node(3)?.selected_snapshot()?,
++        Some(offer.request.descriptor)
++    );
++    assert_eq!(group.node(3)?.voted_directory()?, vote);
++    assert_eq!(
++        group.node(3)?.fetch_committed(1, 8, 2 * 1024 * 1024)?,
++        committed
++    );
++    // A genuine existing voter granted the original same-term leader request.
++    // Its non-null vote must survive a separate successful install and restart.
++    let (mut voting, offer, vote) = voting_incoming_image_fixture()?;
++    assert_eq!(vote, Some(voting.key(0)));
++    voting.node(2)?.poll(17)?;
++    let mut voting_chunks = 0;
++    loop {
++        let chunk = voting.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++        voting_chunks += 1;
++        assert!(chunk.bytes.len() <= POLLED_IMAGE_CHUNK_BYTES);
++        voting
++            .node(2)?
++            .receive_dynamic_snapshot_chunk(offer, chunk.offset, &chunk.bytes, 17)?;
++        voting.node(2)?.poll(17)?;
++        if chunk.done {
++            break;
++        }
++    }
++    assert!(voting_chunks >= 3);
++    let response = voting.node(2)?.finish_dynamic_snapshot(offer, 17)?;
++    voting.node(0)?.acknowledge_dynamic_snapshot(response, 17)?;
++    let committed = voting.node(2)?.fetch_committed(1, 8, 2 * 1024 * 1024)?;
++    voting.reopen(2, 18)?;
++    assert_eq!(voting.node(2)?.voted_directory()?, vote);
++    assert_eq!(
++        voting.node(2)?.state().election.persistent.term,
++        offer.request.term
++    );
++    assert_eq!(
++        voting.node(2)?.selected_snapshot()?,
++        Some(offer.request.descriptor)
++    );
++    assert_eq!(
++        voting.node(2)?.fetch_committed(1, 8, 2 * 1024 * 1024)?,
++        committed
++    );
++    preserve_polled_image_fixture_for(
++        &mut voting,
++        2,
++        "voted-after-reopen",
++        offer,
++        "actual non-null same-term vote preserved through install/reopen",
++    )?;
++    Ok(())
++}
++
++fn preserve_polled_image_fixture(
++    group: &mut DynamicGroup,
++    phase: &str,
++    offer: replication::DynamicSnapshotRequest,
++    outcome: &str,
++) -> Result {
++    preserve_polled_image_fixture_for(group, 3, phase, offer, outcome)
++}
++
++fn preserve_polled_image_fixture_for(
++    group: &mut DynamicGroup,
++    receiver: usize,
++    phase: &str,
++    offer: replication::DynamicSnapshotRequest,
++    outcome: &str,
++) -> Result {
++    let Some(root) = std::env::var_os("PL_IMAGE_REGRESSION_CAPTURE_DIR") else {
++        return Ok(());
++    };
++    fn copy(
++        source: &std::path::Path,
++        target: &std::path::Path,
++        depth: usize,
++        files: &mut usize,
++        bytes: &mut u64,
++    ) -> Result {
++        if depth > 3 {
++            return Err("capture directory depth".into());
++        }
++        fs::create_dir_all(target)?;
++        for item in fs::read_dir(source)? {
++            let item = item?;
++            let metadata = fs::symlink_metadata(item.path())?;
++            if metadata.is_dir() {
++                copy(
++                    &item.path(),
++                    &target.join(item.file_name()),
++                    depth + 1,
++                    files,
++                    bytes,
++                )?;
++            } else if metadata.is_file() {
++                *files += 1;
++                *bytes = bytes
++                    .checked_add(metadata.len())
++                    .ok_or("capture byte overflow")?;
++                if *files > 128 || metadata.len() > 2 * 1024 * 1024 || *bytes > 2 * 1024 * 1024 {
++                    return Err("bounded regression capture".into());
++                }
++                let dest = target.join(item.file_name());
++                fn bounded(path: &std::path::Path) -> Result<Vec<u8>> {
++                    use std::io::Read;
++                    let mut bytes = Vec::new();
++                    std::fs::File::open(path)?
++                        .take(2 * 1024 * 1024 + 1)
++                        .read_to_end(&mut bytes)?;
++                    if bytes.len() > 2 * 1024 * 1024 {
++                        return Err("copy comparison bound".into());
++                    }
++                    Ok(bytes)
++                }
++                let original = bounded(&item.path())?;
++                assert_eq!(fs::copy(item.path(), &dest)?, metadata.len());
++                fs::set_permissions(&dest, metadata.permissions())?;
++                assert_eq!(bounded(&dest)?, original);
++                assert_eq!(bounded(&item.path())?, original);
++                #[cfg(unix)]
++                {
++                    use std::os::unix::fs::MetadataExt;
++                    assert_eq!(
++                        fs::metadata(&dest)?.mode() & 0o7777,
++                        metadata.mode() & 0o7777
++                    );
++                    assert_eq!(
++                        fs::metadata(item.path())?.mode() & 0o7777,
++                        metadata.mode() & 0o7777
++                    );
++                }
++                std::fs::File::open(&dest)?.sync_all()?;
++            } else {
++                return Err("capture rejects symlink/special file".into());
++            }
++        }
++        std::fs::File::open(target)?.sync_all()?;
++        Ok(())
++    }
++    let root = PathBuf::from(root).join(phase);
++    let mut files = 0;
++    let mut bytes = 0;
++    copy(&group.root, &root, 0, &mut files, &mut bytes)?;
++    let facts=format!("actual declared experiment source; incoming-image phase receipt (source bindings in runner validation)\nphase={phase}\noffer={offer:?}\noutcome={outcome}\nreceiver_state={:?}\nreceiver_vote={:?}\n",group.node(receiver)?.state(),group.node(receiver)?.voted_directory()?);
++    if facts.len() > 8192 {
++        return Err("facts bound".into());
++    }
++    fs::write(root.join("actual-facts.txt"), facts)?;
++    std::fs::File::open(root.join("actual-facts.txt"))?.sync_all()?;
++    std::fs::File::open(root)?.sync_all()?;
++    Ok(())
++}
++
++#[test]
++fn incoming_dynamic_image_rejects_changed_offer_and_abort_or_expiry_cannot_revive_it() -> Result {
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    group.node(3)?.poll(17)?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    let before = group.node(3)?.state();
++    let mut forged = Vec::new();
++    let mut q = offer;
++    q.context.peer.directory = [91; 16];
++    forged.push(q);
++    q = offer;
++    q.context.leader.directory = [92; 16];
++    forged.push(q);
++    q = offer;
++    q.context.configuration_epoch += 1;
++    forged.push(q);
++    q = offer;
++    q.request.term += 1;
++    forged.push(q);
++    q = offer;
++    q.request.leader += 1;
++    forged.push(q);
++    q = offer;
++    q.request.sequence += 1;
++    forged.push(q);
++    q = offer;
++    q.request.peer += 1;
++    forged.push(q);
++    q = offer;
++    q.request.leader_commit += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.generation[0] ^= 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.base.term += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.base.index += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.records += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.payload_bytes += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.bytes += 1;
++    forged.push(q);
++    q = offer;
++    q.request.descriptor.checksum ^= 1;
++    forged.push(q);
++    for q in forged {
++        assert!(matches!(
++            group
++                .node(3)?
++                .receive_dynamic_snapshot_chunk(q, 0, &chunk.bytes, 17),
++            Err(replication::Error::InvalidPeer)
++        ));
++        assert!(matches!(
++            group.node(3)?.finish_dynamic_snapshot(q, 17),
++            Err(replication::Error::InvalidPeer)
++        ));
++        assert!(group.node(3)?.state().ready);
++        assert!(!group.node(3)?.state().poisoned);
++    }
++    let after = group.node(3)?.state();
++    assert_eq!(before.election.persistent, after.election.persistent);
++    assert_eq!(before.wal_durable_ops, after.wal_durable_ops);
++    assert_eq!(
++        before.election_durable_states,
++        after.election_durable_states
++    );
++    // Forged traffic cannot cancel or damage the unchanged real transfer.
++    assert!(chunk.done);
++    group
++        .node(3)?
++        .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, 17)?;
++    let response = group.node(3)?.finish_dynamic_snapshot(offer, 17)?;
++    group.node(0)?.acknowledge_dynamic_snapshot(response, 17)?;
++    let committed = group.node(3)?.fetch_committed(1, 8, 2 * 1024 * 1024)?;
++    group.reopen(3, 18)?;
++    assert_eq!(
++        group.node(3)?.selected_snapshot()?,
++        Some(offer.request.descriptor)
++    );
++    assert_eq!(
++        group.node(3)?.fetch_committed(1, 8, 2 * 1024 * 1024)?,
++        committed
++    );
++
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    group.node(3)?.abort_snapshot()?;
++    assert!(matches!(
++        group
++            .node(3)?
++            .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, 18),
++        Err(replication::Error::InvalidPeer)
++    ));
++    assert!(matches!(
++        group.node(3)?.finish_dynamic_snapshot(offer, 18),
++        Err(replication::Error::InvalidPeer)
++    ));
++    assert!(group.node(3)?.selected_snapshot()?.is_none());
++    assert_no_partial_image(&group, 3)?;
++
++    // Equality is accepted by the receiving deadline. The donor's bytes were
++    // produced earlier under its real offer; this tests receiver expiry only.
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    assert!(chunk.done);
++    let deadline = 16 + DYNAMIC_QUORUM_TIMEOUT_MS;
++    group.node(3)?.poll(deadline)?;
++    group
++        .node(3)?
++        .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, deadline)?;
++    group.node(3)?.finish_dynamic_snapshot(offer, deadline)?;
++    assert_eq!(
++        group.node(3)?.selected_snapshot()?,
++        Some(offer.request.descriptor)
++    );
++    assert_no_partial_image(&group, 3)?;
++
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    group.node(3)?.poll(16 + DYNAMIC_QUORUM_TIMEOUT_MS + 1)?;
++    assert!(group
++        .node(3)?
++        .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, 16 + DYNAMIC_QUORUM_TIMEOUT_MS + 1)
++        .is_err());
++    assert!(group
++        .node(3)?
++        .finish_dynamic_snapshot(offer, 16 + DYNAMIC_QUORUM_TIMEOUT_MS + 1)
++        .is_err());
++    assert!(group.node(3)?.selected_snapshot()?.is_none());
++    assert_no_partial_image(&group, 3)?;
++    Ok(())
++}
++
++#[test]
++fn incoming_dynamic_image_old_offer_cannot_survive_a_real_higher_term_known_leader() -> Result {
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    let next_leader = group.key(1);
++    let peer = group.key(3);
++    let next = replication::DynamicRequest {
++        context: replication::Context {
++            leader: next_leader,
++            peer,
++            configuration_epoch: offer.context.configuration_epoch,
++        },
++        request: replication::Request {
++            leader: next_leader.id,
++            peer: peer.id,
++            sequence: 900,
++            term: offer.request.term + 1,
++            previous: LogPosition::default(),
++            leader_commit: 0,
++            entries: Vec::new(),
++        },
++    };
++    assert!(group.node(3)?.receive_dynamic(&next, 18)?.response.success);
++    group.node(3)?.poll(18)?;
++    assert!(group
++        .node(3)?
++        .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, 18)
++        .is_err());
++    assert!(group.node(3)?.finish_dynamic_snapshot(offer, 18).is_err());
++    assert!(group.node(3)?.selected_snapshot()?.is_none());
++    assert_eq!(
++        group.node(3)?.state().election.persistent.term,
++        next.request.term
++    );
++    let (mut group, offer, _) = voting_incoming_image_fixture()?;
++    let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++    let requests = group.node(2)?.campaign_dynamic(27)?;
++    assert!(!requests.is_empty());
++    assert_eq!(group.node(2)?.state().election.role, Role::Candidate);
++    assert_eq!(
++        group.node(2)?.state().election.persistent.term,
++        offer.request.term + 1
++    );
++    group.node(2)?.poll(27)?;
++    assert!(matches!(
++        group
++            .node(2)?
++            .receive_dynamic_snapshot_chunk(offer, 0, &chunk.bytes, 27),
++        Err(replication::Error::InvalidPeer)
++    ));
++    assert!(matches!(
++        group.node(2)?.finish_dynamic_snapshot(offer, 27),
++        Err(replication::Error::InvalidPeer)
++    ));
++    assert!(group.node(2)?.selected_snapshot()?.is_none());
++    assert_no_partial_image(&group, 2)?;
++    Ok(())
++}
++
++#[test]
++fn incoming_dynamic_image_publication_io_error_poison_fences_late_chunks_and_finish() -> Result {
++    let (mut group, offer, _) = polled_incoming_image_fixture()?;
++    group.node(3)?.poll(17)?;
++    loop {
++        let chunk = group.node(0)?.dynamic_snapshot_chunk(offer, 17)?;
++        group
++            .node(3)?
++            .receive_dynamic_snapshot_chunk(offer, chunk.offset, &chunk.bytes, 17)?;
++        if chunk.done {
++            break;
++        }
++    }
++    // A genuine local namespace replacement makes the actual publication rename
++    // fail after all bytes were received. No successful Install is synthesized.
++    let key = group.key(3);
++    let images = group
++        .root
++        .join(format!("{}-{}.images", key.id, hex_bytes(&key.directory)?));
++    fs::rename(&images, images.with_extension("displaced-images"))?;
++    fs::write(&images, b"actual namespace replacement blocks publication")?;
++    assert!(group.node(3)?.finish_dynamic_snapshot(offer, 17).is_err());
++    assert!(group.node(3)?.state().poisoned);
++    assert!(!group.node(3)?.state().ready);
++    assert!(group
++        .node(3)?
++        .receive_dynamic_snapshot_chunk(offer, 0, b"late", 18)
++        .is_err());
++    assert!(group.node(3)?.finish_dynamic_snapshot(offer, 18).is_err());
++    assert!(group.node(3)?.begin_dynamic_snapshot(offer, 18).is_err());
++    Ok(())
++}

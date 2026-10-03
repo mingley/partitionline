@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "state": "WORK-only runner+fouroffline cases prepared; all execution held",
+  "runner": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/run-selective-candidate-03.py",
+    "sha256": "70c18f71949f209af62133dad7478061c63f874f323d3f119fc30e86fc587faf",
+    "bytes": 22424,
+    "full07777": 384,
+    "python_syntax_checked": true,
+    "executed": false
+  },
+  "source_preparation": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/validation.json",
+    "sha256": "309a00901c01cd0fb5f34235b10c0ce6cddf23ebb44f5288326ed39297f51729"
+  },
+  "plan": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03-preparation/selective66-candidate-plan.json",
+    "sha256": "9abe7b5d2cc416dde3ff6f52ce27e0f8a7d9319729c1a165ee5b615c1a7b4bc5"
+  },
+  "sources": [
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/src/raft/replication.rs",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "fullmode": 384
+    },
+    {
+      "path": "partitionline-broker/tests/raft_membership.rs",
+      "source": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate-selective66-review-03/partitionline-broker/tests/raft_membership.rs",
+      "sha256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+      "bytes": 92404,
+      "fullmode": 384
+    }
+  ],
+  "commands": [
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "clean",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--target-dir",
+      "/workspace/work/target-broker-segments",
+      "--package",
+      "partitionline-broker"
+    ],
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--verbose",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_membership",
+      "incoming_dynamic_image_",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ]
+  ],
+  "guard_semantics": [
+    "complete original73171 Git/path/sha/full07777/work-inode map before+aftereverycommand",
+    "selective66 completepath+sha/fullmode with64actualbaseline+2declaredoverlays",
+    "currentcache equals prior red02 map; actual decode+CRC-independent hash/fullmode map composition of full red01 archive+red02delta before forcedclean",
+    "all old/current ELF proof hash/decompression/fullmode verified; no duplicate archive of unchanged objects",
+    "own-package clean must actually remove existing broker rlib; verbose actualfreshrustc library+test commands, Cargo selectedpackage path, relativecoredepfile source binding and all generated output hashes retained",
+    "all added/changedcacheoutputs includingrlib/rmeta/fingerprints archived as verified delta with completecurrentmap beforeanylateroverwrite",
+    "0.2s350MiB actual command monitor; forecastsbeforeall output/retention/clean/build; no currentserialforecast promotedtoexecutionpermission"
+  ],
+  "serial_forecast": {
+    "required_free_bytes": 543211520,
+    "sampled_free_bytes": 761139200,
+    "fits_readonly_sample": true,
+    "execution_hold": true,
+    "not_a_parallel_or_build_lease": true
+  },
+  "prior_versions_preserved": [
+    "candidate-selective66",
+    "candidate-selective66-review-02",
+    "failing-first-overlay",
+    "failing-first-overlay-072f1aaa",
+    "failing-first-overlay-original",
+    "run-selective-failing-first.py",
+    "run-selective-failing-first-02.py"
+  ],
+  "expected_future_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0,
+    "filtered": 27
+  },
+  "current_free_readonly": 1007366144
+}
