@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "phase_count": 3,
+  "published_rows": 9,
+  "all322_original_rows_verified": true,
+  "source_inventory_sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+  "handoff_sha256": "d659777038b4e65d3a8b499536b7060ff9f580a1be897fc46c236d7d93900a13",
+  "original_full_modes_and_bytes_preserved": true,
+  "actual_baseline_positive_controls": 2,
+  "actual_baseline_expected_behavioral_failures": 4,
+  "actual_baseline_all6_groups_joined": true,
+  "old_library_rebuilt_and_new_method_absent": true,
+  "candidate_qualified": false,
+  "compiled_payloads_WORK_only": true,
+  "free_before": 754794496,
+  "free_after": 752017408,
+  "rows": [
+    {
+      "source_path": "/workspace/work/integration/broker-merged-source-403be1e3/complete-source.json.gz",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/source-origins/original403/complete-source.json.gz",
+      "sha256": "881b301d30acab326cfb52df3a26e71cdb4944cfe602e9f23658ff77e2b0341d",
+      "bytes": 2473021,
+      "full_mode": 384,
+      "mtime_ns": 1791028117082698844,
+      "payload_kind": "gzipJSON_source_audit_only",
+      "source_frozen_or_closed": true
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build-inventory.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build-inventory.py",
+      "sha256": "69334c6650424a59c47d4ec153fe9b9e2f8af1dc01c0405177c764c84b1dae76",
+      "bytes": 6588,
+      "full_mode": 384,
+      "mtime_ns": 1791060811044456786
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060811044456786
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build.stdout.log",
+      "sha256": "fecf040e7770d62dbf03eaf89a0dc85b8734d4ef431b369e20acc6523de44ccd",
+      "bytes": 208,
+      "full_mode": 384,
+      "mtime_ns": 1791060811608775751
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/publication-inventory.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/publication-inventory.json",
+      "sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+      "bytes": 272664,
+      "full_mode": 384,
+      "mtime_ns": 1791060811608775751
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verification.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verification.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060949184812234
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verification.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verification.stdout.log",
+      "sha256": "3455f1cff5e6287817f5e175350825fba4e1815b0137a95f828407fa75c40870",
+      "bytes": 243,
+      "full_mode": 384,
+      "mtime_ns": 1791060949560388732
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verify-publication.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verify-publication.py",
+      "sha256": "b09c56e099b10945841b27771c912e2d149df1ebe075c7d22333acf6b425043c",
+      "bytes": 1909,
+      "full_mode": 384,
+      "mtime_ns": 1791060949184812234
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/publication-handoff.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/publication-handoff.json",
+      "sha256": "d659777038b4e65d3a8b499536b7060ff9f580a1be897fc46c236d7d93900a13",
+      "bytes": 5995,
+      "full_mode": 384,
+      "mtime_ns": 1791061057675023420
+    }
+  ]
+}

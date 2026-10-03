@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "status": "frozen source_only_publication; no candidate qualification",
+  "main_inventory_sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+  "main_inventory_rows": 314,
+  "main_payload_bytes": 15396855,
+  "largest_blob_bytes": 4284606,
+  "per_blob_budget_bytes": 12582912,
+  "supplemental_publication_files": [
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build-inventory.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build-inventory.py",
+      "sha256": "69334c6650424a59c47d4ec153fe9b9e2f8af1dc01c0405177c764c84b1dae76",
+      "bytes": 6588,
+      "full_mode": 384,
+      "mtime_ns": 1791060811044456786
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060811044456786
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/build.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/build.stdout.log",
+      "sha256": "fecf040e7770d62dbf03eaf89a0dc85b8734d4ef431b369e20acc6523de44ccd",
+      "bytes": 208,
+      "full_mode": 384,
+      "mtime_ns": 1791060811608775751
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/publication-inventory.json",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/publication-inventory.json",
+      "sha256": "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550",
+      "bytes": 272664,
+      "full_mode": 384,
+      "mtime_ns": 1791060811608775751
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verification.stderr.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verification.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384,
+      "mtime_ns": 1791060949184812234
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verification.stdout.log",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verification.stdout.log",
+      "sha256": "3455f1cff5e6287817f5e175350825fba4e1815b0137a95f828407fa75c40870",
+      "bytes": 243,
+      "full_mode": 384,
+      "mtime_ns": 1791060949560388732
+    },
+    {
+      "source_path": "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verify-publication.py",
+      "proposed_repo_target": "docs/evidence/client/write-txn-markers-v2/baseline403-forced-04f6bc29/publication/verify-publication.py",
+      "sha256": "b09c56e099b10945841b27771c912e2d149df1ebe075c7d22333acf6b425043c",
+      "bytes": 1909,
+      "full_mode": 384,
+      "mtime_ns": 1791060949184812234
+    }
+  ],
+  "supplemental_file_count": 7,
+  "supplemental_bytes": 281612,
+  "combined_proposed_file_count": 321,
+  "combined_proposed_payload_bytes": 15678467,
+  "no_payload_stage_copy_performed": true,
+  "verification_receipt": {
+    "passed": true,
+    "files": 314,
+    "bytes": 15396855,
+    "source_fullmode_and_mtime_checked": true,
+    "installed_Git_executable_class_checked": false,
+    "exact_installed_fullmode_checked": false,
+    "compiled_or_binarygzip_payloads": false,
+    "mutations": 0
+  },
+  "verification_stdout_sha256": "3455f1cff5e6287817f5e175350825fba4e1815b0137a95f828407fa75c40870",
+  "no_ELF_JAR_class_rlib_rmeta_or_binarygzip_payloads": true,
+  "JSON_source_audit_gzip_only": true,
+  "exact_source_checksum_command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/verify-publication.py",
+    "--inventory",
+    "/workspace/work/client-capability-qa-preparation-e90efb49/publication-baseline403-04f6bc29/publication-inventory.json",
+    "--inventory-sha256",
+    "14163418d075488deaebef28b6caa60e9b8f374ac4c24ffd9be65c509457f550"
+  ],
+  "installed_verification": "append --installed-root /workspace/partitionline; originalfull07777 modes remain metadata becauseGit stores executableclass, optionally --exact-installed-fullmode for byte/mode-preserving currentworkspace copy",
+  "root_installation_notes": [
+    "copy reviewed row bytes to proposedrepo targets; preserve source fullmode in metadata; never mutate closed WORK inputs",
+    "all314source rows remain frozen;180compiled/binary artifacts excluded andremainWORKwithmaps",
+    "prior25raw+gzip andnew25currentbaseline outputs retained; no cachemutation/cleanup permitted by this packet",
+    "cards29/30 reference genuinebaseline2positive+3API27/1API90failures; currentcandidate tests/strict/JVM/MSRV/full matrix remainpending"
+  ],
+  "actual_accepted_baseline_summary_sha256": "57ba0a68d000e1db29cf5c23d374a9bd4a5ad5914d8779c1010ba1b5c1644b4c",
+  "actual_accepted_baseline_validation_sha256": "d469dc22fd1eb86d5ed0d2b5c37ee9a3c890c507aa21d1886c32fa9ede8dd401",
+  "candidate_initial_projection": "751181824free vs748258553initialcompile/capture; laterroot730226688sample fails; freshrootresource decision required",
+  "generated_at_unix": 1791061057.6748328,
+  "handoff_self_excluded": true
+}
