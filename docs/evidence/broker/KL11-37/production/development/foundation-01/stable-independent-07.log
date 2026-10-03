@@ -1,0 +1,90 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.95s
+     Running unittests src/lib.rs (/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-7bbeca4ee706eb01)
+
+running 1 test
+OIDC fixture valid-rsa2048: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-rsa4096: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-p256: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-audience-array: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-unicode-subject: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-no-jti: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-no-scope: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-iat-skew-boundary: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-nbf-skew-boundary: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-lifetime-boundary: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture valid-before-expiry: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture wrong-issuer: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture wrong-audience: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture audience-empty-array: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture audience-non-string: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture audience-too-many: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture subject-empty: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture subject-control: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture subject-numeric: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture subject-oversized: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture jti-empty: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture jti-numeric: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture expired: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture iat-future: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture nbf-future: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture nbf-equals-exp: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture iat-equals-exp: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture lifetime-too-long: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture exp-string: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture exp-fractional: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture iat-negative: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture nbf-string: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture at-expiry: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-iss: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-aud: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-sub: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-iat: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-exp: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture wrong-type-JWT: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture wrong-type-id+jwt: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture wrong-type-empty: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture wrong-type-7: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture missing-type: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture alternative-valid-access: actual_accept=true expected_accept=true independent_signature_valid=true
+OIDC fixture alternative-id-token: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture alternative-missing-discriminator: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture unknown-key: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture algorithm-key-confusion: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture unsupported-algorithm: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture none-algorithm: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture forbidden-header-crit: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture forbidden-header-jku: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture forbidden-header-jwk: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture forbidden-header-x5u: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture forbidden-header-b64: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture duplicate-header: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture duplicate-claim: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture escaped-duplicate-claim: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture malformed-header: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture malformed-payload: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture array-payload: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture nested-payload: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture oversized-header: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture oversized-token: actual_accept=false expected_accept=false independent_signature_valid=true
+OIDC fixture tampered-signature-rsa: actual_accept=false expected_accept=false independent_signature_valid=false
+OIDC fixture tampered-signature-ec: actual_accept=false expected_accept=false independent_signature_valid=false
+OIDC fixture ec-der-signature: actual_accept=false expected_accept=false independent_signature_valid=false
+OIDC fixture padded-header: actual_accept=false expected_accept=false independent_signature_valid=false
+OIDC fixture padded-proof: actual_accept=false expected_accept=false independent_signature_valid=true
+
+thread 'security::oidc::jwt::tests::independent_openssl_controlled_epoch_matrix' (760797) panicked at src/security/oidc/jwt.rs:485:13:
+assertion `left == right` failed: trailing-segment signed bytes
+  left: "99ecfee3ef60585d84801a172ec32f081a8bf6e4efdb1f204594235b3547acb0"
+ right: "3d870430dfb9389882ee32e8ae15d054463190506113fa693fdf44ace89326bf"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test security::oidc::jwt::tests::independent_openssl_controlled_epoch_matrix ... FAILED
+
+failures:
+
+failures:
+    security::oidc::jwt::tests::independent_openssl_controlled_epoch_matrix
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--lib`

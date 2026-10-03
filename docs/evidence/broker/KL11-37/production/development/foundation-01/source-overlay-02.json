@@ -1,0 +1,11 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development source overlay iteration2",
+  "source_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "fde75b059b1e31b2553d55d6dd1ff5d3291ccdbd92d901c2757c787587f164d0",
+    "partitionline-broker/src/security/oidc/jwt.rs": "480b6e3db08c34018cf8c17050d412f2f35de1bd828e368abda0d13796f17601",
+    "partitionline-broker/src/security/sasl.rs": "a96860047aec5f7eabdd49fa399bfabcda475910093452f96b8ab6d715bb0f9a",
+    "partitionline-broker/src/security/mod.rs": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409"
+  },
+  "production_qualification": false
+}

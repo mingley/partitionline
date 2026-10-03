@@ -1,0 +1,23 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+error[E0277]: the trait bound `ring::error::Unspecified: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:31:99
+   |
+31 |         signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)?;
+   |                                                                                                   ^ the trait `std::error::Error` is not implemented for `ring::error::Unspecified`
+   |
+   = help: the trait `std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>>` is implemented for `std::result::Result<T, F>`
+   = note: required for `std::boxed::Box<dyn std::error::Error>` to implement `std::convert::From<ring::error::Unspecified>`
+   = note: required for `std::result::Result<std::vec::Vec<u8>, std::boxed::Box<dyn std::error::Error>>` to implement `std::ops::FromResidual<std::result::Result<std::convert::Infallible, ring::error::Unspecified>>`
+
+error[E0277]: the trait bound `ring::error::KeyRejected: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:36:6
+   |
+36 |     )?;
+   |      ^ the trait `std::error::Error` is not implemented for `ring::error::KeyRejected`
+   |
+   = help: the trait `std::ops::FromResidual<std::result::Result<std::convert::Infallible, E>>` is implemented for `std::result::Result<T, F>`
+   = note: required for `std::boxed::Box<dyn std::error::Error>` to implement `std::convert::From<ring::error::KeyRejected>`
+   = note: required for `std::result::Result<std::vec::Vec<u8>, std::boxed::Box<dyn std::error::Error>>` to implement `std::ops::FromResidual<std::result::Result<std::convert::Infallible, ring::error::KeyRejected>>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (test "oidc_validation") due to 2 previous errors

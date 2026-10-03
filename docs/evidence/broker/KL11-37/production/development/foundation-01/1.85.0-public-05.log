@@ -1,0 +1,23 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+error[E0277]: the trait bound `Unspecified: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:31:99
+   |
+31 |         signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)?;
+   |                                                                                                   ^ the trait `std::error::Error` is not implemented for `Unspecified`
+   |
+   = help: the trait `FromResidual<Result<Infallible, E>>` is implemented for `Result<T, F>`
+   = note: required for `Box<dyn std::error::Error>` to implement `From<Unspecified>`
+   = note: required for `Result<Vec<u8>, Box<dyn std::error::Error>>` to implement `FromResidual<Result<Infallible, Unspecified>>`
+
+error[E0277]: the trait bound `KeyRejected: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:36:6
+   |
+36 |     )?;
+   |      ^ the trait `std::error::Error` is not implemented for `KeyRejected`
+   |
+   = help: the trait `FromResidual<Result<Infallible, E>>` is implemented for `Result<T, F>`
+   = note: required for `Box<dyn std::error::Error>` to implement `From<KeyRejected>`
+   = note: required for `Result<Vec<u8>, Box<dyn std::error::Error>>` to implement `FromResidual<Result<Infallible, KeyRejected>>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (test "oidc_validation") due to 2 previous errors

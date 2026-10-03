@@ -1,0 +1,11 @@
+{
+  "source_parent": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "runner": "scripts/ci-broker-compatibility.sh",
+  "sha256": "5802854a8c31993bd69679d0cdd33dc4ef921a60c5a7e7c4be699744d9c2f2ac",
+  "change": "Optional PL_COMPAT_CPUSET confines the genuine Docker cell; identity captures actual HostConfig.CpusetCpus. Host JVM/Rust processes inherit outer taskset affinity.",
+  "validation": [
+    "bash -n scripts/ci-broker-compatibility.sh: passed",
+    "git diff --check -- scripts/ci-broker-compatibility.sh: passed"
+  ],
+  "actual_live_qualification": "pending genuine three-release execution; use PL_COMPAT_CPUSET=0-2,4 and outer taskset -c0-2,4 in this workspace."
+}

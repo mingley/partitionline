@@ -1,0 +1,12 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development overlay4: Tokio registration Mutex",
+  "source_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "11039444265b4b52295b73ec7fa3bab0e59063b3df40dcf2781d82b0106e73c0",
+    "partitionline-broker/src/security/oidc/jwt.rs": "ca84e04bba84d865b3cd5926377097d6230eb46c0a9c8a9590dd62b3c99c2a78",
+    "partitionline-broker/src/security/sasl.rs": "a96860047aec5f7eabdd49fa399bfabcda475910093452f96b8ab6d715bb0f9a",
+    "partitionline-broker/src/security/mod.rs": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409",
+    "partitionline-broker/tests/oidc_validation.rs": "b95adc97f3428de23442ed0eee666a677a6ce32a0deb76d2e0e0f4ba3691126f"
+  },
+  "production_qualification": false
+}

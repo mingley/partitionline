@@ -1,0 +1,12 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development overlay6: bounded trusted port syntax and public helper mapped ring errors",
+  "source_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "985fc3b097f854aec2c75f9165875684e7ac974d7c3b2eb6b68ca9fe6d76c7eb",
+    "partitionline-broker/src/security/oidc/jwt.rs": "ce23fa89f5772e55180699b494e01238c305616ebb61ddb13a1c97fae172f3a8",
+    "partitionline-broker/src/security/sasl.rs": "a96860047aec5f7eabdd49fa399bfabcda475910093452f96b8ab6d715bb0f9a",
+    "partitionline-broker/src/security/mod.rs": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409",
+    "partitionline-broker/tests/oidc_validation.rs": "a3a4eb9987770bf508a107b571a74d922363b4e72d1bfd34a5f68cfe23e55992"
+  },
+  "production_qualification": false
+}

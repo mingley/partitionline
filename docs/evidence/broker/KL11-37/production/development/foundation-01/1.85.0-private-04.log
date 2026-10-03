@@ -1,0 +1,80 @@
+   Compiling libc v0.2.189
+   Compiling zeroize v1.9.0
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.26
+   Compiling shlex v2.0.1
+   Compiling quote v1.0.47
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling cfg-if v1.0.5
+   Compiling typenum v1.20.1
+   Compiling bytes v1.12.1
+   Compiling hybrid-array v0.4.15
+   Compiling ring v0.17.14
+   Compiling itoa v1.0.18
+   Compiling syn v3.0.6
+   Compiling pin-project-lite v0.2.17
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.2
+   Compiling tokio-macros v2.7.2
+   Compiling http v1.5.0
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling const-oid v0.10.2
+   Compiling untrusted v0.9.0
+   Compiling futures-core v0.3.34
+   Compiling semver v1.0.28
+   Compiling serde_core v1.0.229
+   Compiling httparse v1.10.1
+   Compiling rustc_version v0.4.1
+   Compiling digest v0.11.3
+   Compiling tokio v1.53.1
+   Compiling http-body v1.1.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling try-lock v0.2.5
+   Compiling zmij v1.0.23
+   Compiling want v0.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling crc32c v0.6.8
+   Compiling futures-channel v0.3.34
+   Compiling serde_json v1.0.151
+   Compiling getrandom v0.4.3
+   Compiling smallvec v1.16.2
+   Compiling serde v1.0.229
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling atomic-waker v1.1.2
+   Compiling hyper v1.11.1
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling memchr v2.8.3
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling tokio-rustls v0.26.6
+   Compiling hyper-util v0.1.21
+   Compiling http-body-util v0.1.5
+   Compiling base64 v0.23.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 30.03s
+     Running unittests src/lib.rs (/workspace/work/broker-oidc/target/debug/deps/partitionline_broker-ad6435fd80e1a8f6)
+
+running 12 tests
+test security::oidc::jwt::tests::bounds_are_checked_before_unbounded_structures ... ok
+test security::oidc::jwt::tests::authentic_signature_is_required_before_identity ... ok
+test security::oidc::jwt::tests::duplicate_json_and_whole_input_are_enforced ... ok
+test security::oidc::jwt::tests::es256_fixed_signature_and_typed_principal ... ok
+test security::oidc::jwt::tests::expiration_has_no_skew_or_clock_rollback_authority_extension ... ok
+test security::oidc::jwt::tests::jwks_duplicates_private_forms_and_weak_rsa_fail ... ok
+test security::oidc::jwt::tests::provider_access_discriminator_is_explicit ... ok
+test security::oidc::jwt::tests::token_authorities_critical_fields_and_segments_are_rejected ... ok
+test security::oidc::jwt::tests::signed_wrong_claims_fail ... ok
+test security::oidc::tests::cancellation_retains_actual_worker_and_shutdown_joins_it ... ok
+test security::oidc::tests::configuration_defaults_and_authorities_are_bounded ... ok
+test security::oidc::tests::cancelling_shutdown_leaves_actual_work_joinable ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.01s
+

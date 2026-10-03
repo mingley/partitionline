@@ -1,0 +1,36 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+error[E0277]: `?` couldn't convert the error: `Unspecified: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:31:99
+   |
+28 | fn jwks() -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+   |              ------------------------------------------- required `Unspecified: std::error::Error` because of this
+...
+31 |         signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)?;
+   |         ------------------------------------------------------------------------------------------^ the trait `std::error::Error` is not implemented for `Unspecified`
+   |         |
+   |         this has type `Result<_, Unspecified>`
+   |
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Box<dyn std::error::Error>` to implement `From<Unspecified>`
+
+error[E0277]: `?` couldn't convert the error: `KeyRejected: std::error::Error` is not satisfied
+  --> tests/oidc_validation.rs:36:6
+   |
+28 |   fn jwks() -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+   |                ------------------------------------------- required `KeyRejected: std::error::Error` because of this
+...
+32 |       let key = signature::EcdsaKeyPair::from_pkcs8(
+   |  _______________-
+33 | |         &signature::ECDSA_P256_SHA256_FIXED_SIGNING,
+34 | |         der.as_ref(),
+35 | |         &rng,
+36 | |     )?;
+   | |     -^ the trait `std::error::Error` is not implemented for `KeyRejected`
+   | |_____|
+   |       this has type `Result<_, KeyRejected>`
+   |
+   = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+   = note: required for `Box<dyn std::error::Error>` to implement `From<KeyRejected>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (test "oidc_validation") due to 2 previous errors

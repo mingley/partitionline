@@ -1,0 +1,102 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0,1",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "oidc",
+      "--test",
+      "oidc_validation"
+    ],
+    "exit_code": 101,
+    "duration_s": 0.12682829999539535,
+    "log": "stable-public-05.log",
+    "sha256": "5671a2a72bad7abd60bee75f50978ad8f4963a341ca05bfab71533c62edf0324"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0,1",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "oidc",
+      "--lib",
+      "--test",
+      "oidc_validation",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 101,
+    "duration_s": 0.1458202310022898,
+    "log": "stable-clippy-05.log",
+    "sha256": "aa0c9c565779d62c1a130334e33e7566f48343e2a2f2951fd928642b1312d8b6"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0,1",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "oidc",
+      "--test",
+      "oidc_validation"
+    ],
+    "exit_code": 101,
+    "duration_s": 0.1397955330030527,
+    "log": "1.85.0-public-05.log",
+    "sha256": "c7cc26da802a4ff67bb99fd7382f9d8697323430015e984445abacf63bb13f6e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0,1",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--manifest-path",
+      "/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker/Cargo.toml",
+      "--locked",
+      "--offline",
+      "--no-default-features",
+      "--features",
+      "oidc",
+      "--lib",
+      "--test",
+      "oidc_validation",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "exit_code": 101,
+    "duration_s": 0.14720599000429502,
+    "log": "1.85.0-clippy-05.log",
+    "sha256": "7e27a8e0fed25f8580e62a678d45f625ed342e043d83f1c8b17d72332ef43609"
+  }
+]

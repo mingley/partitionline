@@ -1,0 +1,31 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+error: use of a disallowed type `std::sync::Mutex`
+  --> src/security/oidc.rs:15:14
+   |
+15 |         Arc, Mutex,
+   |              ^^^^^
+   |
+   = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+   = note: `-D clippy::disallowed-types` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::disallowed_types)]`
+
+error: use of a disallowed type `std::sync::Mutex`
+   --> src/security/oidc.rs:265:19
+    |
+265 |     registration: Mutex<()>,
+    |                   ^^^^^^^^^
+    |
+    = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: use of a disallowed type `std::sync::Mutex`
+   --> src/security/oidc.rs:313:27
+    |
+313 |             registration: Mutex::new(()),
+    |                           ^^^^^
+    |
+    = note: Easy to hold across await. Use tokio::sync::Mutex, or parking_lot for short non-async sections.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_types
+
+error: could not compile `partitionline-broker` (lib) due to 3 previous errors

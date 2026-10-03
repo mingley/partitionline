@@ -1,0 +1,7 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development overlay7: independent matrix loader and WORK independent fixture copy, not immutable source qualification",
+  "jwt_sha256": "185b1973229a5dd3d96dac9b8c356dd10141267df6898f4c0915034cb4881ee4",
+  "fixture_manifest_sha256": "6ae915e9d55b11124a223a44c4a100aff3a8ffe425afa4de8e6a2d71d8480cb3",
+  "production_qualification": false
+}

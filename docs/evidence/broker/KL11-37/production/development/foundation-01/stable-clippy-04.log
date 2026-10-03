@@ -1,0 +1,37 @@
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+error: used `unwrap()` on a `Result` value
+  --> tests/oidc_validation.rs:31:9
+   |
+31 | /         signature::EcdsaKeyPair::generate_pkcs8(&signature::ECDSA_P256_SHA256_FIXED_SIGNING, &rng)
+32 | |             .unwrap();
+   | |_____________________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+   = note: requested on the command line with `-D clippy::unwrap-used`
+
+error: used `unwrap()` on a `Result` value
+  --> tests/oidc_validation.rs:33:15
+   |
+33 |       let key = signature::EcdsaKeyPair::from_pkcs8(
+   |  _______________^
+34 | |         &signature::ECDSA_P256_SHA256_FIXED_SIGNING,
+35 | |         der.as_ref(),
+36 | |         &rng,
+37 | |     )
+38 | |     .unwrap();
+   | |_____________^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/oidc_validation.rs:40:5
+   |
+40 |     serde_json::to_vec(&json!({"keys":[{"kid":"test-key","kty":"EC","crv":"P-256","x":URL_SAFE_NO_PAD.encode(&public[1..33]),"y":URL_SAFE_NO_PAD.encode(&public[33..])}]})).unwrap()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: could not compile `partitionline-broker` (test "oidc_validation") due to 3 previous errors

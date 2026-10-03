@@ -1,0 +1,11 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development source overlay, not final immutable source",
+  "owned_paths": {
+    "partitionline-broker/src/security/oidc.rs": "5a637820b1ad3ecfe0b95b01dcd95d60df4cb5e01a7d03909e57fe8e2336511a",
+    "partitionline-broker/src/security/oidc/jwt.rs": "59ca75533e0d6752ed3592371fab0f9a4e2bded7970d8df9fab1bb125005ca11",
+    "partitionline-broker/src/security/sasl.rs": "a96860047aec5f7eabdd49fa399bfabcda475910093452f96b8ab6d715bb0f9a"
+  },
+  "root_export_overlay": "cfg(feature=\"oidc\") pub mod oidc",
+  "production_qualification": false
+}

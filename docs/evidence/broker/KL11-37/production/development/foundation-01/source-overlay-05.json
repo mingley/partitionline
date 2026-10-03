@@ -1,0 +1,6 @@
+{
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development overlay5: public helper errors propagate instead of unwrap outside test context",
+  "sha256": "d5033dea52eef76cf9cb6a97d5432304831e49bf424cd34344cae7b98aad41dd",
+  "production_qualification": false
+}

@@ -206,6 +206,10 @@ impl Secret {
     pub(crate) fn len(&self) -> usize {
         self.0.len()
     }
+    #[cfg(feature = "oidc")]
+    pub(crate) fn as_bytes(&self) -> &[u8] {
+        &self.0
+    }
 }
 impl fmt::Debug for Secret {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

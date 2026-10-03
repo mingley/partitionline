@@ -21,6 +21,11 @@ name="pl-compat-${version//./-}-$$"
 port="${PL_COMPAT_PORT:-19092}"
 owned=0
 phase=prerequisites
+cpu_args=()
+if [[ -n "${PL_COMPAT_CPUSET:-}" ]]; then
+  [[ "$PL_COMPAT_CPUSET" =~ ^[0-9,-]+$ ]] || { echo 'invalid compatibility CPU set' >&2; exit 1; }
+  cpu_args=(--cpuset-cpus "$PL_COMPAT_CPUSET")
+fi
 cleanup() {
   local result=$?
   set +e
@@ -53,7 +58,7 @@ if ! docker image inspect "$reference" >/dev/null 2>&1; then
 fi
 phase=broker-start
 # Only the successfully created container is owned by this invocation.
-docker create --name "$name" -p "127.0.0.1:$port:9092" \
+docker create "${cpu_args[@]}" --name "$name" -p "127.0.0.1:$port:9092" \
   -e KAFKA_NODE_ID=1 -e KAFKA_PROCESS_ROLES=broker,controller \
   -e KAFKA_LISTENERS=PLAINTEXT://:9092,INTERNAL://:9094,CONTROLLER://:9093 \
   -e "KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:$port,INTERNAL://localhost:9094" \
@@ -108,6 +113,7 @@ command=lambda *args: subprocess.check_output(args,text=True).strip()
 fields=dict(line.split(': ',1) for line in (root/'rustc.log').read_text().splitlines() if ': ' in line)
 data={'requested':reference,'actual_reference':command('docker','inspect','--format','{{.Config.Image}}',name),
 'container_image_id':command('docker','inspect','--format','{{.Image}}',name),
+'container_cpuset':command('docker','inspect','--format','{{.HostConfig.CpusetCpus}}',name),
 'inspected_image_id':command('docker','image','inspect','--format','{{.Id}}',reference),
 'repo_digests':json.loads(command('docker','image','inspect','--format','{{json .RepoDigests}}',reference)),
 'kafka_cli_version':(root/'broker-version.log').read_text(),'host_os':platform.system(),'host_arch':platform.machine(),

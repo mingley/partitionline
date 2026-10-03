@@ -1,0 +1,1 @@
+{"iss":"https://issuer.example/realm","aud":"partitionline","sub":"fixture-user","iat":1800000000,"exp":"1800000300","scope":"read write","jti":"synthetic-fixture"}

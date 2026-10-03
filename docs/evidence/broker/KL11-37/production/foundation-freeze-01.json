@@ -1,0 +1,43 @@
+{
+  "stage": "foundation source freeze1; finite pinned-JWKS signed-JWT only",
+  "baseline_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_sha256": {
+    "partitionline-broker/src/security/oidc.rs": "985fc3b097f854aec2c75f9165875684e7ac974d7c3b2eb6b68ca9fe6d76c7eb",
+    "partitionline-broker/src/security/oidc/jwt.rs": "51b75cd7086dfd706687c797ccbb457dc48fa5f1c12fd0f4246a898369569532",
+    "partitionline-broker/src/security/sasl.rs": "a96860047aec5f7eabdd49fa399bfabcda475910093452f96b8ab6d715bb0f9a",
+    "partitionline-broker/tests/oidc_validation.rs": "a3a4eb9987770bf508a107b571a74d922363b4e72d1bfd34a5f68cfe23e55992",
+    "partitionline-broker/src/security/mod.rs": "a7d912602d4d006dec1081c9bbb3cd10d5baf7cbee9b13898fa9351306336409"
+  },
+  "focused_stable_msrv": {
+    "commands": "development/foundation-01/commands-08.json",
+    "passed_commands": 6,
+    "private_tests_each": 13,
+    "public_tests_each": 6,
+    "independent_fixture_cases_each": 70,
+    "independent_policy_accepts_each": 12,
+    "independent_policy_rejects_each": 58,
+    "independently_verified_signature_metadata": 65
+  },
+  "fixture_manifest_sha256": "6ae915e9d55b11124a223a44c4a100aff3a8ffe425afa4de8e6a2d71d8480cb3",
+  "retained_failures": [
+    "development/foundation-01/stable-tests-02.log",
+    "development/foundation-01/stable-clippy-03.log",
+    "development/foundation-01/stable-clippy-04.log",
+    "development/foundation-01/1.85.0-clippy-04.log",
+    "development/foundation-01/stable-public-05.log",
+    "development/foundation-01/1.85.0-public-05.log",
+    "development/foundation-01/stable-independent-07.log"
+  ],
+  "excluded_uncompiled_managed_stage_drafts": [
+    "partitionline-broker/src/security/oidc/http.rs",
+    "partitionline-broker/src/security/oidc/introspection.rs",
+    "partitionline-broker/src/security/oidc/cache.rs"
+  ],
+  "production_qualification": false,
+  "remaining": [
+    "full immutable foundation QA/default dependency proof",
+    "real HTTPS managed key/revocation authorities",
+    "socket OAUTHBEARER and lease expiry",
+    "independent Java/C/Rust online histories"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "stage": "independent fixture generation",
+  "generator_sha256": "d1fee4d0a9d93c83273b8e6e8d0793eaa7c31526511147794306b1ed082f5ffe",
+  "failure": "tampered-signature-rsa expected invalid, but OpenSSL accepted unchanged decoded signature",
+  "reason": "Replacing last base64url character can alter unused padding bits without altering proof bytes. Generator control was defective; no Rust product run occurred.",
+  "correction": "Flip the first decoded proof byte, then encode canonically."
+}

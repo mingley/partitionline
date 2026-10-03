@@ -1,0 +1,24 @@
+{
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java",
+    "clients/src/main/java/org/apache/kafka/common/config/internals/BrokerSecurityConfigs.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientJwtValidator.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidator.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidatorException.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CachedFile.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClaimValidationUtils.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JwksFileVerificationKeyResolver.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/OAuthBearerConfigurable.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/SerializedJwt.java",
+    "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/VerificationKeyResolverFactory.java",
+    "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidatorTest.java",
+    "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidatorTest.java"
+  ]
+}

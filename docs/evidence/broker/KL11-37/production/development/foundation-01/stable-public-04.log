@@ -1,0 +1,14 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-overlay-01/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.63s
+     Running tests/oidc_validation.rs (/workspace/work/broker-oidc/target/debug/deps/oidc_validation-eadbd4d7a4a70f85)
+
+running 6 tests
+test configured_issuer_and_access_discriminator_are_required ... ok
+test malformed_and_oversized_bearers_fail_without_echo ... ok
+test public_diagnostics_redact_tokens_and_authorities ... ok
+test shutdown_is_shared_and_retryable ... ok
+test static_authority_never_has_an_infinite_freshness_lease ... ok
+test monotonic_authority_expiry_is_enforced ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
