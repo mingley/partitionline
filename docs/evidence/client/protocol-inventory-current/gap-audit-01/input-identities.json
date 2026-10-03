@@ -1,0 +1,146 @@
+{
+  "archives": {
+    "4.1.2": {
+      "archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+    },
+    "4.2.1": {
+      "archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+    },
+    "4.3.1": {
+      "archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+    }
+  },
+  "git_inputs": {
+    "Cargo.toml": {
+      "bytes": 4129,
+      "git_blob": "7f0f02e7f09a81dc03298bc2b881246a7c6593aa",
+      "git_mode": "100644",
+      "sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "docs/evidence/client/protocol-inventory-current/review-01/corrected-inventory-proposal.json": {
+      "bytes": 316245,
+      "git_blob": "a1627a36bef05653d67d391d2645e66d96ea9ca0",
+      "git_mode": "100644",
+      "sha256": "df278487951ed567985173e79fdea13ebda75a8a699c0e1fe6c13aa968f62936",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "docs/plan/tasks.json": {
+      "bytes": 3368383,
+      "git_blob": "e859517384f5249076ceb7bca3fe48afb35c5523",
+      "git_mode": "100644",
+      "sha256": "bebeb10c7c7d91aa0e0560a420f59a5bbe0047f2c72612343ca5279df72f8bf8",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "scripts/check-protocol-coverage.py": {
+      "bytes": 62971,
+      "git_blob": "602bbb84755321aa141862c0eb42261eee25002d",
+      "git_mode": "100755",
+      "sha256": "b8f2aa585fa35f2d464d801d2b24fd80ce730050b6f60e05cc9c5403edb42e57",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/admin.rs": {
+      "bytes": 576058,
+      "git_blob": "84c83cf1cca54725a8f0a2dde370d5394ca7fbf4",
+      "git_mode": "100644",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/consumer.rs": {
+      "bytes": 179916,
+      "git_blob": "ed103a4989811420ba02d521d2a3a219266488a5",
+      "git_mode": "100644",
+      "sha256": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/group.rs": {
+      "bytes": 137817,
+      "git_blob": "e43fb091c7946d68185bd37eefb05d3d25449983",
+      "git_mode": "100644",
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/lib.rs": {
+      "bytes": 211645,
+      "git_blob": "fa10175d9bdbb042ebeb1f13f3e45770b922c7a7",
+      "git_mode": "100644",
+      "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/producer.rs": {
+      "bytes": 218265,
+      "git_blob": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "git_mode": "100644",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/admin.rs": {
+      "bytes": 1467875,
+      "git_blob": "a47b7ceccd775d4dda12a20465256c5ef3c44521",
+      "git_mode": "100644",
+      "sha256": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/api.rs": {
+      "bytes": 303913,
+      "git_blob": "1fd6fd50bd1ab0256fb64edb3dd12a165dfe807e",
+      "git_mode": "100644",
+      "sha256": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/api_keys.rs": {
+      "bytes": 17336,
+      "git_blob": "182805d5eecf85dc2975cb107fa53622966d322f",
+      "git_mode": "100644",
+      "sha256": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/group.rs": {
+      "bytes": 603286,
+      "git_blob": "bbb5d979a96633729d0bffcdc12c2fc5b23ba98c",
+      "git_mode": "100644",
+      "sha256": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/idem.rs": {
+      "bytes": 28038,
+      "git_blob": "9205907702875ccb4b4266bb8a7614cd81771387",
+      "git_mode": "100644",
+      "sha256": "6154128750f29bca3b79a8217e49b19b77ad988dbf7ad77c63647e5fea2f9e60",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "src/protocol/txn.rs": {
+      "bytes": 255842,
+      "git_blob": "398cb6e0a2ad7289ea7b32bcf5e90ba4abae0fd8",
+      "git_mode": "100644",
+      "sha256": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "tests/conformance/broker/api-matrix.json": {
+      "bytes": 664586,
+      "git_blob": "05a102823aa1fdc61a4df5c729c597553c162511",
+      "git_mode": "100644",
+      "sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "tests/conformance/cases.json": {
+      "bytes": 132894,
+      "git_blob": "342bf314943eec916d0923f410cb69f485fb3bd7",
+      "git_mode": "100644",
+      "sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "tests/conformance/features.json": {
+      "bytes": 65145,
+      "git_blob": "d4f51409c14309d81437b46492f9d8b14db1944d",
+      "git_mode": "100644",
+      "sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    }
+  },
+  "scope": "Source-only. No SDK, JVM, broker, Cargo or other product runtime execution. No repository mutation.",
+  "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+}

@@ -1,0 +1,18 @@
+{
+  "audit_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+  "changed_task_objects": [
+    "KL11-75"
+  ],
+  "latest_75_status": "done",
+  "latest_reference_source": "7b108f842731b9f58fea1b8a146193ccd902df50",
+  "latest_taskbook_sha256": "9d2ee58a04fb96d2ccf486153b1893d74ec401fd1f8f49345a96d4cbdf05d0b4",
+  "note": "Only this later status is referenced. All Rust/upstream/API audit identities remain immutable d3dff; no whole-source or runtime proof is transferred.",
+  "old_75_status": "in_progress",
+  "old_taskbook_sha256": "bebeb10c7c7d91aa0e0560a420f59a5bbe0047f2c72612343ca5279df72f8bf8",
+  "other_306_task_objects_identical": true,
+  "qualification_transfer_inferred": false,
+  "task_counts": {
+    "audit": 307,
+    "latest": 307
+  }
+}

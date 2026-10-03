@@ -1,0 +1,485 @@
+{
+  "src/admin.rs": {
+    "identity": {
+      "bytes": 576058,
+      "git_blob": "84c83cf1cca54725a8f0a2dde370d5394ca7fbf4",
+      "git_mode": "100644",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 234,
+        "match_line": 224,
+        "start_line": 220,
+        "text": "}\n\n/// Expected cluster and total deadline for [`Admin::add_raft_voter`].\n#[derive(Debug, Clone, Default)]\npub struct AddRaftVoterOptions {\n    /// Optional expected cluster identity, checked by the controller.\n    pub cluster_id: Option<String>,\n    /// Total deadline including discovery, authentication and retries.\n    /// `None` uses [`AdminConfig::request_timeout`].\n    pub timeout: Option<Duration>,\n}\n\n/// Expected cluster and local total deadline for [`Admin::remove_raft_voter`].\n#[derive(Debug, Clone, Default)]\npub struct RemoveRaftVoterOptions {"
+      },
+      {
+        "end_line": 3084,
+        "match_line": 3074,
+        "start_line": 3070,
+        "text": "    /// deadline. Other broker errors preserve their code/message, including\n    /// duplicate voter and server-side timeout. A lost response can leave the\n    /// membership outcome ambiguous; inspect the quorum before another change.\n    /// Success retains the broker's throttle time in the typed response.\n    pub async fn add_raft_voter(\n        &mut self,\n        voter_id: i32,\n        voter_directory_id: Uuid,\n        endpoints: Vec<RaftVoterEndpoint>,\n        options: AddRaftVoterOptions,\n    ) -> Result<AddRaftVoterResponse> {\n        if voter_id < 0 || Uuid::RESERVED.contains(&voter_directory_id) {\n            return Err(Error::protocol(\n                \"voter ID must be nonnegative and directory UUID nonreserved\",\n            ));"
+      },
+      {
+        "end_line": 3810,
+        "match_line": 3800,
+        "start_line": 3796,
+        "text": "            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6));\n        let offset_delete_version = versions\n            .get(&OFFSET_DELETE)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));\n        let reassign_version = versions\n            .get(&ALTER_PARTITION_REASSIGNMENTS)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));\n        let list_reassign_version = versions\n            .get(&LIST_PARTITION_REASSIGNMENTS)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));\n        let update_features_version = versions\n            .get(&UPDATE_FEATURES)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));\n        let alter_user_scram_version = versions\n            .get(&ALTER_USER_SCRAM_CREDENTIALS)"
+      },
+      {
+        "end_line": 3840,
+        "match_line": 3830,
+        "start_line": 3826,
+        "text": "            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));\n        let describe_transactions_version = versions\n            .get(&DESCRIBE_TRANSACTIONS)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));\n        let list_transactions_version = versions\n            .get(&LIST_TRANSACTIONS)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));\n        let consumer_group_describe_version = versions\n            .get(&CONSUMER_GROUP_DESCRIBE)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));\n        let describe_groups_version = versions\n            .get(&DESCRIBE_GROUPS)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6));\n        let list_groups_version = versions\n            .get(&LIST_GROUPS)"
+      },
+      {
+        "end_line": 6425,
+        "match_line": 6415,
+        "start_line": 6411,
+        "text": "    /// `broker_epoch` are the requesting broker's fixture identity.\n    /// AllocateProducerIds has no TimeoutMs; the RPC deadline is\n    /// [`AdminConfig::request_timeout`]. For a one-shot deadline, use\n    /// [`Self::allocate_producer_ids_timeout`].\n    pub async fn allocate_producer_ids(\n        &mut self,\n        broker_id: i32,\n        broker_epoch: i64,\n    ) -> Result<ProducerIdBlock> {\n        let timeout = self.cfg.request_timeout;\n        self.allocate_producer_ids_timeout(broker_id, broker_epoch, timeout)\n            .await\n    }\n\n    /// [`Self::allocate_producer_ids`] with a one-shot RPC deadline."
+      },
+      {
+        "end_line": 6440,
+        "match_line": 6430,
+        "start_line": 6426,
+        "text": "    ///\n    /// AllocateProducerIds has no TimeoutMs; `timeout` is the RPC\n    /// deadline and the `NOT_CONTROLLER` retry budget. Java `Admin`\n    /// has no `allocateProducerIds`; this overload is crate-first.\n    pub async fn allocate_producer_ids_timeout(\n        &mut self,\n        broker_id: i32,\n        broker_epoch: i64,\n        timeout: Duration,\n    ) -> Result<ProducerIdBlock> {\n        let version = self.allocate_producer_ids_version.ok_or_else(|| {\n            Error::Unsupported(\"broker does not support AllocateProducerIds\".into())\n        })?;\n        let deadline = Instant::now() + timeout;\n        let mut attempt = 0u32;"
+      },
+      {
+        "end_line": 6973,
+        "match_line": 6963,
+        "start_line": 6959,
+        "text": "    ///\n    /// ListTransactions has no TimeoutMs; `timeout` is the RPC deadline\n    /// and the coordinator retry budget. `duration_ms` is DurationFilter\n    /// (v1), not TimeoutMs.\n    pub async fn list_transactions_with_duration_timeout(\n        &mut self,\n        state_filters: &[&str],\n        producer_id_filters: &[i64],\n        duration_ms: i64,\n        timeout: Duration,\n    ) -> Result<Vec<TransactionListing>> {\n        let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();\n        let pids = producer_id_filters.to_vec();\n        // ListTransactions has no transactional.id; FindCoordinator still\n        // needs a key. Empty string is the no-id lookup used here."
+      },
+      {
+        "end_line": 6984,
+        "match_line": 6974,
+        "start_line": 6970,
+        "text": "        let states: Vec<String> = state_filters.iter().map(|s| (*s).to_string()).collect();\n        let pids = producer_id_filters.to_vec();\n        // ListTransactions has no transactional.id; FindCoordinator still\n        // needs a key. Empty string is the no-id lookup used here.\n        const COORD_KEY: &str = \"\";\n        let version = self\n            .list_transactions_version\n            .ok_or_else(|| Error::Unsupported(\"broker does not support ListTransactions\".into()))?;\n        let deadline = Instant::now() + timeout;\n        let mut attempt = 0u32;\n        loop {\n            let stale = self.txn_coord.as_ref().is_none_or(|(k, _)| k != COORD_KEY);\n            if stale {\n                let node = self.discover_txn_coord(COORD_KEY).await?;\n                self.txn_coord = Some((COORD_KEY.to_string(), node));"
+      },
+      {
+        "end_line": 7011,
+        "match_line": 7001,
+        "start_line": 6997,
+        "text": "                conn.roundtrip(\n                    LIST_TRANSACTIONS,\n                    version,\n                    |buf| {\n                        encode_list_transactions_request(buf, version, &states, &pids, duration_ms)\n                    },\n                    timeout,\n                )\n                .await\n            };\n            let body = match body {\n                Ok(b) => b,\n                Err(e) if e.is_retriable() => {\n                    let _ = self.conns.remove(&node);\n                    self.txn_coord = None;"
+      },
+      {
+        "end_line": 9012,
+        "match_line": 9002,
+        "start_line": 8998,
+        "text": "        let client_min = if topics.is_none() { 2 } else { 1 };\n        let version = self\n            .versions\n            .get(&OFFSET_FETCH)\n            .and_then(|v| pick_version(v.min_version, v.max_version, client_min, 9))\n            .ok_or_else(|| {\n                Error::Unsupported(if topics.is_none() {\n                    \"broker does not support OffsetFetch v2-9 (null Topics)\".into()\n                } else {\n                    \"broker does not support OffsetFetch v1-9\".into()\n                })\n            })?;\n        let deadline = Instant::now() + timeout;\n        let mut attempt = 0u32;\n        let group_id = group_id.to_string();"
+      },
+      {
+        "end_line": 9123,
+        "match_line": 9113,
+        "start_line": 9109,
+        "text": "        let topics = crate::group::group_offset_topics(&offsets);\n        let version = self\n            .versions\n            .get(&OFFSET_COMMIT)\n            .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))\n            .ok_or_else(|| {\n                Error::Unsupported(\"broker does not support OffsetCommit v2-9\".into())\n            })?;\n        let deadline = Instant::now() + timeout;\n        let mut attempt = 0u32;\n        let group_id = group_id.to_string();\n        loop {\n            let stale = self\n                .group_coord\n                .as_ref()"
+      },
+      {
+        "end_line": 11013,
+        "match_line": 11003,
+        "start_line": 10999,
+        "text": "    /// broker id/epoch and directory UUIDs only; this is not a replica\n    /// directory store. AssignReplicasToDirs has no TimeoutMs; the RPC\n    /// deadline is [`AdminConfig::request_timeout`]. For a one-shot\n    /// deadline, use [`Self::assign_replicas_to_dirs_timeout`].\n    pub async fn assign_replicas_to_dirs(\n        &mut self,\n        broker_id: i32,\n        broker_epoch: i64,\n        directories: Vec<AssignReplicasToDirsDirectory>,\n    ) -> Result<AssignReplicasToDirsResponse> {\n        let timeout = self.cfg.request_timeout;\n        self.assign_replicas_to_dirs_timeout(broker_id, broker_epoch, directories, timeout)\n            .await\n    }\n"
+      },
+      {
+        "end_line": 11029,
+        "match_line": 11019,
+        "start_line": 11015,
+        "text": "    /// `AssignReplicasToDirsOptions.timeoutMs`).\n    ///\n    /// AssignReplicasToDirs has no TimeoutMs; `timeout` is the RPC deadline\n    /// and the `NOT_CONTROLLER` retry budget.\n    pub async fn assign_replicas_to_dirs_timeout(\n        &mut self,\n        broker_id: i32,\n        broker_epoch: i64,\n        directories: Vec<AssignReplicasToDirsDirectory>,\n        timeout: Duration,\n    ) -> Result<AssignReplicasToDirsResponse> {\n        let version = self.assign_replicas_to_dirs_version.ok_or_else(|| {\n            Error::Unsupported(\"broker does not support AssignReplicasToDirs\".into())\n        })?;\n        let deadline = Instant::now() + timeout;"
+      }
+    ]
+  },
+  "src/group.rs": {
+    "identity": {
+      "bytes": 137817,
+      "git_blob": "e43fb091c7946d68185bd37eefb05d3d25449983",
+      "git_mode": "100644",
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 2720,
+        "match_line": 2710,
+        "start_line": 2706,
+        "text": "    }\n    true\n}\n\nfn spoken_offset_fetch(version: i16) -> Result<i16> {\n    if (1..=9).contains(&version) {\n        Ok(version)\n    } else {\n        Err(Error::Unsupported(\n            \"broker does not support OffsetFetch v1-9\".into(),\n        ))\n    }\n}\n\nfn spoken_offset_commit(version: i16) -> Result<i16> {"
+      },
+      {
+        "end_line": 2730,
+        "match_line": 2720,
+        "start_line": 2716,
+        "text": "        ))\n    }\n}\n\nfn spoken_offset_commit(version: i16) -> Result<i16> {\n    if (2..=9).contains(&version) {\n        Ok(version)\n    } else {\n        Err(Error::Unsupported(\n            \"broker does not support OffsetCommit v2-9\".into(),\n        ))\n    }\n}\n\nfn spoken_join_group(version: i16) -> Result<i16> {"
+      },
+      {
+        "end_line": 3067,
+        "match_line": 3057,
+        "start_line": 3053,
+        "text": "    let version = resp\n        .api_version(FIND_COORDINATOR)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))\n        .ok_or_else(|| Error::Unsupported(\"broker does not support FindCoordinator v1-6\".into()))?;\n    conn.offset_commit_version = resp\n        .api_version(OFFSET_COMMIT)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))\n        .unwrap_or(0);\n    conn.offset_fetch_version = resp\n        .api_version(OFFSET_FETCH)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))\n        .unwrap_or(0);\n    conn.heartbeat_version = resp\n        .api_version(HEARTBEAT)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))"
+      },
+      {
+        "end_line": 3071,
+        "match_line": 3061,
+        "start_line": 3057,
+        "text": "    conn.offset_commit_version = resp\n        .api_version(OFFSET_COMMIT)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 2, 9))\n        .unwrap_or(0);\n    conn.offset_fetch_version = resp\n        .api_version(OFFSET_FETCH)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 1, 9))\n        .unwrap_or(0);\n    conn.heartbeat_version = resp\n        .api_version(HEARTBEAT)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))\n        .unwrap_or(-1);\n    conn.sync_group_version = resp\n        .api_version(SYNC_GROUP)\n        .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))"
+      }
+    ]
+  },
+  "src/producer.rs": {
+    "identity": {
+      "bytes": 218265,
+      "git_blob": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "git_mode": "100644",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 1463,
+        "match_line": 1453,
+        "start_line": 1449,
+        "text": "            }) && pick(&versions, END_TXN, 0, 5) == Some(5);\n        let transaction_max = if transaction_v2 { 5 } else { 4 };\n        let (add_partitions_version, add_offsets_version, end_txn_version, txn_offset_version) =\n            if cfg.transactional_id.is_some() {\n                let add_p = pick(&versions, ADD_PARTITIONS_TO_TXN, 0, 3).ok_or_else(|| {\n                    Error::Unsupported(\"broker does not support AddPartitionsToTxn\".into())\n                })?;\n                let add_o = pick(&versions, ADD_OFFSETS_TO_TXN, 0, 4).ok_or_else(|| {\n                    Error::Unsupported(\"broker does not support AddOffsetsToTxn\".into())\n                })?;\n                let end = pick(&versions, END_TXN, 0, transaction_max)\n                    .ok_or_else(|| Error::Unsupported(\"broker does not support EndTxn\".into()))?;\n                let toc =\n                    pick(&versions, TXN_OFFSET_COMMIT, 0, transaction_max).ok_or_else(|| {\n                        Error::Unsupported(\"broker does not support TxnOffsetCommit\".into())"
+      },
+      {
+        "end_line": 1497,
+        "match_line": 1487,
+        "start_line": 1483,
+        "text": "        } else {\n            None\n        };\n        if cfg.enable_idempotence {\n            let ipid_version = pick(&versions, INIT_PRODUCER_ID, 0, 5).ok_or_else(|| {\n                Error::Unsupported(\"broker does not support InitProducerId\".into())\n            })?;\n            init_producer_id_version = ipid_version;\n            let body = init_producer_id_roundtrip(\n                &cfg,\n                &mut txn,\n                &mut meta,\n                ipid_version,\n                find_coord_version,\n                (RecordBatch::NO_PRODUCER_ID, RecordBatch::NO_PRODUCER_EPOCH),"
+      }
+    ]
+  },
+  "src/protocol/admin.rs": {
+    "identity": {
+      "bytes": 1467875,
+      "git_blob": "a47b7ceccd775d4dda12a20465256c5ef3c44521",
+      "git_mode": "100644",
+      "sha256": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 4619,
+        "match_line": 4609,
+        "start_line": 4605,
+        "text": "    Ok(Some(out))\n}\n\n/// AlterPartitionReassignments v0 (flexible from v0; KIP-455).\npub fn encode_alter_partition_reassignments_request(\n    buf: &mut BytesMut,\n    timeout_ms: i32,\n    topics: &[ReassignableTopic],\n) -> crate::error::Result<()> {\n    buf.put_i32(timeout_ms);\n    buf::put_array_len(buf, true, Some(topics.len()))?;\n    for t in topics {\n        buf::put_compact_string(buf, Some(&t.name))?;\n        buf::put_array_len(buf, true, Some(t.partitions.len()))?;\n        for p in &t.partitions {"
+      },
+      {
+        "end_line": 8282,
+        "match_line": 8272,
+        "start_line": 8268,
+        "text": "/// v0 is StateFilters / ProducerIdFilters plus tagged fields. v1 adds\n/// DurationFilter INT64 (KIP-994; negative means no duration filter). Kafka\n/// 4.0 `validVersions` is `0-1`. This crate speaks 0\u20131. v2\n/// (TransactionalIdPattern) is not spoken.\nfn list_transactions_flexible(version: i16) -> Result<bool> {\n    match version {\n        0..=1 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"ListTransactions version {other} is not implemented\"\n        ))),\n    }\n}\n\n/// One transactional.id listing from ListTransactions (api 66) v0\u2013v1.\n///"
+      },
+      {
+        "end_line": 8444,
+        "match_line": 8434,
+        "start_line": 8430,
+        "text": "    /// A non-negative DurationFilter on v0 is `UnsupportedVersionException`\n    /// (Java `durationFilter() >= 0`). `-1` is allowed on v0. Encode still\n    /// writes independently after this helper. This crate speaks 0\u20131.\n    /// This is not [`Self::error_response`].\n    pub fn build(version: i16, duration_ms: i64) -> Result<()> {\n        if version < 1 && duration_ms >= 0 {\n            return Err(Error::Unsupported(\n                \"Duration filter can be set only when using API version 1 or higher. If client is connected to an older broker, do not specify duration filter or set duration filter to -1.\".into(),\n            ));\n        }\n        Ok(())\n    }\n}\n\n/// Encode a ListTransactions v0\u2013v1 request."
+      },
+      {
+        "end_line": 8460,
+        "match_line": 8450,
+        "start_line": 8446,
+        "text": "/// [`ListTransactionsRequest::build`] is Java\n/// `ListTransactionsRequest.Builder.build` (rejects a non-negative\n/// DurationFilter on v0). Encode still writes independently after that\n/// helper.\npub fn encode_list_transactions_request(\n    buf: &mut BytesMut,\n    version: i16,\n    state_filters: &[String],\n    producer_id_filters: &[i64],\n    duration_ms: i64,\n) -> crate::error::Result<()> {\n    let _flexible = list_transactions_flexible(version)?;\n    ListTransactionsRequest::build(version, duration_ms)?;\n    buf::put_array_len(buf, true, Some(state_filters.len()))?;\n    for state in state_filters {"
+      },
+      {
+        "end_line": 18536,
+        "match_line": 18526,
+        "start_line": 18522,
+        "text": "}\n\n/// AddRaftVoter (api 80), v0, always flexible (KIP-853).\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct AddRaftVoterRequest {\n    /// Optional expected cluster identity; `None` is the Java default.\n    pub cluster_id: Option<String>,\n    /// Remaining server-side operation budget in milliseconds.\n    pub timeout_ms: i32,\n    /// Replica identity of the new voter.\n    pub voter_id: i32,\n    /// Directory identity, big-endian Kafka UUID bytes.\n    pub voter_directory_id: [u8; 16],\n    /// Named endpoints for reaching that controller.\n    pub listeners: Vec<RaftVoterEndpoint>,"
+      },
+      {
+        "end_line": 18560,
+        "match_line": 18550,
+        "start_line": 18546,
+        "text": "    /// Nullable broker error message.\n    pub error_message: Option<String>,\n}\n\nfn add_raft_voter_version(version: i16) -> Result<()> {\n    if version != 0 {\n        return Err(Error::Unsupported(\"AddRaftVoter supports only v0\".into()));\n    }\n    Ok(())\n}\n\n/// Encode AddRaftVoter v0. Semantic endpoint/identity validation belongs to\n/// the high-level Admin API; the codec also represents Apache's fresh defaults.\npub fn encode_add_raft_voter_request(\n    buf: &mut BytesMut,"
+      },
+      {
+        "end_line": 18569,
+        "match_line": 18559,
+        "start_line": 18555,
+        "text": "}\n\n/// Encode AddRaftVoter v0. Semantic endpoint/identity validation belongs to\n/// the high-level Admin API; the codec also represents Apache's fresh defaults.\npub fn encode_add_raft_voter_request(\n    buf: &mut BytesMut,\n    version: i16,\n    req: &AddRaftVoterRequest,\n) -> Result<()> {\n    add_raft_voter_version(version)?;\n    buf::put_string(buf, true, req.cluster_id.as_deref())?;\n    buf.put_i32(req.timeout_ms);\n    buf.put_i32(req.voter_id);\n    buf.extend_from_slice(&req.voter_directory_id);\n    buf::put_array_len(buf, true, Some(req.listeners.len()))?;"
+      }
+    ]
+  },
+  "src/protocol/api.rs": {
+    "identity": {
+      "bytes": 303913,
+      "git_blob": "1fd6fd50bd1ab0256fb64edb3dd12a165dfe807e",
+      "git_mode": "100644",
+      "sha256": "9d9c0a64544b2e707a0d0e57d81394c5d9be0ed791d3a19c512c8be9f72be369",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 1472,
+        "match_line": 1462,
+        "start_line": 1458,
+        "text": "    /// Null Topics is all topics. An empty Topics list is all topics only on\n    /// Metadata v0 (this crate does not speak v0; encode rejects versions\n    /// older than 1).\n    #[must_use]\n    pub const fn is_all_topics(version: i16, topics: Option<&[MetadataRequestTopic]>) -> bool {\n        match topics {\n            None => true,\n            Some(topics) => topics.is_empty() && version == 0,\n        }\n    }\n\n    /// Java `MetadataRequest.Builder.allTopics`.\n    ///\n    /// Topics is null (all topics). AllowAutoTopicCreation is `true` (JSON\n    /// default; Java sets it so v2 and older round-trip consistently)."
+      },
+      {
+        "end_line": 1678,
+        "match_line": 1668,
+        "start_line": 1664,
+        "text": "    /// independently after this helper. This crate speaks 1\u201313. This is\n    /// not [`Self::all_topics`] / [`Self::for_topic_ids`] /\n    /// [`Self::for_topic_names`] / [`Self::for_topic_names_version`] /\n    /// [`Self::for_topic_names_range`] / [`Self::error_response`].\n    pub fn build(\n        version: i16,\n        topics: Option<&[MetadataRequestTopic]>,\n        allow_auto: bool,\n    ) -> Result<()> {\n        if version < 1 {\n            return Err(Error::Unsupported(\n                \"MetadataRequest versions older than 1 are not supported.\".into(),\n            ));\n        }\n        if !allow_auto && version < 4 {"
+      },
+      {
+        "end_line": 1925,
+        "match_line": 1915,
+        "start_line": 1911,
+        "text": "    Ok(())\n}\n\n/// Decode Metadata.\npub fn decode_metadata_response<B: Buf>(buf: &mut B, version: i16) -> Result<MetadataResponse> {\n    let flexible = version >= 9;\n    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };\n    let broker_count = buf::get_array_len(buf, flexible)?.unwrap_or(0);\n    let mut brokers = Vec::with_capacity(broker_count);\n    for _ in 0..broker_count {\n        let node_id = buf::get_i32(buf)?;\n        let host =\n            buf::get_string(buf, flexible)?.ok_or_else(|| Error::protocol(\"null broker host\"))?;\n        let port = buf::get_i32(buf)?;\n        let rack = if version >= 1 {"
+      },
+      {
+        "end_line": 2044,
+        "match_line": 2034,
+        "start_line": 2030,
+        "text": "    })\n}\n\n/// Encode Metadata (used by the mock broker).\npub fn encode_metadata_response(\n    buf: &mut BytesMut,\n    version: i16,\n    resp: &MetadataResponse,\n) -> crate::error::Result<()> {\n    let flexible = version >= 9;\n    if version >= 3 {\n        buf.put_i32(resp.throttle_time_ms);\n    }\n    buf::put_array_len(buf, flexible, Some(resp.brokers.len()))?;\n    for b in &resp.brokers {"
+      },
+      {
+        "end_line": 2597,
+        "match_line": 2587,
+        "start_line": 2583,
+        "text": "    /// `instanceof Records`. This crate speaks 3\u201313. This is not\n    /// [`Self::validate_records`] / [`Self::partition_sizes`] /\n    /// [`Self::error_response`] / [`Self::has_transactional_records`] /\n    /// [`Self::builder`].\n    pub fn build(version: i16, topics: &[ProduceTopicData]) -> Result<()> {\n        for topic in topics {\n            for partition in &topic.partitions {\n                Self::validate_records(version, std::slice::from_ref(&partition.records))?;\n            }\n        }\n        Ok(())\n    }\n\n    /// Java `ProduceRequest.partitionSizes`.\n    ///"
+      }
+    ]
+  },
+  "src/protocol/api_keys.rs": {
+    "identity": {
+      "bytes": 17336,
+      "git_blob": "182805d5eecf85dc2975cb107fa53622966d322f",
+      "git_mode": "100644",
+      "sha256": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 24,
+        "match_line": 14,
+        "start_line": 10,
+        "text": "pub const LIST_OFFSETS: i16 = 2;\n/// Metadata (3).\npub const METADATA: i16 = 3;\n/// OffsetCommit (8).\npub const OFFSET_COMMIT: i16 = 8;\n/// OffsetFetch (9).\npub const OFFSET_FETCH: i16 = 9;\n/// FindCoordinator (10).\npub const FIND_COORDINATOR: i16 = 10;\n/// JoinGroup (11).\npub const JOIN_GROUP: i16 = 11;\n/// Heartbeat (12).\npub const HEARTBEAT: i16 = 12;\n/// LeaveGroup (13).\npub const LEAVE_GROUP: i16 = 13;"
+      },
+      {
+        "end_line": 26,
+        "match_line": 16,
+        "start_line": 12,
+        "text": "pub const METADATA: i16 = 3;\n/// OffsetCommit (8).\npub const OFFSET_COMMIT: i16 = 8;\n/// OffsetFetch (9).\npub const OFFSET_FETCH: i16 = 9;\n/// FindCoordinator (10).\npub const FIND_COORDINATOR: i16 = 10;\n/// JoinGroup (11).\npub const JOIN_GROUP: i16 = 11;\n/// Heartbeat (12).\npub const HEARTBEAT: i16 = 12;\n/// LeaveGroup (13).\npub const LEAVE_GROUP: i16 = 13;\n/// SyncGroup (14).\npub const SYNC_GROUP: i16 = 14;"
+      },
+      {
+        "end_line": 52,
+        "match_line": 42,
+        "start_line": 38,
+        "text": "pub const DELETE_TOPICS: i16 = 20;\n/// DeleteRecords (21).\npub const DELETE_RECORDS: i16 = 21;\n/// InitProducerId (22).\npub const INIT_PRODUCER_ID: i16 = 22;\n/// OffsetForLeaderEpoch (23).\npub const OFFSET_FOR_LEADER_EPOCH: i16 = 23;\n/// AddPartitionsToTxn (24).\npub const ADD_PARTITIONS_TO_TXN: i16 = 24;\n/// AddOffsetsToTxn (25).\npub const ADD_OFFSETS_TO_TXN: i16 = 25;\n/// EndTxn (26).\npub const END_TXN: i16 = 26;\n/// WriteTxnMarkers (27).\npub const WRITE_TXN_MARKERS: i16 = 27;"
+      },
+      {
+        "end_line": 56,
+        "match_line": 46,
+        "start_line": 42,
+        "text": "pub const INIT_PRODUCER_ID: i16 = 22;\n/// OffsetForLeaderEpoch (23).\npub const OFFSET_FOR_LEADER_EPOCH: i16 = 23;\n/// AddPartitionsToTxn (24).\npub const ADD_PARTITIONS_TO_TXN: i16 = 24;\n/// AddOffsetsToTxn (25).\npub const ADD_OFFSETS_TO_TXN: i16 = 25;\n/// EndTxn (26).\npub const END_TXN: i16 = 26;\n/// WriteTxnMarkers (27).\npub const WRITE_TXN_MARKERS: i16 = 27;\n/// TxnOffsetCommit (28).\npub const TXN_OFFSET_COMMIT: i16 = 28;\n/// DescribeAcls (29).\npub const DESCRIBE_ACLS: i16 = 29;"
+      },
+      {
+        "end_line": 98,
+        "match_line": 88,
+        "start_line": 84,
+        "text": "pub const ELECT_LEADERS: i16 = 43;\n/// IncrementalAlterConfigs (44).\npub const INCREMENTAL_ALTER_CONFIGS: i16 = 44;\n/// AlterPartitionReassignments (45).\npub const ALTER_PARTITION_REASSIGNMENTS: i16 = 45;\n/// ListPartitionReassignments (46).\npub const LIST_PARTITION_REASSIGNMENTS: i16 = 46;\n/// OffsetDelete (47).\npub const OFFSET_DELETE: i16 = 47;\n/// DescribeClientQuotas (48).\npub const DESCRIBE_CLIENT_QUOTAS: i16 = 48;\n/// AlterClientQuotas (49).\npub const ALTER_CLIENT_QUOTAS: i16 = 49;\n/// DescribeUserScramCredentials (50).\npub const DESCRIBE_USER_SCRAM_CREDENTIALS: i16 = 50;"
+      },
+      {
+        "end_line": 124,
+        "match_line": 114,
+        "start_line": 110,
+        "text": "pub const UNREGISTER_BROKER: i16 = 64;\n/// DescribeTransactions (65).\npub const DESCRIBE_TRANSACTIONS: i16 = 65;\n/// ListTransactions (66). Kafka 4.0 `validVersions` is `0-1`.\npub const LIST_TRANSACTIONS: i16 = 66;\n/// AllocateProducerIds (67).\npub const ALLOCATE_PRODUCER_IDS: i16 = 67;\n/// ConsumerGroupHeartbeat (68).\npub const CONSUMER_GROUP_HEARTBEAT: i16 = 68;\n/// ConsumerGroupDescribe (69).\npub const CONSUMER_GROUP_DESCRIBE: i16 = 69;\n/// GetTelemetrySubscriptions (71).\npub const GET_TELEMETRY_SUBSCRIPTIONS: i16 = 71;\n/// PushTelemetry (72).\npub const PUSH_TELEMETRY: i16 = 72;"
+      },
+      {
+        "end_line": 151,
+        "match_line": 141,
+        "start_line": 137,
+        "text": "pub const SHARE_FETCH: i16 = 78;\n/// ShareAcknowledge (79).\npub const SHARE_ACKNOWLEDGE: i16 = 79;\n/// AddRaftVoter (80). Kafka 4.1 `validVersions` is `0`.\npub const ADD_RAFT_VOTER: i16 = 80;\n/// RemoveRaftVoter (81). Kafka 4.1 `validVersions` is `0`.\npub const REMOVE_RAFT_VOTER: i16 = 81;\n/// StreamsGroupHeartbeat (88), version 0; unstable in Kafka 4.1.2.\npub const STREAMS_GROUP_HEARTBEAT: i16 = 88;\n/// StreamsGroupDescribe (89), version 0; unstable in Kafka 4.1.2.\npub const STREAMS_GROUP_DESCRIBE: i16 = 89;\n/// DescribeShareGroupOffsets (90).\npub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;\n/// AlterShareGroupOffsets (91).\npub const ALTER_SHARE_GROUP_OFFSETS: i16 = 91;"
+      }
+    ]
+  },
+  "src/protocol/group.rs": {
+    "identity": {
+      "bytes": 603286,
+      "git_blob": "bbb5d979a96633729d0bffcdc12c2fc5b23ba98c",
+      "git_mode": "100644",
+      "sha256": "0697f0f579dbd9ca57cd0f7ca5ba3162e4e407b7a536c11358a7eeac9031cb24",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 760,
+        "match_line": 750,
+        "start_line": 746,
+        "text": "/// CoordinatorKeys and the top-level coordinator fields with Coordinators\n/// (KIP-699). v5 is TRANSACTION_ABORTABLE (KIP-890). v6 is share groups\n/// (KIP-932). Kafka 4.0 `validVersions` is `0-6`. v0 (no KeyType) and\n/// v7+ are not spoken.\nfn find_coordinator_flexible(version: i16) -> Result<bool> {\n    match version {\n        1..=2 => Ok(false),\n        3..=6 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"FindCoordinator version {other} is not implemented\"\n        ))),\n    }\n}\n\nfn find_coordinator_batched(version: i16) -> bool {"
+      },
+      {
+        "end_line": 1100,
+        "match_line": 1090,
+        "start_line": 1086,
+        "text": "/// v5 GroupInstanceId. v7 response ProtocolType / nullable ProtocolName\n/// (KIP-559). v8 Reason (KIP-800). v9 SkipAssignment. Kafka 4.0\n/// `validVersions` is `2-9` (v0\u2013v1 removed). This crate speaks 2\u20139.\n/// v0\u2013v1 and v10+ are not spoken.\nfn join_group_flexible(version: i16) -> Result<bool> {\n    match version {\n        2..=5 => Ok(false),\n        6..=9 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"JoinGroup version {other} is not implemented\"\n        ))),\n    }\n}\n\n/// JoinGroup request (classic v2\u2013v5 or flexible v6\u2013v9)."
+      },
+      {
+        "end_line": 2856,
+        "match_line": 2846,
+        "start_line": 2842,
+        "text": "///\n/// [`Self::error_result`] is Java `OffsetCommitRequest.getErrorResponse` one\n/// topic.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct OffsetTopic {\n    /// Topic name.\n    pub topic: String,\n    /// Partitions to commit.\n    pub partitions: Vec<OffsetPartition>,\n}\n\nimpl OffsetTopic {\n    /// Java `OffsetCommitRequest.getErrorResponse` one topic.\n    ///\n    /// Copies `Name` and each `PartitionIndex`. Nested body is"
+      },
+      {
+        "end_line": 2963,
+        "match_line": 2953,
+        "start_line": 2949,
+        "text": "///\n/// [`Self::error_result`] is Java `OffsetFetchRequest.getErrorResponse` one\n/// topic.\n#[derive(Debug, Clone, PartialEq, Eq)]\npub struct OffsetFetchTopic {\n    /// Topic name.\n    pub topic: String,\n    /// Partition indexes to fetch.\n    pub partitions: Vec<i32>,\n}\n\nimpl OffsetFetchTopic {\n    /// Java `OffsetFetchRequest.getErrorResponse` one topic.\n    ///\n    /// OffsetFetch v1 fills each partition via [`FetchedOffset::error`]. v2"
+      },
+      {
+        "end_line": 3923,
+        "match_line": 3913,
+        "start_line": 3909,
+        "text": "/// drops retention. v6 CommittedLeaderEpoch. v7 GroupInstanceId. v9 is\n/// KIP-848 error codes with the same layout as v8. Kafka 4.0\n/// `validVersions` is `2-9` (v0\u2013v1 removed). This crate speaks 2\u20139.\n/// v0\u2013v1 and v10+ are not spoken.\nfn offset_commit_flexible(version: i16) -> Result<bool> {\n    match version {\n        2..=7 => Ok(false),\n        8..=9 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"OffsetCommit version {other} is not implemented\"\n        ))),\n    }\n}\n\n/// Java `OffsetCommitRequest.DEFAULT_GENERATION_ID`."
+      },
+      {
+        "end_line": 4200,
+        "match_line": 4190,
+        "start_line": 4186,
+        "text": "#[expect(\n    clippy::too_many_arguments,\n    reason = \"OffsetCommit request body needs version, group, generation, member, instance, retention, and topics together\"\n)]\npub fn encode_offset_commit_request(\n    buf: &mut BytesMut,\n    version: i16,\n    group_id: &str,\n    generation_id: i32,\n    member_id: &str,\n    group_instance_id: Option<&str>,\n    retention_time_ms: i64,\n    topics: &[OffsetTopic],\n) -> crate::error::Result<()> {\n    let flexible = offset_commit_flexible(version)?;"
+      },
+      {
+        "end_line": 4387,
+        "match_line": 4377,
+        "start_line": 4373,
+        "text": "}\n\n/// Decode OffsetCommit: first non-zero partition error, or `0`.\n/// Throttle is v3+.\npub fn decode_offset_commit_response<B: Buf>(buf: &mut B, version: i16) -> Result<i16> {\n    let (topics, ..) = decode_offset_commit_topics_response(buf, version)?;\n    let mut first_err = 0i16;\n    for t in &topics {\n        for p in &t.partitions {\n            if first_err == 0 && p.error_code != 0 {\n                first_err = p.error_code;\n            }\n        }\n    }\n    Ok(first_err)"
+      },
+      {
+        "end_line": 4447,
+        "match_line": 4437,
+        "start_line": 4433,
+        "text": "/// CommittedLeaderEpoch. v7 RequireStable. v8 Groups (KIP-709). v9\n/// MemberId / MemberEpoch (KIP-848). Kafka 4.0 `validVersions` is\n/// `1-9` (v0 removed). This crate speaks 1\u20139. v0 and v10+ (topic IDs)\n/// are not spoken.\nfn offset_fetch_flexible(version: i16) -> Result<bool> {\n    match version {\n        1..=5 => Ok(false),\n        6..=9 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"OffsetFetch version {other} is not implemented\"\n        ))),\n    }\n}\n\nfn encode_offset_fetch_topics("
+      },
+      {
+        "end_line": 4659,
+        "match_line": 4649,
+        "start_line": 4645,
+        "text": "/// `NoBatchedOffsetFetchRequestException`. A single group below v8\n/// is a protocol error (`does not support Groups`; use\n/// [`encode_offset_fetch_request`]). Null Topics per group is allowed.\n/// Empty `groups` writes Groups length 0.\npub fn encode_offset_fetch_groups_request(\n    buf: &mut BytesMut,\n    version: i16,\n    groups: &[OffsetFetchGroup],\n    require_stable: bool,\n) -> crate::error::Result<()> {\n    let _flexible = offset_fetch_flexible(version)?;\n    if version < 8 {\n        if groups.len() > 1 {\n            return Err(Error::Unsupported(format!(\n                \"Broker does not support batching groups for fetch offset request on version {version}\""
+      },
+      {
+        "end_line": 4866,
+        "match_line": 4856,
+        "start_line": 4852,
+        "text": "///\n/// Does not fail on a non-zero group ErrorCode; callers decide. Below v3\n/// ThrottleTimeMs is omitted; decode fills `0`. v1\u2013v7 yield one group\n/// with an empty `group_id`.\npub fn decode_offset_fetch_groups_response<B: Buf>(\n    buf: &mut B,\n    version: i16,\n) -> Result<(Vec<OffsetFetchGroupResult>, i32)> {\n    let flexible = offset_fetch_flexible(version)?;\n    let throttle_time_ms = if version >= 3 { buf::get_i32(buf)? } else { 0 };\n    let groups = if version <= 7 {\n        let topics = decode_fetched_offset_topics(buf, version, flexible)?;\n        let error_code = if version >= 2 { buf::get_i16(buf)? } else { 0 };\n        vec![OffsetFetchGroupResult {\n            group_id: String::new(),"
+      }
+    ]
+  },
+  "src/protocol/idem.rs": {
+    "identity": {
+      "bytes": 28038,
+      "git_blob": "9205907702875ccb4b4266bb8a7614cd81771387",
+      "git_mode": "100644",
+      "sha256": "6154128750f29bca3b79a8217e49b19b77ad988dbf7ad77c63647e5fea2f9e60",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 28,
+        "match_line": 18,
+        "start_line": 14,
+        "text": "/// (Apache JSON `flexibleVersions: \"2+\"`). v3+ adds ProducerId /\n/// ProducerEpoch on the request (KIP-360). v4 is PRODUCER_FENCED; v5\n/// is TRANSACTION_ABORTABLE (KIP-890). Kafka 4.0 `validVersions` is\n/// `0-5`. v6+ (KIP-939 2PC Enable2Pc / KeepPreparedTxn) is not spoken.\nfn init_producer_id_flexible(version: i16) -> Result<bool> {\n    match version {\n        0..=1 => Ok(false),\n        2..=5 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"InitProducerId version {other} is not implemented\"\n        ))),\n    }\n}\n\n/// Java `InitProducerIdRequest` helpers."
+      },
+      {
+        "end_line": 118,
+        "match_line": 108,
+        "start_line": 104,
+        "text": "/// [`InitProducerIdRequest::build`] is Java\n/// `InitProducerIdRequest.Builder.build` (rejects a non-positive timeout\n/// and an empty (non-null) transactional id). Encode still writes\n/// independently after that helper.\npub fn encode_init_producer_id_request(\n    buf: &mut BytesMut,\n    version: i16,\n    transactional_id: Option<&str>,\n    transaction_timeout_ms: i32,\n    producer_id: i64,\n    producer_epoch: i16,\n) -> crate::error::Result<()> {\n    let flexible = init_producer_id_flexible(version)?;\n    InitProducerIdRequest::build(transaction_timeout_ms, transactional_id)?;\n    buf::put_string(buf, flexible, transactional_id)?;"
+      },
+      {
+        "end_line": 171,
+        "match_line": 161,
+        "start_line": 157,
+        "text": "/// Decode InitProducerId: `(error_code, producer_id, producer_epoch, throttle_time_ms)`.\n///\n/// ThrottleTimeMs is JSON `0+` (always on the wire). Top-level ErrorCode\n/// is at bytes 4\u20135.\npub fn decode_init_producer_id_response<B: Buf>(\n    buf: &mut B,\n    version: i16,\n) -> Result<(i16, i64, i16, i32)> {\n    let flexible = init_producer_id_flexible(version)?;\n    let throttle_time_ms = buf::get_i32(buf)?;\n    let error_code = buf::get_i16(buf)?;\n    let producer_id = buf::get_i64(buf)?;\n    let producer_epoch = buf::get_i16(buf)?;\n    if flexible {\n        buf::skip_tagged_fields(buf)?;"
+      }
+    ]
+  },
+  "src/protocol/txn.rs": {
+    "identity": {
+      "bytes": 255842,
+      "git_blob": "398cb6e0a2ad7289ea7b32bcf5e90ba4abae0fd8",
+      "git_mode": "100644",
+      "sha256": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+      "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    "snippets": [
+      {
+        "end_line": 271,
+        "match_line": 261,
+        "start_line": 257,
+        "text": "///\n/// v0\u2013v2 are classic. v3 is compact strings/arrays plus tagged fields\n/// (Apache JSON `flexibleVersions: \"3+\"`). v4+ (batched transactions,\n/// broker-only layout) is not spoken.\nfn add_partitions_to_txn_flexible(version: i16) -> Result<bool> {\n    match version {\n        0..=2 => Ok(false),\n        3 => Ok(true),\n        other => Err(Error::protocol(format!(\n            \"AddPartitionsToTxn version {other} is not implemented\"\n        ))),\n    }\n}\n\n/// Java `AddPartitionsToTxnRequest` helpers."
+      },
+      {
+        "end_line": 333,
+        "match_line": 323,
+        "start_line": 319,
+        "text": "            })\n            .collect()\n    }\n\n    /// Java `AddPartitionsToTxnRequest.LAST_CLIENT_VERSION`.\n    ///\n    /// Latest version [`Self::for_client`] will negotiate. Broker\n    /// verification requests start at v4 and are not spoken.\n    pub const LAST_CLIENT_VERSION: i16 = 3;\n\n    /// Java `AddPartitionsToTxnRequest.Builder.forClient`.\n    ///\n    /// Oldest allowed version is 0 (Java\n    /// `ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion()` on Kafka 4.0).\n    /// Latest is [`Self::LAST_CLIENT_VERSION`]. Topics are"
+      },
+      {
+        "end_line": 337,
+        "match_line": 327,
+        "start_line": 323,
+        "text": "    /// Java `AddPartitionsToTxnRequest.LAST_CLIENT_VERSION`.\n    ///\n    /// Latest version [`Self::for_client`] will negotiate. Broker\n    /// verification requests start at v4 and are not spoken.\n    pub const LAST_CLIENT_VERSION: i16 = 3;\n\n    /// Java `AddPartitionsToTxnRequest.Builder.forClient`.\n    ///\n    /// Oldest allowed version is 0 (Java\n    /// `ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion()` on Kafka 4.0).\n    /// Latest is [`Self::LAST_CLIENT_VERSION`]. Topics are\n    /// [`Self::from_partitions`]. This crate speaks 0\u20133. v4+\n    /// (`forBroker`) is not spoken. This is not [`Self::partitions`] /\n    /// [`Self::from_partitions`] / [`Self::error_response`] / `forBroker`.\n    #[must_use]"
+      },
+      {
+        "end_line": 343,
+        "match_line": 333,
+        "start_line": 329,
+        "text": "    /// Java `AddPartitionsToTxnRequest.Builder.forClient`.\n    ///\n    /// Oldest allowed version is 0 (Java\n    /// `ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion()` on Kafka 4.0).\n    /// Latest is [`Self::LAST_CLIENT_VERSION`]. Topics are\n    /// [`Self::from_partitions`]. This crate speaks 0\u20133. v4+\n    /// (`forBroker`) is not spoken. This is not [`Self::partitions`] /\n    /// [`Self::from_partitions`] / [`Self::error_response`] / `forBroker`.\n    #[must_use]\n    pub const fn for_client() -> (i16, i16) {\n        (0, Self::LAST_CLIENT_VERSION)\n    }\n\n    /// Java `AddPartitionsToTxnRequest.getErrorResponse`.\n    ///"
+      },
+      {
+        "end_line": 349,
+        "match_line": 339,
+        "start_line": 335,
+        "text": "    /// (`forBroker`) is not spoken. This is not [`Self::partitions`] /\n    /// [`Self::from_partitions`] / [`Self::error_response`] / `forBroker`.\n    #[must_use]\n    pub const fn for_client() -> (i16, i16) {\n        (0, Self::LAST_CLIENT_VERSION)\n    }\n\n    /// Java `AddPartitionsToTxnRequest.getErrorResponse`.\n    ///\n    /// Spoken versions write ResultsByTopicV3AndBelow from\n    /// [`TxnPartitionsTopic::error_results`] (v4+ top-level ErrorCode is\n    /// not spoken). ThrottleTimeMs is `throttle_time_ms` on every spoken\n    /// version (JSON `0+`). [`encode_add_partitions_to_txn_response`]\n    /// still writes throttle `0`. This crate speaks 0\u20133. This is not\n    /// [`Self::partitions`] / [`Self::from_partitions`] / [`Self::for_client`]"
+      },
+      {
+        "end_line": 496,
+        "match_line": 486,
+        "start_line": 482,
+        "text": "    }\n}\n\n/// Encode AddPartitionsToTxn v0\u2013v2 (classic) or v3 (flexible).\npub fn encode_add_partitions_to_txn_request(\n    buf: &mut BytesMut,\n    version: i16,\n    transactional_id: &str,\n    producer_id: i64,\n    producer_epoch: i16,\n    topics: &[TxnPartitionsTopic],\n) -> crate::error::Result<()> {\n    let flexible = add_partitions_to_txn_flexible(version)?;\n    buf::put_string(buf, flexible, Some(transactional_id))?;\n    buf.put_i64(producer_id);"
+      },
+      {
+        "end_line": 504,
+        "match_line": 494,
+        "start_line": 490,
+        "text": "    producer_id: i64,\n    producer_epoch: i16,\n    topics: &[TxnPartitionsTopic],\n) -> crate::error::Result<()> {\n    let flexible = add_partitions_to_txn_flexible(version)?;\n    buf::put_string(buf, flexible, Some(transactional_id))?;\n    buf.put_i64(producer_id);\n    buf.put_i16(producer_epoch);\n    buf::put_array_len(buf, flexible, Some(topics.len()))?;\n    for t in topics {\n        buf::put_string(buf, flexible, Some(&t.topic))?;\n        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;\n        for p in &t.partitions {\n            buf.put_i32(*p);\n        }"
+      },
+      {
+        "end_line": 530,
+        "match_line": 520,
+        "start_line": 516,
+        "text": "pub fn decode_add_partitions_to_txn_request<B: Buf>(\n    buf: &mut B,\n    version: i16,\n) -> Result<(String, i64, i16, Vec<TxnPartitionsTopic>)> {\n    let flexible = add_partitions_to_txn_flexible(version)?;\n    let tid = buf::get_string(buf, flexible)?.unwrap_or_default();\n    let pid = buf::get_i64(buf)?;\n    let epoch = buf::get_i16(buf)?;\n    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);\n    let mut topics = Vec::with_capacity(tn);\n    for _ in 0..tn {\n        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();\n        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);\n        let mut partitions = Vec::with_capacity(pn);\n        for _ in 0..pn {"
+      },
+      {
+        "end_line": 597,
+        "match_line": 587,
+        "start_line": 583,
+        "text": "    version: i16,\n    topics: &[AddPartitionsToTxnTopicResult],\n    throttle_time_ms: i32,\n) -> Result<()> {\n    let flexible = add_partitions_to_txn_flexible(version)?;\n    buf.put_i32(throttle_time_ms);\n    buf::put_array_len(buf, flexible, Some(topics.len()))?;\n    for t in topics {\n        buf::put_string(buf, flexible, Some(&t.topic))?;\n        buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;\n        for p in &t.partitions {\n            buf.put_i32(p.partition);\n            buf.put_i16(p.error_code);\n            if flexible {\n                buf::put_empty_tagged_fields(buf);"
+      },
+      {
+        "end_line": 643,
+        "match_line": 633,
+        "start_line": 629,
+        "text": "pub fn decode_add_partitions_to_txn_topics_response<B: Buf>(\n    buf: &mut B,\n    version: i16,\n) -> Result<(Vec<AddPartitionsToTxnTopicResult>, i32)> {\n    let flexible = add_partitions_to_txn_flexible(version)?;\n    let throttle_time_ms = buf::get_i32(buf)?;\n    let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);\n    let mut topics = Vec::with_capacity(tn);\n    for _ in 0..tn {\n        let topic = buf::get_string(buf, flexible)?.unwrap_or_default();\n        let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);\n        let mut partitions = Vec::with_capacity(pn);\n        for _ in 0..pn {\n            let partition = buf::get_i32(buf)?;\n            let error_code = buf::get_i16(buf)?;"
+      },
+      {
+        "end_line": 6177,
+        "match_line": 6167,
+        "start_line": 6163,
+        "text": "    #[test]\n    fn add_partitions_to_txn_request_for_client_matches_java() {\n        // Java 4.0 AddPartitionsToTxnRequest.Builder.forClient: oldest\n        // allowed version is ApiKeys.ADD_PARTITIONS_TO_TXN.oldestVersion\n        // (0); latest is LAST_CLIENT_VERSION (3). Official Java\n        // AddPartitionsToTxnRequest.Builder.forClient. Topics are\n        // buildTxnTopicCollection. v4+ forBroker is not spoken. This\n        // crate speaks 0-3. This is not getPartitions /\n        // buildTxnTopicCollection / getErrorResponse / forBroker.\n        assert_eq!(AddPartitionsToTxnRequest::LAST_CLIENT_VERSION, 3);\n        let (oldest, latest) = AddPartitionsToTxnRequest::for_client();\n        assert_eq!(oldest, 0);\n        assert_eq!(latest, AddPartitionsToTxnRequest::LAST_CLIENT_VERSION);\n        let topics = AddPartitionsToTxnRequest::from_partitions([(\"t\", 0), (\"t\", 1)]);\n        leftover_for_client(oldest, &topics);"
+      },
+      {
+        "end_line": 6182,
+        "match_line": 6172,
+        "start_line": 6168,
+        "text": "        // AddPartitionsToTxnRequest.Builder.forClient. Topics are\n        // buildTxnTopicCollection. v4+ forBroker is not spoken. This\n        // crate speaks 0-3. This is not getPartitions /\n        // buildTxnTopicCollection / getErrorResponse / forBroker.\n        assert_eq!(AddPartitionsToTxnRequest::LAST_CLIENT_VERSION, 3);\n        let (oldest, latest) = AddPartitionsToTxnRequest::for_client();\n        assert_eq!(oldest, 0);\n        assert_eq!(latest, AddPartitionsToTxnRequest::LAST_CLIENT_VERSION);\n        let topics = AddPartitionsToTxnRequest::from_partitions([(\"t\", 0), (\"t\", 1)]);\n        leftover_for_client(oldest, &topics);\n        leftover_for_client(latest, &topics);\n        leftover_for_client(oldest, &[]);\n        leftover_for_client(latest, &[]);\n    }\n"
+      },
+      {
+        "end_line": 6185,
+        "match_line": 6175,
+        "start_line": 6171,
+        "text": "        // buildTxnTopicCollection / getErrorResponse / forBroker.\n        assert_eq!(AddPartitionsToTxnRequest::LAST_CLIENT_VERSION, 3);\n        let (oldest, latest) = AddPartitionsToTxnRequest::for_client();\n        assert_eq!(oldest, 0);\n        assert_eq!(latest, AddPartitionsToTxnRequest::LAST_CLIENT_VERSION);\n        let topics = AddPartitionsToTxnRequest::from_partitions([(\"t\", 0), (\"t\", 1)]);\n        leftover_for_client(oldest, &topics);\n        leftover_for_client(latest, &topics);\n        leftover_for_client(oldest, &[]);\n        leftover_for_client(latest, &[]);\n    }\n\n    fn leftover_for_client(version: i16, topics: &[TxnPartitionsTopic]) {\n        let mut buf = BytesMut::new();\n        encode_add_partitions_to_txn_request(&mut buf, version, \"tx\", 9, 1, topics).unwrap();"
+      }
+    ]
+  }
+}

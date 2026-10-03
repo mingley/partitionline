@@ -1,0 +1,5824 @@
+{
+  "api_count": 93,
+  "qualification": "STATIC MAPPING ONLY; full conformance remains blocked",
+  "rows": [
+    {
+      "api_key": 0,
+      "broker_cards": [
+        "KL11-06",
+        "KL11-19",
+        "KL11-23",
+        "KL11-75"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-11",
+        "KL05-08",
+        "KL03-08",
+        "KL03-11",
+        "KL03-19"
+      ],
+      "client_declared_versions": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-08": "done",
+        "KL03-11": "done",
+        "KL03-19": "pending",
+        "KL05-08": "done",
+        "KL05-11": "done",
+        "KL11-06": "done",
+        "KL11-19": "pending",
+        "KL11-23": "pending",
+        "KL11-75": "in_progress"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "Produce",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          11
+        ],
+        "4.1.0": [
+          3,
+          13
+        ],
+        "4.1.2": [
+          3,
+          13
+        ],
+        "4.2.1": [
+          3,
+          13
+        ],
+        "4.3.1": [
+          3,
+          13
+        ]
+      }
+    },
+    {
+      "api_key": 1,
+      "broker_cards": [
+        "KL11-07",
+        "KL11-18",
+        "KL11-19",
+        "KL11-25",
+        "KL11-75"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-12",
+        "KL05-06",
+        "KL05-07",
+        "KL05-09",
+        "KL03-02",
+        "KL03-03",
+        "KL03-22"
+      ],
+      "client_declared_versions": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-02": "done",
+        "KL03-03": "done",
+        "KL03-22": "done",
+        "KL05-06": "done",
+        "KL05-07": "done",
+        "KL05-09": "done",
+        "KL05-12": "done",
+        "KL11-07": "done",
+        "KL11-18": "pending",
+        "KL11-19": "pending",
+        "KL11-25": "pending",
+        "KL11-75": "in_progress"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "Fetch",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          17
+        ],
+        "4.1.0": [
+          4,
+          18
+        ],
+        "4.1.2": [
+          4,
+          18
+        ],
+        "4.2.1": [
+          4,
+          18
+        ],
+        "4.3.1": [
+          4,
+          18
+        ]
+      }
+    },
+    {
+      "api_key": 2,
+      "broker_cards": [
+        "KL11-07",
+        "KL11-20",
+        "KL11-75"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-13",
+        "KL03-05"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-05": "done",
+        "KL05-13": "done",
+        "KL11-07": "done",
+        "KL11-20": "pending",
+        "KL11-75": "in_progress"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ListOffsets",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          9
+        ],
+        "4.1.0": [
+          1,
+          10
+        ],
+        "4.1.2": [
+          1,
+          10
+        ],
+        "4.2.1": [
+          1,
+          11
+        ],
+        "4.3.1": [
+          1,
+          11
+        ]
+      }
+    },
+    {
+      "api_key": 3,
+      "broker_cards": [
+        "KL11-05",
+        "KL11-17"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL01-06",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL01-06": "done",
+        "KL05-28": "done",
+        "KL11-05": "done",
+        "KL11-17": "pending"
+      },
+      "lower_version_policy": "Unsupported below the declared client minimum, not an excluded API. Existing KL01-14 qualification must retain actual zero-application-frame/typed-refusal cells; no runtime pass inferred here.",
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "Metadata",
+      "new_proposed_cards": [
+        "Q-CAP-LegacyDiscovery0"
+      ],
+      "notes": "Metadata0 remains valid in all3 current upstream schemas but Rust declares a minimum1. Keep the explicit unsupported-minimum negotiation case; do not erase upstream0 or infer independent pass from a version table.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          12
+        ],
+        "4.1.0": [
+          0,
+          13
+        ],
+        "4.1.2": [
+          0,
+          13
+        ],
+        "4.2.1": [
+          0,
+          13
+        ],
+        "4.3.1": [
+          0,
+          13
+        ]
+      }
+    },
+    {
+      "api_key": 4,
+      "broker_cards": [
+        "KL11-17"
+      ],
+      "classification": "removed_current",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-17": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "LeaderAndIsr",
+      "new_proposed_cards": [],
+      "notes": "Removed in all three current pinned schemas; legacy ZooKeeper/controller-to-broker form is not a current public-client gap.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          7
+        ],
+        "4.1.0": [
+          0,
+          7
+        ],
+        "4.1.2": null,
+        "4.2.1": null,
+        "4.3.1": null
+      }
+    },
+    {
+      "api_key": 5,
+      "broker_cards": [
+        "KL11-17"
+      ],
+      "classification": "removed_current",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-17": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "StopReplica",
+      "new_proposed_cards": [],
+      "notes": "Removed in all three current pinned schemas; legacy replica-stop form is not a current public-client gap.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          0,
+          4
+        ],
+        "4.1.2": null,
+        "4.2.1": null,
+        "4.3.1": null
+      }
+    },
+    {
+      "api_key": 6,
+      "broker_cards": [
+        "KL11-16",
+        "KL11-17"
+      ],
+      "classification": "removed_current",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-16": "pending",
+        "KL11-17": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "UpdateMetadata",
+      "new_proposed_cards": [],
+      "notes": "Removed in all three current pinned schemas; legacy controller broadcast form is not a current public-client gap.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          8
+        ],
+        "4.1.0": [
+          0,
+          8
+        ],
+        "4.1.2": null,
+        "4.2.1": null,
+        "4.3.1": null
+      }
+    },
+    {
+      "api_key": 7,
+      "broker_cards": [
+        "KL11-16"
+      ],
+      "classification": "removed_current",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-16": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ControlledShutdown",
+      "new_proposed_cards": [],
+      "notes": "Removed in all three current pinned schemas; legacy ControlledShutdown form is not a current public-client gap.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          0,
+          3
+        ],
+        "4.1.2": null,
+        "4.2.1": null,
+        "4.3.1": null
+      }
+    },
+    {
+      "api_key": 8,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-06",
+        "KL03-07",
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-06": "done",
+        "KL03-07": "done",
+        "KL03-20": "pending",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [],
+        "4.1.2": [
+          10
+        ],
+        "4.2.1": [
+          10
+        ],
+        "4.3.1": [
+          10
+        ]
+      },
+      "name": "OffsetCommit",
+      "new_proposed_cards": [
+        "Q-CAP-OffsetsUuid10"
+      ],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          9
+        ],
+        "4.1.0": [
+          2,
+          9
+        ],
+        "4.1.2": [
+          2,
+          10
+        ],
+        "4.2.1": [
+          2,
+          10
+        ],
+        "4.3.1": [
+          2,
+          10
+        ]
+      }
+    },
+    {
+      "api_key": 9,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-06",
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-06": "done",
+        "KL03-20": "pending",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [
+          10
+        ],
+        "4.2.1": [
+          10
+        ],
+        "4.3.1": [
+          10
+        ]
+      },
+      "name": "OffsetFetch",
+      "new_proposed_cards": [
+        "Q-CAP-OffsetsUuid10"
+      ],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          9
+        ],
+        "4.1.0": [
+          1,
+          9
+        ],
+        "4.1.2": [
+          1,
+          10
+        ],
+        "4.2.1": [
+          1,
+          10
+        ],
+        "4.3.1": [
+          1,
+          10
+        ]
+      }
+    },
+    {
+      "api_key": 10,
+      "broker_cards": [
+        "KL11-24",
+        "KL11-27",
+        "KL11-31",
+        "KL11-32"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28",
+        "KL03-12"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-12": "done",
+        "KL05-28": "done",
+        "KL11-24": "pending",
+        "KL11-27": "pending",
+        "KL11-31": "pending",
+        "KL11-32": "pending"
+      },
+      "lower_version_policy": "Unsupported below the declared client minimum, not an excluded API. Existing KL01-14 qualification must retain actual zero-application-frame/typed-refusal cells; no runtime pass inferred here.",
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "FindCoordinator",
+      "new_proposed_cards": [
+        "Q-CAP-LegacyDiscovery0"
+      ],
+      "notes": "FindCoordinator0 remains valid in all3 current upstream schemas but Rust declares a minimum1. Keep the explicit unsupported-minimum negotiation case, including actual0-only coordinator peers.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          6
+        ],
+        "4.2.1": [
+          0,
+          6
+        ],
+        "4.3.1": [
+          0,
+          6
+        ]
+      }
+    },
+    {
+      "api_key": 11,
+      "broker_cards": [
+        "KL11-27",
+        "KL11-28"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-14",
+        "KL03-21"
+      ],
+      "client_declared_versions": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-14": "done",
+        "KL03-21": "pending",
+        "KL11-27": "pending",
+        "KL11-28": "pending"
+      },
+      "lower_version_policy": "Unsupported below the declared client minimum, not an excluded API. Existing KL01-14 qualification must retain actual zero-application-frame/typed-refusal cells; no runtime pass inferred here.",
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "JoinGroup",
+      "new_proposed_cards": [
+        "Q-CAP-LegacyJoin0_1"
+      ],
+      "notes": "JoinGroup0/1 remain valid in all3 corrected current upstream schemas but Rust declares a minimum2. Keep the explicit unsupported-minimum negotiation cases; this is distinct from latest-version field additions.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          9
+        ],
+        "4.1.0": [
+          2,
+          9
+        ],
+        "4.1.2": [
+          0,
+          9
+        ],
+        "4.2.1": [
+          0,
+          9
+        ],
+        "4.3.1": [
+          0,
+          9
+        ]
+      }
+    },
+    {
+      "api_key": 12,
+      "broker_cards": [
+        "KL11-28"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-21"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-21": "pending",
+        "KL11-28": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "Heartbeat",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          0,
+          4
+        ],
+        "4.1.2": [
+          0,
+          4
+        ],
+        "4.2.1": [
+          0,
+          4
+        ],
+        "4.3.1": [
+          0,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 13,
+      "broker_cards": [
+        "KL11-28"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-14",
+        "KL03-21"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-14": "done",
+        "KL03-21": "pending",
+        "KL11-28": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "LeaveGroup",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 14,
+      "broker_cards": [
+        "KL11-27"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-14",
+        "KL03-21"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-14": "done",
+        "KL03-21": "pending",
+        "KL11-27": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "SyncGroup",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 15,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeGroups",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          6
+        ],
+        "4.1.2": [
+          0,
+          6
+        ],
+        "4.2.1": [
+          0,
+          6
+        ],
+        "4.3.1": [
+          0,
+          6
+        ]
+      }
+    },
+    {
+      "api_key": 16,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ListGroups",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 17,
+      "broker_cards": [
+        "KL11-36",
+        "KL11-37",
+        "KL11-38"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-01",
+        "KL06-04",
+        "KL06-06"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL06-01": "done",
+        "KL06-04": "done",
+        "KL06-06": "pending",
+        "KL11-36": "done",
+        "KL11-37": "in_progress",
+        "KL11-38": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "SaslHandshake",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 18,
+      "broker_cards": [
+        "KL11-04",
+        "KL11-48"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-04": "done",
+        "KL11-48": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ApiVersions",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          0,
+          4
+        ],
+        "4.1.2": [
+          0,
+          4
+        ],
+        "4.2.1": [
+          0,
+          4
+        ],
+        "4.3.1": [
+          0,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 19,
+      "broker_cards": [
+        "KL11-05",
+        "KL11-59"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-05": "done",
+        "KL11-59": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "CreateTopics",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          7
+        ],
+        "4.1.0": [
+          2,
+          7
+        ],
+        "4.1.2": [
+          2,
+          7
+        ],
+        "4.2.1": [
+          2,
+          7
+        ],
+        "4.3.1": [
+          2,
+          7
+        ]
+      }
+    },
+    {
+      "api_key": 20,
+      "broker_cards": [
+        "KL11-05",
+        "KL11-59"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-05": "done",
+        "KL11-59": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DeleteTopics",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          6
+        ],
+        "4.1.0": [
+          1,
+          6
+        ],
+        "4.1.2": [
+          1,
+          6
+        ],
+        "4.2.1": [
+          1,
+          6
+        ],
+        "4.3.1": [
+          1,
+          6
+        ]
+      }
+    },
+    {
+      "api_key": 21,
+      "broker_cards": [
+        "KL11-10"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-10": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DeleteRecords",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 22,
+      "broker_cards": [
+        "KL11-23",
+        "KL11-24"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-09",
+        "KL03-10",
+        "KL03-20",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-09": "done",
+        "KL03-10": "done",
+        "KL03-20": "pending",
+        "KL05-28": "done",
+        "KL11-23": "pending",
+        "KL11-24": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [
+          6
+        ],
+        "4.2.1": [
+          6
+        ],
+        "4.3.1": [
+          6
+        ]
+      },
+      "name": "InitProducerId",
+      "new_proposed_cards": [
+        "Q-CAP-InitProducerId6",
+        "Q-DEC-PreparedTxnLifecycle"
+      ],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          6
+        ],
+        "4.2.1": [
+          0,
+          6
+        ],
+        "4.3.1": [
+          0,
+          6
+        ]
+      }
+    },
+    {
+      "api_key": 23,
+      "broker_cards": [
+        "KL11-20"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-04",
+        "KL03-22"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-04": "done",
+        "KL03-22": "done",
+        "KL11-20": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "OffsetForLeaderEpoch",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          2,
+          4
+        ],
+        "4.1.2": [
+          2,
+          4
+        ],
+        "4.2.1": [
+          2,
+          4
+        ],
+        "4.3.1": [
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 24,
+      "broker_cards": [
+        "KL11-24",
+        "KL11-25"
+      ],
+      "broker_only_versions": [
+        4,
+        5
+      ],
+      "classification": "public_client_and_internal",
+      "client_applicable_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_cards": [
+        "KL03-10",
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-10": "done",
+        "KL03-20": "pending",
+        "KL11-24": "pending",
+        "KL11-25": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          4,
+          5
+        ],
+        "4.1.0": [
+          4,
+          5
+        ],
+        "4.1.2": [
+          4,
+          5
+        ],
+        "4.2.1": [
+          4,
+          5
+        ],
+        "4.3.1": [
+          4,
+          5
+        ]
+      },
+      "name": "AddPartitionsToTxn",
+      "new_proposed_cards": [],
+      "notes": "Split by version: client factory supports0\u20133; broker factory supports4\u20135 batched Transactions/VerifyOnly. Do not require Producer to send4\u20135.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          5
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 25,
+      "broker_cards": [
+        "KL11-26"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-20": "pending",
+        "KL11-26": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AddOffsetsToTxn",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          0,
+          4
+        ],
+        "4.1.2": [
+          0,
+          4
+        ],
+        "4.2.1": [
+          0,
+          4
+        ],
+        "4.3.1": [
+          0,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 26,
+      "broker_cards": [
+        "KL11-24",
+        "KL11-25"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-10",
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-10": "done",
+        "KL03-20": "pending",
+        "KL11-24": "pending",
+        "KL11-25": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "EndTxn",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 27,
+      "broker_cards": [
+        "KL11-25",
+        "KL11-41"
+      ],
+      "classification": "public_client_and_internal",
+      "client_cards": [
+        "KL05-29"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-29": "in_progress",
+        "KL11-25": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "WriteTxnMarkers",
+      "new_proposed_cards": [],
+      "notes": "Dual use: WriteTxnMarkers is internal marker traffic AND public Java Admin.abortTransaction. clusterAction does not justify excluding its public surface.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          1,
+          1
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 28,
+      "broker_cards": [
+        "KL11-26"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-20"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-20": "pending",
+        "KL11-26": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "TxnOffsetCommit",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          0,
+          5
+        ],
+        "4.1.2": [
+          0,
+          5
+        ],
+        "4.2.1": [
+          0,
+          5
+        ],
+        "4.3.1": [
+          0,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 29,
+      "broker_cards": [
+        "KL11-39"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-39": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeAcls",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          1,
+          3
+        ],
+        "4.1.2": [
+          1,
+          3
+        ],
+        "4.2.1": [
+          1,
+          3
+        ],
+        "4.3.1": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 30,
+      "broker_cards": [
+        "KL11-39"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-39": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "CreateAcls",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          1,
+          3
+        ],
+        "4.1.2": [
+          1,
+          3
+        ],
+        "4.2.1": [
+          1,
+          3
+        ],
+        "4.3.1": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 31,
+      "broker_cards": [
+        "KL11-39"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-39": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DeleteAcls",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          1,
+          3
+        ],
+        "4.1.2": [
+          1,
+          3
+        ],
+        "4.2.1": [
+          1,
+          3
+        ],
+        "4.3.1": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 32,
+      "broker_cards": [
+        "KL11-21"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-21": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeConfigs",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          1,
+          4
+        ],
+        "4.1.2": [
+          1,
+          4
+        ],
+        "4.2.1": [
+          1,
+          4
+        ],
+        "4.3.1": [
+          1,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 33,
+      "broker_cards": [
+        "KL11-21"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-21": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AlterConfigs",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 34,
+      "broker_cards": [
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AlterReplicaLogDirs",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          1,
+          2
+        ],
+        "4.1.2": [
+          1,
+          2
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 35,
+      "broker_cards": [
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-22"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-22": "done",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeLogDirs",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          4
+        ],
+        "4.1.0": [
+          1,
+          4
+        ],
+        "4.1.2": [
+          1,
+          4
+        ],
+        "4.2.1": [
+          1,
+          4
+        ],
+        "4.3.1": [
+          1,
+          5
+        ]
+      }
+    },
+    {
+      "api_key": 36,
+      "broker_cards": [
+        "KL11-36",
+        "KL11-37",
+        "KL11-38",
+        "KL11-71"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-01",
+        "KL06-02",
+        "KL06-03",
+        "KL06-04",
+        "KL06-06"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL06-01": "done",
+        "KL06-02": "done",
+        "KL06-03": "done",
+        "KL06-04": "done",
+        "KL06-06": "pending",
+        "KL11-36": "done",
+        "KL11-37": "in_progress",
+        "KL11-38": "pending",
+        "KL11-71": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "SaslAuthenticate",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 37,
+      "broker_cards": [
+        "KL11-05",
+        "KL11-17"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-05": "done",
+        "KL11-17": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "CreatePartitions",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          0,
+          3
+        ],
+        "4.1.2": [
+          0,
+          3
+        ],
+        "4.2.1": [
+          0,
+          3
+        ],
+        "4.3.1": [
+          0,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 38,
+      "broker_cards": [
+        "KL11-40"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-06",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL06-06": "pending",
+        "KL11-40": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "CreateDelegationToken",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          1,
+          3
+        ],
+        "4.1.2": [
+          1,
+          3
+        ],
+        "4.2.1": [
+          1,
+          3
+        ],
+        "4.3.1": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 39,
+      "broker_cards": [
+        "KL11-40"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-06",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL06-06": "pending",
+        "KL11-40": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "RenewDelegationToken",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          1,
+          2
+        ],
+        "4.1.2": [
+          1,
+          2
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 40,
+      "broker_cards": [
+        "KL11-40"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-06",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL06-06": "pending",
+        "KL11-40": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ExpireDelegationToken",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          1,
+          2
+        ],
+        "4.1.2": [
+          1,
+          2
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 41,
+      "broker_cards": [
+        "KL11-40"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL06-06",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        1,
+        2,
+        3
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL06-06": "pending",
+        "KL11-40": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeDelegationToken",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          1,
+          3
+        ],
+        "4.1.2": [
+          1,
+          3
+        ],
+        "4.2.1": [
+          1,
+          3
+        ],
+        "4.3.1": [
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 42,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DeleteGroups",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 43,
+      "broker_cards": [
+        "KL11-17",
+        "KL11-20",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-16",
+        "KL05-17"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-16": "done",
+        "KL05-17": "done",
+        "KL11-17": "pending",
+        "KL11-20": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ElectLeaders",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 44,
+      "broker_cards": [
+        "KL11-21"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-21": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "IncrementalAlterConfigs",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 45,
+      "broker_cards": [
+        "KL11-17",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-17": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [
+          1
+        ],
+        "4.2.1": [
+          1
+        ],
+        "4.3.1": [
+          1
+        ]
+      },
+      "name": "AlterPartitionReassignments",
+      "new_proposed_cards": [
+        "Q-CAP-Reassignment1"
+      ],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 46,
+      "broker_cards": [
+        "KL11-17",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-17": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ListPartitionReassignments",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 47,
+      "broker_cards": [
+        "KL11-29"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-29": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "OffsetDelete",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 48,
+      "broker_cards": [
+        "KL11-22"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-22": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeClientQuotas",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 49,
+      "broker_cards": [
+        "KL11-22"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-22": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AlterClientQuotas",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 50,
+      "broker_cards": [
+        "KL11-36"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-36": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeUserScramCredentials",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 51,
+      "broker_cards": [
+        "KL11-36"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-36": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AlterUserScramCredentials",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 52,
+      "broker_cards": [
+        "KL11-13",
+        "KL11-70",
+        "KL11-76"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-13": "done",
+        "KL11-70": "pending",
+        "KL11-76": "in_progress"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2
+        ],
+        "4.1.2": [
+          0,
+          1,
+          2
+        ],
+        "4.2.1": [
+          0,
+          1,
+          2
+        ],
+        "4.3.1": [
+          0,
+          1,
+          2
+        ]
+      },
+      "name": "Vote",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 53,
+      "broker_cards": [
+        "KL11-13",
+        "KL11-70",
+        "KL11-76"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-13": "done",
+        "KL11-70": "pending",
+        "KL11-76": "in_progress"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "BeginQuorumEpoch",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 54,
+      "broker_cards": [
+        "KL11-13",
+        "KL11-70",
+        "KL11-76"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-13": "done",
+        "KL11-70": "pending",
+        "KL11-76": "in_progress"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "EndQuorumEpoch",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 55,
+      "broker_cards": [
+        "KL11-14",
+        "KL11-41",
+        "KL11-70",
+        "KL11-73"
+      ],
+      "classification": "public_client_and_internal",
+      "client_cards": [
+        "KL05-18",
+        "KL05-19"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-18": "done",
+        "KL05-19": "done",
+        "KL11-14": "in_progress",
+        "KL11-41": "pending",
+        "KL11-70": "pending",
+        "KL11-73": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeQuorum",
+      "new_proposed_cards": [],
+      "notes": "Dual use: consensus diagnostics AND public Java Admin.describeMetadataQuorum; retain public conformance.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 56,
+      "broker_cards": [
+        "KL11-17"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-17": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.2": [
+          2,
+          3
+        ],
+        "4.2.1": [
+          2,
+          3
+        ],
+        "4.3.1": [
+          2,
+          3
+        ]
+      },
+      "name": "AlterPartition",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          0,
+          3
+        ],
+        "4.1.2": [
+          2,
+          3
+        ],
+        "4.2.1": [
+          2,
+          3
+        ],
+        "4.3.1": [
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "api_key": 57,
+      "broker_cards": [
+        "KL11-41"
+      ],
+      "classification": "public_client_and_internal",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "UpdateFeatures",
+      "new_proposed_cards": [],
+      "notes": "Dual use: controller-facing feature mutation AND public Java Admin.updateFeatures; retain public conformance.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          2
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 58,
+      "broker_cards": [
+        "KL11-41"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "Envelope",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 59,
+      "broker_cards": [
+        "KL11-15"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-15": "done"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "FetchSnapshot",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 60,
+      "broker_cards": [
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeCluster",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          2
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 61,
+      "broker_cards": [
+        "KL11-23",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-23": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeProducers",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 62,
+      "broker_cards": [
+        "KL11-16"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-16": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.0": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "4.1.2": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "4.2.1": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "4.3.1": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "name": "BrokerRegistration",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          3
+        ],
+        "4.1.0": [
+          0,
+          3
+        ],
+        "4.1.2": [
+          0,
+          4
+        ],
+        "4.2.1": [
+          0,
+          4
+        ],
+        "4.3.1": [
+          0,
+          4
+        ]
+      }
+    },
+    {
+      "api_key": 63,
+      "broker_cards": [
+        "KL11-16"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-16": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1,
+          2
+        ]
+      },
+      "name": "BrokerHeartbeat",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 64,
+      "broker_cards": [
+        "KL11-16",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-16": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "UnregisterBroker",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 65,
+      "broker_cards": [
+        "KL11-24",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-24": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeTransactions",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 66,
+      "broker_cards": [
+        "KL11-24",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-24": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [
+          2
+        ],
+        "4.2.1": [
+          2
+        ],
+        "4.3.1": [
+          2
+        ]
+      },
+      "name": "ListTransactions",
+      "new_proposed_cards": [
+        "Q-FIX-ListTransactionsRouting",
+        "Q-CAP-ListTransactions2"
+      ],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          1
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          2
+        ],
+        "4.2.1": [
+          0,
+          2
+        ],
+        "4.3.1": [
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 67,
+      "broker_cards": [
+        "KL11-23"
+      ],
+      "classification": "broker_internal_with_Rust_extension",
+      "client_cards": [],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-23": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AllocateProducerIds",
+      "new_proposed_cards": [],
+      "notes": "Controller PID-block allocation; no standard Java Admin.allocateProducerIds method. Existing Rust raw Admin helper is a nonstandard extension, not public reference equivalence.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 68,
+      "broker_cards": [
+        "KL11-31"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-12",
+        "KL03-15"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-12": "done",
+        "KL03-15": "done",
+        "KL11-31": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ConsumerGroupHeartbeat",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 69,
+      "broker_cards": [
+        "KL11-31"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-12"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-12": "done",
+        "KL11-31": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ConsumerGroupDescribe",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 70,
+      "broker_cards": [
+        "KL11-16"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-16": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [
+          0
+        ],
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "ControllerRegistration",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 71,
+      "broker_cards": [
+        "KL11-43"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-43": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "GetTelemetrySubscriptions",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 72,
+      "broker_cards": [
+        "KL11-43"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-43": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "PushTelemetry",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 73,
+      "broker_cards": [
+        "KL11-17",
+        "KL11-41"
+      ],
+      "classification": "broker_internal_with_Rust_extension",
+      "client_cards": [],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-17": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AssignReplicasToDirs",
+      "new_proposed_cards": [],
+      "notes": "Broker directory assignment traffic; no standard Java Admin.assignReplicasToDirs method. Java public alterReplicaLogDirs uses API34, then broker DirectoryEventHandler assignment. Rust raw helper is a nonstandard extension.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 74,
+      "broker_cards": [
+        "KL11-43"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-43": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ListClientMetricsResources",
+      "new_proposed_cards": [],
+      "notes": "ApiKeys name ListClientMetricsResources uses generated ListConfigResourcesRequest/Response schema filenames. The alias is retained explicitly; source enumeration uses the actual schema family, not an absent invented filename.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          0,
+          1
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 75,
+      "broker_cards": [
+        "KL11-17",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-28": "done",
+        "KL11-17": "pending",
+        "KL11-41": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeTopicPartitions",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 76,
+      "broker_cards": [
+        "KL11-32"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL03-13",
+        "KL05-15"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-13": "done",
+        "KL05-15": "done",
+        "KL11-32": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ShareGroupHeartbeat",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          1,
+          1
+        ],
+        "4.2.1": [
+          1,
+          1
+        ],
+        "4.3.1": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 77,
+      "broker_cards": [
+        "KL11-32"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-15"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-15": "done",
+        "KL11-32": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ShareGroupDescribe",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          0,
+          1
+        ],
+        "4.1.2": [
+          1,
+          1
+        ],
+        "4.2.1": [
+          1,
+          1
+        ],
+        "4.3.1": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 78,
+      "broker_cards": [
+        "KL11-33"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-14",
+        "KL05-15",
+        "KL03-16"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-16": "done",
+        "KL05-14": "done",
+        "KL05-15": "done",
+        "KL11-33": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ShareFetch",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          1,
+          1
+        ],
+        "4.1.2": [
+          1,
+          1
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 79,
+      "broker_cards": [
+        "KL11-33"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-14",
+        "KL05-15",
+        "KL03-16"
+      ],
+      "client_declared_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL03-16": "done",
+        "KL05-14": "done",
+        "KL05-15": "done",
+        "KL11-33": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "3.9.1": [],
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "ShareAcknowledge",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "3.9.1": [
+          0,
+          0
+        ],
+        "4.1.0": [
+          1,
+          1
+        ],
+        "4.1.2": [
+          1,
+          1
+        ],
+        "4.2.1": [
+          1,
+          2
+        ],
+        "4.3.1": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "api_key": 80,
+      "broker_cards": [
+        "KL11-74",
+        "KL11-70",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-20"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-20": "done",
+        "KL11-41": "pending",
+        "KL11-70": "pending",
+        "KL11-74": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [
+          1
+        ],
+        "4.3.1": [
+          1
+        ]
+      },
+      "name": "AddRaftVoter",
+      "new_proposed_cards": [
+        "Q-CAP-AddRaftVoter1"
+      ],
+      "notes": "API80 is AddRaftVoter.4.1.2 supports0 only;4.2/4.3 add1 AckWhenCommitted. Public Java Admin option does not expose false; generated defaulttrue. Membership durability does not follow from local append.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 81,
+      "broker_cards": [
+        "KL11-74",
+        "KL11-41"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-21"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-21": "done",
+        "KL11-41": "pending",
+        "KL11-74": "done"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.0": [],
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "RemoveRaftVoter",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 82,
+      "broker_cards": [
+        "KL11-70",
+        "KL11-74"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-70": "pending",
+        "KL11-74": "done"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "UpdateRaftVoter",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 83,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "InitializeShareGroupState",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 84,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "ReadShareGroupState",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 85,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "WriteShareGroupState",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 86,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "DeleteShareGroupState",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 87,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "broker_internal",
+      "client_cards": [],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_are_client_gaps": false,
+      "missing_declared_versions_by_release": {
+        "4.1.0": [
+          0
+        ],
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      },
+      "name": "ReadShareGroupStateSummary",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.0": [
+          0,
+          0
+        ],
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 88,
+      "broker_cards": [
+        "KL11-32"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-31",
+        "KL05-32"
+      ],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-31": "in_progress",
+        "KL05-32": "pending",
+        "KL11-32": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "StreamsGroupHeartbeat",
+      "new_proposed_cards": [],
+      "notes": "Client code/runtime belongs to existing KL05-31/32; server Streams coordinator belongs to existing KL11-32. No KL11-88 card exists at this pin.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 89,
+      "broker_cards": [
+        "KL11-32"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-31",
+        "KL05-33"
+      ],
+      "client_declared_versions": [],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-31": "in_progress",
+        "KL05-33": "pending",
+        "KL11-32": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.2": [
+          0
+        ],
+        "4.2.1": [
+          0
+        ],
+        "4.3.1": [
+          0
+        ]
+      },
+      "name": "StreamsGroupDescribe",
+      "new_proposed_cards": [],
+      "notes": "Client code/Admin belongs to existing KL05-31/33; server Streams coordinator belongs to existing KL11-32. No KL11-89 card exists at this pin.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 90,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-30"
+      ],
+      "client_declared_versions": [
+        0,
+        1
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-30": "in_progress",
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DescribeShareGroupOffsets",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          1
+        ],
+        "4.3.1": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "api_key": 91,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-15",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-15": "done",
+        "KL05-28": "done",
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "AlterShareGroupOffsets",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "api_key": 92,
+      "broker_cards": [
+        "KL11-34"
+      ],
+      "classification": "public_client",
+      "client_cards": [
+        "KL05-15",
+        "KL05-28"
+      ],
+      "client_declared_versions": [
+        0
+      ],
+      "client_declared_versions_are_static_not_execution": true,
+      "current_three_SDK_full_qualification": "not_established_by_this_static_audit",
+      "existing_card_statuses": {
+        "KL05-15": "done",
+        "KL05-28": "done",
+        "KL11-34": "pending"
+      },
+      "missing_declared_versions_by_release": {
+        "4.1.2": [],
+        "4.2.1": [],
+        "4.3.1": []
+      },
+      "name": "DeleteShareGroupOffsets",
+      "new_proposed_cards": [],
+      "notes": "Existing implementation/dependency mapping only. Broad parent or done task does not qualify every API version, public option, native peer or failure outcome.",
+      "qualification_cards": [
+        "KL01-03",
+        "KL01-14",
+        "KL11-48"
+      ],
+      "upstream_versions": {
+        "4.1.2": [
+          0,
+          0
+        ],
+        "4.2.1": [
+          0,
+          0
+        ],
+        "4.3.1": [
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "separate_existing_broker_log_cards": [
+    "KL11-11",
+    "KL11-75"
+  ],
+  "separate_existing_raft_cards": [
+    "KL11-14",
+    "KL11-73",
+    "KL11-74",
+    "KL11-76",
+    "KL11-70"
+  ],
+  "source_sha": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+  "task_count": 307
+}

@@ -1,0 +1,43 @@
+{
+  "api_rows": 93,
+  "archive_rechecks": 3,
+  "audit_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+  "classification_counts": {
+    "broker_internal": 15,
+    "broker_internal_with_Rust_extension": 2,
+    "public_client": 68,
+    "public_client_and_internal": 4,
+    "removed_current": 4
+  },
+  "existing_task_references_valid": true,
+  "full_protocol_complete": false,
+  "git_input_rechecks": [
+    "Cargo.toml",
+    "docs/evidence/client/protocol-inventory-current/review-01/corrected-inventory-proposal.json",
+    "docs/plan/tasks.json",
+    "scripts/check-protocol-coverage.py",
+    "src/admin.rs",
+    "src/consumer.rs",
+    "src/group.rs",
+    "src/lib.rs",
+    "src/producer.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/api.rs",
+    "src/protocol/api_keys.rs",
+    "src/protocol/group.rs",
+    "src/protocol/idem.rs",
+    "src/protocol/txn.rs",
+    "tests/conformance/broker/api-matrix.json",
+    "tests/conformance/cases.json",
+    "tests/conformance/features.json"
+  ],
+  "later_status_reference": "7b108f842731b9f58fea1b8a146193ccd902df50",
+  "named_schema_objects": 42,
+  "no_repository_mutations": true,
+  "no_runtime_executed": true,
+  "passed": true,
+  "proposed_cards": 9,
+  "schema_identities": 558,
+  "scope": "Static source identities, fields and task/dependency mapping checks only. No runtime/conformance pass or status promotion.",
+  "source_only": true
+}

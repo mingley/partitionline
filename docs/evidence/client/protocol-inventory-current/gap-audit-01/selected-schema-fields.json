@@ -1,0 +1,3322 @@
+{
+  "4.1.2": {
+    "AddPartitionsToTxnRequest": {
+      "fields": [
+        {
+          "about": "List of transactions to add partitions to.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "Current producer id in use by the transactional id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "4+"
+            },
+            {
+              "about": "Current epoch associated with the producer id.",
+              "name": "ProducerEpoch",
+              "type": "int16",
+              "versions": "4+"
+            },
+            {
+              "about": "Boolean to signify if we want to check if the partition is in the transaction rather than add it.",
+              "default": false,
+              "name": "VerifyOnly",
+              "type": "bool",
+              "versions": "4+"
+            },
+            {
+              "about": "The partitions to add to the transaction.",
+              "name": "Topics",
+              "type": "[]AddPartitionsToTxnTopic",
+              "versions": "4+"
+            }
+          ],
+          "name": "Transactions",
+          "type": "[]AddPartitionsToTxnTransaction",
+          "versions": "4+"
+        },
+        {
+          "about": "The transactional id corresponding to the transaction.",
+          "entityType": "transactionalId",
+          "name": "V3AndBelowTransactionalId",
+          "type": "string",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current producer id in use by the transactional id.",
+          "entityType": "producerId",
+          "name": "V3AndBelowProducerId",
+          "type": "int64",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current epoch associated with the producer id.",
+          "name": "V3AndBelowProducerEpoch",
+          "type": "int16",
+          "versions": "0-3"
+        },
+        {
+          "about": "The partitions to add to the transaction.",
+          "name": "V3AndBelowTopics",
+          "type": "[]AddPartitionsToTxnTopic",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3573,
+        "flexible_versions": "3+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "82bfc612a4604f9a126623c11de1ba4b2ded70c06d00ca8fb364c507ba13cdfa",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddPartitionsToTxnResponse": {
+      "fields": [
+        {
+          "about": "Duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The response top level error code.",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "4+"
+        },
+        {
+          "about": "Results categorized by transactional ID.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "The results for each topic.",
+              "name": "TopicResults",
+              "type": "[]AddPartitionsToTxnTopicResult",
+              "versions": "4+"
+            }
+          ],
+          "name": "ResultsByTransaction",
+          "type": "[]AddPartitionsToTxnResult",
+          "versions": "4+"
+        },
+        {
+          "about": "The results for each topic.",
+          "name": "ResultsByTopicV3AndBelow",
+          "type": "[]AddPartitionsToTxnTopicResult",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3107,
+        "flexible_versions": "3+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "b87f6918e2529d3170defbd82805ad149dc0cf48553d66eade83fad17f8f7d36",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddRaftVoterRequest": {
+      "fields": [
+        {
+          "about": "The cluster id.",
+          "name": "ClusterId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The maximum time to wait for the request to complete before returning.",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The replica id of the voter getting added to the topic partition.",
+          "name": "VoterId",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The directory id of the voter getting added to the topic partition.",
+          "name": "VoterDirectoryId",
+          "type": "uuid",
+          "versions": "0+"
+        },
+        {
+          "about": "The endpoints that can be used to communicate with the voter.",
+          "fields": [
+            {
+              "about": "The name of the endpoint.",
+              "mapKey": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The hostname.",
+              "name": "Host",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The port.",
+              "name": "Port",
+              "type": "uint16",
+              "versions": "0+"
+            }
+          ],
+          "name": "Listeners",
+          "type": "[]Listener",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 2036,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "e98b566e638b8c0e8e920910057cadab5fedd9bfa6da1ae31a05557b2794bd3f",
+        "tar_mode": "0o664",
+        "valid_versions": "0"
+      }
+    },
+    "AddRaftVoterResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The error message, or null if there was no error.",
+          "ignorable": true,
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 1475,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "37e24375e28e75db39a9aeb0a7edee27483292980a72a26a7fde42d11612bf6c",
+        "tar_mode": "0o664",
+        "valid_versions": "0"
+      }
+    },
+    "AlterPartitionReassignmentsRequest": {
+      "fields": [
+        {
+          "about": "The time in ms to wait for the request to complete.",
+          "default": "60000",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of this request is a valid move.",
+          "default": "true",
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The replicas to place the partitions on, or null to cancel a pending reassignment for this partition.",
+                  "default": "null",
+                  "entityType": "brokerId",
+                  "name": "Replicas",
+                  "nullableVersions": "0+",
+                  "type": "[]int32",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]ReassignableTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2292,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "09ed6a85622e808357af2df8141e908b62871aff531f54fb6fa85875dcebbf6c",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AlterPartitionReassignmentsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of the request was allowed.",
+          "default": "true",
+          "ignorable": true,
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The top-level error message, or null if there was no error.",
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The responses to topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The responses to partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code for this partition, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error message for this partition, or null if there was no error.",
+                  "name": "ErrorMessage",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartitionResponse",
+              "versions": "0+"
+            }
+          ],
+          "name": "Responses",
+          "type": "[]ReassignableTopicResponse",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2772,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "449f1c0669ef193216066d605ae9dc87a7524006eb421b34e3ed2ed0d8012225",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "InitProducerIdRequest": {
+      "fields": [
+        {
+          "about": "The transactional id, or null if the producer is not transactional.",
+          "entityType": "transactionalId",
+          "name": "TransactionalId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The time in ms to wait before aborting idle transactions sent by this producer. This is only relevant if a TransactionalId has been defined.",
+          "name": "TransactionTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id. This is used to disambiguate requests if a transactional id is reused following its expiration.",
+          "default": "-1",
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "3+"
+        },
+        {
+          "about": "The producer's current epoch. This will be checked against the producer epoch on the broker, and the request will return an error if they do not match.",
+          "default": "-1",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "3+"
+        },
+        {
+          "about": "True if the client wants to enable two-phase commit (2PC) protocol for transactions.",
+          "default": "false",
+          "name": "Enable2Pc",
+          "type": "bool",
+          "versions": "6+"
+        },
+        {
+          "about": "True if the client wants to keep the currently ongoing transaction instead of aborting it.",
+          "default": "false",
+          "name": "KeepPreparedTxn",
+          "type": "bool",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2764,
+        "flexible_versions": "2+",
+        "kind": "Request",
+        "latest_version_unstable": true,
+        "path": "clients/src/main/resources/common/message/InitProducerIdRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "bf3876370fff616f06c407b56b704dbd3fab27e17482fde95b924eef0cc72a88",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "InitProducerIdResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The current producer id.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "about": "The current epoch associated with the producer id.",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "OngoingTxnProducerId",
+          "type": "int64",
+          "versions": "6+"
+        },
+        {
+          "about": "The epoch associated with the  producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "name": "OngoingTxnProducerEpoch",
+          "type": "int16",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2498,
+        "flexible_versions": "2+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/InitProducerIdResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "ff2ff1dba9b78cfd063c26e63f847408fd11bedf45a9d227fc9dee1f6b7742b5",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "ListTransactionsRequest": {
+      "fields": [
+        {
+          "about": "The transaction states to filter by: if empty, all transactions are returned; if non-empty, then only transactions matching one of the filtered states will be returned.",
+          "name": "StateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The producerIds to filter by: if empty, all transactions will be returned; if non-empty, only transactions which match one of the filtered producerIds will be returned.",
+          "entityType": "producerId",
+          "name": "ProducerIdFilters",
+          "type": "[]int64",
+          "versions": "0+"
+        },
+        {
+          "about": "Duration (in millis) to filter by: if < 0, all transactions will be returned; otherwise, only transactions running longer than this duration will be returned.",
+          "default": -1,
+          "name": "DurationFilter",
+          "type": "int64",
+          "versions": "1+"
+        },
+        {
+          "about": "The transactional ID regular expression pattern to filter by: if it is empty or null, all transactions are returned; Otherwise then only the transactions matching the given regular expression will be returned.",
+          "default": "null",
+          "name": "TransactionalIdPattern",
+          "nullableVersions": "2+",
+          "type": "string",
+          "versions": "2+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2330,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "b54931d4ab03cf2a6da501737b5e59709447448e680e54037a741b824bb94176",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "ListTransactionsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "Set of state filters provided in the request which were unknown to the transaction coordinator.",
+          "name": "UnknownStateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The current state of the transaction for the transactional id.",
+          "fields": [
+            {
+              "about": "The transactional id.",
+              "entityType": "transactionalId",
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The producer id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "0+"
+            },
+            {
+              "about": "The current transaction state of the producer.",
+              "name": "TransactionState",
+              "type": "string",
+              "versions": "0+"
+            }
+          ],
+          "name": "TransactionStates",
+          "type": "[]TransactionState",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2237,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "154abac86cb57d4e87827194d890efb5a01deb16970e31476bbd4cc86686abed",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "OffsetCommitRequest": {
+      "fields": [
+        {
+          "about": "The unique group identifier.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The generation of the group if using the classic group protocol or the member epoch if using the consumer protocol.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "GenerationIdOrMemberEpoch",
+          "type": "int32",
+          "versions": "1+"
+        },
+        {
+          "about": "The member ID assigned by the group coordinator.",
+          "ignorable": true,
+          "name": "MemberId",
+          "type": "string",
+          "versions": "1+"
+        },
+        {
+          "about": "The unique identifier of the consumer instance provided by end user.",
+          "default": "null",
+          "name": "GroupInstanceId",
+          "nullableVersions": "7+",
+          "type": "string",
+          "versions": "7+"
+        },
+        {
+          "about": "The time period in ms to retain the offset.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "RetentionTimeMs",
+          "type": "int64",
+          "versions": "2-4"
+        },
+        {
+          "about": "The topics to commit offsets for.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "Each partition to commit offsets for.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The message offset to be committed.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The leader epoch of this partition.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "6+"
+                },
+                {
+                  "about": "Any associated metadata the client wants to keep.",
+                  "name": "CommittedMetadata",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitRequestPartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitRequestTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3985,
+        "flexible_versions": "8+",
+        "kind": "Request",
+        "latest_version_unstable": true,
+        "path": "clients/src/main/resources/common/message/OffsetCommitRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "8dfb6ab063329873898c284f55c854c713b10b0aaf74c81ea473622fb81b7b74",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetCommitResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses for each topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "The responses for each partition in the topic.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitResponsePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitResponseTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3442,
+        "flexible_versions": "8+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetCommitResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetFetchRequest": {
+      "fields": [
+        {
+          "about": "The group to fetch offsets for.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The partition indexes we would like to fetch offsets for.",
+              "name": "PartitionIndexes",
+              "type": "[]int32",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "nullableVersions": "2-7",
+          "type": "[]OffsetFetchRequestTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each group we would like to fetch offsets for.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The member id.",
+              "default": "null",
+              "ignorable": true,
+              "name": "MemberId",
+              "nullableVersions": "9+",
+              "type": "string",
+              "versions": "9+"
+            },
+            {
+              "about": "The member epoch if using the new consumer protocol (KIP-848).",
+              "default": "-1",
+              "ignorable": true,
+              "name": "MemberEpoch",
+              "type": "int32",
+              "versions": "9+"
+            },
+            {
+              "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The partition indexes we would like to fetch offsets for.",
+                  "name": "PartitionIndexes",
+                  "type": "[]int32",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "nullableVersions": "8+",
+              "type": "[]OffsetFetchRequestTopics",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchRequestGroup",
+          "versions": "8+"
+        },
+        {
+          "about": "Whether broker should hold on returning unstable offsets but set a retriable error code for the partitions.",
+          "default": "false",
+          "name": "RequireStable",
+          "type": "bool",
+          "versions": "7+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 4217,
+        "flexible_versions": "6+",
+        "kind": "Request",
+        "latest_version_unstable": true,
+        "path": "clients/src/main/resources/common/message/OffsetFetchRequest.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "4d898429626998ea191ce08ad56222be73602c35bdfb867e18ef4965493e9892",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    },
+    "OffsetFetchResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses per topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The responses per partition.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The committed message offset.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The leader epoch.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "5-7"
+                },
+                {
+                  "about": "The partition metadata.",
+                  "name": "Metadata",
+                  "nullableVersions": "0-7",
+                  "type": "string",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0-7"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetFetchResponsePartition",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetFetchResponseTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "default": "0",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "2-7"
+        },
+        {
+          "about": "The responses per group id.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The responses per topic.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The responses per partition.",
+                  "fields": [
+                    {
+                      "about": "The partition index.",
+                      "name": "PartitionIndex",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The committed message offset.",
+                      "name": "CommittedOffset",
+                      "type": "int64",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The leader epoch.",
+                      "default": "-1",
+                      "ignorable": true,
+                      "name": "CommittedLeaderEpoch",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition metadata.",
+                      "name": "Metadata",
+                      "nullableVersions": "8+",
+                      "type": "string",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition-level error code, or 0 if there was no error.",
+                      "name": "ErrorCode",
+                      "type": "int16",
+                      "versions": "8+"
+                    }
+                  ],
+                  "name": "Partitions",
+                  "type": "[]OffsetFetchResponsePartitions",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "type": "[]OffsetFetchResponseTopics",
+              "versions": "8+"
+            },
+            {
+              "about": "The group-level error code, or 0 if there was no error.",
+              "default": "0",
+              "name": "ErrorCode",
+              "type": "int16",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchResponseGroup",
+          "versions": "8+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 5547,
+        "flexible_versions": "6+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetFetchResponse.json",
+        "present": true,
+        "release": "4.1.2",
+        "sha256": "a50da1ce96ebb271acb9c8c5677e5a1c90ade8b194d4c8ef18fd7c6da6defb35",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    }
+  },
+  "4.2.1": {
+    "AddPartitionsToTxnRequest": {
+      "fields": [
+        {
+          "about": "List of transactions to add partitions to.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "Current producer id in use by the transactional id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "4+"
+            },
+            {
+              "about": "Current epoch associated with the producer id.",
+              "name": "ProducerEpoch",
+              "type": "int16",
+              "versions": "4+"
+            },
+            {
+              "about": "Boolean to signify if we want to check if the partition is in the transaction rather than add it.",
+              "default": false,
+              "name": "VerifyOnly",
+              "type": "bool",
+              "versions": "4+"
+            },
+            {
+              "about": "The partitions to add to the transaction.",
+              "name": "Topics",
+              "type": "[]AddPartitionsToTxnTopic",
+              "versions": "4+"
+            }
+          ],
+          "name": "Transactions",
+          "type": "[]AddPartitionsToTxnTransaction",
+          "versions": "4+"
+        },
+        {
+          "about": "The transactional id corresponding to the transaction.",
+          "entityType": "transactionalId",
+          "name": "V3AndBelowTransactionalId",
+          "type": "string",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current producer id in use by the transactional id.",
+          "entityType": "producerId",
+          "name": "V3AndBelowProducerId",
+          "type": "int64",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current epoch associated with the producer id.",
+          "name": "V3AndBelowProducerEpoch",
+          "type": "int16",
+          "versions": "0-3"
+        },
+        {
+          "about": "The partitions to add to the transaction.",
+          "name": "V3AndBelowTopics",
+          "type": "[]AddPartitionsToTxnTopic",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3573,
+        "flexible_versions": "3+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "82bfc612a4604f9a126623c11de1ba4b2ded70c06d00ca8fb364c507ba13cdfa",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddPartitionsToTxnResponse": {
+      "fields": [
+        {
+          "about": "Duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The response top level error code.",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "4+"
+        },
+        {
+          "about": "Results categorized by transactional ID.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "The results for each topic.",
+              "name": "TopicResults",
+              "type": "[]AddPartitionsToTxnTopicResult",
+              "versions": "4+"
+            }
+          ],
+          "name": "ResultsByTransaction",
+          "type": "[]AddPartitionsToTxnResult",
+          "versions": "4+"
+        },
+        {
+          "about": "The results for each topic.",
+          "name": "ResultsByTopicV3AndBelow",
+          "type": "[]AddPartitionsToTxnTopicResult",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3107,
+        "flexible_versions": "3+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "b87f6918e2529d3170defbd82805ad149dc0cf48553d66eade83fad17f8f7d36",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddRaftVoterRequest": {
+      "fields": [
+        {
+          "about": "The cluster id.",
+          "name": "ClusterId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The maximum time to wait for the request to complete before returning.",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The replica id of the voter getting added to the topic partition.",
+          "name": "VoterId",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The directory id of the voter getting added to the topic partition.",
+          "name": "VoterDirectoryId",
+          "type": "uuid",
+          "versions": "0+"
+        },
+        {
+          "about": "The endpoints that can be used to communicate with the voter.",
+          "fields": [
+            {
+              "about": "The name of the endpoint.",
+              "mapKey": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The hostname.",
+              "name": "Host",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The port.",
+              "name": "Port",
+              "type": "uint16",
+              "versions": "0+"
+            }
+          ],
+          "name": "Listeners",
+          "type": "[]Listener",
+          "versions": "0+"
+        },
+        {
+          "about": "When true, return a response after the new voter set is committed. Otherwise, return after the leader writes the changes locally.",
+          "default": "true",
+          "name": "AckWhenCommitted",
+          "type": "bool",
+          "versions": "1+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 2323,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "87864c1ff7c35c695985adb362092108c196185b7f5011b4089ec84b0331ac40",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AddRaftVoterResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The error message, or null if there was no error.",
+          "ignorable": true,
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 1517,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "b1c9fcebf6c11392b9d627b1369a5c41da6e275300f6e06b85320bed240ddbf5",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AlterPartitionReassignmentsRequest": {
+      "fields": [
+        {
+          "about": "The time in ms to wait for the request to complete.",
+          "default": "60000",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of this request is a valid move.",
+          "default": "true",
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The replicas to place the partitions on, or null to cancel a pending reassignment for this partition.",
+                  "default": "null",
+                  "entityType": "brokerId",
+                  "name": "Replicas",
+                  "nullableVersions": "0+",
+                  "type": "[]int32",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]ReassignableTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2292,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "09ed6a85622e808357af2df8141e908b62871aff531f54fb6fa85875dcebbf6c",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AlterPartitionReassignmentsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of the request was allowed.",
+          "default": "true",
+          "ignorable": true,
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The top-level error message, or null if there was no error.",
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The responses to topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The responses to partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code for this partition, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error message for this partition, or null if there was no error.",
+                  "name": "ErrorMessage",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartitionResponse",
+              "versions": "0+"
+            }
+          ],
+          "name": "Responses",
+          "type": "[]ReassignableTopicResponse",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2772,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "449f1c0669ef193216066d605ae9dc87a7524006eb421b34e3ed2ed0d8012225",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "InitProducerIdRequest": {
+      "fields": [
+        {
+          "about": "The transactional id, or null if the producer is not transactional.",
+          "entityType": "transactionalId",
+          "name": "TransactionalId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The time in ms to wait before aborting idle transactions sent by this producer. This is only relevant if a TransactionalId has been defined.",
+          "name": "TransactionTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id. This is used to disambiguate requests if a transactional id is reused following its expiration.",
+          "default": "-1",
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "3+"
+        },
+        {
+          "about": "The producer's current epoch. This will be checked against the producer epoch on the broker, and the request will return an error if they do not match.",
+          "default": "-1",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "3+"
+        },
+        {
+          "about": "True if the client wants to enable two-phase commit (2PC) protocol for transactions.",
+          "default": "false",
+          "name": "Enable2Pc",
+          "type": "bool",
+          "versions": "6+"
+        },
+        {
+          "about": "True if the client wants to keep the currently ongoing transaction instead of aborting it.",
+          "default": "false",
+          "name": "KeepPreparedTxn",
+          "type": "bool",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2764,
+        "flexible_versions": "2+",
+        "kind": "Request",
+        "latest_version_unstable": true,
+        "path": "clients/src/main/resources/common/message/InitProducerIdRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "8a324cad1e3f7aed07fd5f93eb5aca7f3c13692f6d8affc770852fa6b0127d44",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "InitProducerIdResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The current producer id.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "about": "The current epoch associated with the producer id.",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "OngoingTxnProducerId",
+          "type": "int64",
+          "versions": "6+"
+        },
+        {
+          "about": "The epoch associated with the  producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "name": "OngoingTxnProducerEpoch",
+          "type": "int16",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2498,
+        "flexible_versions": "2+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/InitProducerIdResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "ff2ff1dba9b78cfd063c26e63f847408fd11bedf45a9d227fc9dee1f6b7742b5",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "ListTransactionsRequest": {
+      "fields": [
+        {
+          "about": "The transaction states to filter by: if empty, all transactions are returned; if non-empty, then only transactions matching one of the filtered states will be returned.",
+          "name": "StateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The producerIds to filter by: if empty, all transactions will be returned; if non-empty, only transactions which match one of the filtered producerIds will be returned.",
+          "entityType": "producerId",
+          "name": "ProducerIdFilters",
+          "type": "[]int64",
+          "versions": "0+"
+        },
+        {
+          "about": "Duration (in millis) to filter by: if < 0, all transactions will be returned; otherwise, only transactions running longer than this duration will be returned.",
+          "default": -1,
+          "name": "DurationFilter",
+          "type": "int64",
+          "versions": "1+"
+        },
+        {
+          "about": "The transactional ID regular expression pattern to filter by: if it is empty or null, all transactions are returned; Otherwise then only the transactions matching the given regular expression will be returned.",
+          "default": "null",
+          "name": "TransactionalIdPattern",
+          "nullableVersions": "2+",
+          "type": "string",
+          "versions": "2+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2330,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "b54931d4ab03cf2a6da501737b5e59709447448e680e54037a741b824bb94176",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "ListTransactionsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "Set of state filters provided in the request which were unknown to the transaction coordinator.",
+          "name": "UnknownStateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The current state of the transaction for the transactional id.",
+          "fields": [
+            {
+              "about": "The transactional id.",
+              "entityType": "transactionalId",
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The producer id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "0+"
+            },
+            {
+              "about": "The current transaction state of the producer.",
+              "name": "TransactionState",
+              "type": "string",
+              "versions": "0+"
+            }
+          ],
+          "name": "TransactionStates",
+          "type": "[]TransactionState",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2237,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "154abac86cb57d4e87827194d890efb5a01deb16970e31476bbd4cc86686abed",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "OffsetCommitRequest": {
+      "fields": [
+        {
+          "about": "The unique group identifier.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The generation of the group if using the classic group protocol or the member epoch if using the consumer protocol.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "GenerationIdOrMemberEpoch",
+          "type": "int32",
+          "versions": "1+"
+        },
+        {
+          "about": "The member ID assigned by the group coordinator.",
+          "ignorable": true,
+          "name": "MemberId",
+          "type": "string",
+          "versions": "1+"
+        },
+        {
+          "about": "The unique identifier of the consumer instance provided by end user.",
+          "default": "null",
+          "name": "GroupInstanceId",
+          "nullableVersions": "7+",
+          "type": "string",
+          "versions": "7+"
+        },
+        {
+          "about": "The time period in ms to retain the offset.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "RetentionTimeMs",
+          "type": "int64",
+          "versions": "2-4"
+        },
+        {
+          "about": "The topics to commit offsets for.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "Each partition to commit offsets for.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The message offset to be committed.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The leader epoch of this partition.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "6+"
+                },
+                {
+                  "about": "Any associated metadata the client wants to keep.",
+                  "name": "CommittedMetadata",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitRequestPartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitRequestTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3952,
+        "flexible_versions": "8+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetCommitRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "9a1748083aef3296bbd8e07069990d98e9195d56b49c0b35747765a90f4aae9d",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetCommitResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses for each topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "The responses for each partition in the topic.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitResponsePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitResponseTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3442,
+        "flexible_versions": "8+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetCommitResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetFetchRequest": {
+      "fields": [
+        {
+          "about": "The group to fetch offsets for.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The partition indexes we would like to fetch offsets for.",
+              "name": "PartitionIndexes",
+              "type": "[]int32",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "nullableVersions": "2-7",
+          "type": "[]OffsetFetchRequestTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each group we would like to fetch offsets for.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The member id.",
+              "default": "null",
+              "ignorable": true,
+              "name": "MemberId",
+              "nullableVersions": "9+",
+              "type": "string",
+              "versions": "9+"
+            },
+            {
+              "about": "The member epoch if using the new consumer protocol (KIP-848).",
+              "default": "-1",
+              "ignorable": true,
+              "name": "MemberEpoch",
+              "type": "int32",
+              "versions": "9+"
+            },
+            {
+              "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The partition indexes we would like to fetch offsets for.",
+                  "name": "PartitionIndexes",
+                  "type": "[]int32",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "nullableVersions": "8+",
+              "type": "[]OffsetFetchRequestTopics",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchRequestGroup",
+          "versions": "8+"
+        },
+        {
+          "about": "Whether broker should hold on returning unstable offsets but set a retriable error code for the partitions.",
+          "default": "false",
+          "name": "RequireStable",
+          "type": "bool",
+          "versions": "7+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 4184,
+        "flexible_versions": "6+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetFetchRequest.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "bacf7b8065ad3763e6837d7e69855065914facc46d880750fc5c7abca8bfefc0",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    },
+    "OffsetFetchResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses per topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The responses per partition.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The committed message offset.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The leader epoch.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "5-7"
+                },
+                {
+                  "about": "The partition metadata.",
+                  "name": "Metadata",
+                  "nullableVersions": "0-7",
+                  "type": "string",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0-7"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetFetchResponsePartition",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetFetchResponseTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "default": "0",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "2-7"
+        },
+        {
+          "about": "The responses per group id.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The responses per topic.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The responses per partition.",
+                  "fields": [
+                    {
+                      "about": "The partition index.",
+                      "name": "PartitionIndex",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The committed message offset.",
+                      "name": "CommittedOffset",
+                      "type": "int64",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The leader epoch.",
+                      "default": "-1",
+                      "ignorable": true,
+                      "name": "CommittedLeaderEpoch",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition metadata.",
+                      "name": "Metadata",
+                      "nullableVersions": "8+",
+                      "type": "string",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition-level error code, or 0 if there was no error.",
+                      "name": "ErrorCode",
+                      "type": "int16",
+                      "versions": "8+"
+                    }
+                  ],
+                  "name": "Partitions",
+                  "type": "[]OffsetFetchResponsePartitions",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "type": "[]OffsetFetchResponseTopics",
+              "versions": "8+"
+            },
+            {
+              "about": "The group-level error code, or 0 if there was no error.",
+              "default": "0",
+              "name": "ErrorCode",
+              "type": "int16",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchResponseGroup",
+          "versions": "8+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 5641,
+        "flexible_versions": "6+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetFetchResponse.json",
+        "present": true,
+        "release": "4.2.1",
+        "sha256": "c4a276a54437b094b7bd4b6c795785b419f81d390dea3c8908028439eda65e7c",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    }
+  },
+  "4.3.1": {
+    "AddPartitionsToTxnRequest": {
+      "fields": [
+        {
+          "about": "List of transactions to add partitions to.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "Current producer id in use by the transactional id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "4+"
+            },
+            {
+              "about": "Current epoch associated with the producer id.",
+              "name": "ProducerEpoch",
+              "type": "int16",
+              "versions": "4+"
+            },
+            {
+              "about": "Boolean to signify if we want to check if the partition is in the transaction rather than add it.",
+              "default": false,
+              "name": "VerifyOnly",
+              "type": "bool",
+              "versions": "4+"
+            },
+            {
+              "about": "The partitions to add to the transaction.",
+              "name": "Topics",
+              "type": "[]AddPartitionsToTxnTopic",
+              "versions": "4+"
+            }
+          ],
+          "name": "Transactions",
+          "type": "[]AddPartitionsToTxnTransaction",
+          "versions": "4+"
+        },
+        {
+          "about": "The transactional id corresponding to the transaction.",
+          "entityType": "transactionalId",
+          "name": "V3AndBelowTransactionalId",
+          "type": "string",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current producer id in use by the transactional id.",
+          "entityType": "producerId",
+          "name": "V3AndBelowProducerId",
+          "type": "int64",
+          "versions": "0-3"
+        },
+        {
+          "about": "Current epoch associated with the producer id.",
+          "name": "V3AndBelowProducerEpoch",
+          "type": "int16",
+          "versions": "0-3"
+        },
+        {
+          "about": "The partitions to add to the transaction.",
+          "name": "V3AndBelowTopics",
+          "type": "[]AddPartitionsToTxnTopic",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3573,
+        "flexible_versions": "3+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "82bfc612a4604f9a126623c11de1ba4b2ded70c06d00ca8fb364c507ba13cdfa",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddPartitionsToTxnResponse": {
+      "fields": [
+        {
+          "about": "Duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The response top level error code.",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "4+"
+        },
+        {
+          "about": "Results categorized by transactional ID.",
+          "fields": [
+            {
+              "about": "The transactional id corresponding to the transaction.",
+              "entityType": "transactionalId",
+              "mapKey": true,
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "4+"
+            },
+            {
+              "about": "The results for each topic.",
+              "name": "TopicResults",
+              "type": "[]AddPartitionsToTxnTopicResult",
+              "versions": "4+"
+            }
+          ],
+          "name": "ResultsByTransaction",
+          "type": "[]AddPartitionsToTxnResult",
+          "versions": "4+"
+        },
+        {
+          "about": "The results for each topic.",
+          "name": "ResultsByTopicV3AndBelow",
+          "type": "[]AddPartitionsToTxnTopicResult",
+          "versions": "0-3"
+        }
+      ],
+      "identity": {
+        "api_key": 24,
+        "bytes": 3107,
+        "flexible_versions": "3+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddPartitionsToTxnResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "b87f6918e2529d3170defbd82805ad149dc0cf48553d66eade83fad17f8f7d36",
+        "tar_mode": "0o664",
+        "valid_versions": "0-5"
+      }
+    },
+    "AddRaftVoterRequest": {
+      "fields": [
+        {
+          "about": "The cluster id.",
+          "name": "ClusterId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The maximum time to wait for the request to complete before returning.",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The replica id of the voter getting added to the topic partition.",
+          "name": "VoterId",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The directory id of the voter getting added to the topic partition.",
+          "name": "VoterDirectoryId",
+          "type": "uuid",
+          "versions": "0+"
+        },
+        {
+          "about": "The endpoints that can be used to communicate with the voter.",
+          "fields": [
+            {
+              "about": "The name of the endpoint.",
+              "mapKey": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The hostname.",
+              "name": "Host",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The port.",
+              "name": "Port",
+              "type": "uint16",
+              "versions": "0+"
+            }
+          ],
+          "name": "Listeners",
+          "type": "[]Listener",
+          "versions": "0+"
+        },
+        {
+          "about": "When true, return a response after the new voter set is committed. Otherwise, return after the leader writes the changes locally.",
+          "default": "true",
+          "name": "AckWhenCommitted",
+          "type": "bool",
+          "versions": "1+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 2323,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "87864c1ff7c35c695985adb362092108c196185b7f5011b4089ec84b0331ac40",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AddRaftVoterResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The error message, or null if there was no error.",
+          "ignorable": true,
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 80,
+        "bytes": 1517,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AddRaftVoterResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "b1c9fcebf6c11392b9d627b1369a5c41da6e275300f6e06b85320bed240ddbf5",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AlterPartitionReassignmentsRequest": {
+      "fields": [
+        {
+          "about": "The time in ms to wait for the request to complete.",
+          "default": "60000",
+          "name": "TimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of this request is a valid move.",
+          "default": "true",
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The replicas to place the partitions on, or null to cancel a pending reassignment for this partition.",
+                  "default": "null",
+                  "entityType": "brokerId",
+                  "name": "Replicas",
+                  "nullableVersions": "0+",
+                  "type": "[]int32",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]ReassignableTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2292,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "09ed6a85622e808357af2df8141e908b62871aff531f54fb6fa85875dcebbf6c",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "AlterPartitionReassignmentsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The option indicating whether changing the replication factor of any given partition as part of the request was allowed.",
+          "default": "true",
+          "ignorable": true,
+          "name": "AllowReplicationFactorChange",
+          "type": "bool",
+          "versions": "1+"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The top-level error message, or null if there was no error.",
+          "name": "ErrorMessage",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The responses to topics to reassign.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The responses to partitions to reassign.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code for this partition, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error message for this partition, or null if there was no error.",
+                  "name": "ErrorMessage",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]ReassignablePartitionResponse",
+              "versions": "0+"
+            }
+          ],
+          "name": "Responses",
+          "type": "[]ReassignableTopicResponse",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 45,
+        "bytes": 2772,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/AlterPartitionReassignmentsResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "449f1c0669ef193216066d605ae9dc87a7524006eb421b34e3ed2ed0d8012225",
+        "tar_mode": "0o664",
+        "valid_versions": "0-1"
+      }
+    },
+    "InitProducerIdRequest": {
+      "fields": [
+        {
+          "about": "The transactional id, or null if the producer is not transactional.",
+          "entityType": "transactionalId",
+          "name": "TransactionalId",
+          "nullableVersions": "0+",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The time in ms to wait before aborting idle transactions sent by this producer. This is only relevant if a TransactionalId has been defined.",
+          "name": "TransactionTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id. This is used to disambiguate requests if a transactional id is reused following its expiration.",
+          "default": "-1",
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "3+"
+        },
+        {
+          "about": "The producer's current epoch. This will be checked against the producer epoch on the broker, and the request will return an error if they do not match.",
+          "default": "-1",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "3+"
+        },
+        {
+          "about": "True if the client wants to enable two-phase commit (2PC) protocol for transactions.",
+          "default": "false",
+          "name": "Enable2Pc",
+          "type": "bool",
+          "versions": "6+"
+        },
+        {
+          "about": "True if the client wants to keep the currently ongoing transaction instead of aborting it.",
+          "default": "false",
+          "name": "KeepPreparedTxn",
+          "type": "bool",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2764,
+        "flexible_versions": "2+",
+        "kind": "Request",
+        "latest_version_unstable": true,
+        "path": "clients/src/main/resources/common/message/InitProducerIdRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "8a324cad1e3f7aed07fd5f93eb5aca7f3c13692f6d8affc770852fa6b0127d44",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "InitProducerIdResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The current producer id.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "ProducerId",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "about": "The current epoch associated with the producer id.",
+          "name": "ProducerEpoch",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "The producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "entityType": "producerId",
+          "name": "OngoingTxnProducerId",
+          "type": "int64",
+          "versions": "6+"
+        },
+        {
+          "about": "The epoch associated with the  producer id for ongoing transaction when KeepPreparedTxn is used, -1 if there is no transaction ongoing.",
+          "default": -1,
+          "name": "OngoingTxnProducerEpoch",
+          "type": "int16",
+          "versions": "6+"
+        }
+      ],
+      "identity": {
+        "api_key": 22,
+        "bytes": 2498,
+        "flexible_versions": "2+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/InitProducerIdResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "ff2ff1dba9b78cfd063c26e63f847408fd11bedf45a9d227fc9dee1f6b7742b5",
+        "tar_mode": "0o664",
+        "valid_versions": "0-6"
+      }
+    },
+    "ListTransactionsRequest": {
+      "fields": [
+        {
+          "about": "The transaction states to filter by: if empty, all transactions are returned; if non-empty, then only transactions matching one of the filtered states will be returned.",
+          "name": "StateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The producerIds to filter by: if empty, all transactions will be returned; if non-empty, only transactions which match one of the filtered producerIds will be returned.",
+          "entityType": "producerId",
+          "name": "ProducerIdFilters",
+          "type": "[]int64",
+          "versions": "0+"
+        },
+        {
+          "about": "Duration (in millis) to filter by: if < 0, all transactions will be returned; otherwise, only transactions running longer than this duration will be returned.",
+          "default": -1,
+          "name": "DurationFilter",
+          "type": "int64",
+          "versions": "1+"
+        },
+        {
+          "about": "The transactional ID regular expression pattern to filter by: if it is empty or null, all transactions are returned; Otherwise then only the transactions matching the given regular expression will be returned.",
+          "default": "null",
+          "name": "TransactionalIdPattern",
+          "nullableVersions": "2+",
+          "type": "string",
+          "versions": "2+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2330,
+        "flexible_versions": "0+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "b54931d4ab03cf2a6da501737b5e59709447448e680e54037a741b824bb94176",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "ListTransactionsResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "about": "The error code, or 0 if there was no error.",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "about": "Set of state filters provided in the request which were unknown to the transaction coordinator.",
+          "name": "UnknownStateFilters",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "about": "The current state of the transaction for the transactional id.",
+          "fields": [
+            {
+              "about": "The transactional id.",
+              "entityType": "transactionalId",
+              "name": "TransactionalId",
+              "type": "string",
+              "versions": "0+"
+            },
+            {
+              "about": "The producer id.",
+              "entityType": "producerId",
+              "name": "ProducerId",
+              "type": "int64",
+              "versions": "0+"
+            },
+            {
+              "about": "The current transaction state of the producer.",
+              "name": "TransactionState",
+              "type": "string",
+              "versions": "0+"
+            }
+          ],
+          "name": "TransactionStates",
+          "type": "[]TransactionState",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 66,
+        "bytes": 2237,
+        "flexible_versions": "0+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/ListTransactionsResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "154abac86cb57d4e87827194d890efb5a01deb16970e31476bbd4cc86686abed",
+        "tar_mode": "0o664",
+        "valid_versions": "0-2"
+      }
+    },
+    "OffsetCommitRequest": {
+      "fields": [
+        {
+          "about": "The unique group identifier.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "about": "The generation of the group if using the classic group protocol or the member epoch if using the consumer protocol.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "GenerationIdOrMemberEpoch",
+          "type": "int32",
+          "versions": "1+"
+        },
+        {
+          "about": "The member ID assigned by the group coordinator.",
+          "ignorable": true,
+          "name": "MemberId",
+          "type": "string",
+          "versions": "1+"
+        },
+        {
+          "about": "The unique identifier of the consumer instance provided by end user.",
+          "default": "null",
+          "name": "GroupInstanceId",
+          "nullableVersions": "7+",
+          "type": "string",
+          "versions": "7+"
+        },
+        {
+          "about": "The time period in ms to retain the offset.",
+          "default": "-1",
+          "ignorable": true,
+          "name": "RetentionTimeMs",
+          "type": "int64",
+          "versions": "2-4"
+        },
+        {
+          "about": "The topics to commit offsets for.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "Each partition to commit offsets for.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The message offset to be committed.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The leader epoch of this partition.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "6+"
+                },
+                {
+                  "about": "Any associated metadata the client wants to keep.",
+                  "name": "CommittedMetadata",
+                  "nullableVersions": "0+",
+                  "type": "string",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitRequestPartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitRequestTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3952,
+        "flexible_versions": "8+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetCommitRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "9a1748083aef3296bbd8e07069990d98e9195d56b49c0b35747765a90f4aae9d",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetCommitResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses for each topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "ignorable": true,
+              "name": "Name",
+              "type": "string",
+              "versions": "0-9"
+            },
+            {
+              "about": "The topic ID.",
+              "ignorable": true,
+              "name": "TopicId",
+              "type": "uuid",
+              "versions": "10+"
+            },
+            {
+              "about": "The responses for each partition in the topic.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0+"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0+"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetCommitResponsePartition",
+              "versions": "0+"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetCommitResponseTopic",
+          "versions": "0+"
+        }
+      ],
+      "identity": {
+        "api_key": 8,
+        "bytes": 3442,
+        "flexible_versions": "8+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetCommitResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "6cc52093ca2378d170fdcf54a30647c8d1d5dab22b22fb85ac2346767bc8f629",
+        "tar_mode": "0o664",
+        "valid_versions": "2-10"
+      }
+    },
+    "OffsetFetchRequest": {
+      "fields": [
+        {
+          "about": "The group to fetch offsets for.",
+          "entityType": "groupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The partition indexes we would like to fetch offsets for.",
+              "name": "PartitionIndexes",
+              "type": "[]int32",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "nullableVersions": "2-7",
+          "type": "[]OffsetFetchRequestTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "Each group we would like to fetch offsets for.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The member id.",
+              "default": "null",
+              "ignorable": true,
+              "name": "MemberId",
+              "nullableVersions": "9+",
+              "type": "string",
+              "versions": "9+"
+            },
+            {
+              "about": "The member epoch if using the new consumer protocol (KIP-848).",
+              "default": "-1",
+              "ignorable": true,
+              "name": "MemberEpoch",
+              "type": "int32",
+              "versions": "9+"
+            },
+            {
+              "about": "Each topic we would like to fetch offsets for, or null to fetch offsets for all topics.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The partition indexes we would like to fetch offsets for.",
+                  "name": "PartitionIndexes",
+                  "type": "[]int32",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "nullableVersions": "8+",
+              "type": "[]OffsetFetchRequestTopics",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchRequestGroup",
+          "versions": "8+"
+        },
+        {
+          "about": "Whether broker should hold on returning unstable offsets but set a retriable error code for the partitions.",
+          "default": "false",
+          "name": "RequireStable",
+          "type": "bool",
+          "versions": "7+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 4184,
+        "flexible_versions": "6+",
+        "kind": "Request",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetFetchRequest.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "bacf7b8065ad3763e6837d7e69855065914facc46d880750fc5c7abca8bfefc0",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    },
+    "OffsetFetchResponse": {
+      "fields": [
+        {
+          "about": "The duration in milliseconds for which the request was throttled due to a quota violation, or zero if the request did not violate any quota.",
+          "ignorable": true,
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "3+"
+        },
+        {
+          "about": "The responses per topic.",
+          "fields": [
+            {
+              "about": "The topic name.",
+              "entityType": "topicName",
+              "name": "Name",
+              "type": "string",
+              "versions": "0-7"
+            },
+            {
+              "about": "The responses per partition.",
+              "fields": [
+                {
+                  "about": "The partition index.",
+                  "name": "PartitionIndex",
+                  "type": "int32",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The committed message offset.",
+                  "name": "CommittedOffset",
+                  "type": "int64",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The leader epoch.",
+                  "default": "-1",
+                  "ignorable": true,
+                  "name": "CommittedLeaderEpoch",
+                  "type": "int32",
+                  "versions": "5-7"
+                },
+                {
+                  "about": "The partition metadata.",
+                  "name": "Metadata",
+                  "nullableVersions": "0-7",
+                  "type": "string",
+                  "versions": "0-7"
+                },
+                {
+                  "about": "The error code, or 0 if there was no error.",
+                  "name": "ErrorCode",
+                  "type": "int16",
+                  "versions": "0-7"
+                }
+              ],
+              "name": "Partitions",
+              "type": "[]OffsetFetchResponsePartition",
+              "versions": "0-7"
+            }
+          ],
+          "name": "Topics",
+          "type": "[]OffsetFetchResponseTopic",
+          "versions": "0-7"
+        },
+        {
+          "about": "The top-level error code, or 0 if there was no error.",
+          "default": "0",
+          "ignorable": true,
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "2-7"
+        },
+        {
+          "about": "The responses per group id.",
+          "fields": [
+            {
+              "about": "The group ID.",
+              "entityType": "groupId",
+              "name": "GroupId",
+              "type": "string",
+              "versions": "8+"
+            },
+            {
+              "about": "The responses per topic.",
+              "fields": [
+                {
+                  "about": "The topic name.",
+                  "entityType": "topicName",
+                  "ignorable": true,
+                  "name": "Name",
+                  "type": "string",
+                  "versions": "8-9"
+                },
+                {
+                  "about": "The topic ID.",
+                  "ignorable": true,
+                  "name": "TopicId",
+                  "type": "uuid",
+                  "versions": "10+"
+                },
+                {
+                  "about": "The responses per partition.",
+                  "fields": [
+                    {
+                      "about": "The partition index.",
+                      "name": "PartitionIndex",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The committed message offset.",
+                      "name": "CommittedOffset",
+                      "type": "int64",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The leader epoch.",
+                      "default": "-1",
+                      "ignorable": true,
+                      "name": "CommittedLeaderEpoch",
+                      "type": "int32",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition metadata.",
+                      "name": "Metadata",
+                      "nullableVersions": "8+",
+                      "type": "string",
+                      "versions": "8+"
+                    },
+                    {
+                      "about": "The partition-level error code, or 0 if there was no error.",
+                      "name": "ErrorCode",
+                      "type": "int16",
+                      "versions": "8+"
+                    }
+                  ],
+                  "name": "Partitions",
+                  "type": "[]OffsetFetchResponsePartitions",
+                  "versions": "8+"
+                }
+              ],
+              "name": "Topics",
+              "type": "[]OffsetFetchResponseTopics",
+              "versions": "8+"
+            },
+            {
+              "about": "The group-level error code, or 0 if there was no error.",
+              "default": "0",
+              "name": "ErrorCode",
+              "type": "int16",
+              "versions": "8+"
+            }
+          ],
+          "name": "Groups",
+          "type": "[]OffsetFetchResponseGroup",
+          "versions": "8+"
+        }
+      ],
+      "identity": {
+        "api_key": 9,
+        "bytes": 5641,
+        "flexible_versions": "6+",
+        "kind": "Response",
+        "latest_version_unstable": false,
+        "path": "clients/src/main/resources/common/message/OffsetFetchResponse.json",
+        "present": true,
+        "release": "4.3.1",
+        "sha256": "c4a276a54437b094b7bd4b6c795785b419f81d390dea3c8908028439eda65e7c",
+        "tar_mode": "0o664",
+        "valid_versions": "1-10"
+      }
+    }
+  }
+}

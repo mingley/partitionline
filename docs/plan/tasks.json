@@ -632,7 +632,32 @@
         "Run the schema coverage and conformance report checkers against the complete inventories.",
         "Verify no uncovered required case lacks a task and no new dependency cycle was introduced."
       ],
-      "evidence": [],
+      "evidence": [
+  {
+    "schema_version": 1,
+    "task": "KL01-14",
+    "status": "in_progress",
+    "scope": "Static current Kafka API/schema/source reconciliation and nine concrete new cards; no new product execution or complete upstream case qualification.",
+    "reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12",
+    "latest_75_status_reference": "7b108f842731b9f58fea1b8a146193ccd902df50",
+    "api_key_count": 93,
+    "schema_objects": 558,
+    "new_bounded_cards": {
+      "Q-CAP-OffsetsUuid10": "KL05-34",
+      "Q-CAP-InitProducerId6": "KL05-35",
+      "Q-DEC-PreparedTxnLifecycle": "KL05-36",
+      "Q-CAP-Reassignment1": "KL05-37",
+      "Q-FIX-ListTransactionsRouting": "KL05-38",
+      "Q-CAP-ListTransactions2": "KL05-39",
+      "Q-CAP-AddRaftVoter1": "KL05-40",
+      "Q-CAP-LegacyDiscovery0": "KL05-41",
+      "Q-CAP-LegacyJoin0_1": "KL05-42"
+    },
+    "evidence": "docs/evidence/client/protocol-inventory-current/gap-audit-01/validation.json",
+    "full_current_protocol_complete": false,
+    "remaining_work": "Reconcile every applicable Java/system/librdkafka case and run complete coverage/report and uncovered-case checks; implemented features remain individually qualified at their original pins."
+  }
+],
       "write_set": [
         "scripts/check-protocol-coverage.py",
         "tests/conformance/cases.json",
@@ -3105,7 +3130,8 @@
         "tests/sticky_partitioner.rs",
         "tests/fixtures/sticky-partitioner/",
         "docs/evidence/client/KL05-10/",
-        "docs/plan/evidence/KL05-10.json"
+        "docs/plan/evidence/KL05-10.json",
+        "benchmarks/sticky-partitioner/"
       ],
       "delegated_write_sets": {
         "codex-coordinator-20261003": [
@@ -49873,6 +49899,647 @@
         "Stable/1.85 default/all-feature strict and immutable full-client gates."
       ],
       "evidence": []
+    },
+    {
+      "id": "KL05-34",
+      "title": "Implement OffsetCommit/OffsetFetch v10 topic identity through group and Admin callers",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-28",
+        "KL01-03",
+        "KL03-06"
+      ],
+      "files": [
+        "src/protocol/group.rs",
+        "src/group.rs",
+        "src/consumer.rs",
+        "src/admin.rs",
+        "tests/offset_topic_ids_v10.rs",
+        "tests/fixtures/offset-topic-ids-v10/",
+        "docs/evidence/client/offset-topic-ids-v10/"
+      ],
+      "deliverable": "Both codecs and actual group/Admin negotiations stop at9; the pinned current schemas replace topic names with UUIDs in requests AND responses at10. Introduce additive bounded typed topic identity fields preserving old name-based methods. Encode UUIDs at10, names only atolder versions; retain all group/member epoch, partition, metadata, leader epoch and error fields.",
+      "acceptance": [
+        "Failing-first tests demonstrate current10 rejection and exact UUID field difference, followed by complete independent request/response comparisons.",
+        "Exercise public Consumer commit/restart fetch and Admin list/alter group offsets with nonzero topic UUIDs, empty/null topics, batched groups, member epochs and per-partition errors.",
+        "Prove same-name delete/recreate, stale metadata, unknown UUID, coordinator movement and response-order changes cannot cross-commit or mislabel offsets. Legacy8/9 histories remain unchanged.",
+        "Explicit caps for topics, groups, partitions, returned results and metadata retries.",
+        "Commit side effects require caller authorization already conveyed by the method; timeout/cancel/lost response cannot be relabeled as definite absence.",
+        "For v9 peers, only name-based requests with a verified name/identity mapping may fall back; explicit UUID-only caller intent must reject if it cannot be represented safely.",
+        "Omitted APIs and10-only/no-usable-metadata peers fail before offset mutation. After coordinator change re-negotiate with one absolute budget; no frame tagged10 can contain a name layout."
+      ],
+      "validation": [
+        "All3 actual Apache serializers/parsers for8/9v10, including nested tags/truncation and response topic IDs.",
+        "Actual configured public Java Consumer commit and Admin offset methods versus Rust caller histories in a bounded reference peer harness or pinned broker; retain any Java factory version cap and unsupported cell honestly.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/group.rs",
+        "src/group.rs",
+        "src/consumer.rs",
+        "src/admin.rs",
+        "tests/offset_topic_ids_v10.rs",
+        "tests/fixtures/offset-topic-ids-v10/",
+        "docs/evidence/client/offset-topic-ids-v10/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Introduce additive bounded typed topic identity fields preserving old name-based methods. Encode UUIDs at10, names only atolder versions; retain all group/member epoch, partition, metadata, leader epoch and error fields.",
+        "Resolve name-based callers through a captured metadata generation; associate request/response UUIDs with that generation and refresh only within the original deadline. Never attach a delayed old UUID response to a newly recreated same-name topic.",
+        "Handle OffsetFetch nullable all-topics/group batched forms and unknown response UUIDs explicitly; preserve raw identity or return a typed bounded error instead of inventing a name. Negotiate on the actual coordinator connection after relocation."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-OffsetsUuid10",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-35",
+      "title": "Add complete InitProducerId v6 wire fields and normal initialization negotiation",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-28",
+        "KL01-03",
+        "KL03-09",
+        "KL03-10"
+      ],
+      "files": [
+        "src/protocol/idem.rs",
+        "src/producer.rs",
+        "tests/init_producer_id_v6.rs",
+        "tests/fixtures/init-producer-id-v6/",
+        "docs/evidence/client/init-producer-id-v6/"
+      ],
+      "deliverable": "Codec and Producer cap22 at5. v6 adds Enable2Pc/KeepPreparedTxn plus OngoingTxnProducerId/OngoingTxnProducerEpoch; the existing tuple API cannot preserve these response fields. Add typed request/response forms with both flags and both ongoing-transaction identity fields; old wrappers keep false defaults and source compatibility.",
+      "acceptance": [
+        "All default/nondefault request fields and both independent response identities survive exact current Apache comparisons and bounded decoding.",
+        "Actual ordinary Producer init/send/commit/abort/epoch recovery behaves identically at6 and older negotiated versions; false defaults do not activate2PC.",
+        "Ongoing-transaction response fields never overwrite regular identity or turn a broker error into successful initialization.",
+        "One finite initialization/epoch recovery deadline; no detached retry worker or unbounded transaction state.",
+        "Complete-input/truncation/tag limits use existing bounded protocol helpers.",
+        "Peers0\u20135 preserve existing ordinary behavior; any true v6-only flag returns typed Unsupported before the22 application frame.",
+        "No22 advertisement or version overlap fails locally; actual moved coordinator re-negotiation preserves absolute deadlines."
+      ],
+      "validation": [
+        "All3 actual Apache22v6 generated serializers/parsers and request factories with true/false flag combinations and -1/nondefault ongoing fields.",
+        "Actual public Java ordinary initTransactions/send/commit/abort comparisons where implemented; Java full prepared-resume is explicitly outside this wire/default card.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/idem.rs",
+        "src/producer.rs",
+        "tests/init_producer_id_v6.rs",
+        "tests/fixtures/init-producer-id-v6/",
+        "docs/evidence/client/init-producer-id-v6/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Add typed request/response forms with both flags and both ongoing-transaction identity fields; old wrappers keep false defaults and source compatibility.",
+        "Allow normal idempotent/transactional initialization at6 with flags false. Preserve actual returned PID/epoch, existing epoch bump/fencing/error handling and coordinator negotiation. Do not interpret an ongoing transaction identity as the newly allocated producer identity.",
+        "Gate flag-bearing callers on6; do not silently drop fields on an older version. Keep unexpected/sentinel ongoing identities explicit."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-InitProducerId6",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-36",
+      "title": "Implement a concrete bounded policy for opt-in2PC initialization and unavailable prepared resume",
+      "priority": "P1",
+      "kind": "decision_with_required_implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-35",
+        "KL03-10",
+        "KL03-20"
+      ],
+      "files": [
+        "src/producer.rs",
+        "src/protocol/idem.rs",
+        "tests/prepared_transaction_policy.rs",
+        "docs/evidence/client/prepared-transaction-policy/"
+      ],
+      "deliverable": "A complete prepared-resume feature cannot be inferred from v6 fields: ALL3 actual broker coordinators return UNSUPPORTED_VERSION for KeepPreparedTxn=true; public Java Producer lacks prepareTransaction,4.1 internal resume is TODO, and request data is built without flag setters. Publish a concrete typed capability/initialization policy for explicit Enable2Pc intent, its broker configuration gate and unavailable KeepPreparedTxn resume. False/default ordinary transactions remain fully functional.",
+      "acceptance": [
+        "Execute current3-broker/source-policy cases with explicit KeepPreparedTxn and prove typed unsupported handling/no falsely resumed transaction; Enable2Pc disabled/enabled configuration outcomes are separately measured.",
+        "Existing Producer initTransactions ordinary lifecycle and old broker fallbacks remain unchanged; repeated failure/cancellation cannot leave a usable prepared identity or leak buffered records.",
+        "Prepare a finite applicability table for actual Java public/internal/native surfaces and upstream unavailable operations; no serializer or internal-only method is reported as successful public end-to-end parity.",
+        "A finite policy/state table and existing transaction deadline/retry bounds; no public method claiming unsupported prepared commit semantics.",
+        "No evidence can close successful prepared-resume scope until a real supported upstream implementation exists.",
+        "Explicit unsupported flag on0\u20135 is a typed local negotiation refusal with zero22 application frames.",
+        "Explicit resume on6 records the actual broker unsupported layer separately from local version refusal. No fallback changes caller intent."
+      ],
+      "validation": [
+        "Source-bound actual Java public initTransactions and producer configuration outcomes for all3 SDKs; internal TransactionManager state fixtures are labeled internal only.",
+        "Actual generated request6 plus pinned reference broker outcome for true KeepPreparedTxn; expected unsupported is a real negative result, not a skipped test.",
+        "Use a genuine native implementation only if its explicit2PC surface exists and is independently pinned; absence is documented rather than fabricated.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/producer.rs",
+        "src/protocol/idem.rs",
+        "tests/prepared_transaction_policy.rs",
+        "docs/evidence/client/prepared-transaction-policy/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Publish a concrete typed capability/initialization policy for explicit Enable2Pc intent, its broker configuration gate and unavailable KeepPreparedTxn resume. False/default ordinary transactions remain fully functional.",
+        "For old versions reject v6-only intent before send. For a supported wire version preserve broker UnsupportedVersion/authorization outcomes without mutating cached active/prepared identities or reporting a successful resume.",
+        "Separate new identity and ongoing identity in any opt-in result; bound configuration/state transitions, error/cancel/close ownership and recovery. Do not introduce a successful prepare/resume facade without an independently supported broker contract.",
+        "Decision closure requires implemented caller behavior and evidence. If successful prepared resume remains unsupported by every pinned upstream, keep that exact cell unsupported with a source-bound follow-up triggered by real upstream support; do not waive current wire fields or enabled initialization."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-DEC-PreparedTxnLifecycle",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-37",
+      "title": "Expose AlterPartitionReassignments v1 replication-factor-change policy",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-28",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/reassignment_options_v1.rs",
+        "tests/fixtures/reassignment-options-v1/",
+        "docs/evidence/client/reassignment-options-v1/"
+      ],
+      "deliverable": "API45 is AlterPartitionReassignments, not CreatePartitions. Current codec/runtime uses0 and exposes no AllowReplicationFactorChange option; all3 public Java options expose it. Add an additive options-bearing method/request type with defaulttrue matching Java. Version1 includes the bool; version0 can represent onlytrue.",
+      "acceptance": [
+        "Actual true/false option fields and success/error response trees compare with3 genuine serializers and public Java options.",
+        "Bounded public Admin reassignment tests distinguish same-factor move from factor change and cancellation; explicitfalse must prevent factor changes and preserve mixed per-partition errors.",
+        "Controller failover/deadline/cancel/lost acknowledgement retain the original intended option on every retry.",
+        "Caps on assignments/replicas/results and one overall request budget; no control-plane mutation outside the explicit caller operation.",
+        "Defaulttrue is allowed on0;false on0 rejects with no45 mutation frame. Missing/no-intersection APIs fail locally.",
+        "1-only and mixed-version controller reconnection produce exact negotiated wire layouts; unrelated Admin startup does not require45."
+      ],
+      "validation": [
+        "All3 actual AlterPartitionReassignmentsRequest.Builder rejects false<1; compare same genuine public Java Admin option against bounded independent response harness or a real reference cluster.",
+        "Preserve exact produced packets/public results; no fabricated successful controller mutation.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/reassignment_options_v1.rs",
+        "tests/fixtures/reassignment-options-v1/",
+        "docs/evidence/client/reassignment-options-v1/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Add an additive options-bearing method/request type with defaulttrue matching Java. Version1 includes the bool; version0 can represent onlytrue.",
+        "Retain assignment cancellation(null replicas), exact broker/partition errors and throttle. Negotiate on the actual controller connection after failover with an overall deadline.",
+        "Reject explicitfalse when only0 is available before mutation instead of silently allowing replication-factor changes."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-Reassignment1",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-38",
+      "title": "Query all brokers for ListTransactions with bounded complete and partial results",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-28",
+        "KL01-03"
+      ],
+      "files": [
+        "src/admin.rs",
+        "tests/list_transactions_routing.rs",
+        "tests/fixtures/list-transactions-routing/",
+        "docs/evidence/client/list-transactions-routing/"
+      ],
+      "deliverable": "Existing ListTransactions discovers the transaction coordinator for an empty transactional ID and returns only its listing. ALL3 Java handlers use AllBrokersStrategy; public all() waits for all brokers and fails on a non-retriable broker error. Discover bounded broker membership with Metadata, query each broker using its actual negotiated API66 connection, and retry only the affected broker under one absolute caller deadline. Do not use FindCoordinator(empty).",
+      "acceptance": [
+        "Failing-first independently generated multi-broker transcripts show current one-coordinator undercount. Final Rust all() matches genuine3SDK all()/allByBrokerId across2+brokers with transactions deliberately distributed.",
+        "A non-retriable failed broker prevents complete-only success; partial results retain broker IDs/error origins. Duplicate transaction IDs/conflicting states remain visible.",
+        "One stalled broker, delayed Metadata, repeated coordinator-load error, broker movement and authentication reconnect cannot reset the absolute budget or send fabricated empty-key coordinator lookups.",
+        "Explicit maximum brokers, listings, bytes, active requests and metadata refreshes; a bounded fanout or sequential implementation must still obey one absolute deadline.",
+        "All admitted response/retry/shutdown work owned by the public future; no detached fanout or ignored partial errors.",
+        "Version0 unfiltered listings work; duration>=0 on0 rejects rather than disappearing. Version selection is per broker; one incapable broker makes complete result unsupported, and a typed partial API reports it explicitly.",
+        "Absence of unrelated Admin operations does not block this method or ordinary startup."
+      ],
+      "validation": [
+        "All3 actual public Java Admin.listTransactions and ListTransactionsHandler/AllBrokersStrategy/ListTransactionsResult source/runtime pinned.",
+        "Bounded independent multi-broker peer or actual reference cluster proves broker fanout, partial error and concatenation behavior; source comparison alone does not qualify aggregation.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/admin.rs",
+        "tests/list_transactions_routing.rs",
+        "tests/fixtures/list-transactions-routing/",
+        "docs/evidence/client/list-transactions-routing/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Discover bounded broker membership with Metadata, query each broker using its actual negotiated API66 connection, and retry only the affected broker under one absolute caller deadline. Do not use FindCoordinator(empty).",
+        "Provide a bounded per-broker result/error surface analogous to Java byBrokerId/allByBrokerId. Preserve the existing Vec-returning method as complete-only: it cannot return silent partial success.",
+        "Java all() concatenates listings, so preserve provenance and actual duplicate records rather than deduplicating by transactional ID and hiding contradictory results. Specify a finite deterministic flatten order if Rust adds one.",
+        "Track unknown/moved brokers, disconnects and membership refresh within explicit caps; result growth and partial errors cannot accumulate without a limit."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-FIX-ListTransactionsRouting",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-39",
+      "title": "Implement the v2 TransactionalIdPattern public Admin filter",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-38",
+        "KL05-28",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/list_transactions_pattern_v2.rs",
+        "tests/fixtures/list-transactions-pattern-v2/",
+        "docs/evidence/client/list-transactions-pattern-v2/"
+      ],
+      "deliverable": "Current API66 negotiation/codec stops at1 and lacks TransactionalIdPattern; all3 Java ListTransactionsOptions expose the v2 filter. The exact field spelling is TransactionalIdPattern. Add bounded optional nullable pattern to typed options/request. Wire2 includes it, response remains existing full layout including UnknownStateFilters.",
+      "acceptance": [
+        "Exact3SDK generated2 request/response/parser comparisons cover null/empty/nonempty/invalid patterns combined with PID/state/duration filters.",
+        "Genuine public Java Admin filtered union versus Rust all-broker filtered union covers matching/nonmatching transactions and invalid regex.",
+        "No filtering is dropped on a mixed-version broker set and no response shape is incorrectly changed at2.",
+        "Pattern bytes/filter counts/returned listings bounded; avoid introducing a regex dependency or unbounded local regex work.",
+        "Nonempty filter requires2 for every targeted broker, rejected/typed partial unsupported on0/1 without silent unfiltered listing.",
+        "Unfiltered calls retain0/1 compatibility; requested duration still requires1. Re-negotiate after reconnect inside the same absolute budget."
+      ],
+      "validation": [
+        "All3 actual ListTransactionsRequest.Builder plus public ListTransactionsOptions.filterOnTransactionalIdPattern.",
+        "Run actual bounded public Admin behavior with independent broker/error fixtures or pinned reference brokers; no local Rust regex substitutes for broker policy.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/list_transactions_pattern_v2.rs",
+        "tests/fixtures/list-transactions-pattern-v2/",
+        "docs/evidence/client/list-transactions-pattern-v2/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Add bounded optional nullable pattern to typed options/request. Wire2 includes it, response remains existing full layout including UnknownStateFilters.",
+        "Match actual Java public-option normalization: null/empty public pattern is unfiltered; explicitly non-null raw request on<2 follows actual builder refusal. Keep invalid regex evaluation/error authority on the broker.",
+        "Apply the same selected filter to every broker from the routing card; preserve InvalidRegularExpression and partial errors, not an empty success."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-ListTransactions2",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-40",
+      "title": "Add v1 AckWhenCommitted while preserving safe voter acknowledgement semantics",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-20",
+        "KL05-19",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/add_raft_voter_v1.rs",
+        "tests/fixtures/add-raft-voter-v1/",
+        "docs/evidence/client/add-raft-voter-v1/"
+      ],
+      "deliverable": "Current API80 speaks0 only.4.2/4.3 add1 AckWhenCommitted(defaulttrue);4.1.2 has only0. Genuine Java public options expose clusterId but no ack=false knob. Raft handler distinguishes locally written from majority-committed voter records. Extend typed wire request and optional caller acknowledgement policy preserving current default committed acknowledgment. Version1 serializes true/false; version0 omits the field.",
+      "acceptance": [
+        "4.2/4.3 actual serializers/parser fields and actual controller responses for true/false;4.1 version1 is an explicit unsupported cell, not a missing fixture skipped silently.",
+        "Public Java Admin.addRaftVoter defaults compared with Rust; because Java options lack false, separately label generated request/internal Raft negative/ack policy proof.",
+        "In a finite disposable real quorum, delay commit and prove local false completes after append, true waits for actual majority commit; lost leader/response/deadline retain ambiguous state and no fabricated durable success.",
+        "Finite isolated lab quorum and explicit live-mutation recipe/cleanup; no production membership change is authorized by code qualification alone.",
+        "Cap endpoints/identities/retry attempts/deadline; shutdown joins every owned lab process and leaves no ambiguous test membership unreported.",
+        "Explicit false/local mode on0 rejects before mutation. Defaulttrue legacy0 fallback is allowed only with source/runtime-proven equivalent committed behavior.",
+        "Absent API, incompatible cluster/directory, controller movement and old new-voter capability are separately typed."
+      ],
+      "validation": [
+        "All3 genuine public Java default addRaftVoter version negotiation; actual4.1 v0 and4.2/4.3 v1, not impossible3-way v1 parity.",
+        "Ack=false uses authentic generated request/actual Raft handler source and a real bounded quorum; internal proof is not mislabeled a public Java option.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/admin.rs",
+        "src/admin.rs",
+        "tests/add_raft_voter_v1.rs",
+        "tests/fixtures/add-raft-voter-v1/",
+        "docs/evidence/client/add-raft-voter-v1/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Extend typed wire request and optional caller acknowledgement policy preserving current default committed acknowledgment. Version1 serializes true/false; version0 omits the field.",
+        "If an explicit local-append acknowledgment mode is provided, require1 and label success as local append only. Never report that result as a committed/voting durable membership. Preserve current response-loss ambiguity and reconciliation guidance.",
+        "Re-negotiate on the actual controller connection; keep identity/endpoint validation, expected-cluster check and absolute retry budget. Verify the legacy0 committed behavior with actual4.1 handler/peer rather than assuming byte default equivalence."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-AddRaftVoter1",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-41",
+      "title": "Implement current-valid Metadata0 and classic group FindCoordinator0 discovery",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-28",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/api.rs",
+        "src/protocol/group.rs",
+        "src/producer.rs",
+        "src/consumer.rs",
+        "src/group.rs",
+        "src/admin.rs",
+        "tests/legacy_discovery_v0.rs",
+        "tests/fixtures/legacy-discovery-v0/",
+        "docs/evidence/client/legacy-discovery-v0/"
+      ],
+      "deliverable": "Both0 remain valid in all3 corrected current SDK schemas; Rust runtime declares minima1. Metadata helpers contain partial0 response support, but request builder/runtime do not speak it; FindCoordinator codec refuses0. No bounded legacy compatibility card already exists at the audited taskbook. Implement full Metadata0 request/response and normal name-based route discovery, including empty/all-topics semantics and absent rack/controller/cluster-ID/internal flags. Preserve unknown/sentinel values instead of manufacturing modern metadata.",
+      "acceptance": [
+        "Failing-first public bootstrap/group discovery at0 is followed by exact independent3SDK0 request/response checks and actual public Consumer/Producer/Admin route behavior where possible.",
+        "FindCoordinator GROUP success/error/disconnect/stale-route paths are compared with actual reference peers; non-GROUP0 requests fail locally with zero incompatible application frames.",
+        "Metadata0 empty/all/specific topics and response sentinels do not invent UUID/controller identity; controller-required public Admin operations fail explicitly when the information is genuinely unavailable.",
+        "One original absolute bootstrap/coordinator deadline with bounded broker/topic/partition arrays and redirects.",
+        "No fabricated controller or topic identity, detached discovery retry, or separate retry budget per fallback.",
+        "Exercise0-only,0\u2013newer, absent-API and disjoint-version peers; modern peers still choose their highest represented version.",
+        "Caller options unsupported by0 fail before metadata-dependent mutation; no fallback drops identity/coordinator type."
+      ],
+      "validation": [
+        "All3 actual MetadataRequest and FindCoordinatorRequest builders/serializers/parsers with their legacy defaults.",
+        "Actual configured public SDK operation in a bounded0-only negotiation harness or pinned reference broker; no self-generated Rust broker proof replaces independent public calls.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/api.rs",
+        "src/protocol/group.rs",
+        "src/producer.rs",
+        "src/consumer.rs",
+        "src/group.rs",
+        "src/admin.rs",
+        "tests/legacy_discovery_v0.rs",
+        "tests/fixtures/legacy-discovery-v0/",
+        "docs/evidence/client/legacy-discovery-v0/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Implement full Metadata0 request/response and normal name-based route discovery, including empty/all-topics semantics and absent rack/controller/cluster-ID/internal flags. Preserve unknown/sentinel values instead of manufacturing modern metadata.",
+        "Implement FindCoordinator0 only for classic GROUP keys:0 omits KeyType and cannot express transactional/share coordinator intent. Other coordinator families reject before an incompatible application frame.",
+        "Allow old-version discovery where caller options are representable. Preserve current modern paths and require typed Unsupported for mandatory topic UUIDs, incompatible auto-create/auth flags, or controller-dependent operations when no trustworthy controller discovery exists.",
+        "Keep explicit negotiation policy and every current-valid upstream version in the registry. Declared client minima alone cannot close full_protocol_complete."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-LegacyDiscovery0",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
+    },
+    {
+      "id": "KL05-42",
+      "title": "Implement current-valid JoinGroup0/1 classic membership and bounded fallback policy",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-41",
+        "KL01-03",
+        "KL03-14",
+        "KL03-21"
+      ],
+      "files": [
+        "src/protocol/group.rs",
+        "src/group.rs",
+        "src/consumer.rs",
+        "tests/legacy_join_group.rs",
+        "tests/fixtures/legacy-join-group/",
+        "docs/evidence/client/legacy-join-group/"
+      ],
+      "deliverable": "All3 corrected current schemas retain JoinGroup0/1, while Rust codec and negotiated group connection require2+. The current Rust comment that0/1 were removed must not be used to erase valid inventory cells. Implement0/1 request/response layouts:0 lacks RebalanceTimeoutMs,1 includes it, and response throttle starts later. Preserve all classic protocol name/metadata/member/assignment/error fields.",
+      "acceptance": [
+        "All3 real JoinGroup builders/serializers/parsers for0/1 and defaults, including malformed counts/metadata/truncation and reference errors.",
+        "Actual classic public Consumer join/sync/heartbeat/revoke/rejoin behavior on0-only/1-only negotiation peers, coordinator move/member-ID failure and cancellation; complete bounded histories/assignment epochs retained.",
+        "Current2\u20139 cooperative/static group behavior remains unchanged. Incompatible modern/static caller intent fails before any legacy join frame.",
+        "Caps on members/protocols/metadata/assignment bytes and retry/heartbeat state; no unbounded join churn or detached heartbeat worker.",
+        "Commit/fetch dependency gaps remain tracked by their own cards; this card cannot declare the entire old-client campaign complete.",
+        "0-only/1-only/no-join/disjoint peers and per-coordinator renegotiation all use one overall deadline.",
+        "Explicit newer-only caller semantics fail closed; an old peer never receives an incorrectly labeled modern body."
+      ],
+      "validation": [
+        "Genuine configured3SDK public classic group calls plus independently pinned protocol serializer/parser reference. Internal-only tests and local Rust group mock behavior are separately labeled.",
+        "Successful old group lifecycle is not inferred from a JoinGroup field roundtrip.",
+        "Actual source-bound stable/Rust1.85 default/all-feature tests, strict lint, formatting and docs; preserve existing qualified source compatibility and all historical failures."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/group.rs",
+        "src/group.rs",
+        "src/consumer.rs",
+        "tests/legacy_join_group.rs",
+        "tests/fixtures/legacy-join-group/",
+        "docs/evidence/client/legacy-join-group/"
+      ],
+      "read_only_held": [
+        "src/net.rs",
+        "src/rpc_conn.rs",
+        "src/protocol/buf.rs",
+        "src/protocol/records.rs"
+      ],
+      "root_integration_only": [
+        "docs/plan/tasks.json",
+        "src/lib.rs",
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json"
+      ],
+      "implementation_plan": [
+        "Implement0/1 request/response layouts:0 lacks RebalanceTimeoutMs,1 includes it, and response throttle starts later. Preserve all classic protocol name/metadata/member/assignment/error fields.",
+        "Integrate finite classic member join/sync/heartbeat/rejoin state using the real coordinator connection. Version0 rebalance/session timeout semantics follow actual Java builder/default behavior, not a guessed modern timeout field.",
+        "Only representable classic configurations fall back. Static membership, modern group/share/Streams intent and newer-only fields require their actual minimum versions and typed refusal without silently changing group semantics."
+      ],
+      "qualification_limits": [
+        "No existing card is reopened or reclassified by this proposal.",
+        "Actual field serialization is an independent wire check, not complete public behavior or broker qualification.",
+        "Keep every actual failure/unsupported outcome, source/runtime identity and raw safe receipt. No skip/codec roundtrip can qualify an applicable behavior.",
+        "Claim every exact write path before mutation; shared Admin and group/Producer owners must be serialized by root."
+      ],
+      "proposal_source": "docs/evidence/client/protocol-inventory-current/gap-audit-01/proposed-bounded-cards.json",
+      "proposal_key": "Q-CAP-LegacyJoin0_1",
+      "independently_reviewed_source": "d3dfffb2737ec90c14f8c48b8106de92c917df12"
     }
   ]
 }

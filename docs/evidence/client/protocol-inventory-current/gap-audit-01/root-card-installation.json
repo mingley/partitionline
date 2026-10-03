@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "task_count": 316,
+  "new_cards": {
+    "Q-CAP-OffsetsUuid10": "KL05-34",
+    "Q-CAP-InitProducerId6": "KL05-35",
+    "Q-DEC-PreparedTxnLifecycle": "KL05-36",
+    "Q-CAP-Reassignment1": "KL05-37",
+    "Q-FIX-ListTransactionsRouting": "KL05-38",
+    "Q-CAP-ListTransactions2": "KL05-39",
+    "Q-CAP-AddRaftVoter1": "KL05-40",
+    "Q-CAP-LegacyDiscovery0": "KL05-41",
+    "Q-CAP-LegacyJoin0_1": "KL05-42"
+  },
+  "status_counts": {
+    "done": 176,
+    "in_progress": 12,
+    "pending": 128
+  },
+  "no_missing_dependencies_or_cycles": true,
+  "all_original_other_305_task_objects_unchanged": true,
+  "task14_still_in_progress": true,
+  "benchmark_write_set_added_to_task10": true,
+  "protocol_runtime_or_upstream_case_execution": false,
+  "original_audit_manifest_sha256": "1f220ad68a9665625ae95c2c4105d180fda4463230a8447a2d3feba3db3813c1",
+  "taskbook_sha256": "08c6457218d0d5251910692152e32c18d8a2516fa36fb094966a808fd2b7a060"
+}
