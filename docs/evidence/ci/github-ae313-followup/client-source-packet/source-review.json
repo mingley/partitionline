@@ -1,0 +1,39 @@
+{
+  "scope": "SOURCE-ONLY correction, actual compile/tests/Clippy remain future. No current PASS qualification inferred.",
+  "source_sha": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "root_reported_jobs": {
+    "stable": 111306360323,
+    "clippy": 111306360298,
+    "stable_cases_failed": 17,
+    "synchronous_io_lints": 12
+  },
+  "preliminary_source_control_failure": {
+    "exit_code": 1,
+    "diagnostic": "SyntaxError under python -Werror: is not with str literal, corrected to actual source membership assertion; script did not parse or mutate any candidate."
+  },
+  "checks": [
+    {
+      "path": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "metadata_encoder_and_all_list_filter_assertions_unchanged": true,
+      "response_header0_for_ApiVersions_both_requested4_and0": true,
+      "v4_header2_software_and_whole_body_validation": true,
+      "v0_independent_UnsupportedVersion35_response_advertises_only_api18range0": true,
+      "existing_oldmain_direct0_fallback_preserved": true
+    },
+    {
+      "path": "tests/streams_protocol.rs",
+      "only_three_narrow_expect_attributes_added": true,
+      "all_fixture_reads_assertions_and_raw234_exports_byte_source_unchanged": true,
+      "no_async_or_Tokio_runtime_added": true
+    }
+  ],
+  "unchanged_old_four_row_assertion": {
+    "path": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+    "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb"
+  },
+  "java_live_blocker": {
+    "path": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+    "sha256": "632cf34ce04e79c88432a0bc46df368be711f35949287a0e007057c80cf88dda",
+    "scope": "Metadata1 legacy helper remains explicitly unqualified for genuine Java live/authentication; root confirmed no other SDK helper update is required now"
+  }
+}

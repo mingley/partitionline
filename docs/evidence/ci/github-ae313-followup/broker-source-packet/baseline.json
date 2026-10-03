@@ -1,0 +1,20 @@
+{
+  "source_sha": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "scope": "source-only two-path correction; actual CI failed before tests",
+  "rows": [
+    {
+      "path": "partitionline-broker/src/raft/runtime.rs",
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full_mode": "0600",
+      "git": "100644 blob 27e78370a45af8ce24c546d84d5717e49b285e16\tpartitionline-broker/src/raft/runtime.rs"
+    },
+    {
+      "path": "partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739",
+      "bytes": 46576,
+      "full_mode": "0600",
+      "git": "100644 blob 8c360b1fcd5c1643ef0daaa58b72ca677cc2aad5\tpartitionline-broker/tests/common/raft_runtime.rs"
+    }
+  ]
+}

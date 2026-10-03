@@ -1,0 +1,56 @@
+{
+  "scope": "PROPOSED std-only source harness; no compiler/runtime launches executed",
+  "basis": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "candidate_source": "/workspace/work/raft-runtime-76/ci-ae313-correction-01/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+  "candidate_sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47",
+  "unchanged_runtime_sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+  "harness": "/workspace/work/raft-runtime-76/ci-ae313-correction-01/format-and-capture-harness.rs",
+  "harness_sha256": "b192acbdac1a29c1efc4055b13fe033bb3f2911eafd537e241098ee21de5d79b",
+  "commands_proposed": [
+    [
+      "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc",
+      "--edition=2021",
+      "-Dwarnings",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/format-and-capture-harness.rs",
+      "-o",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-stable-harness"
+    ],
+    [
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-stable-harness",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-stable-results"
+    ],
+    [
+      "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustc",
+      "--edition=2021",
+      "-Dwarnings",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/format-and-capture-harness.rs",
+      "-o",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-msrv-harness"
+    ],
+    [
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-msrv-harness",
+      "/workspace/work/raft-runtime-76/ci-ae313-correction-01/future-msrv-results"
+    ]
+  ],
+  "actual_checks_completed": [
+    "source-only exact ae313 extraction",
+    "stable rustfmt format",
+    "Rust1.85 rustfmt --check"
+  ],
+  "runtime_checks_proposed": [
+    "exact forward JSON parse/field comparison",
+    "16MiB exact boundary accepted; next byte rejected before file creation",
+    "checked u64 overflow rejected before file creation",
+    "eight joined real threads,160 attempts of1MiB,exact16 accepted, counter never exceeds16MiB,16 physical files"
+  ],
+  "serial_disk_forecast": {
+    "baseline_floor": 367001600,
+    "root_ledger_reserve": 33554432,
+    "compiler_binary_growth": 16777216,
+    "two_retained_result_trees": 35651584,
+    "source_audit_logs": 2097152,
+    "required_free": 455081984
+  },
+  "rust_managed_harness_peak": "8 worker-owned1MiB payloads plus bounded file I/O/JSON; no Cargo cache, SDK, network or broker launch",
+  "broker_qualification": false
+}

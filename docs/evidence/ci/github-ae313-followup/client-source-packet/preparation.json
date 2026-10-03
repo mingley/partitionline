@@ -1,0 +1,33 @@
+{
+  "source_sha": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "scope": "WORK-only follow-up to actual reported17 runtime bootstrap failures and12 synchronousfixtureI/O lint failures; no source runtime/CI pass claim",
+  "files": [
+    {
+      "path": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "baseline_sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d",
+      "bytes": 28906,
+      "full07777": 384
+    },
+    {
+      "path": "tests/streams_protocol.rs",
+      "baseline_sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0",
+      "bytes": 36045,
+      "full07777": 420
+    },
+    {
+      "path": "tests/fixtures/list-transactions-routing/README.md",
+      "baseline_sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997",
+      "bytes": 5904,
+      "full07777": 384
+    }
+  ],
+  "unchanged_old_four_row_assertion": {
+    "path": "tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+    "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb"
+  },
+  "unchanged_java_live_entry": {
+    "path": "tests/fixtures/list-transactions-routing/ListTransactionsOracle.java",
+    "sha256": "632cf34ce04e79c88432a0bc46df368be711f35949287a0e007057c80cf88dda",
+    "scope": "Metadata1 legacy helper remains explicitly unqualified for genuine Java live/authentication; root confirmed no other SDK helper update is required now"
+  }
+}

@@ -726,10 +726,6 @@ mod apache {
     }
 
     #[test]
-    #[expect(
-        clippy::disallowed_methods,
-        reason = "synchronous golden fixture I/O runs outside an async runtime"
-    )]
     fn actual_three_sdk_vectors_preserve_every_field_and_local_policy() -> TestResult {
         for release in ["4.1.2", "4.2.1", "4.3.1"] {
             let source = fixtures(release);
@@ -794,10 +790,6 @@ mod apache {
     }
 
     #[test]
-    #[expect(
-        clippy::disallowed_methods,
-        reason = "synchronous golden fixture I/O runs outside an async runtime"
-    )]
     fn actual_three_sdk_flexible_headers_keep_correlation_and_body_boundaries() -> TestResult {
         for release in ["4.1.2", "4.2.1", "4.3.1"] {
             let source = fixtures(release);
@@ -881,10 +873,6 @@ mod apache {
     }
 
     #[test]
-    #[expect(
-        clippy::disallowed_methods,
-        reason = "synchronous golden fixture I/O runs outside an async runtime"
-    )]
     fn actual_complete_sdk_messages_reject_every_truncation_and_extra_tail() -> TestResult {
         for release in ["4.1.2", "4.2.1", "4.3.1"] {
             for (name, typ) in [

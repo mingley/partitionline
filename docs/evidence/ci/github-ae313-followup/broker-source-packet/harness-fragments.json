@@ -1,0 +1,22 @@
+{
+  "source_sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47",
+  "fragments": [
+    {
+      "name": "Gate.capture_file",
+      "sha256": "032304f3a3391538ba64c2f61bbc47823f335be7478388329935e7d433ccb4ae",
+      "bytes": 1430
+    },
+    {
+      "name": "ForwardReceipt",
+      "sha256": "29dbefb95edee6cc64f3b5884f591caf84ff14230912653ef82453668f07d9fd",
+      "bytes": 298
+    },
+    {
+      "name": "Gate.forward_receipt",
+      "sha256": "5c8b32fa9ee17fd7cfaeec9df7939caae133e5605898efd684fc320060f1dd30",
+      "bytes": 1034
+    }
+  ],
+  "harness_sha256": "b192acbdac1a29c1efc4055b13fe033bb3f2911eafd537e241098ee21de5d79b",
+  "scope": "source only; exact method text embedded; no execution lease"
+}

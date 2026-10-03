@@ -1,0 +1,41 @@
+--- a/partitionline-broker/tests/common/raft_runtime.rs
++++ b/partitionline-broker/tests/common/raft_runtime.rs
+@@ -307,11 +307,24 @@
+                 return Ok(());
+             };
+             let size = u64::try_from(bytes.len())?;
+-            self.captured_bytes
+-                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
+-                    n.checked_add(size).filter(|next| *next <= 16 * 1024 * 1024)
+-                })
+-                .map_err(|_| "finite per-case proxy capture bytes")?;
++            // Preserve fetch_update's capped, checked-add reservation on MSRV.
++            // fetch_max would not charge cumulative bytes or enforce the cap.
++            let mut current = self.captured_bytes.load(Ordering::Acquire);
++            loop {
++                let next = current
++                    .checked_add(size)
++                    .filter(|next| *next <= 16 * 1024 * 1024)
++                    .ok_or("finite per-case proxy capture bytes")?;
++                match self.captured_bytes.compare_exchange_weak(
++                    current,
++                    next,
++                    Ordering::AcqRel,
++                    Ordering::Acquire,
++                ) {
++                    Ok(_) => break,
++                    Err(actual) => current = actual,
++                }
++            }
+             let mut file = fs::OpenOptions::new()
+                 .write(true)
+                 .create_new(true)
+@@ -365,7 +378,7 @@
+         let rpc = u64::from_be_bytes(bytes[16..24].try_into()?);
+         let time = |v: Option<u128>| v.map_or_else(|| "null".into(), |n| n.to_string());
+         let ok = r.write_ok.map_or_else(|| "null".into(), |b| b.to_string());
+-        let metadata = format!("{{\"schema_version\":2,\"packet_file\":\"{name}\",\"proxy_pid\":{},\"clock_basis\":\"parent proxy process monotonic Instant epoch; not owner process clock\",\"source\":{},\"target\":{},\"connection\":{},\"reply\":{},\"ordinal\":{},\"kind\":{},\"rpc\":{rpc},\"received_ms\":{},\"selected_delay_ms\":{},\"forward_started_ms\":{},\"forward_finished_ms\":{},\"forward_write_ok\":{ok},\"disposition\":\"{}\"}}}\n", std::process::id(), r.source, r.target, r.connection, r.reply, r.ordinal, bytes[14], r.received_ms, r.delay_ms, time(r.forward_started_ms), time(r.forward_finished_ms), r.disposition);
++        let metadata = format!("{{\"schema_version\":2,\"packet_file\":\"{name}\",\"proxy_pid\":{},\"clock_basis\":\"parent proxy process monotonic Instant epoch; not owner process clock\",\"source\":{},\"target\":{},\"connection\":{},\"reply\":{},\"ordinal\":{},\"kind\":{},\"rpc\":{rpc},\"received_ms\":{},\"selected_delay_ms\":{},\"forward_started_ms\":{},\"forward_finished_ms\":{},\"forward_write_ok\":{ok},\"disposition\":\"{}\"}}\n", std::process::id(), r.source, r.target, r.connection, r.reply, r.ordinal, bytes[14], r.received_ms, r.delay_ms, time(r.forward_started_ms), time(r.forward_finished_ms), r.disposition);
+         self.capture_file(&format!("{name}.forward.json"), metadata.as_bytes())
+     }
+ }

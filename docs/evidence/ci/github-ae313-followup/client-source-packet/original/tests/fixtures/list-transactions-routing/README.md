@@ -10,13 +10,7 @@ official serializers and aggregation components after coordinator authorization.
 third endpoint is a replacement address for broker 2. Normal discovery returns
 exactly those two IDs and zero topic entries, after verifying the actual request
 is Metadata1 with `Topics=[]`. The peer advertises required startup APIs19/20,
-Metadata1, ApiVersions0 and the configured API66 range. A current ApiVersions4
-probe is checked as request header2 plus its two compact software fields and
-empty tags, then receives the independently encoded v0 UNSUPPORTED_VERSION35
-response with ApiVersions range0..0. The same connection remains usable for
-the v0 retry, which receives the existing success body and response header0.
-Direct legacyv0 probes remain supported for the old-main four-row regression.
-Other Admin operations,
+Metadata1, ApiVersions0 and the configured API66 range. Other Admin operations,
 including FindCoordinator, are absent. Only the shared failing-first test permits
 the actual old FindCoordinator6 transaction lookup for an empty ID and returns
 broker 1; it then asserts the independently known four-row result. The corrected

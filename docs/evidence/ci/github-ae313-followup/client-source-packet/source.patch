@@ -1,0 +1,118 @@
+--- a/tests/fixtures/list-transactions-routing/socket_peer.rs
++++ b/tests/fixtures/list-transactions-routing/socket_peer.rs
+@@ -201,7 +201,7 @@
+     tasks: Vec<JoinHandle<(usize, Vec<String>)>>,
+ }
+ 
+-fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool) -> Vec<u8> {
++fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool, error_code: i16) -> Vec<u8> {
+     let mut keys = vec![(3i16, 1i16, 1i16), (18, 0, 0), (19, 0, 0), (20, 0, 0)];
+     if allow_old {
+         keys.push((10, 6, 6));
+@@ -210,7 +210,8 @@
+         keys.push((66, min, max));
+     }
+     let mut out = Vec::new();
+-    out.extend_from_slice(&0i16.to_be_bytes());
++    // KIP-511 unsupported modern requests use this same v0 response schema.
++    out.extend_from_slice(&error_code.to_be_bytes());
+     out.extend_from_slice(&i32::try_from(keys.len()).unwrap().to_be_bytes());
+     for (key, min, max) in keys {
+         out.extend_from_slice(&key.to_be_bytes());
+@@ -386,8 +387,8 @@
+         assert!(client >= -1);
+         let mut body_at = 14 + usize::try_from(client.max(0)).unwrap();
+         assert!(body_at <= frame.len());
+-        if matches!(api_key, 10 | 66) {
+-            assert_eq!(frame[body_at], 0, "request header2 empty tags");
++        if matches!(api_key, 10 | 66) || (api_key == 18 && version >= 3) {
++            assert_eq!(frame.get(body_at), Some(&0), "request header2 empty tags");
+             body_at += 1;
+         }
+         let body: Arc<[u8]> = frame[body_at..].into();
+@@ -411,10 +412,30 @@
+             });
+             let reply = match api_key {
+                 18 => {
+-                    assert_eq!(version, 0);
++                    let error_code = match version {
++                        0 => {
++                            assert!(body.is_empty(), "legacy ApiVersions0 empty body");
++                            0
++                        }
++                        4 => {
++                            // The current Rust/Java clients probe maxv4 using header2.
++                            // This independently encoded legacy peer supports onlyv0,
++                            // so KIP-511 requires a v0 UNSUPPORTED_VERSION response.
++                            let mut request = body.as_ref();
++                            assert!(!take_compact(&mut request).is_empty());
++                            assert!(!take_compact(&mut request).is_empty());
++                            assert_eq!(request, [0], "ApiVersions4 root empty tags");
++                            35
++                        }
++                        other => panic!("unexpected ApiVersions probe version{other}"),
++                    };
+                     Reply::Body(
+-                        api_versions(s.ranges[usize::try_from(node - 1).unwrap()], allow_old)
+-                            .into(),
++                        api_versions(
++                            s.ranges[usize::try_from(node - 1).unwrap()],
++                            allow_old,
++                            error_code,
++                        )
++                        .into(),
+                     )
+                 }
+                 3 => {
+--- a/tests/streams_protocol.rs
++++ b/tests/streams_protocol.rs
+@@ -726,6 +726,10 @@
+     }
+ 
+     #[test]
++    #[expect(
++        clippy::disallowed_methods,
++        reason = "synchronous golden fixture I/O runs outside an async runtime"
++    )]
+     fn actual_three_sdk_vectors_preserve_every_field_and_local_policy() -> TestResult {
+         for release in ["4.1.2", "4.2.1", "4.3.1"] {
+             let source = fixtures(release);
+@@ -790,6 +794,10 @@
+     }
+ 
+     #[test]
++    #[expect(
++        clippy::disallowed_methods,
++        reason = "synchronous golden fixture I/O runs outside an async runtime"
++    )]
+     fn actual_three_sdk_flexible_headers_keep_correlation_and_body_boundaries() -> TestResult {
+         for release in ["4.1.2", "4.2.1", "4.3.1"] {
+             let source = fixtures(release);
+@@ -873,6 +881,10 @@
+     }
+ 
+     #[test]
++    #[expect(
++        clippy::disallowed_methods,
++        reason = "synchronous golden fixture I/O runs outside an async runtime"
++    )]
+     fn actual_complete_sdk_messages_reject_every_truncation_and_extra_tail() -> TestResult {
+         for release in ["4.1.2", "4.2.1", "4.3.1"] {
+             for (name, typ) in [
+--- a/tests/fixtures/list-transactions-routing/README.md
++++ b/tests/fixtures/list-transactions-routing/README.md
+@@ -10,7 +10,13 @@
+ third endpoint is a replacement address for broker 2. Normal discovery returns
+ exactly those two IDs and zero topic entries, after verifying the actual request
+ is Metadata1 with `Topics=[]`. The peer advertises required startup APIs19/20,
+-Metadata1, ApiVersions0 and the configured API66 range. Other Admin operations,
++Metadata1, ApiVersions0 and the configured API66 range. A current ApiVersions4
++probe is checked as request header2 plus its two compact software fields and
++empty tags, then receives the independently encoded v0 UNSUPPORTED_VERSION35
++response with ApiVersions range0..0. The same connection remains usable for
++the v0 retry, which receives the existing success body and response header0.
++Direct legacyv0 probes remain supported for the old-main four-row regression.
++Other Admin operations,
+ including FindCoordinator, are absent. Only the shared failing-first test permits
+ the actual old FindCoordinator6 transaction lookup for an empty ID and returns
+ broker 1; it then asserts the independently known four-row result. The corrected

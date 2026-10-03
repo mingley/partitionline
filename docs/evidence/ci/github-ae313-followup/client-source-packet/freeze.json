@@ -1,0 +1,118 @@
+{
+  "scope": "SOURCE-ONLY correction, actual compile/tests/Clippy remain future. No current PASS qualification inferred.",
+  "files": [
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 6312,
+      "full07777": 420,
+      "sha256": "db8c80506c87c0a6bd753e4823b40b42c43b74aa0c3f79f7492fb602a21430ef",
+      "allocated_bytes": 8192
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 30116,
+      "full07777": 420,
+      "sha256": "9db788ee1ccd889505d5ce3c14b84e00d038ca02a4d6a85c69c457cb11c60a75",
+      "allocated_bytes": 32768
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/streams_protocol.rs",
+      "bytes": 36456,
+      "full07777": 420,
+      "sha256": "a1bd64cdcf61a841306584cd4c4ba91b417e21d88deab48692acc4ba9472a483",
+      "allocated_bytes": 36864
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/format-apply.stderr.log",
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/format-apply.stdout.log",
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/format-check.stderr.log",
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/format-check.stdout.log",
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allocated_bytes": 0
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/format-receipt.json",
+      "bytes": 1309,
+      "full07777": 384,
+      "sha256": "f896ac7e3f9c379f11cf9ffea7b25fac3271da743055ef45a3e52c7147737971",
+      "allocated_bytes": 4096
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/install-manifest.json",
+      "bytes": 1525,
+      "full07777": 384,
+      "sha256": "6926beec91fc43edcf9ed3decbb75f13f1859f4e04b6400cc0d281b2fc4ce9e0",
+      "allocated_bytes": 4096
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/original/tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 5904,
+      "full07777": 384,
+      "sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997",
+      "allocated_bytes": 8192
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/original/tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "bytes": 2352,
+      "full07777": 420,
+      "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb",
+      "allocated_bytes": 4096
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/original/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 28906,
+      "full07777": 384,
+      "sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d",
+      "allocated_bytes": 32768
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/original/tests/streams_protocol.rs",
+      "bytes": 36045,
+      "full07777": 420,
+      "sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0",
+      "allocated_bytes": 36864
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/preparation.json",
+      "bytes": 1451,
+      "full07777": 384,
+      "sha256": "5fa937992315677dd55b15e995fa82c0af713b7d1c3a106043f9dcd88392d781",
+      "allocated_bytes": 4096
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/source-review.json",
+      "bytes": 1841,
+      "full07777": 384,
+      "sha256": "018a14cd5409701f84da697dbfa6e23d9dd54ba3dab92e59889d57fa3193d94d",
+      "allocated_bytes": 4096
+    },
+    {
+      "path": "/workspace/work/client-ci-followup-ae313/revision-01/source.patch",
+      "bytes": 5503,
+      "full07777": 384,
+      "sha256": "1ccf42023e09990f7ae6959430dace6d71e581b0adb6c256fd5b019998a83098",
+      "allocated_bytes": 8192
+    }
+  ],
+  "new_allocation_limit_bytes": 307200
+}

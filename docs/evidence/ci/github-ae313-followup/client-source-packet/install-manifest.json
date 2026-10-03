@@ -1,0 +1,30 @@
+{
+  "source_sha": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "scope": "SOURCE-ONLY correction, actual compile/tests/Clippy remain future. No current PASS qualification inferred.",
+  "files": [
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "destination": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 30116,
+      "full07777": 420,
+      "sha256": "9db788ee1ccd889505d5ce3c14b84e00d038ca02a4d6a85c69c457cb11c60a75",
+      "expected_destination_sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d"
+    },
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/streams_protocol.rs",
+      "destination": "tests/streams_protocol.rs",
+      "bytes": 36456,
+      "full07777": 420,
+      "sha256": "a1bd64cdcf61a841306584cd4c4ba91b417e21d88deab48692acc4ba9472a483",
+      "expected_destination_sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0"
+    },
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "destination": "tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 6312,
+      "full07777": 420,
+      "sha256": "db8c80506c87c0a6bd753e4823b40b42c43b74aa0c3f79f7492fb602a21430ef",
+      "expected_destination_sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997"
+    }
+  ]
+}

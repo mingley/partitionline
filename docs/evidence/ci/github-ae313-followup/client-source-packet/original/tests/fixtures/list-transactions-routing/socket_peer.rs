@@ -201,7 +201,7 @@ pub(crate) struct Peer {
     tasks: Vec<JoinHandle<(usize, Vec<String>)>>,
 }
 
-fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool, error_code: i16) -> Vec<u8> {
+fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool) -> Vec<u8> {
     let mut keys = vec![(3i16, 1i16, 1i16), (18, 0, 0), (19, 0, 0), (20, 0, 0)];
     if allow_old {
         keys.push((10, 6, 6));
@@ -210,8 +210,7 @@ fn api_versions(ranges: Option<(i16, i16)>, allow_old: bool, error_code: i16) ->
         keys.push((66, min, max));
     }
     let mut out = Vec::new();
-    // KIP-511 unsupported modern requests use this same v0 response schema.
-    out.extend_from_slice(&error_code.to_be_bytes());
+    out.extend_from_slice(&0i16.to_be_bytes());
     out.extend_from_slice(&i32::try_from(keys.len()).unwrap().to_be_bytes());
     for (key, min, max) in keys {
         out.extend_from_slice(&key.to_be_bytes());
@@ -387,8 +386,8 @@ async fn connection(
         assert!(client >= -1);
         let mut body_at = 14 + usize::try_from(client.max(0)).unwrap();
         assert!(body_at <= frame.len());
-        if matches!(api_key, 10 | 66) || (api_key == 18 && version >= 3) {
-            assert_eq!(frame.get(body_at), Some(&0), "request header2 empty tags");
+        if matches!(api_key, 10 | 66) {
+            assert_eq!(frame[body_at], 0, "request header2 empty tags");
             body_at += 1;
         }
         let body: Arc<[u8]> = frame[body_at..].into();
@@ -412,30 +411,10 @@ async fn connection(
             });
             let reply = match api_key {
                 18 => {
-                    let error_code = match version {
-                        0 => {
-                            assert!(body.is_empty(), "legacy ApiVersions0 empty body");
-                            0
-                        }
-                        4 => {
-                            // The current Rust/Java clients probe maxv4 using header2.
-                            // This independently encoded legacy peer supports onlyv0,
-                            // so KIP-511 requires a v0 UNSUPPORTED_VERSION response.
-                            let mut request = body.as_ref();
-                            assert!(!take_compact(&mut request).is_empty());
-                            assert!(!take_compact(&mut request).is_empty());
-                            assert_eq!(request, [0], "ApiVersions4 root empty tags");
-                            35
-                        }
-                        other => panic!("unexpected ApiVersions probe version{other}"),
-                    };
+                    assert_eq!(version, 0);
                     Reply::Body(
-                        api_versions(
-                            s.ranges[usize::try_from(node - 1).unwrap()],
-                            allow_old,
-                            error_code,
-                        )
-                        .into(),
+                        api_versions(s.ranges[usize::try_from(node - 1).unwrap()], allow_old)
+                            .into(),
                     )
                 }
                 3 => {

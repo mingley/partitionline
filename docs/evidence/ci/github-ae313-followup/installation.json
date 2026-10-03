@@ -1,0 +1,238 @@
+{
+  "source_sha": "ae31380085d1388191e40c8d9270fc5e1277772c",
+  "production_sources_unchanged": true,
+  "held_files_unchanged": {
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "source_controls_passed": true,
+  "rust_execution": false,
+  "source_changes": [
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "destination": "tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "bytes": 30116,
+      "full07777": 420,
+      "sha256": "9db788ee1ccd889505d5ce3c14b84e00d038ca02a4d6a85c69c457cb11c60a75",
+      "expected_destination_sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d"
+    },
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/streams_protocol.rs",
+      "destination": "tests/streams_protocol.rs",
+      "bytes": 36456,
+      "full07777": 420,
+      "sha256": "a1bd64cdcf61a841306584cd4c4ba91b417e21d88deab48692acc4ba9472a483",
+      "expected_destination_sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0"
+    },
+    {
+      "source": "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "destination": "tests/fixtures/list-transactions-routing/README.md",
+      "bytes": 6312,
+      "full07777": 420,
+      "sha256": "db8c80506c87c0a6bd753e4823b40b42c43b74aa0c3f79f7492fb602a21430ef",
+      "expected_destination_sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997"
+    },
+    {
+      "source": "/workspace/work/raft-runtime-76/ci-ae313-correction-01/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "destination": "partitionline-broker/tests/common/raft_runtime.rs",
+      "bytes": 47095,
+      "full07777": 384,
+      "sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47",
+      "expected_destination_sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739"
+    }
+  ],
+  "published": [
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/candidate/tests/fixtures/list-transactions-routing/README.md",
+      "sha256": "db8c80506c87c0a6bd753e4823b40b42c43b74aa0c3f79f7492fb602a21430ef",
+      "bytes": 6312,
+      "full07777": 420
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "sha256": "9db788ee1ccd889505d5ce3c14b84e00d038ca02a4d6a85c69c457cb11c60a75",
+      "bytes": 30116,
+      "full07777": 420
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/candidate/tests/streams_protocol.rs",
+      "sha256": "a1bd64cdcf61a841306584cd4c4ba91b417e21d88deab48692acc4ba9472a483",
+      "bytes": 36456,
+      "full07777": 420
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/format-apply.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/format-apply.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/format-check.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/format-check.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/format-receipt.json",
+      "sha256": "f896ac7e3f9c379f11cf9ffea7b25fac3271da743055ef45a3e52c7147737971",
+      "bytes": 1309,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/freeze.json",
+      "sha256": "d73b237e66d11a0f7d63259795b8ac000ae5e84bd363c2fbdc80136063d91140",
+      "bytes": 4623,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/install-manifest.json",
+      "sha256": "6926beec91fc43edcf9ed3decbb75f13f1859f4e04b6400cc0d281b2fc4ce9e0",
+      "bytes": 1525,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/original/tests/fixtures/list-transactions-routing/README.md",
+      "sha256": "42dbb69c6d9331578e49320cbb7ab5628a33f9c47c560ef3b9e2c5d7caadd997",
+      "bytes": 5904,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/original/tests/fixtures/list-transactions-routing/all_brokers_regression.rs",
+      "sha256": "e642bf05feccf0529c484d7bde38ad820855a204503ee51892e6940721ca8aeb",
+      "bytes": 2352,
+      "full07777": 420
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/original/tests/fixtures/list-transactions-routing/socket_peer.rs",
+      "sha256": "996b0038dfbfc0049b809b1860ed79bef08ce735823765cfa0ceac290cc38b3d",
+      "bytes": 28906,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/original/tests/streams_protocol.rs",
+      "sha256": "1543dd1aed0976e9a56844843b0ac5c0857e30cf322511326939b5fc0ea3d6b0",
+      "bytes": 36045,
+      "full07777": 420
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/preparation.json",
+      "sha256": "5fa937992315677dd55b15e995fa82c0af713b7d1c3a106043f9dcd88392d781",
+      "bytes": 1451,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/source-review.json",
+      "sha256": "018a14cd5409701f84da697dbfa6e23d9dd54ba3dab92e59889d57fa3193d94d",
+      "bytes": 1841,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/client-source-packet/source.patch",
+      "sha256": "1ccf42023e09990f7ae6959430dace6d71e581b0adb6c256fd5b019998a83098",
+      "bytes": 5503,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/baseline/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/baseline/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739",
+      "bytes": 46576,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/baseline.json",
+      "sha256": "3a40d86f549e3da8d09d21baf4067b57b52f49fd317115646ff8f0daf657e581",
+      "bytes": 803,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47",
+      "bytes": 47095,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/candidate.patch",
+      "sha256": "64b1ffd72df3e6b3455e0db908f9c90fadfed7d86ee35a863a117948cb760691",
+      "bytes": 3045,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/format-and-capture-harness.rs",
+      "sha256": "b192acbdac1a29c1efc4055b13fe033bb3f2911eafd537e241098ee21de5d79b",
+      "bytes": 5846,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/harness-fragments.json",
+      "sha256": "e14a2999c2cc76ee2b5081a115b11c29f7ef2454ebb75a2edf0adbfb98be9cb5",
+      "bytes": 728,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/broker-source-packet/proposed-run.json",
+      "sha256": "608c9a8d59a050406f6080f235d4a3897e959694b11fe4c5273cece13d3f19a5",
+      "bytes": 2612,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/broker-stable.decoded.log",
+      "sha256": "dfad828a943b6d3deb8e503954af5483ff8101a6fd8dfb781ca38e953ce78875",
+      "bytes": 44064,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/broker-stable.tool-result.json",
+      "sha256": "b311c3260258acd2c3e35ba6265b80af14ec39d2a853f61b04d562663057e7dd",
+      "bytes": 45667,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/client-clippy.decoded.log",
+      "sha256": "ea1a9927bd7d98bc1ccc6a4f51c79867d52d925179526e2578bb6c7a949ae197",
+      "bytes": 55207,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/client-clippy.tool-result.json",
+      "sha256": "bd91cb8fba87214f5d1af5b69001e3d198751882d785b91b8047c8f0d2d2225d",
+      "bytes": 61095,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/client-stable.decoded.log",
+      "sha256": "f7e7fa39ba45888a6b36076e7886c4aed41b9854e15b594ca53b23433cc92666",
+      "bytes": 250849,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/logs/client-stable.tool-result.json",
+      "sha256": "cd9d02a0946213e8977e510b38c392d92d830e57963ec2232d3cf9b01185e1ab",
+      "bytes": 256685,
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-ae313-followup/README.md",
+      "sha256": "36f1c962112c34353e9e6cd627ef9e1089273cb1bb262513d235fa0bef49f771",
+      "bytes": 906,
+      "full07777": 420
+    }
+  ]
+}

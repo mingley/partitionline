@@ -1,0 +1,41 @@
+{
+  "scope": "standalone source formatter only",
+  "formatter_sha256": "a3ab6c445b26eda8d7bcfd5cc3f4b068dd7136af96822fd21378fc6fe8c2f2a3",
+  "commands": [
+    {
+      "label": "format-apply",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+        "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/streams_protocol.rs"
+      ],
+      "exit_code": 0,
+      "joined": true
+    },
+    {
+      "label": "format-check",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/fixtures/list-transactions-routing/socket_peer.rs",
+        "/workspace/work/client-ci-followup-ae313/revision-01/candidate/tests/streams_protocol.rs"
+      ],
+      "exit_code": 0,
+      "joined": true
+    }
+  ]
+}
