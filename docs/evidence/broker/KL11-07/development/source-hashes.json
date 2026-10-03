@@ -1,0 +1,39 @@
+{
+  "head": "b9402c05d232c4df62bc0a8c27015abb6f895738",
+  "dirty_source": true,
+  "sha256": {
+    "partitionline-broker/src/fetch.rs": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+    "partitionline-broker/src/metadata.rs": "90e82f56d4fd3891faa3a89eb4b701d65086f5885c1ba8b418eada48c006fafe",
+    "partitionline-broker/src/produce.rs": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+    "partitionline-broker/tests/fetch.rs": "9df92db9a23f24fd1139b8e14231b606282f57169c9e125af850f258997947c0"
+  },
+  "note": "Development source is these exact blobs in a dirty shared tree; HEAD alone does not identify compiled source.",
+  "commands": [
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo test --locked --manifest-path partitionline-broker/Cargo.toml --lib --test fetch --test metadata --test produce --jobs 1",
+      "log": "final-stable-test.log",
+      "passed": 59
+    },
+    {
+      "toolchain": "1.85.0",
+      "command": "taskset -c 0-2,4 cargo +1.85.0 test --locked --manifest-path partitionline-broker/Cargo.toml --lib --test fetch --test metadata --test produce --jobs 1",
+      "log": "final-msrv-test.log",
+      "passed": 59
+    },
+    {
+      "toolchain": "stable",
+      "command": "taskset -c 0-2,4 cargo clippy --locked --manifest-path partitionline-broker/Cargo.toml --all-targets -- -D warnings",
+      "log": "final-stable-clippy.log",
+      "exit_code": 0
+    }
+  ],
+  "environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-fetch-dev",
+    "affinity": "0-2,4"
+  }
+}

@@ -1,6 +1,6 @@
 //! Persistent single-node Kafka metadata and topic administration.
 //!
-//! The composed [`Router`] advertises exactly Metadata0..13, ApiVersions0..4,
+//! [`Router::open`] advertises exactly Metadata0..13, ApiVersions0..4,
 //! CreateTopics2..4 and DeleteTopics1..6. Create overrides are rejected with
 //! INVALID_CONFIG; automatic creation is disabled. Logical leaders/ISR are this
 //! configured node. This is not replicated storage, authorization or production
@@ -8,8 +8,12 @@
 //! three zero tail bytes for the pinned librdkafka2.15 array-reservation defect;
 //! all other trailing bytes fail. The catalog journal is the custom format documented in
 //! [`catalog`], not an Apache metadata log.
+//! The explicit [`Router::open_with_store`] profile adds ordinary Produce,
+//! and [`Router::open_with_read_store`] adds persisted Fetch/ListOffsets.
 //!
-//! One bounded blocking actor owns the catalog. Canceled queued requests are
+//! One bounded blocking actor owns the catalog and optional partition store.
+//! Read snapshots serialize with mutations; long polls wait outside that actor.
+//! Canceled queued requests are
 //! skipped; cancellation during append/sync is ambiguous and cannot retract a
 //! durable operation. Look up the result after reconnecting, or reopen after an
 //! ambiguous storage failure. Each topic operation is atomic, not the whole
@@ -19,7 +23,7 @@
 
 use crate::{
     catalog::{self, Catalog, Topic, TopicId},
-    journal, produce,
+    fetch, journal, produce,
     protocol::{self, ApiVersionsHandler, RequestHeader},
     transport::Handler,
 };
@@ -27,12 +31,12 @@ use std::{
     path::PathBuf,
     sync::{
         atomic::{AtomicBool, Ordering},
-        Arc,
+        Arc, Weak,
     },
     time::{Duration, Instant},
 };
 use tokio::{
-    sync::{mpsc, oneshot, Mutex, Semaphore},
+    sync::{mpsc, oneshot, watch, Mutex, Semaphore},
     task::JoinHandle,
 };
 
@@ -151,6 +155,8 @@ pub enum Error {
     Canceled,
     /// Ordinary data profile parsing/startup/storage lifecycle failed.
     Produce(produce::Error),
+    /// Ordinary Fetch/ListOffsets parsing, scan or response budgets failed.
+    Fetch(fetch::Error),
 }
 impl From<protocol::Error> for Error {
     fn from(value: protocol::Error) -> Self {
@@ -160,6 +166,11 @@ impl From<protocol::Error> for Error {
 impl From<produce::Error> for Error {
     fn from(value: produce::Error) -> Self {
         Self::Produce(value)
+    }
+}
+impl From<fetch::Error> for Error {
+    fn from(value: fetch::Error) -> Self {
+        Self::Fetch(value)
     }
 }
 impl std::fmt::Display for Error {
@@ -182,7 +193,14 @@ enum Command {
 struct DataJob {
     request: Vec<u8>,
     admitted: Instant,
-    reply: oneshot::Sender<Result<Option<Vec<u8>>, Error>>,
+    reply: oneshot::Sender<Result<DataReply, Error>>,
+}
+enum DataReply {
+    Produce(Option<Vec<u8>>),
+    Read {
+        request: Vec<u8>,
+        snapshot: fetch::Snapshot,
+    },
 }
 
 /// Composed bounded Kafka handler and exclusive asynchronous catalog owner.
@@ -201,6 +219,9 @@ pub struct Router {
     task: Mutex<Option<JoinHandle<()>>>,
     data: bool,
     data_slots: Semaphore,
+    reads: Option<fetch::Limits>,
+    changes: watch::Receiver<()>,
+    wakeup: Weak<watch::Sender<()>>,
 }
 impl Router {
     /// Open/replay on a blocking actor; cancellation before startup drops it.
@@ -208,7 +229,7 @@ impl Router {
         path: impl Into<PathBuf>,
         config: Config,
     ) -> Result<(Self, journal::Recovery), Error> {
-        Self::open_inner(path.into(), config, None).await
+        Self::open_inner(path.into(), config, None, None).await
     }
     /// Open the ordinary data profile on the same exclusive blocking actor.
     ///
@@ -228,12 +249,48 @@ impl Router {
         {
             return Err(produce::Error::InvalidConfig.into());
         }
-        Self::open_inner(path.into(), config, Some(store)).await
+        Self::open_inner(path.into(), config, Some(store), None).await
+    }
+    /// Open the separately advertised ordinary read/write data profile.
+    ///
+    /// Produce3–13, Fetch4–6 and ListOffsets1–3 share one catalog/store actor.
+    /// Snapshot reads serialize with append/delete; min-byte waiting is outside
+    /// that actor and keeps its admission permit. The ordinary-only profile
+    /// rejects transactional writes, so read-committed LSO equals local HW.
+    /// Admission count times (maximum request plus response bytes) must fit
+    /// `reads.max_retained_bytes()`, default1GiB. This includes waiting requests
+    /// and completed unconsumed replies; actor scan work has separate limits.
+    /// Existing metadata-only and Produce-only constructors keep their profiles.
+    pub async fn open_with_read_store(
+        path: impl Into<PathBuf>,
+        config: Config,
+        store: produce::Config,
+        reads: fetch::Limits,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        store.validate()?;
+        if config
+            .max_queued_requests
+            .saturating_mul(config.max_response_bytes)
+            > 512 * 1024 * 1024
+        {
+            return Err(produce::Error::InvalidConfig.into());
+        }
+        if config.max_queued_requests.saturating_mul(
+            config
+                .protocol_limits
+                .max_request_bytes()
+                .saturating_add(config.max_response_bytes),
+        ) > reads.max_retained_bytes()
+        {
+            return Err(fetch::Error::InvalidLimits.into());
+        }
+        Self::open_inner(path.into(), config, Some(store), Some(reads)).await
     }
     async fn open_inner(
         path: PathBuf,
         config: Config,
         store: Option<produce::Config>,
+        reads: Option<fetch::Limits>,
     ) -> Result<(Self, journal::Recovery), Error> {
         config.validate()?;
         let data = store.is_some();
@@ -242,6 +299,9 @@ impl Router {
         let stopping = Arc::new(AtomicBool::new(false));
         let worker_stop = Arc::clone(&stopping);
         let worker_config = config.clone();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
         let task = tokio::task::spawn_blocking(move || {
             match Catalog::open(path, worker_config.catalog_limits) {
                 Ok((catalog, recovery)) => {
@@ -256,7 +316,15 @@ impl Router {
                         }
                     };
                     if ready_tx.send(Ok(recovery)).is_ok() {
-                        actor(catalog, store, receiver, &worker_config, &worker_stop);
+                        actor(
+                            catalog,
+                            store,
+                            receiver,
+                            &worker_config,
+                            &worker_stop,
+                            reads,
+                            &change_tx,
+                        );
                     }
                 }
                 Err(error) => {
@@ -289,6 +357,9 @@ impl Router {
                 task: Mutex::new(Some(task)),
                 data,
                 data_slots,
+                reads,
+                changes,
+                wakeup,
             },
             recovery,
         ))
@@ -319,6 +390,9 @@ impl Router {
     }
     fn request_stop(&self) {
         self.stopping.store(true, Ordering::Release);
+        if let Some(wakeup) = self.wakeup.upgrade() {
+            wakeup.send_replace(());
+        }
         let _ = self.sender.try_send(Command::Stop);
     }
     /// Dispatch one transport-bounded payload; no frame prefix is included.
@@ -329,11 +403,17 @@ impl Router {
     }
     /// Dispatch a bounded payload; `None` means successful acks0 and no wire bytes.
     /// Errors close the transport connection. Metadata-only routers reject Produce.
-    pub async fn dispatch(&self, request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
+    pub async fn dispatch(&self, mut request: Vec<u8>) -> Result<Option<Vec<u8>>, Error> {
         if self.stopping.load(Ordering::Acquire) {
             return Err(Error::Stopped);
         }
-        if self.data && request.get(..2) == Some(&[0, 0]) {
+        let data_key = request
+            .get(..2)
+            .and_then(|v| <[u8; 2]>::try_from(v).ok())
+            .map(i16::from_be_bytes);
+        if self.data
+            && (data_key == Some(0) || (self.reads.is_some() && matches!(data_key, Some(1 | 2))))
+        {
             // Keep admitted data jobs and completed, unconsumed actor replies
             // bounded together. Once transferred, Vec ownership/budgets belong
             // to the caller, as for the transport's connection/handler limits.
@@ -351,28 +431,79 @@ impl Router {
                     .try_into()
                     .map_err(|_| protocol::Error::Truncated)?,
             );
-            if !(3..=13).contains(&version) {
+            let key = data_key.ok_or(protocol::Error::Truncated)?;
+            let supported = match key {
+                0 => (3..=13).contains(&version),
+                1 => (4..=6).contains(&version),
+                2 => (1..=3).contains(&version),
+                _ => false,
+            };
+            if !supported {
                 return Err(Error::UnsupportedVersion {
-                    api_key: 0,
+                    api_key: key,
                     version,
                 });
             }
-            let (reply, receiver) = oneshot::channel();
-            self.sender
-                .try_send(Command::Data(DataJob {
-                    request,
-                    admitted: Instant::now(),
-                    reply,
-                }))
-                .map_err(|error| match error {
-                    mpsc::error::TrySendError::Full(_) => Error::QueueFull,
-                    mpsc::error::TrySendError::Closed(_) => Error::Stopped,
-                })?;
-            return receiver.await.map_err(|_| Error::ActorFailed)?;
+            let admitted = Instant::now();
+            let mut changes = self.changes.clone();
+            loop {
+                if self.stopping.load(Ordering::Acquire) {
+                    return Err(Error::Stopped);
+                }
+                // Capture before enqueue: an append/delete between this point
+                // and the serialized snapshot cannot disappear into a lost wake.
+                changes.borrow_and_update();
+                let (reply, receiver) = oneshot::channel();
+                self.sender
+                    .try_send(Command::Data(DataJob {
+                        request,
+                        admitted,
+                        reply,
+                    }))
+                    .map_err(|error| match error {
+                        mpsc::error::TrySendError::Full(_) => Error::QueueFull,
+                        mpsc::error::TrySendError::Closed(_) => Error::Stopped,
+                    })?;
+                match receiver.await.map_err(|_| Error::ActorFailed)?? {
+                    DataReply::Produce(response) => return Ok(response),
+                    DataReply::Read {
+                        request: retained,
+                        snapshot,
+                    } => {
+                        let deadline = admitted
+                            .checked_add(snapshot.wait)
+                            .ok_or(Error::InvalidConfig)?;
+                        if snapshot.immediate
+                            || snapshot.record_bytes >= snapshot.minimum_bytes
+                            || Instant::now() >= deadline
+                        {
+                            return Ok(Some(snapshot.response));
+                        }
+                        request = retained;
+                        // Only the original bounded input survives the wait;
+                        // each candidate response is released before suspension.
+                        drop(snapshot);
+                        if self.stopping.load(Ordering::Acquire) {
+                            return Err(Error::Stopped);
+                        }
+                        tokio::select! {
+                            result = changes.changed() => {
+                                result.map_err(|_| Error::Stopped)?;
+                            }
+                            _ = tokio::time::sleep_until(deadline.into()) => {}
+                        }
+                    }
+                }
+            }
         }
         let (key, _) = prefix(&request, &self.config)?;
         if key == 18 {
-            let handler = if self.data {
+            let handler = if self.reads.is_some() {
+                ApiVersionsHandler::with_advertised(
+                    self.config.protocol_limits,
+                    &fetch::DATA_API_VERSIONS,
+                )
+            } else if self.data {
                 ApiVersionsHandler::with_advertised(
                     self.config.protocol_limits,
                     &produce::DATA_API_VERSIONS,
@@ -414,6 +545,8 @@ fn actor(
     mut receiver: mpsc::Receiver<Command>,
     config: &Config,
     stopping: &AtomicBool,
+    reads: Option<fetch::Limits>,
+    changes: &watch::Sender<()>,
 ) {
     while let Some(command) = receiver.blocking_recv() {
         if stopping.load(Ordering::Acquire) {
@@ -430,6 +563,7 @@ fn actor(
                 if job.reply.is_closed() {
                     continue;
                 }
+                let revision = (catalog.operation_count(), catalog.is_poisoned());
                 let result = process(
                     &mut catalog,
                     &job.request,
@@ -438,6 +572,9 @@ fn actor(
                     &job.reply,
                     stopping,
                 );
+                if revision != (catalog.operation_count(), catalog.is_poisoned()) {
+                    changes.send_replace(());
+                }
                 let _ = job.reply.send(result);
             }
             Command::Data(job) => {
@@ -447,17 +584,45 @@ fn actor(
                 let result = if catalog.is_poisoned() {
                     Err(Error::StoragePoisoned)
                 } else if let Some(store) = store.as_mut() {
-                    produce::process(&catalog, store, &job.request, config, job.admitted, || {
-                        if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
-                            Err(produce::Error::Canceled)
-                        } else {
-                            Ok(())
-                        }
-                    })
-                    .map_err(Into::into)
+                    if job.request.get(..2) == Some(&[0, 0]) {
+                        produce::process(
+                            &catalog,
+                            store,
+                            &job.request,
+                            config,
+                            job.admitted,
+                            || {
+                                if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
+                                    Err(produce::Error::Canceled)
+                                } else {
+                                    Ok(())
+                                }
+                            },
+                        )
+                        .map(DataReply::Produce)
+                        .map_err(Into::into)
+                    } else if let Some(reads) = reads {
+                        fetch::process(&catalog, store, &job.request, config, reads, || {
+                            if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
+                                Err(fetch::Error::Canceled)
+                            } else {
+                                Ok(())
+                            }
+                        })
+                        .map(|snapshot| DataReply::Read {
+                            request: job.request,
+                            snapshot,
+                        })
+                        .map_err(Into::into)
+                    } else {
+                        Err(protocol::Error::UnimplementedApi(1).into())
+                    }
                 } else {
                     Err(protocol::Error::UnimplementedApi(0).into())
                 };
+                if store.as_mut().is_some_and(produce::Store::take_changed) {
+                    changes.send_replace(());
+                }
                 let _ = job.reply.send(result);
             }
         }
@@ -1563,6 +1728,9 @@ mod tests {
         let worker_stop = Arc::clone(&stopping);
         let worker_config = config.clone();
         let worker_path = path.clone();
+        let (change_tx, changes) = watch::channel(());
+        let change_tx = Arc::new(change_tx);
+        let wakeup = Arc::downgrade(&change_tx);
         let task = tokio::task::spawn_blocking(move || {
             if gate.recv().is_err() {
                 return;
@@ -1588,7 +1756,15 @@ mod tests {
                 } else {
                     None
                 };
-                actor(catalog, store, receiver, &worker_config, &worker_stop);
+                actor(
+                    catalog,
+                    store,
+                    receiver,
+                    &worker_config,
+                    &worker_stop,
+                    None,
+                    &change_tx,
+                );
             }
         });
         (
@@ -1600,6 +1776,9 @@ mod tests {
                 task: Mutex::new(Some(task)),
                 data,
                 data_slots: Semaphore::new(1),
+                reads: None,
+                changes,
+                wakeup,
             }),
             release,
             path,

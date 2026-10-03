@@ -163,6 +163,7 @@ struct Slot {
 pub(crate) struct Store {
     config: Config,
     slots: Vec<Slot>,
+    changed: bool,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -219,7 +220,11 @@ impl Store {
                 partition,
             });
         }
-        Ok(Self { config, slots })
+        Ok(Self {
+            config,
+            slots,
+            changed: false,
+        })
     }
     fn append(&mut self, id: TopicId, index: i32, bytes: &[u8]) -> Result<partition::Append, i16> {
         let position = match self
@@ -248,10 +253,60 @@ impl Store {
                 self.slots.len() - 1
             }
         };
-        self.slots[position]
+        let partition = &mut self.slots[position].partition;
+        let poisoned = partition.is_poisoned();
+        let result = partition.append(bytes);
+        self.changed |= result.is_ok() || poisoned != partition.is_poisoned();
+        result.map_err(storage_error)
+    }
+    pub(crate) fn take_changed(&mut self) -> bool {
+        std::mem::take(&mut self.changed)
+    }
+    pub(crate) fn max_partitions(&self) -> usize {
+        self.config.max_partitions
+    }
+    pub(crate) fn record_limits(&self) -> records::Limits {
+        self.config.record_limits
+    }
+    pub(crate) fn watermark(&self, id: TopicId, index: i32) -> Result<i64, i16> {
+        match self
+            .slots
+            .iter()
+            .find(|slot| slot.id == id && slot.index == index)
+        {
+            None => Ok(0),
+            Some(slot) if slot.partition.is_poisoned() => Err(56),
+            Some(slot) => Ok(slot.partition.next_offset()),
+        }
+    }
+    pub(crate) fn read_entry(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        offset: i64,
+        remaining_bytes: usize,
+    ) -> Result<Option<journal::Entry>, partition::Error> {
+        let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == id && slot.index == index)
+        else {
+            return Ok(None);
+        };
+        let maximum = self
+            .config
+            .journal_limits
+            .max_entry_bytes()
+            .min(remaining_bytes)
+            .checked_add(std::mem::size_of::<journal::Entry>())
+            .ok_or(partition::Error::InvalidLimits)?;
+        let poisoned = slot.partition.is_poisoned();
+        let result = slot
             .partition
-            .append(bytes)
-            .map_err(storage_error)
+            .fetch(offset, 1, maximum)
+            .map(|mut entries| entries.pop());
+        self.changed |= poisoned != slot.partition.is_poisoned();
+        result
     }
 }
 fn filename(id: TopicId, index: i32) -> String {
