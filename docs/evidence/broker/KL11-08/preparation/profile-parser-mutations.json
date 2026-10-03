@@ -1,0 +1,67 @@
+{
+  "status": "development-only bounded independent profile parser controls; no fresh08 runtime",
+  "passed": true,
+  "authentic_seven_profile_samples": 3,
+  "mutations": [
+    {
+      "sample": 0,
+      "mutation": "response-correlation",
+      "rejected": true
+    },
+    {
+      "sample": 0,
+      "mutation": "response-key",
+      "rejected": true
+    },
+    {
+      "sample": 0,
+      "mutation": "request-version",
+      "rejected": true
+    },
+    {
+      "sample": 0,
+      "mutation": "response-trailing-byte",
+      "rejected": true
+    },
+    {
+      "sample": 1,
+      "mutation": "response-correlation",
+      "rejected": true
+    },
+    {
+      "sample": 1,
+      "mutation": "response-key",
+      "rejected": true
+    },
+    {
+      "sample": 1,
+      "mutation": "request-version",
+      "rejected": true
+    },
+    {
+      "sample": 1,
+      "mutation": "response-trailing-byte",
+      "rejected": true
+    },
+    {
+      "sample": 2,
+      "mutation": "response-correlation",
+      "rejected": true
+    },
+    {
+      "sample": 2,
+      "mutation": "response-key",
+      "rejected": true
+    },
+    {
+      "sample": 2,
+      "mutation": "request-version",
+      "rejected": true
+    },
+    {
+      "sample": 2,
+      "mutation": "response-trailing-byte",
+      "rejected": true
+    }
+  ]
+}

@@ -6,7 +6,7 @@
 //! Run this synchronous API on an exclusively owned storage thread. Paths and
 //! cross-process ownership are caller configuration, as for `Journal`.
 
-use crate::{journal, records};
+use crate::{journal, records, segments};
 use std::path::Path;
 
 /// Storage errors retain neither input records nor configured paths.
@@ -22,6 +22,8 @@ pub enum Error {
     Records(records::Error),
     /// Journal initialization, recovery, append, or fetch failed.
     Storage(journal::Error),
+    /// Rolling publication, seek work, layout or resource policy failed.
+    Segments(segments::Error),
     /// A checksummed payload disagrees with its stored logical record range.
     CorruptPayload,
     /// A bounded payload allocation failed.
@@ -34,6 +36,7 @@ impl std::fmt::Display for Error {
         match self {
             Self::Records(error) => write!(f, "partition records: {error}"),
             Self::Storage(error) => write!(f, "partition storage: {error}"),
+            Self::Segments(error) => write!(f, "partition segments: {error}"),
             _ => write!(f, "partition error: {self:?}"),
         }
     }
@@ -47,6 +50,60 @@ impl From<journal::Error> for Error {
 impl From<records::Error> for Error {
     fn from(error: records::Error) -> Self {
         Self::Records(error)
+    }
+}
+impl From<segments::Error> for Error {
+    fn from(error: segments::Error) -> Self {
+        match error {
+            segments::Error::Storage(error) => Self::Storage(error),
+            other => Self::Segments(other),
+        }
+    }
+}
+
+#[allow(
+    clippy::large_enum_variant,
+    reason = "One bounded inline backend per configured store; avoids an infallible heap allocation when selecting rolling storage."
+)]
+enum Backend {
+    Journal(journal::Journal),
+    Segments(segments::Log),
+}
+impl Backend {
+    fn append(&mut self, count: u32, payload: &[u8]) -> Result<journal::Append, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.append(count, payload)?),
+            Self::Segments(log) => Ok(log.append(count, payload)?),
+        }
+    }
+    fn fetch(
+        &mut self,
+        offset: u64,
+        entries: usize,
+        bytes: usize,
+    ) -> Result<Vec<journal::Entry>, Error> {
+        match self {
+            Self::Journal(log) => Ok(log.fetch(offset, entries, bytes)?),
+            Self::Segments(log) => Ok(log.fetch(offset, entries, bytes)?),
+        }
+    }
+    fn next_offset(&self) -> u64 {
+        match self {
+            Self::Journal(log) => log.next_offset(),
+            Self::Segments(log) => log.next_offset(),
+        }
+    }
+    fn entry_count(&self) -> usize {
+        match self {
+            Self::Journal(log) => log.entry_count(),
+            Self::Segments(log) => log.entry_count(),
+        }
+    }
+    fn is_poisoned(&self) -> bool {
+        match self {
+            Self::Journal(log) => log.is_poisoned(),
+            Self::Segments(log) => log.is_poisoned(),
+        }
     }
 }
 
@@ -65,7 +122,7 @@ pub struct Append {
 
 /// An exclusively owned journal whose complete payloads are validated batches.
 pub struct Partition {
-    journal: journal::Journal,
+    journal: Backend,
     record_limits: records::Limits,
     journal_limits: journal::Limits,
     poisoned: bool,
@@ -97,7 +154,7 @@ impl Partition {
         let next_offset =
             i64::try_from(journal.next_offset()).map_err(|_| Error::OffsetOverflow)?;
         let mut result = Self {
-            journal,
+            journal: Backend::Journal(journal),
             record_limits,
             journal_limits,
             poisoned: false,
@@ -113,6 +170,35 @@ impl Partition {
             cursor = result.check_entry(entry)?;
         }
         Ok((result, recovery))
+    }
+
+    /// Select genuine rolling storage with bounded verified seek checkpoints.
+    ///
+    /// The directory must use the rolling layout; existing monolithic files are
+    /// never silently migrated or hidden. Recovery validates all ordinary data,
+    /// rejects/rebuilds stale indexes and reports active-tail/staging outcomes.
+    /// The caller still owns exclusive synchronous access to this partition.
+    pub fn open_segmented(
+        path: impl AsRef<Path>,
+        base_offset: i64,
+        journal_limits: journal::Limits,
+        record_limits: records::Limits,
+        segment_limits: segments::Limits,
+    ) -> Result<(Self, segments::Recovery), Error> {
+        let base = u64::try_from(base_offset).map_err(|_| Error::InvalidLimits)?;
+        let (log, recovery) =
+            segments::Log::open(path, base, journal_limits, record_limits, segment_limits)?;
+        let next_offset = i64::try_from(log.next_offset()).map_err(|_| Error::OffsetOverflow)?;
+        Ok((
+            Self {
+                journal: Backend::Segments(log),
+                record_limits,
+                journal_limits,
+                poisoned: false,
+                next_offset,
+            },
+            recovery,
+        ))
     }
 
     /// Validate the entire input, assign offsets, then append and synchronize once.
@@ -191,6 +277,64 @@ impl Partition {
     /// Retained atomic journal entries, bounded by the configured index budget.
     pub fn entry_count(&self) -> usize {
         self.journal.entry_count()
+    }
+    /// Data segment count; the inherited monolithic backend always has one.
+    pub fn segment_count(&self) -> usize {
+        match &self.journal {
+            Backend::Journal(_) => 1,
+            Backend::Segments(log) => log.segment_count(),
+        }
+    }
+    /// Byte-preserving atomic rewrite of a sealed rolling generation.
+    ///
+    /// The storage owner must serialize this with all append/read operations.
+    /// Monolithic storage has no sealed generation and rejects the operation.
+    /// This implements no retention, compaction or Kafka administration API.
+    pub fn replace_sealed(&mut self, base_offset: i64) -> Result<(), Error> {
+        self.check_alive()?;
+        let base = u64::try_from(base_offset).map_err(|_| Error::OffsetOverflow)?;
+        match &mut self.journal {
+            Backend::Segments(log) => Ok(log.replace_sealed(base)?),
+            Backend::Journal(_) => Err(Error::InvalidLimits),
+        }
+    }
+    pub(crate) fn timestamp_start(&self, wanted: i64) -> Result<i64, Error> {
+        self.check_alive()?;
+        let offset = match &self.journal {
+            Backend::Journal(log) => log.base_offset(),
+            Backend::Segments(log) => log.timestamp_start(wanted)?,
+        };
+        i64::try_from(offset).map_err(|_| Error::OffsetOverflow)
+    }
+    pub(crate) fn read_with_work(
+        &mut self,
+        offset: i64,
+        maximum: usize,
+        scan_bytes: usize,
+        scan_entries: usize,
+    ) -> Result<(Option<journal::Entry>, segments::Work), Error> {
+        self.check_alive()?;
+        let offset = u64::try_from(offset).map_err(|_| Error::OffsetOverflow)?;
+        let (entry, work) = match &mut self.journal {
+            Backend::Journal(log) => {
+                let entry = log.fetch(offset, 1, maximum)?.pop();
+                let work = entry
+                    .as_ref()
+                    .map_or(segments::Work::default(), |e| segments::Work {
+                        bytes: e.payload.len(),
+                        entries: 1,
+                    });
+                (entry, work)
+            }
+            Backend::Segments(log) => log.read_one(offset, maximum, scan_bytes, scan_entries)?,
+        };
+        if let Some(entry) = &entry {
+            if let Err(error) = self.check_entry(entry) {
+                self.poisoned = true;
+                return Err(error);
+            }
+        }
+        Ok((entry, work))
     }
     /// Whether reopening is required after a payload or storage failure.
     pub fn is_poisoned(&self) -> bool {

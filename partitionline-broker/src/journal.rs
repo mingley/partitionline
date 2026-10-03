@@ -229,6 +229,139 @@ pub struct Journal {
     _ownership: ownership::Guard,
 }
 
+// The rolled backend shares this parser rather than retaining a dense Journal
+// index for every sealed file. These interfaces are intentionally crate-private;
+// Journal::open and its recovery/append contract are unchanged.
+pub(crate) struct DirectoryOwnership(ownership::Guard);
+impl DirectoryOwnership {
+    pub(crate) fn acquire(path: &Path) -> Result<Self, Error> {
+        Ok(Self(ownership::Guard::acquire(path)?))
+    }
+    pub(crate) fn identify(&mut self, file: &File) -> Result<(), Error> {
+        self.0.identify(file)
+    }
+}
+
+pub(crate) struct CheckedCursor {
+    file: File,
+    _ownership: ownership::Guard,
+    limits: Limits,
+    bytes: u64,
+    position: u64,
+    next_offset: u64,
+    fingerprint: u32,
+}
+impl CheckedCursor {
+    pub(crate) fn open(path: &Path, base: u64, limits: Limits) -> Result<Self, Error> {
+        if !std::fs::symlink_metadata(path)?.file_type().is_file() {
+            return Err(Error::ChangedFile);
+        }
+        let mut ownership = ownership::Guard::acquire(path)?;
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        ownership.identify(&file)?;
+        let bytes = file.metadata()?.len();
+        if bytes > limits.max_file_bytes {
+            return Err(Error::FileBudgetExceeded);
+        }
+        if bytes < FILE_HEADER as u64 {
+            return Err(corrupt(0, Corruption::FileHeader));
+        }
+        let mut header = [0; FILE_HEADER];
+        require_read(&mut file, &mut header)?;
+        if &header[..8] != FILE_MAGIC
+            || header[16..20] != [0; 4]
+            || crc32c::crc32c(&header[..20]) != u32_at(&header, 20)
+        {
+            return Err(corrupt(0, Corruption::FileHeader));
+        }
+        if u64_at(&header, 8) != base {
+            return Err(Error::BaseOffsetMismatch);
+        }
+        Ok(Self {
+            file,
+            _ownership: ownership,
+            limits,
+            bytes,
+            position: FILE_HEADER as u64,
+            next_offset: base,
+            fingerprint: crc32c::crc32c(&header),
+        })
+    }
+    pub(crate) fn seek(&mut self, position: u64, offset: u64) -> Result<(), Error> {
+        if position < FILE_HEADER as u64 || position > self.bytes {
+            return Err(corrupt(position, Corruption::Offset));
+        }
+        self.file.seek(SeekFrom::Start(position))?;
+        self.position = position;
+        self.next_offset = offset;
+        Ok(())
+    }
+    pub(crate) fn next(&mut self, max_bytes: usize) -> Result<Option<(u64, Entry)>, Error> {
+        if self.file.metadata()?.len() != self.bytes {
+            return Err(Error::ChangedFile);
+        }
+        if self.position == self.bytes {
+            return Ok(None);
+        }
+        let position = self.position;
+        if self.bytes - position < ENTRY_HEADER as u64 {
+            return Err(corrupt(position, Corruption::EntryHeader));
+        }
+        let mut header = [0; ENTRY_HEADER];
+        require_read(&mut self.file, &mut header)?;
+        let index = parse_header(&header, self.next_offset, position, self.limits)?;
+        let end = position
+            .checked_add(ENTRY_HEADER as u64 + u64::from(index.payload_len))
+            .ok_or(Error::FileBudgetExceeded)?;
+        if end > self.bytes {
+            return Err(corrupt(position, Corruption::Length));
+        }
+        let charged = size_of::<Entry>()
+            .checked_add(index.payload_len as usize)
+            .ok_or(Error::FetchBudgetExceeded)?;
+        if charged > max_bytes || charged > self.limits.max_fetch_bytes {
+            return Err(Error::FetchBudgetExceeded);
+        }
+        let mut payload = Vec::new();
+        payload
+            .try_reserve_exact(index.payload_len as usize)
+            .map_err(|_| Error::AllocationFailed)?;
+        payload.resize(index.payload_len as usize, 0);
+        require_read(&mut self.file, &mut payload)?;
+        if crc32c::crc32c(&payload) != index.checksum {
+            return Err(corrupt(position, Corruption::PayloadChecksum));
+        }
+        if self.file.metadata()?.len() != self.bytes {
+            return Err(Error::ChangedFile);
+        }
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &header);
+        self.fingerprint = crc32c::crc32c_append(self.fingerprint, &payload);
+        self.position = end;
+        self.next_offset = index.next_offset;
+        Ok(Some((
+            position,
+            Entry {
+                first_offset: index.first_offset,
+                record_count: index.record_count,
+                payload,
+            },
+        )))
+    }
+    pub(crate) fn file_bytes(&self) -> u64 {
+        self.bytes
+    }
+    pub(crate) fn next_offset(&self) -> u64 {
+        self.next_offset
+    }
+    pub(crate) fn fingerprint(&self) -> u32 {
+        self.fingerprint
+    }
+    pub(crate) fn synchronize(&self) -> Result<(), Error> {
+        self.file.sync_data()?;
+        Ok(())
+    }
+}
+
 impl Journal {
     /// Open/create a caller-selected path and recover its committed entry index.
     ///
@@ -308,6 +441,9 @@ impl Journal {
     /// Number of retained committed offset-index entries.
     pub fn entry_count(&self) -> usize {
         self.inner.index.len()
+    }
+    pub(crate) fn index_capacity_bytes(&self) -> usize {
+        self.inner.index.capacity() * size_of::<Index>()
     }
     /// Whether a failure requires reopening before further append/fetch calls.
     pub fn is_poisoned(&self) -> bool {

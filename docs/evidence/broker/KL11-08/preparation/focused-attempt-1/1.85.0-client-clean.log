@@ -1,0 +1,2 @@
+$ taskset -c 0-2,4 cargo +1.85.0 clean -p partitionline
+     Removed 12 files, 22.3MiB total

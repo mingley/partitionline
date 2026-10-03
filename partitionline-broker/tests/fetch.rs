@@ -644,7 +644,21 @@ async fn serve_live_probe() -> Result<(), Box<dyn StdError>> {
     let root = PathBuf::from(std::env::var_os("PARTITIONLINE_FETCH_LIVE_DIR").ok_or("directory")?);
     let mut cfg = common();
     cfg.advertised_port = port;
-    let router = Arc::new(open(&root, cfg, fetch::Limits::default()).await?);
+    let store = match std::env::var_os("PARTITIONLINE_FETCH_LIVE_SEGMENTS") {
+        None => produce::Config::new(root.join("partitions")),
+        Some(value) if value == "1" => rolling_store(&root)?,
+        Some(_) => return Err("PARTITIONLINE_FETCH_LIVE_SEGMENTS must be1 when set".into()),
+    };
+    let router = Arc::new(
+        Router::open_with_read_store(
+            root.join("catalog.journal"),
+            cfg,
+            store,
+            fetch::Limits::default(),
+        )
+        .await?
+        .0,
+    );
     let mut transport = Transport::bind(
         ([127, 0, 0, 1], port).into(),
         transport::Config::default(),
@@ -1123,4 +1137,450 @@ fn invalid_local_read_limits_are_rejected_before_io() {
             Err(fetch::Error::InvalidLimits)
         ));
     }
+}
+
+fn rolling_store(root: &Path) -> Result<produce::Config, Box<dyn StdError>> {
+    let mut config = produce::Config::new(root.join("partitions"));
+    config.segment_limits = Some(partitionline_broker::segments::Limits::new(
+        150,
+        64,
+        4096,
+        16,
+        1 << 30,
+        2 * 1024 * 1024,
+        64 * 1024 * 1024,
+    )?);
+    Ok(config)
+}
+async fn open_rolling(root: &Path, limits: fetch::Limits) -> Result<Router, Box<dyn StdError>> {
+    Ok(Router::open_with_read_store(
+        root.join("catalog.journal"),
+        common(),
+        rolling_store(root)?,
+        limits,
+    )
+    .await?
+    .0)
+}
+async fn seed_rolling(root: PathBuf) -> Result<(), Box<dyn StdError>> {
+    seed(root.clone(), false, false).await?;
+    tokio::task::spawn_blocking(move || -> Result<(), Box<dyn StdError + Send + Sync>> {
+        fs::create_dir(root.join("partitions"))?;
+        let config = produce::Config::new(root.join("partitions"));
+        let limits = partitionline_broker::segments::Limits::new(
+            150,
+            64,
+            4096,
+            16,
+            1 << 30,
+            2 * 1024 * 1024,
+            64 * 1024 * 1024,
+        )?;
+        let (mut part, _) = partition::Partition::open_segmented(
+            root.join("partitions/00000000000000000000000000000002-0.segments"),
+            0,
+            config.journal_limits,
+            config.record_limits,
+            limits,
+        )?;
+        part.append(&read(&base().join("4.3.1/log-batch-0.bin"))?)?;
+        part.append(&read(&base().join("4.3.1/log-batch-3.bin"))?)?;
+        assert_eq!(part.segment_count(), 2);
+        Ok(())
+    })
+    .await?
+    .map_err(|e| e as Box<dyn StdError>)?;
+    Ok(())
+}
+#[tokio::test]
+async fn rolling_real_router_replays_all_independent_read_goldens() -> Result<(), Box<dyn StdError>>
+{
+    let mut observations = Vec::new();
+    let capture = std::env::var_os("PARTITIONLINE_SEGMENTS_RESPONSE_DIR").map(PathBuf::from);
+    for release in ["4.1.2", "4.2.1", "4.3.1"] {
+        let directory = base().join(release);
+        let lines = tokio::task::spawn_blocking({
+            let d = directory.clone();
+            move || read(&d.join("cases.tsv"))
+        })
+        .await??;
+        for line in std::str::from_utf8(&lines)?
+            .lines()
+            .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        {
+            let c: Vec<_> = line.split('\t').collect();
+            assert_eq!(c.len(), 5);
+            let name = c[0];
+            let root = scratch(name);
+            seed_rolling(root.clone()).await?;
+            let router = open_rolling(&root, fetch::Limits::default()).await?;
+            let (input, expected) = tokio::task::spawn_blocking({
+                let d = directory.clone();
+                let n = name.to_owned();
+                move || {
+                    Ok::<_, std::io::Error>((
+                        read(&d.join(format!("{n}.request.bin")))?,
+                        if d.join(format!("{n}.response.bin")).exists() {
+                            Some(read(&d.join(format!("{n}.response.bin")))?)
+                        } else {
+                            None
+                        },
+                    ))
+                }
+            })
+            .await??;
+            let result = router.dispatch(input).await;
+            let response_hex = match (c[4], result, expected) {
+                ("response", Ok(Some(actual)), Some(expected)) => {
+                    assert_eq!(actual, expected, "rolling {release}/{name}");
+                    if let Some(capture) = &capture {
+                        let d = capture.join(release);
+                        let n = name.to_owned();
+                        let b = actual.clone();
+                        tokio::task::spawn_blocking(move || {
+                            fs::create_dir_all(&d)?;
+                            write(&d.join(format!("{n}.actual-response.bin")), &b)
+                        })
+                        .await??;
+                    }
+                    format!("\"{}\"", hex(&actual))
+                }
+                (
+                    "structural_reject",
+                    Err(metadata::Error::Fetch(
+                        fetch::Error::Protocol(_) | fetch::Error::RequestCount,
+                    )),
+                    None,
+                ) => "null".into(),
+                (outcome, actual, expected) => {
+                    return Err(format!(
+                        "rolling {release}/{name} {outcome}: actual{actual:?} expected{expected:?}"
+                    )
+                    .into())
+                }
+            };
+            observations.push(format!("{{\"release\":\"{release}\",\"case\":\"{name}\",\"outcome\":\"{}\",\"response_hex\":{response_hex}}}",c[4]));
+            router.shutdown().await?;
+            clean(root).await?;
+        }
+    }
+    assert_eq!(observations.len(), 366);
+    if let Some(out) = std::env::var_os("PARTITIONLINE_SEGMENTS_REPORT") {
+        let bytes=format!("{{\"schema\":1,\"scope\":\"actual rolling Router7; data/index recovery certified before dispatch; original366 Apache read fixtures\",\"roll_bytes\":150,\"case_count\":366,\"case_results\":[{}]}}\n",observations.join(",")).into_bytes();
+        let out = PathBuf::from(out);
+        tokio::task::spawn_blocking(move || write(&out, &bytes)).await??;
+    }
+    Ok(())
+}
+#[tokio::test]
+async fn rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("rolling-tcp");
+    seed_rolling(root.clone()).await?;
+    for _ in 0..2 {
+        let router = Arc::new(open_rolling(&root, fetch::Limits::default()).await?);
+        let mut transport = Transport::bind(
+            ([127, 0, 0, 1], 0).into(),
+            transport::Config::default(),
+            Arc::clone(&router),
+        )
+        .await?;
+        let mut socket = TcpStream::connect(transport.local_addr()).await?;
+        for name in [
+            "fetch-v4-offset1",
+            "fetch-v5-oversized-first-batch",
+            "fetch-v6-offset3",
+            "list-offsets-v1-timestamp1003",
+            "list-offsets-v2-latest",
+            "list-offsets-v3-timestamp1011",
+        ] {
+            send(&mut socket, &fixture(name).await?).await?;
+            let actual = receive(&mut socket).await?;
+            let p = base().join("4.3.1").join(format!("{name}.response.bin"));
+            assert_eq!(
+                actual,
+                tokio::task::spawn_blocking(move || read(&p)).await??
+            );
+        }
+        transport.shutdown().await?;
+        router.shutdown().await?;
+    }
+    clean(root).await?;
+    Ok(())
+}
+#[tokio::test]
+async fn rolling_lost_append_receipt_and_delete_wake_without_blocking_actor(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("rolling-lost-receipt");
+    seed_rolling(root.clone()).await?;
+    let router = open_rolling(&root, fetch::Limits::default()).await?;
+    let mut waiter = Box::pin(router.respond(fetch_request(6, 4, 30000, 1, 10000, &[(0, 10000)])));
+    poll_pending(waiter.as_mut()).await?;
+    barrier(&router).await?;
+    let batch =
+        tokio::task::spawn_blocking(|| read(&base().join("4.3.1/log-batch-3.bin"))).await??;
+    let mut append = Box::pin(router.respond(produce(&batch, 0)));
+    poll_pending(append.as_mut()).await?;
+    barrier(&router).await?;
+    drop(append);
+    let result = tokio::time::timeout(Duration::from_secs(2), waiter).await??;
+    assert_eq!(watermark(&result), 5);
+    let mut expected = batch;
+    expected[..8].copy_from_slice(&4i64.to_be_bytes());
+    expected[12..16].copy_from_slice(&0i32.to_be_bytes());
+    assert_eq!(records(&result, 6), expected);
+    let mut waiter = Box::pin(router.respond(fetch_request(6, 5, 30000, 1, 10000, &[(0, 10000)])));
+    poll_pending(waiter.as_mut()).await?;
+    barrier(&router).await?;
+    router.respond(delete()).await?;
+    assert_eq!(
+        fetch_error(&tokio::time::timeout(Duration::from_secs(2), waiter).await??),
+        3
+    );
+    router.respond(create()).await?;
+    let basic = include_bytes!("fixtures/records/valid-basic.bin");
+    router.respond(produce(basic, 0)).await?;
+    let fresh = router
+        .respond(fetch_request(6, 0, 0, 0, 10000, &[(0, 10000)]))
+        .await?;
+    assert_eq!(watermark(&fresh), 1);
+    router.shutdown().await?;
+    clean(root).await?;
+    Ok(())
+}
+#[tokio::test]
+async fn rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("rolling-scan-budget");
+    seed(root.clone(), false, false).await?;
+    tokio::task::spawn_blocking({
+        let root = root.clone();
+        move || -> Result<(), Box<dyn StdError + Send + Sync>> {
+            fs::create_dir(root.join("partitions"))?;
+            let cfg = produce::Config::new(root.join("partitions"));
+            let limits = partitionline_broker::segments::Limits::new(
+                10000,
+                16,
+                3,
+                3,
+                1 << 30,
+                2 * 1024 * 1024,
+                64 * 1024 * 1024,
+            )?;
+            let (mut p, _) = partition::Partition::open_segmented(
+                root.join("partitions/00000000000000000000000000000002-0.segments"),
+                0,
+                cfg.journal_limits,
+                cfg.record_limits,
+                limits,
+            )?;
+            for _ in 0..4 {
+                p.append(include_bytes!("fixtures/records/valid-basic.bin"))?;
+            }
+            Ok(())
+        }
+    })
+    .await?
+    .map_err(|e| e as Box<dyn StdError>)?;
+    let mut store = rolling_store(&root)?;
+    store.segment_limits = Some(partitionline_broker::segments::Limits::new(
+        10000,
+        16,
+        3,
+        3,
+        1 << 30,
+        2 * 1024 * 1024,
+        64 * 1024 * 1024,
+    )?);
+    let router = Router::open_with_read_store(
+        root.join("catalog.journal"),
+        common(),
+        store,
+        fetch::Limits::new(10000, 1, 1000)?,
+    )
+    .await?
+    .0;
+    assert!(matches!(
+        router
+            .respond(fetch_request(6, 2, 0, 0, 10000, &[(0, 10000)]))
+            .await,
+        Err(metadata::Error::Fetch(fetch::Error::ScanLimit))
+    ));
+    let response = router
+        .respond(fetch_request(6, 3, 0, 0, 10000, &[(0, 10000)]))
+        .await?;
+    assert_eq!(watermark(&response), 4);
+    assert_eq!(records(&response, 6).len(), 74);
+    router.shutdown().await?;
+    clean(root).await?;
+    Ok(())
+}
+
+// Exact actual Apache component payloads and applicable from-offset-zero
+// timestamp outcomes, independently generated by SegmentIndexProbe.java.
+// Source pin afaf4ea94eb958616445708d2d2f6846250a5e50; actual 4.3.1-run-1.json
+// SHA256 a792fd632681ab4620c0b623b96819769caf02c71952817f206261d0cd375458. All three pinned releases and reopens agree.
+// Negative component searches and explicit from_offset are not Kafka wire
+// ListOffsets cases. Their scope stays with the separate Apache receipt.
+const APACHE_ROLLED_BATCHES: [&str; 6] = [
+    "000000000000000000000053ffffffff02ba243d3100000000000100000000000003e800000000000003efffffffffffffffffffffffffffff0000000220000000086b6579300c76616c7565300020000e02086b6579310c76616c75653100",
+    "000000000000000200000053ffffffff02547b604d00000000000100000000000003eb00000000000003efffffffffffffffffffffffffffff0000000220000000086b6579320c76616c7565320020000802086b6579330c76616c75653300",
+    "000000000000000400000053ffffffff020e4ca88200000000000100000000000003e300000000000003f2ffffffffffffffffffffffffffff0000000220000000086b6579340c76616c7565340020001e02086b6579350c76616c75653500",
+    "000000000000000600000053ffffffff02984f2aaa00000000000100000000000003f000000000000003f2ffffffffffffffffffffffffffff0000000220000000086b6579360c76616c7565360020000402086b6579370c76616c75653700",
+    "000000000000000800000053ffffffff02f8bcae0700000000000100000000000003ee00000000000003f4ffffffffffffffffffffffffffff0000000220000000086b6579380c76616c7565380020000c02086b6579390c76616c75653900",
+    "000000000000000a00000057ffffffff026185160000000000000100000000000003f400000000000003f4ffffffffffffffffffffffffffff00000002240000000a6b657931300e76616c7565313000240017020a6b657931310e76616c7565313100",
+];
+const APACHE_ROLLED_TIMESTAMPS: [(i64, i64, i64); 15] = [
+    (0, 1000, 0),
+    (994, 1000, 0),
+    (995, 1000, 0),
+    (999, 1000, 0),
+    (1000, 1000, 0),
+    (1001, 1007, 1),
+    (1003, 1007, 1),
+    (1006, 1007, 1),
+    (1007, 1007, 1),
+    (1008, 1010, 5),
+    (1010, 1010, 5),
+    (1011, 1012, 9),
+    (1012, 1012, 9),
+    (1013, -1, -1),
+    (9223372036854775807, -1, -1),
+];
+fn apache_rolled_batches() -> Result<Vec<Vec<u8>>, Box<dyn StdError>> {
+    APACHE_ROLLED_BATCHES
+        .iter()
+        .map(|hex| {
+            hex.as_bytes()
+                .chunks_exact(2)
+                .map(|pair| {
+                    let digit = |x: u8| match x {
+                        b'0'..=b'9' => Ok(x - b'0'),
+                        b'a'..=b'f' => Ok(x - b'a' + 10),
+                        _ => Err("invalid pinned hex"),
+                    };
+                    Ok((digit(pair[0])? << 4) | digit(pair[1])?)
+                })
+                .collect::<Result<Vec<u8>, &str>>()
+                .map_err(|e| e.into())
+        })
+        .collect()
+}
+fn oracle_rolling_store(root: &Path) -> Result<produce::Config, Box<dyn StdError>> {
+    let mut config = produce::Config::new(root.join("partitions"));
+    config.journal_limits = partitionline_broker::journal::Limits::new(1024, 8192, 16, 4096)?;
+    config.segment_limits = Some(partitionline_broker::segments::Limits::new(
+        400,
+        8,
+        2,
+        1,
+        1024 * 1024,
+        64 * 1024,
+        4096,
+    )?);
+    Ok(config)
+}
+#[tokio::test]
+async fn authentic_apache_rolled_records_match_real_tcp_timestamp_and_whole_batch_seeks(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("rolling-apache-component-reference");
+    seed(root.clone(), false, false).await?;
+    let batches = apache_rolled_batches()?;
+    let mut assigned = batches.clone();
+    for batch in &mut assigned {
+        // Produce assigns the known single-node leader epoch outside the CRC.
+        batch[12..16].copy_from_slice(&0i32.to_be_bytes());
+    }
+    let mut observations = Vec::new();
+    for round in 0..2 {
+        let router = Arc::new(
+            Router::open_with_read_store(
+                root.join("catalog.journal"),
+                common(),
+                oracle_rolling_store(&root)?,
+                fetch::Limits::default(),
+            )
+            .await?
+            .0,
+        );
+        let mut transport = Transport::bind(
+            ([127, 0, 0, 1], 0).into(),
+            transport::Config::default(),
+            Arc::clone(&router),
+        )
+        .await?;
+        let mut socket = TcpStream::connect(transport.local_addr()).await?;
+        if round == 0 {
+            for batch in &batches {
+                send(&mut socket, &produce(batch, 0)).await?;
+                let response = receive(&mut socket).await?;
+                assert_eq!(i16::from_be_bytes(response[23..25].try_into()?), 0);
+                let expected = i64::from_be_bytes(batch[..8].try_into()?);
+                assert_eq!(i64::from_be_bytes(response[25..33].try_into()?), expected);
+            }
+        }
+        for offset in 0..=12 {
+            // A nonzero byte cap below one batch still returns the first whole
+            // batch, including the batch containing an interior offset.
+            let request = fetch_request(6, offset, 0, 0, 1, &[(0, 1)]);
+            send(&mut socket, &request).await?;
+            let actual = receive(&mut socket).await?;
+            assert_eq!(fetch_error(&actual), 0);
+            assert_eq!(watermark(&actual), 12);
+            let expected = if offset == 12 {
+                &[][..]
+            } else {
+                &assigned[offset as usize / 2][..]
+            };
+            assert_eq!(records(&actual, 6), expected, "round{round}/offset{offset}");
+            observations.push(format!("{{\"kind\":\"fetch\",\"round\":{round},\"offset\":{offset},\"request_hex\":\"{}\",\"response_hex\":\"{}\"}}", hex(&request), hex(&actual)));
+        }
+        for &(query, timestamp, offset) in &APACHE_ROLLED_TIMESTAMPS {
+            let mut request = fixture("list-offsets-v3-timestamp1003").await?;
+            let end = request.len();
+            request[end - 8..].copy_from_slice(&query.to_be_bytes());
+            send(&mut socket, &request).await?;
+            let actual = receive(&mut socket).await?;
+            let mut expected = tokio::task::spawn_blocking(|| {
+                read(&base().join("4.3.1/list-offsets-v3-timestamp1003.response.bin"))
+            })
+            .await??;
+            let end = expected.len();
+            expected[end - 16..end - 8].copy_from_slice(&timestamp.to_be_bytes());
+            expected[end - 8..].copy_from_slice(&offset.to_be_bytes());
+            assert_eq!(actual, expected, "round{round}/timestamp{query}");
+            observations.push(format!("{{\"kind\":\"timestamp\",\"round\":{round},\"query\":{query},\"expected_timestamp\":{timestamp},\"expected_offset\":{offset},\"request_hex\":\"{}\",\"response_hex\":\"{}\"}}", hex(&request), hex(&actual)));
+        }
+        transport.shutdown().await?;
+        router.shutdown().await?;
+        if round == 0 {
+            let root_copy = root.clone();
+            tokio::task::spawn_blocking(move || -> Result<(), Box<dyn StdError + Send + Sync>> {
+                let config = oracle_rolling_store(&root_copy)
+                    .map_err(|e| std::io::Error::other(e.to_string()))?;
+                let (mut partition, recovery) = partition::Partition::open_segmented(
+                    root_copy.join("partitions/00000000000000000000000000000002-0.segments"),
+                    0,
+                    config.journal_limits,
+                    config.record_limits,
+                    config.segment_limits.unwrap(),
+                )?;
+                assert_eq!(partition.segment_count(), 3);
+                assert_eq!(recovery.next_offset, 12);
+                // Explicit owner maintenance, between stopped serving sessions.
+                // This is identical generation replacement, not compaction.
+                partition.replace_sealed(0)?;
+                Ok(())
+            })
+            .await?
+            .map_err(|e| e as Box<dyn StdError>)?;
+        }
+    }
+    if let Some(out) = std::env::var_os("PARTITIONLINE_SEGMENTS_ORACLE_REPORT") {
+        let out = PathBuf::from(out);
+        let bytes = format!("{{\"schema\":1,\"oracle_source\":\"afaf4ea94eb958616445708d2d2f6846250a5e50\",\"oracle_json_sha256\":\"a792fd632681ab4620c0b623b96819769caf02c71952817f206261d0cd375458\",\"scope\":\"actual TCP ordinary Produce/Fetch/ListOffsets with three rolling segments, identical sealed replacement and restart;15 applicable normal from0 timestamp queries per round;whole containing batch min-one;component negative/from-offset/partial-slice cases excluded\",\"timestamp_cases\":30,\"fetch_cases\":26,\"case_results\":[{}]}}\n", observations.join(",")).into_bytes();
+        tokio::task::spawn_blocking(move || write(&out, &bytes)).await??;
+    }
+    clean(root).await?;
+    Ok(())
 }

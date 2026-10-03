@@ -1,0 +1,175 @@
+{
+  "client_source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "status": "focused strict compile only; no broker runtime",
+  "owned_source_files": {
+    "Cargo.toml": "8c5c63a08091aff24a55526d62d55b6a1767c9f31f5fad950fc0302bdc362983",
+    "Cargo.lock": "7ca4ffda72baa65ac10cfefb8e138fd6833670d48abdc3777df1afd7f94cb959",
+    "src/main.rs": "9edb87be2254ea344b689ac4fee789e8f7eb0310631b9ccfbe8522326d2f0b46"
+  },
+  "adapted_manifest_sha256": "b97617a31268b647b69db55db5e5eeacfc1d20da1c6fe9f87b634a305802ce4c",
+  "adaptation": "Only the path dependency is redirected to the unchanged full committed6d client archive; no WIP client source or product edits.",
+  "clippy_config_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+  "steps": [
+    {
+      "toolchain": "stable",
+      "name": "client-clean",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "seconds": 0.027208265993976966,
+      "log_sha256": "219b7dc0e21d4aadc2cfa42f86fee9fbd253140e8a023423c1b4ee27ab4c8c6b",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "stable",
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.03907523100497201,
+      "log_sha256": "a8ba4435748e8671bbde925496ae18007f0c7725e354da4bc484f61c93101645",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "stable",
+      "name": "default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 7.854023744999722,
+      "log_sha256": "3809d1bfd6ef3af8e2cfded49ed3700459752629ecaa71ee8fe38a05dc140298",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "stable",
+      "name": "all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 6.180745631005266,
+      "log_sha256": "d4c07ef5d8630093ccee1f3aff4bb46f007d8c9e3c55878f7cb9f0693672d151",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "client-clean",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "seconds": 0.16494921399862505,
+      "log_sha256": "2fa7cc7b6d454a307cd880af74ae125f00069b127cb406be30226d0cf8caf3fc",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 0.04829067900573136,
+      "log_sha256": "118f4eed2ba1d1f9f06d4266e3d7c8a719ab3cd486baf42c70617516aec68161",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 21.13062841899955,
+      "log_sha256": "189d736fb94536c94be8e39ee502e09e9b65bb8709c8ccb2c1597d268447c62f",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    },
+    {
+      "toolchain": "1.85.0",
+      "name": "all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 12.89536209400103,
+      "log_sha256": "2ce6022d60e9d76dc55444d09d4ff702d1ea80513b1822e219a56a745373ff53",
+      "client_git_files_verified_before": 20193,
+      "client_git_files_verified_after": 20193
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,783 @@
+{
+  "adler2@2.0.1": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "atomic-waker@1.1.2": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.36"
+  },
+  "base64@0.23.1": {
+    "dependencies": [],
+    "features": [
+      "alloc",
+      "default",
+      "simd-unsafe",
+      "std"
+    ],
+    "rust_version": "1.71.0"
+  },
+  "block-buffer@0.12.1": {
+    "dependencies": [
+      "hybrid-array@0.4.15",
+      "zeroize@1.9.0"
+    ],
+    "features": [
+      "zeroize"
+    ],
+    "rust_version": "1.85"
+  },
+  "bytes@1.12.1": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.57"
+  },
+  "cc@1.5.1": {
+    "dependencies": [
+      "find-msvc-tools@0.1.14",
+      "shlex@2.0.1"
+    ],
+    "features": [],
+    "rust_version": "1.65.0"
+  },
+  "cfg-if@1.0.5": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.32"
+  },
+  "cmov@0.5.4": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "const-oid@0.10.2": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "cpufeatures@0.3.1": {
+    "dependencies": [
+      "libc@0.2.189"
+    ],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "crc32c@0.6.8": {
+    "dependencies": [
+      "rustc_version@0.4.1"
+    ],
+    "features": [],
+    "rust_version": null
+  },
+  "crc32fast@1.5.2": {
+    "dependencies": [
+      "cfg-if@1.0.5"
+    ],
+    "features": [
+      "std"
+    ],
+    "rust_version": "1.63"
+  },
+  "crypto-common@0.2.2": {
+    "dependencies": [
+      "hybrid-array@0.4.15"
+    ],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "ctutils@0.4.2": {
+    "dependencies": [
+      "cmov@0.5.4"
+    ],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "digest@0.11.3": {
+    "dependencies": [
+      "block-buffer@0.12.1",
+      "const-oid@0.10.2",
+      "crypto-common@0.2.2",
+      "ctutils@0.4.2",
+      "zeroize@1.9.0"
+    ],
+    "features": [
+      "alloc",
+      "block-api",
+      "default",
+      "mac",
+      "oid",
+      "zeroize"
+    ],
+    "rust_version": "1.85"
+  },
+  "find-msvc-tools@0.1.14": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.65.0"
+  },
+  "flate2@1.1.10": {
+    "dependencies": [
+      "crc32fast@1.5.2",
+      "miniz_oxide@0.9.1",
+      "zlib-rs@0.6.8"
+    ],
+    "features": [
+      "any_impl",
+      "miniz_oxide",
+      "runtime_detection",
+      "rust_backend"
+    ],
+    "rust_version": "1.67.0"
+  },
+  "futures-channel@0.3.34": {
+    "dependencies": [
+      "futures-core@0.3.34"
+    ],
+    "features": [
+      "alloc",
+      "default",
+      "std"
+    ],
+    "rust_version": "1.71"
+  },
+  "futures-core@0.3.34": {
+    "dependencies": [],
+    "features": [
+      "alloc",
+      "default",
+      "std"
+    ],
+    "rust_version": "1.36"
+  },
+  "getrandom@0.2.17": {
+    "dependencies": [
+      "cfg-if@1.0.5",
+      "libc@0.2.189",
+      "wasi@0.11.1+wasi-snapshot-preview1"
+    ],
+    "features": [],
+    "rust_version": null
+  },
+  "getrandom@0.4.3": {
+    "dependencies": [
+      "cfg-if@1.0.5",
+      "libc@0.2.189",
+      "r-efi@6.0.0"
+    ],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "hmac@0.13.0": {
+    "dependencies": [
+      "digest@0.11.3"
+    ],
+    "features": [
+      "zeroize"
+    ],
+    "rust_version": "1.85"
+  },
+  "http-body-util@0.1.5": {
+    "dependencies": [
+      "bytes@1.12.1",
+      "futures-core@0.3.34",
+      "http-body@1.1.0",
+      "http@1.5.0",
+      "pin-project-lite@0.2.17"
+    ],
+    "features": [
+      "default"
+    ],
+    "rust_version": "1.61"
+  },
+  "http-body@1.1.0": {
+    "dependencies": [
+      "bytes@1.12.1",
+      "http@1.5.0"
+    ],
+    "features": [],
+    "rust_version": "1.61"
+  },
+  "http@1.5.0": {
+    "dependencies": [
+      "bytes@1.12.1",
+      "itoa@1.0.18"
+    ],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.57.0"
+  },
+  "httparse@1.10.1": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": null
+  },
+  "hybrid-array@0.4.15": {
+    "dependencies": [
+      "typenum@1.20.1"
+    ],
+    "features": [],
+    "rust_version": "1.85"
+  },
+  "hyper-util@0.1.21": {
+    "dependencies": [
+      "bytes@1.12.1",
+      "http-body@1.1.0",
+      "http@1.5.0",
+      "hyper@1.11.1",
+      "pin-project-lite@0.2.17",
+      "tokio@1.53.1"
+    ],
+    "features": [
+      "tokio"
+    ],
+    "rust_version": "1.85"
+  },
+  "hyper@1.11.1": {
+    "dependencies": [
+      "atomic-waker@1.1.2",
+      "bytes@1.12.1",
+      "futures-channel@0.3.34",
+      "futures-core@0.3.34",
+      "http-body@1.1.0",
+      "http@1.5.0",
+      "httparse@1.10.1",
+      "itoa@1.0.18",
+      "pin-project-lite@0.2.17",
+      "smallvec@1.16.2",
+      "tokio@1.53.1",
+      "want@0.3.1"
+    ],
+    "features": [
+      "client",
+      "default",
+      "http1"
+    ],
+    "rust_version": "1.63"
+  },
+  "itoa@1.0.18": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.68"
+  },
+  "libc@0.2.189": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.65"
+  },
+  "lz4_flex@0.14.0": {
+    "dependencies": [
+      "twox-hash@2.1.4"
+    ],
+    "features": [
+      "alloc",
+      "checked-decode",
+      "default",
+      "frame",
+      "safe-decode",
+      "safe-encode",
+      "std"
+    ],
+    "rust_version": "1.81"
+  },
+  "memchr@2.8.3": {
+    "dependencies": [],
+    "features": [
+      "alloc",
+      "std"
+    ],
+    "rust_version": "1.61"
+  },
+  "miniz_oxide@0.9.1": {
+    "dependencies": [
+      "adler2@2.0.1",
+      "simd-adler32@0.3.10"
+    ],
+    "features": [
+      "default",
+      "simd",
+      "simd-adler32",
+      "with-alloc"
+    ],
+    "rust_version": null
+  },
+  "mio@1.2.3": {
+    "dependencies": [
+      "libc@0.2.189",
+      "wasi@0.11.1+wasi-snapshot-preview1",
+      "windows-sys@0.61.2"
+    ],
+    "features": [
+      "net",
+      "os-ext",
+      "os-poll"
+    ],
+    "rust_version": "1.71"
+  },
+  "once_cell@1.21.4": {
+    "dependencies": [],
+    "features": [
+      "alloc",
+      "race",
+      "std"
+    ],
+    "rust_version": "1.65"
+  },
+  "pbkdf2@0.13.0": {
+    "dependencies": [
+      "digest@0.11.3",
+      "hmac@0.13.0"
+    ],
+    "features": [
+      "hmac"
+    ],
+    "rust_version": "1.85"
+  },
+  "pin-project-lite@0.2.17": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.37"
+  },
+  "proc-macro2@1.0.107": {
+    "dependencies": [
+      "unicode-ident@1.0.26"
+    ],
+    "features": [
+      "default",
+      "proc-macro"
+    ],
+    "rust_version": "1.71"
+  },
+  "quote@1.0.47": {
+    "dependencies": [
+      "proc-macro2@1.0.107"
+    ],
+    "features": [
+      "default",
+      "proc-macro"
+    ],
+    "rust_version": "1.71"
+  },
+  "r-efi@6.0.0": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.68"
+  },
+  "ring@0.17.14": {
+    "dependencies": [
+      "cc@1.5.1",
+      "cfg-if@1.0.5",
+      "getrandom@0.2.17",
+      "libc@0.2.189",
+      "untrusted@0.9.0",
+      "windows-sys@0.52.0"
+    ],
+    "features": [
+      "alloc",
+      "default",
+      "dev_urandom_fallback"
+    ],
+    "rust_version": "1.66.0"
+  },
+  "rustc_version@0.4.1": {
+    "dependencies": [
+      "semver@1.0.28"
+    ],
+    "features": [],
+    "rust_version": "1.32"
+  },
+  "rustls-pki-types@1.15.1": {
+    "dependencies": [
+      "zeroize@1.9.0"
+    ],
+    "features": [
+      "alloc",
+      "default",
+      "std"
+    ],
+    "rust_version": "1.60"
+  },
+  "rustls-webpki@0.103.15": {
+    "dependencies": [
+      "ring@0.17.14",
+      "rustls-pki-types@1.15.1",
+      "untrusted@0.9.0"
+    ],
+    "features": [
+      "alloc",
+      "ring",
+      "std"
+    ],
+    "rust_version": "1.71"
+  },
+  "rustls@0.23.45": {
+    "dependencies": [
+      "once_cell@1.21.4",
+      "ring@0.17.14",
+      "rustls-pki-types@1.15.1",
+      "rustls-webpki@0.103.15",
+      "subtle@2.6.1",
+      "zeroize@1.9.0"
+    ],
+    "features": [
+      "ring",
+      "std",
+      "tls12"
+    ],
+    "rust_version": "1.71"
+  },
+  "semver@1.0.28": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.68"
+  },
+  "serde@1.0.229": {
+    "dependencies": [
+      "serde_core@1.0.229"
+    ],
+    "features": [
+      "std"
+    ],
+    "rust_version": "1.56"
+  },
+  "serde_core@1.0.229": {
+    "dependencies": [
+      "serde_derive@1.0.229"
+    ],
+    "features": [
+      "result",
+      "std"
+    ],
+    "rust_version": "1.56"
+  },
+  "serde_derive@1.0.229": {
+    "dependencies": [
+      "proc-macro2@1.0.107",
+      "quote@1.0.47",
+      "syn@3.0.6"
+    ],
+    "features": [
+      "default"
+    ],
+    "rust_version": "1.71"
+  },
+  "serde_json@1.0.151": {
+    "dependencies": [
+      "itoa@1.0.18",
+      "memchr@2.8.3",
+      "serde@1.0.229",
+      "serde_core@1.0.229",
+      "zmij@1.0.23"
+    ],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.71"
+  },
+  "sha2@0.11.0": {
+    "dependencies": [
+      "cfg-if@1.0.5",
+      "cpufeatures@0.3.1",
+      "digest@0.11.3"
+    ],
+    "features": [
+      "alloc",
+      "default",
+      "oid",
+      "zeroize"
+    ],
+    "rust_version": "1.85"
+  },
+  "shlex@2.0.1": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": "1.46.0"
+  },
+  "simd-adler32@0.3.10": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "smallvec@1.16.2": {
+    "dependencies": [],
+    "features": [
+      "const_generics",
+      "const_new"
+    ],
+    "rust_version": null
+  },
+  "snap@1.1.2": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "socket2@0.6.5": {
+    "dependencies": [
+      "libc@0.2.189",
+      "windows-sys@0.61.2"
+    ],
+    "features": [
+      "all"
+    ],
+    "rust_version": "1.70"
+  },
+  "subtle@2.6.1": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "syn@3.0.6": {
+    "dependencies": [
+      "proc-macro2@1.0.107",
+      "quote@1.0.47",
+      "unicode-ident@1.0.26"
+    ],
+    "features": [
+      "clone-impls",
+      "default",
+      "derive",
+      "full",
+      "parsing",
+      "printing",
+      "proc-macro"
+    ],
+    "rust_version": "1.71"
+  },
+  "tokio-macros@2.7.2": {
+    "dependencies": [
+      "proc-macro2@1.0.107",
+      "quote@1.0.47",
+      "syn@3.0.6"
+    ],
+    "features": [],
+    "rust_version": "1.71"
+  },
+  "tokio-rustls@0.26.6": {
+    "dependencies": [
+      "rustls@0.23.45",
+      "tokio@1.53.1"
+    ],
+    "features": [
+      "ring",
+      "tls12"
+    ],
+    "rust_version": "1.71"
+  },
+  "tokio@1.53.1": {
+    "dependencies": [
+      "bytes@1.12.1",
+      "libc@0.2.189",
+      "mio@1.2.3",
+      "pin-project-lite@0.2.17",
+      "socket2@0.6.5",
+      "tokio-macros@2.7.2",
+      "windows-sys@0.61.2"
+    ],
+    "features": [
+      "bytes",
+      "default",
+      "io-util",
+      "libc",
+      "macros",
+      "mio",
+      "net",
+      "rt",
+      "rt-multi-thread",
+      "socket2",
+      "sync",
+      "time",
+      "tokio-macros",
+      "windows-sys"
+    ],
+    "rust_version": "1.71"
+  },
+  "try-lock@0.2.5": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "twox-hash@2.1.4": {
+    "dependencies": [],
+    "features": [
+      "xxhash32"
+    ],
+    "rust_version": "1.81"
+  },
+  "typenum@1.20.1": {
+    "dependencies": [],
+    "features": [
+      "const-generics"
+    ],
+    "rust_version": "1.41.0"
+  },
+  "unicode-ident@1.0.26": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.71"
+  },
+  "untrusted@0.9.0": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": null
+  },
+  "want@0.3.1": {
+    "dependencies": [
+      "try-lock@0.2.5"
+    ],
+    "features": [],
+    "rust_version": null
+  },
+  "wasi@0.11.1+wasi-snapshot-preview1": {
+    "dependencies": [],
+    "features": [
+      "default",
+      "std"
+    ],
+    "rust_version": null
+  },
+  "windows-link@0.2.1": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.71"
+  },
+  "windows-sys@0.52.0": {
+    "dependencies": [
+      "windows-targets@0.52.6"
+    ],
+    "features": [
+      "Win32",
+      "Win32_Foundation",
+      "Win32_System",
+      "Win32_System_Threading",
+      "default"
+    ],
+    "rust_version": "1.56"
+  },
+  "windows-sys@0.61.2": {
+    "dependencies": [
+      "windows-link@0.2.1"
+    ],
+    "features": [
+      "Wdk",
+      "Wdk_Foundation",
+      "Wdk_Storage",
+      "Wdk_Storage_FileSystem",
+      "Wdk_System",
+      "Wdk_System_IO",
+      "Win32",
+      "Win32_Foundation",
+      "Win32_Networking",
+      "Win32_Networking_WinSock",
+      "Win32_Security",
+      "Win32_Storage",
+      "Win32_Storage_FileSystem",
+      "Win32_System",
+      "Win32_System_IO",
+      "Win32_System_Pipes",
+      "Win32_System_SystemServices",
+      "Win32_System_Threading",
+      "Win32_System_WindowsProgramming",
+      "default"
+    ],
+    "rust_version": "1.71"
+  },
+  "windows-targets@0.52.6": {
+    "dependencies": [
+      "windows_aarch64_gnullvm@0.52.6",
+      "windows_aarch64_msvc@0.52.6",
+      "windows_i686_gnu@0.52.6",
+      "windows_i686_gnullvm@0.52.6",
+      "windows_i686_msvc@0.52.6",
+      "windows_x86_64_gnu@0.52.6",
+      "windows_x86_64_gnullvm@0.52.6",
+      "windows_x86_64_msvc@0.52.6"
+    ],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_aarch64_gnullvm@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_aarch64_msvc@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_i686_gnu@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_i686_gnullvm@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_i686_msvc@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_x86_64_gnu@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_x86_64_gnullvm@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "windows_x86_64_msvc@0.52.6": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.56"
+  },
+  "zeroize@1.9.0": {
+    "dependencies": [],
+    "features": [
+      "alloc",
+      "default"
+    ],
+    "rust_version": "1.85"
+  },
+  "zlib-rs@0.6.8": {
+    "dependencies": [],
+    "features": [
+      "rust-allocator",
+      "std"
+    ],
+    "rust_version": "1.75"
+  },
+  "zmij@1.0.23": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.71"
+  },
+  "zstd-rs@0.1.0": {
+    "dependencies": [],
+    "features": [],
+    "rust_version": "1.85"
+  }
+}

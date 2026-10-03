@@ -272,3 +272,53 @@ fn external_payload_change_poisoned_live_handle_returns_no_partial_output() -> R
     ));
     Ok(())
 }
+
+#[test]
+fn rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart() -> Result {
+    let temp = Temp::new()?;
+    let path = temp.path("rolling");
+    let segments = partitionline_broker::segments::Limits::new(
+        150,
+        16,
+        4,
+        2,
+        8 * 1024 * 1024,
+        65536,
+        2 * 1024 * 1024,
+    )?;
+    let (mut part, _) = partition::Partition::open_segmented(
+        &path,
+        7,
+        journal::Limits::default(),
+        records::Limits::default(),
+        segments,
+    )?;
+    assert_eq!(part.append(MULTIPLE)?.next_offset, 11);
+    assert_eq!(part.append(BASIC)?.base_offset, 11);
+    assert_eq!(part.segment_count(), 2);
+    let before = part.fetch(8, 1, 4096)?;
+    assert_eq!(before[0].first_offset, 7);
+    let checked = records::validate(&before[0].payload, records::Limits::default())?;
+    assert_eq!(
+        checked
+            .batches()
+            .map(|b| b.unwrap().base_offset)
+            .collect::<Vec<_>>(),
+        vec![7, 8]
+    );
+    part.replace_sealed(7)?;
+    assert_eq!(part.fetch(8, 1, 4096)?, before);
+    drop(part);
+    let (mut part, recovery) = partition::Partition::open_segmented(
+        &path,
+        7,
+        journal::Limits::default(),
+        records::Limits::default(),
+        segments,
+    )?;
+    assert_eq!(recovery.rebuilt_indexes, 0);
+    assert_eq!(part.next_offset(), 12);
+    assert_eq!(part.fetch(8, 1, 4096)?, before);
+    assert_eq!(part.append(BASIC)?.base_offset, 12);
+    Ok(())
+}

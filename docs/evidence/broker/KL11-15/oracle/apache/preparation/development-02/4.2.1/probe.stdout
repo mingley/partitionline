@@ -1,0 +1,14 @@
+{"case":"incomplete.not-published","actual":0,"expected":0,"passed":true}
+{"case":"incomplete.partial-present","actual":1,"expected":1,"passed":true}
+{"case":"incomplete.close-removes-partial","actual":0,"expected":0,"passed":true}
+{"case":"writer.exclusive-end-maps-inclusive-offset","actual":2,"expected":2,"passed":true}
+{"case":"writer.not-published-before-freeze","actual":0,"expected":0,"passed":true}
+{"case":"writer.published-after-freeze","actual":1,"expected":1,"passed":true}
+{"case":"writer.exact-published-size","actual":262,"expected":262,"passed":true}
+{"case":"writer.frozen","actual":1,"expected":1,"passed":true}
+{"case":"writer.append-after-freeze-rejected","actual":1,"expected":1,"passed":true}
+{"case":"reader.last-contained-offset","actual":2,"expected":2,"passed":true}
+{"case":"reader.last-contained-epoch","actual":5,"expected":5,"passed":true}
+{"case":"reader.last-contained-timestamp","actual":1000,"expected":1000,"passed":true}
+{"case":"reader.exact-record-order","actual":1,"expected":1,"passed":true}
+{"summary":true,"checks":13,"passed":true}

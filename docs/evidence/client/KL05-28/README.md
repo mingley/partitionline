@@ -1,0 +1,7 @@
+KL05-28 is qualified against the exact pushed client source `6d6ca9aeed263f24870c4b06531d801be655294e`.
+
+The four stable/MSRV default/all-feature cells passed 1,814/1,815 behavior cases, four doctests, strict all-target Clippy, strict rustdoc, format, and standalone CLI example preparation. Every final command verified all 20,193 archived Git files before and after execution. Ten focused real-socket public-API regressions cover ordinary Producer/manual Consumer/basic Admin, unavailable operation isolation, nontransactional idempotence, and preserved transaction requirements.
+
+`validation.json` is the aggregate; `final/attempt-2/results.json` retains exact commands, compiler receipts, raw outputs, timing and source verification counts. `final/attempt-1` preserves the missing CLI example preparation failure. Draft compile/mock/lint failures remain under `development`; none is relabeled as a successful run. `run-final.py` reproduces qualification against a full exact Git archive. `seal-final.py` checks the accepted matrix and writes aggregate/checksums.
+
+From this directory, verify every retained artifact with `sha256sum -c SHA256SUMS`. Only this directory's files excluding `__pycache__` are safe to stage; the production source and focused tests were already pushed separately. This matrix/socket constituent is complete. Card28 closure also requires the fresh public Rust-client persisted broker interop in KL11-08; both cards close together after that independent runtime qualification.

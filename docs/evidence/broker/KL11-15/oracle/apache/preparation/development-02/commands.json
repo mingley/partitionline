@@ -1,0 +1,119 @@
+[
+  {
+    "release": "4.1.2",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-proc:none",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.1.2/classes",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.1.2/ApacheSnapshotProbe.java"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "release": "4.1.2",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.1.2/classes:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.1.2/slf4j-api-1.7.36.jar",
+      "ApacheSnapshotProbe",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.1.2/fresh-log-01"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "54aefbf875a68ac75866416b99323467e3ded92efe0c2350db680d10a82d28c1",
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  },
+  {
+    "release": "4.2.1",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-proc:none",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.2.1/classes",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.2.1/ApacheSnapshotProbe.java"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "release": "4.2.1",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.2.1/classes:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.2.1/slf4j-api-1.7.36.jar",
+      "ApacheSnapshotProbe",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.2.1/fresh-log-01"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "54aefbf875a68ac75866416b99323467e3ded92efe0c2350db680d10a82d28c1",
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  },
+  {
+    "release": "4.3.1",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "-proc:none",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.3.1/classes",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.3.1/ApacheSnapshotProbe.java"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "release": "4.3.1",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-cp",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.3.1/classes:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-09/jars/4.3.1/slf4j-api-1.7.36.jar",
+      "ApacheSnapshotProbe",
+      "/workspace/work/raft-snapshot-oracle/development-02/4.3.1/fresh-log-01"
+    ],
+    "exit_code": 0,
+    "stdout_sha256": "54aefbf875a68ac75866416b99323467e3ded92efe0c2350db680d10a82d28c1",
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+  }
+]

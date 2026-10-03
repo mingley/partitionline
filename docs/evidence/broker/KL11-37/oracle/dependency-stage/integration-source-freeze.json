@@ -1,0 +1,36 @@
+{
+  "parent_sha": "f9085f8fb125cc54568626a0010f2aa8cefddd57",
+  "stage": "rolling storage, snapshot image and public-client interop source freeze plus next-stage OIDC ownership/dependencies",
+  "frozen_source_files_sha256": {
+    "partitionline-broker/Cargo.lock": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146",
+    "partitionline-broker/Cargo.toml": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+    "partitionline-broker/src/fetch.rs": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+    "partitionline-broker/src/journal.rs": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+    "partitionline-broker/src/lib.rs": "3f410b3eeb2003b02a5f438a17a365a30aae5c357a4a3449d70f1e57c155be9d",
+    "partitionline-broker/src/partition.rs": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+    "partitionline-broker/src/produce.rs": "194c5b9dac69d1dabc4981fd5db2badd93dee359cc97c176418f61dcca036986",
+    "partitionline-broker/src/raft/mod.rs": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028",
+    "partitionline-broker/src/raft/snapshot.rs": "573ce4c1eb21a9c6001db71d0ce7f7a62a5a7711231b50d682a736b879b88b24",
+    "partitionline-broker/src/segments.rs": "3df736c99f7af42204517a977ce5f507a7edb4e50eb54b3fa8e343f4eacb4081",
+    "partitionline-broker/tests/fetch.rs": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+    "partitionline-broker/tests/partition.rs": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+    "partitionline-broker/tests/produce.rs": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+    "partitionline-broker/tests/raft_snapshot.rs": "e2420986f2c10d5926f5037f6b3d7310300c56abea60bcbf65a56169823c2ba8",
+    "partitionline-broker/tests/segments.rs": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+    "tests/conformance/broker/implemented-api-versions.json": "2ababad6694ff22b0a8ff95e49df23bd27be1ce30e18db2eaa1e6d1bc8a60f37",
+    "tests/conformance/broker/interop/Cargo.lock": "7ca4ffda72baa65ac10cfefb8e138fd6833670d48abdc3777df1afd7f94cb959",
+    "tests/conformance/broker/interop/Cargo.toml": "8c5c63a08091aff24a55526d62d55b6a1767c9f31f5fad950fc0302bdc362983",
+    "tests/conformance/broker/interop/src/main.rs": "9edb87be2254ea344b689ac4fee789e8f7eb0310631b9ccfbe8522326d2f0b46"
+  },
+  "static_inventory_passed": true,
+  "registry_source_bindings_refreshed_without_advertisement_change": true,
+  "production_qualification": false,
+  "limitations": [
+    "09 focused stable/MSRV gates passed; immutable whole broker matrix and raw fault/history checking pending.",
+    "15 image/store foundation only; authoritative Node/WAL integration/recovery remains open.",
+    "08 source and four-cell focused prep frozen; all fresh persisted public-client/Java/C runtime histories pending.",
+    "28 completed matrix/socket constituent is sealed; full28 closure waits for08 persisted public-client proof.",
+    "37 ownership/dependency graph only; default graph unchanged and declared MSRV checked; actual HTTP/OIDC compiler/runtime qualification pending.",
+    "Share stage2 remains uncommitted; old committedConsumer helper stays until runtime source and exports commit together."
+  ]
+}

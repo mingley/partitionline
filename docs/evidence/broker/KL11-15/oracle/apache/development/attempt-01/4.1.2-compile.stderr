@@ -1,0 +1,7 @@
+/workspace/work/raft-snapshot-oracle/repro-01/adapted/4.1.2/ApacheSnapshotProbe.java:87: error: offset has private access in OffsetAndEpoch
+        System.out.println("{\"observation\":true,\"exclusive_offset\":" + id.offset
+                                                                             ^
+/workspace/work/raft-snapshot-oracle/repro-01/adapted/4.1.2/ApacheSnapshotProbe.java:88: error: epoch has private access in OffsetAndEpoch
+            + ",\"epoch\":" + id.epoch + ",\"records_utf8\":\"" + records + "\"}");
+                                ^
+2 errors

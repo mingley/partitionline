@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "stage": "owned image/store development only; no Node install, replay, actor or full15 qualification",
+  "basis_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "shadow_root": "/workspace/work/snapshot-draft-db002076/source",
+  "source_overlay_sha256": {
+    "partitionline-broker/src/raft/snapshot.rs": "d6e5fa7a7bfb2479ec595f0673ca2a3a05c17ccf4e6c77a103a1063166df08a2",
+    "partitionline-broker/tests/raft_snapshot.rs": "31e891dbd0434d0b68364c28405402b2870b1e5dddb17cdfb8a278e672733406"
+  },
+  "root_export_overlay": "pub mod snapshot; scratch-only export; not a73 source alteration",
+  "passed_foundation": true,
+  "tests_per_toolchain": 9,
+  "behavioral_tests_per_toolchain": 8,
+  "process_exit_helper_tests": 1,
+  "strict_clippy_stable_exit_code": 0,
+  "strict_clippy_msrv_exit_code": 0,
+  "retained_failures": [
+    {
+      "log": "stable-clippy-01.log",
+      "classification": "fixture helpers used forbidden non-test unwrap and unbounded fs::read/write; corrected fallible helpers and bounded reads, no allow attributes"
+    },
+    {
+      "log": "msrv-clippy-01.log",
+      "classification": "needless lifetime on Decoder impl; corrected elided lifetime, no allow attribute"
+    }
+  ],
+  "latest_msrv_command": {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--lib",
+      "--test",
+      "raft_snapshot",
+      "-j2",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-draft-db002076/source",
+    "exit_code": 0,
+    "log": "msrv-clippy-02.log"
+  },
+  "limitations": [
+    "No authoritative Install WAL record yet",
+    "No snapshot-enabled Node restart/replay yet",
+    "No catch-up owner admission/cancellation tests yet",
+    "Source overlay is developmental and not a pushed product source pin"
+  ],
+  "logs_sha256": {
+    "msrv-clippy-01.log": "760d50c27b32d1d0e26b694f572632afa9e954b435479fa2ed66d2f42fe5e8a9",
+    "msrv-clippy-02.log": "8caf236ba8807419ac1f507cb440f2613d4cf3da4470c9442502194ebc92f9d6",
+    "msrv-test-01.log": "88d4468c72ea3a4a888141309be82bc6cbb5320b339cb8a069f004c689a1af77",
+    "stable-clippy-01.log": "fd49dfa6d4ed11227335bbf0176bfa30d3bdf028a1582d72148c611f126e68bd",
+    "stable-clippy-02.log": "b3f7997d462c8ab3a95376d0fc90b1f139a740bd2398d2e0f43e1e04aea65de6",
+    "stable-test-01.log": "e2d3f92f36f89e1c36a306f68488541bc1a93f558ddff640885b638725c55a84",
+    "stable-test-02.log": "3959e4b27ca4112d74ca75feefc21eb6fbdcf0a06891b4c47cf64660f8dcefa6"
+  }
+}

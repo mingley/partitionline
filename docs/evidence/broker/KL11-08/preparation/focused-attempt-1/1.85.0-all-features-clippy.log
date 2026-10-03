@@ -1,0 +1,9 @@
+$ taskset -c 0-2,4 cargo +1.85.0 clippy --locked --all-features -- -D warnings
+   Compiling syn v2.0.119
+    Checking rustls v0.23.45
+   Compiling tracing-attributes v0.1.31
+    Checking tracing v0.1.44
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/workspace/work/client-capabilities-final/source)
+    Checking partitionline-broker-interop-peer v0.0.0 (/workspace/work/broker-interop-focused-peer)
+    Finished `dev` profile [unoptimized] target(s) in 12.86s

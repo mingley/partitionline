@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "stage": "foundation source freeze; KL11-15 remains open for Node/WAL integration",
+  "basis_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/snapshot.rs": "573ce4c1eb21a9c6001db71d0ce7f7a62a5a7711231b50d682a736b879b88b24",
+    "partitionline-broker/tests/raft_snapshot.rs": "e2420986f2c10d5926f5037f6b3d7310300c56abea60bcbf65a56169823c2ba8",
+    "partitionline-broker/tests/fixtures/raft-snapshot/apache-opaque-state.tsv": "84da0988ffa8dde61751e3091df474fbbc33ad3523bb273c01aecefa7f2bf331",
+    "partitionline-broker/tests/fixtures/raft-snapshot/README.md": "f9a917f3d3e987004374a1e4304695b97dc311881cf9f830299f86e323bb8afe",
+    "docs/evidence/broker/KL11-15/README.md": "b09356bd10709a99fd6ff8933ca1943082bd8444e5e1adec70b558bcb470cf3e",
+    "docs/evidence/broker/KL11-15/integration-contract.md": "e6760dbd5e4226423cf22795295f001e9f93d5f54cc774a7e00b3bdb50fcb891",
+    "docs/evidence/broker/KL11-15/oracle/apache/ApacheSnapshotProbe.java": "43e3118a05bc698a436c19e9d4f0b74116b9b0f244c9d5a462222c6fe7372ab6",
+    "docs/evidence/broker/KL11-15/oracle/apache/prepare-and-run.py": "b1bd34d3e7b87ab8e701f2d896eac8d3979e0b1a51692178c9eb4fa83d4d8097",
+    "docs/evidence/broker/KL11-15/oracle/apache/pins.json": "f06b369402642ecf0fe0f82c73bbc0db769c7af70e38e289aec77774a1f81f7f",
+    "docs/evidence/broker/KL11-15/oracle/apache/selected-source-files.json": "585df60a7956a0c0f48ec10f37be510c47c4b4e70cb616b6940190f2caea9d97",
+    "docs/evidence/broker/KL11-15/oracle/apache/README.md": "66b251d8eadfdc826a59a2c335edc1e856d28a4a3bd69c24756e05bf6b3ba54d"
+  },
+  "foundation_validation": "development/image-store-03/validation.json",
+  "apache_development_validation": "oracle/apache/development/attempt-03/validation.json",
+  "actual_apache_assertions": 120,
+  "actual_apache_deliberate_failures_detected": 3,
+  "final_source_sha": null,
+  "integration_owner_release_required": true
+}

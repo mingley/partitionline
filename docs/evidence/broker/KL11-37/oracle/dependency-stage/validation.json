@@ -1,0 +1,136 @@
+{
+  "parent_sha": "f9085f8fb125cc54568626a0010f2aa8cefddd57",
+  "stage": "optional-dependency declaration and ownership claim; no OIDC production source yet",
+  "default_graph_identical": true,
+  "default_packages": 20,
+  "oidc_packages": 75,
+  "all_graph_declared_msrv_le_1_85": true,
+  "actual_msrv_compilation": "pending foundation source stage",
+  "production_qualification": false,
+  "commands": [
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "/workspace/work/integration/oidc-dependencies-parent/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "parent-default.json",
+      "packages": 20
+    },
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "candidate-default.json",
+      "packages": 20
+    },
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features",
+        "--features",
+        "tls"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "candidate-tls.json",
+      "packages": 43
+    },
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features",
+        "--features",
+        "sasl"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "candidate-sasl.json",
+      "packages": 34
+    },
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features",
+        "--features",
+        "oidc"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "candidate-oidc.json",
+      "packages": 75
+    },
+    {
+      "argv": [
+        "cargo",
+        "+1.85.0",
+        "metadata",
+        "--locked",
+        "--offline",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--format-version",
+        "1",
+        "--no-default-features",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "scope": "locked manifest graph, not compilation or source validation",
+      "graph": "candidate-all.json",
+      "packages": 85
+    }
+  ],
+  "source_files_sha256": {
+    "partitionline-broker/Cargo.toml": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+    "partitionline-broker/Cargo.lock": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146"
+  },
+  "limitations": [
+    "cargo metadata checks declared versions and activated features, not compiler compatibility.",
+    "Pinned static JWT validation alone cannot qualify full OIDC; real HTTPS discovery/JWKS/introspection and live expiry/reconnect proofs remain required.",
+    "Default activated package features/dependency graph are exactly unchanged; optional all-feature additions remain unqualified until foundation/full QA."
+  ]
+}

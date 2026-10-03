@@ -1,0 +1,67 @@
+{
+  "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "source_archive": "/workspace/work/client-capabilities-final/source",
+  "environment": {
+    "CARGO_TARGET_DIR": "/workspace/work/target-client-capabilities",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 2.7606147569968016,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-package-clean",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "seconds": 0.6115424949966837,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 101,
+      "seconds": 161.16053987200576,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    }
+  ],
+  "passed": false
+}

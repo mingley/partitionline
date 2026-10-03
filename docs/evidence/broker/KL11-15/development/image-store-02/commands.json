@@ -1,0 +1,111 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_snapshot",
+      "-j2"
+    ],
+    "cwd": "/workspace/work/snapshot-draft-db002076/source",
+    "exit_code": 0,
+    "elapsed_seconds": 2.054,
+    "log": "stable-test.log",
+    "log_sha256": "37246cdcac09d06ab213090a74b936c9e17760bc1ac37ef01bf514d6fe85cdae"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_snapshot",
+      "-j2",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-draft-db002076/source",
+    "exit_code": 0,
+    "elapsed_seconds": 1.069,
+    "log": "stable-clippy.log",
+    "log_sha256": "33d116637f0bde90563a2919552bef737168021eaef6eb04543ac21490a07a06"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_snapshot",
+      "-j2"
+    ],
+    "cwd": "/workspace/work/snapshot-draft-db002076/source",
+    "exit_code": 0,
+    "elapsed_seconds": 2.182,
+    "log": "1.85.0-test.log",
+    "log_sha256": "12aad6cc4cdfbebe1526d3f35f75071ca8352e0fdde1ec7c33e1d342c496687c"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_snapshot",
+      "-j2",
+      "--lib",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-draft-db002076/source",
+    "exit_code": 0,
+    "elapsed_seconds": 1.849,
+    "log": "1.85.0-clippy.log",
+    "log_sha256": "c4bc4924649a8aa2580dd371ca3cc5115ba51f9e09454da48e03691ec02fa5fb"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "/workspace/work/cargo/bin/rustfmt",
+      "--check",
+      "--edition",
+      "2021",
+      "partitionline-broker/src/raft/snapshot.rs",
+      "partitionline-broker/tests/raft_snapshot.rs"
+    ],
+    "cwd": "/workspace/partitionline",
+    "exit_code": 0,
+    "log": "fmt.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+]

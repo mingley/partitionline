@@ -1,0 +1,4 @@
+error: failed to create directory `/workspace/work/target-client-capabilities/debug/.fingerprint/partitionline-broker-interop-peer-4c9ce076f38405ce`
+
+Caused by:
+  No space left on device (os error 28)

@@ -1,0 +1,80 @@
+{
+  "status": "strict compile only; no runtime yet",
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-peers/cross/4.1.2",
+        "/workspace/partitionline/tests/conformance/broker/interop/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log_sha256": "d5b6741b186ef936504464976153be312675080bec065846c987633774b2194f"
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-peers/cross/4.2.1",
+        "/workspace/partitionline/tests/conformance/broker/interop/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log_sha256": "64a818f6e1cf5ca85a5981a619a9f283ecf7e977d752685e16c2e28d4170eb8d"
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-peers/cross/4.3.1",
+        "/workspace/partitionline/tests/conformance/broker/interop/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+      "log_sha256": "c875e4c4c98f40769d0338720e34f51513e3d0fb9277e78b5147d88c0dc4cf68"
+    }
+  ]
+}

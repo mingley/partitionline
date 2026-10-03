@@ -1,0 +1,74 @@
+   Compiling libc v0.2.190
+    Checking cfg-if v1.0.5
+   Compiling unicode-ident v1.0.26
+   Compiling proc-macro2 v1.0.107
+   Compiling find-msvc-tools v0.1.14
+   Compiling cc v1.5.1
+   Compiling quote v1.0.47
+    Checking hybrid-array v0.4.15
+   Compiling ring v0.17.14
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking digest v0.11.3
+   Compiling syn v3.0.6
+    Checking errno v0.3.14
+   Compiling crc32fast v1.5.2
+   Compiling rustls v0.23.45
+    Checking signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+    Checking rustls-webpki v0.103.15
+   Compiling syn v2.0.119
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking smallvec v1.16.2
+    Checking tokio v1.53.1
+    Checking parking_lot_core v0.9.12
+   Compiling tracing-attributes v0.1.31
+    Checking hmac v0.13.0
+    Checking twox-hash v2.1.4
+    Checking flate2 v1.1.10
+    Checking lz4_flex v0.14.0
+    Checking sha2 v0.11.0
+    Checking tracing v0.1.44
+    Checking pbkdf2 v0.13.0
+    Checking parking_lot v0.12.5
+    Checking tokio-rustls v0.26.6
+    Checking getrandom v0.4.3
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+warning: method `roundtrip_node` is never used
+    --> /workspace/partitionline/src/consumer.rs:2334:25
+     |
+1758 | impl Consumer {
+     | ------------- method in this implementation
+...
+2334 |     pub(crate) async fn roundtrip_node(
+     |                         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline` (lib) generated 1 warning
+    Checking partitionline-broker-interop-peer v0.0.0 (/workspace/partitionline/tests/conformance/broker/interop)
+error[E0271]: expected `{closure@main.rs:409:42}` to return `(_, i64)`, but it returns `(String, i32, {integer})`
+    --> src/main.rs:409:54
+     |
+ 409 |         .assign_many((0..partitions).map(|partition| (topic.to_string(), partition, 0)))
+     |          -----------                     ----------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ expected a tuple with 2 elements, found one with 3 elements
+     |          |                               |
+     |          |                               this closure
+     |          required by a bound introduced by this call
+     |
+     = note: expected tuple `(_, i64)`
+                found tuple `(std::string::String, i32, {integer})`
+     = note: required for `std::iter::Map<std::ops::Range<i32>, {closure@src/main.rs:409:42: 409:53}>` to implement `std::iter::Iterator`
+note: required by a bound in `partitionline::Consumer::assign_many`
+    --> /workspace/partitionline/src/consumer.rs:1878:35
+     |
+1876 |     pub async fn assign_many(
+     |                  ----------- required by a bound in this associated function
+1877 |         &mut self,
+1878 |         starts: impl IntoIterator<Item = (impl Into<TopicPartition>, i64)>,
+     |                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `Consumer::assign_many`
+
+For more information about this error, try `rustc --explain E0271`.
+error: could not compile `partitionline-broker-interop-peer` (bin "partitionline-broker-interop-peer") due to 1 previous error

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "stage": "image/store development foundation only; no full15 qualification",
+  "basis_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "shadow": "db002 full archive plus owned image/store/test/fixture and scratch-only mod export; no09/other WORK overlays",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/snapshot.rs": "573ce4c1eb21a9c6001db71d0ce7f7a62a5a7711231b50d682a736b879b88b24",
+    "partitionline-broker/tests/raft_snapshot.rs": "e2420986f2c10d5926f5037f6b3d7310300c56abea60bcbf65a56169823c2ba8",
+    "partitionline-broker/tests/fixtures/raft-snapshot/apache-opaque-state.tsv": "84da0988ffa8dde61751e3091df474fbbc33ad3523bb273c01aecefa7f2bf331"
+  },
+  "passed": true,
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_snapshot",
+        "-j2"
+      ],
+      "cwd": "/workspace/work/snapshot-draft-db002076/source",
+      "exit_code": 0,
+      "elapsed_seconds": 2.181,
+      "log": "stable-test.log",
+      "log_sha256": "10838f6ba42f1be202cef8a07f1a35aa953a4e9de55118b5c04c7742685cf0c3"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_snapshot",
+        "-j2",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/snapshot-draft-db002076/source",
+      "exit_code": 0,
+      "elapsed_seconds": 1.156,
+      "log": "stable-clippy.log",
+      "log_sha256": "ee7dfdc62beebf63df15e50a3bff1f792d186f00fa84e3f12e7e85d5d809fe9e"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_snapshot",
+        "-j2"
+      ],
+      "cwd": "/workspace/work/snapshot-draft-db002076/source",
+      "exit_code": 0,
+      "elapsed_seconds": 2.758,
+      "log": "1.85.0-test.log",
+      "log_sha256": "11ccaebceef0064058595b0f7bcae6976c039dfd5ddd610b26e817427634670c"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_snapshot",
+        "-j2",
+        "--lib",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/snapshot-draft-db002076/source",
+      "exit_code": 0,
+      "elapsed_seconds": 2.626,
+      "log": "1.85.0-clippy.log",
+      "log_sha256": "7e7c903532abae30bc5a37cac50190bcc9c1132a340dd372207cceba997582db"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "partitionline-broker/src/raft/snapshot.rs",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "tests_per_toolchain": 10,
+  "behavioral_tests_per_toolchain": 9,
+  "subprocess_helper_tests_per_toolchain": 1,
+  "limitations": [
+    "No Install WAL receipt yet",
+    "No Node snapshot-enabled replay/catch-up yet",
+    "No actor queue/chunk result/lifecycle integration yet",
+    "Development shadow, not final pushed source qualification"
+  ]
+}

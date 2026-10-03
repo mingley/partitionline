@@ -371,20 +371,21 @@ impl Budget {
         if self.entries == 0 || self.bytes == 0 {
             return Err(Error::ScanLimit);
         }
-        let entry = match store.read_entry(id, index, offset, self.bytes) {
+        let (entry, work) = match store.read_entry(id, index, offset, self.bytes, self.entries) {
             Ok(value) => value,
             Err(partition::Error::Storage(journal::Error::FetchBudgetExceeded)) => {
                 return Err(Error::ScanLimit)
             }
+            Err(partition::Error::Segments(crate::segments::Error::ScanBudget)) => {
+                return Err(Error::ScanLimit)
+            }
             Err(_) => return Ok(Err(56)),
         };
-        if let Some(entry) = &entry {
-            self.bytes = self
-                .bytes
-                .checked_sub(entry.payload.len())
-                .ok_or(Error::ScanLimit)?;
-            self.entries -= 1;
-        }
+        self.bytes = self.bytes.checked_sub(work.bytes).ok_or(Error::ScanLimit)?;
+        self.entries = self
+            .entries
+            .checked_sub(work.entries)
+            .ok_or(Error::ScanLimit)?;
         Ok(Ok(entry))
     }
 }
@@ -550,7 +551,13 @@ pub(crate) fn process(
                     } else if part.offset < 0 {
                         error = 35;
                     } else if let Some(id) = id {
-                        let mut cursor = 0;
+                        let mut cursor = match store.timestamp_start(id, part.index, part.offset) {
+                            Ok(offset) => offset,
+                            Err(_) => {
+                                error = 56;
+                                watermark
+                            }
+                        };
                         'scan: while cursor < watermark {
                             active()?;
                             let entry = match budget.read(store, id, part.index, cursor)? {

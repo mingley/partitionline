@@ -1,0 +1,4 @@
+$ taskset -c 0-2,4 cargo +1.85.0 doc --locked --no-deps
+ Documenting partitionline v0.1.0 (/workspace/work/client-capabilities-final/source)
+    Finished `dev` profile [unoptimized] target(s) in 2.77s
+   Generated /workspace/work/target-client-capabilities/doc/partitionline/index.html

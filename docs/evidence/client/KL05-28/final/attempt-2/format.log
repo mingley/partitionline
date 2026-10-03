@@ -1,0 +1,1 @@
+$ taskset -c 0-2,4 cargo +stable fmt --check

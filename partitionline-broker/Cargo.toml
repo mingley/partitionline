@@ -11,9 +11,17 @@ description = "Experimental Rust Kafka broker; production qualification tracked 
 default = []
 tls = ["dep:rustls", "dep:tokio-rustls"]
 sasl = ["dep:base64", "dep:hmac", "dep:pbkdf2", "dep:sha2", "dep:zeroize"]
+oidc = ["sasl", "tls", "dep:ring", "dep:serde", "dep:serde_json", "dep:hyper", "dep:hyper-util", "dep:http-body-util", "dep:http"]
 codecs = ["dep:flate2", "dep:lz4_flex", "dep:snap", "dep:zstd-rs"]
 
 [dependencies]
+ring = { version = "0.17.14", optional = true }
+serde = { version = "1.0.228", optional = true, default-features = false, features = ["std"] }
+serde_json = { version = "1.0.151", optional = true }
+hyper = { version = "1", optional = true, default-features = false, features = ["client", "http1"] }
+hyper-util = { version = "0.1", optional = true, default-features = false, features = ["tokio"] }
+http-body-util = { version = "0.1", optional = true }
+http = { version = "1", optional = true }
 flate2 = { version = "1", optional = true, default-features = false, features = ["rust_backend", "runtime_detection"] }
 lz4_flex = { version = "0.14", optional = true }
 snap = { version = "1", optional = true }

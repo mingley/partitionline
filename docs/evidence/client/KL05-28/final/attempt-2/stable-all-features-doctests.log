@@ -1,0 +1,12 @@
+$ taskset -c 0-2,4 cargo +stable test --locked --doc --all-features
+    Finished `test` profile [unoptimized] target(s) in 0.03s
+   Doc-tests partitionline
+
+running 4 tests
+test src/lib.rs - (line 3066) - compile ... ok
+test src/lib.rs - (line 1536) - compile ... ok
+test src/lib.rs - (line 10) - compile ... ok
+test src/config.rs - config::Sasl (line 469) ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+

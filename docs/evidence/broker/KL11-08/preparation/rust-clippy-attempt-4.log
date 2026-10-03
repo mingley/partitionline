@@ -1,0 +1,14 @@
+warning: method `roundtrip_node` is never used
+    --> /workspace/partitionline/src/consumer.rs:2334:25
+     |
+1758 | impl Consumer {
+     | ------------- method in this implementation
+...
+2334 |     pub(crate) async fn roundtrip_node(
+     |                         ^^^^^^^^^^^^^^
+     |
+     = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline` (lib) generated 1 warning
+    Checking partitionline-broker-interop-peer v0.0.0 (/workspace/partitionline/tests/conformance/broker/interop)
+    Finished `dev` profile [unoptimized] target(s) in 0.31s

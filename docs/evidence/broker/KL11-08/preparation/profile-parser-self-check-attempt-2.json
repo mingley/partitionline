@@ -1,0 +1,10 @@
+{
+  "status": "development-only self-check; these prior68 exchanges are not fresh08 runtime",
+  "passed": true,
+  "prior_samples": 3,
+  "prior_paths": [
+    "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-state-01/4.1.2-fetch-history.json",
+    "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-state-01/4.2.1-fetch-history.json",
+    "docs/evidence/broker/KL11-68/live-read/stable/attempt-4/peer-state-01/4.3.1-fetch-history.json"
+  ]
+}

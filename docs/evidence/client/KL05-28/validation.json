@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "card": "KL05-28",
+  "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "passed": true,
+  "verified_git_files_before_and_after_every_final_command": 20193,
+  "whole_client_matrix": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "behavior_passed": 1814,
+      "behavior_ignored": 4,
+      "behavior_suites": 49,
+      "doctests_passed": 4,
+      "strict_all_target_clippy": true,
+      "strict_rustdoc": true,
+      "standalone_cli_examples_built_before_all_target_tests": true
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "behavior_passed": 1815,
+      "behavior_ignored": 4,
+      "behavior_suites": 49,
+      "doctests_passed": 4,
+      "strict_all_target_clippy": true,
+      "strict_rustdoc": true,
+      "standalone_cli_examples_built_before_all_target_tests": true
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "behavior_passed": 1814,
+      "behavior_ignored": 4,
+      "behavior_suites": 49,
+      "doctests_passed": 4,
+      "strict_all_target_clippy": true,
+      "strict_rustdoc": true,
+      "standalone_cli_examples_built_before_all_target_tests": true
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "behavior_passed": 1815,
+      "behavior_ignored": 4,
+      "behavior_suites": 49,
+      "doctests_passed": 4,
+      "strict_all_target_clippy": true,
+      "strict_rustdoc": true,
+      "standalone_cli_examples_built_before_all_target_tests": true
+    }
+  ],
+  "focused_public_socket_cases_per_cell": 10,
+  "checks": {
+    "format": true,
+    "public_socket_capability_regressions": true,
+    "core_protocol_and_resource_behavior_retained": true
+  },
+  "scope": "Operation-specific capability selection for ordinary Producer and basic Admin; public signatures and dependency defaults unchanged.",
+  "limitations": [
+    "This prerequisite proves capability behavior against bounded mock TCP peers; real persisted broker interop is a separate KL11-08 lane.",
+    "Transactional Producer still requires FindCoordinator and InitProducerId; idempotent nontransactional Producer still requires InitProducerId.",
+    "Existing documented empty Admin inputs remain no-ops; nonempty unavailable operations return Unsupported before unrelated network work.",
+    "Four existing ignored tests remain ignored; no integration broker availability claim is inferred from this client matrix."
+  ],
+  "retained_failures": [
+    {
+      "path": "development/stable-default-attempt-1.log",
+      "classification": "Draft test imports/results lint errors; corrected before source freeze."
+    },
+    {
+      "path": "development/stable-default-attempt-2.log",
+      "classification": "Draft mock assumed broker node0 rather than fixture node1; corrected before source freeze."
+    },
+    {
+      "path": "development/focused-attempt-1",
+      "classification": "Draft focused test Clippy style errors; corrected before source freeze."
+    },
+    {
+      "path": "final/attempt-1",
+      "classification": "Exact-source QA preparation omitted standalone CLI examples required by existing CI; all ten verifiable_contract cases failed. Attempt2 built examples first with identical source and all four cells passed."
+    }
+  ],
+  "final_receipt": "final/attempt-2/results.json",
+  "source_integrity": "final/source-integrity.json",
+  "closure_dependency": "KL11-08 fresh public Rust-client persisted broker interop; this matrix/socket constituent is complete, but card28 closes together with08 after that independent runtime qualification."
+}

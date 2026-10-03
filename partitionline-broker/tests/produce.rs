@@ -550,3 +550,52 @@ async fn serve_live_probe() -> Result<(), Box<dyn StdError>> {
     router.shutdown().await?;
     Ok(())
 }
+
+#[tokio::test]
+async fn rolling_store_preserves_offsets_historical_budget_and_rejects_wrong_layout(
+) -> Result<(), Box<dyn StdError>> {
+    let root = scratch("rolling");
+    setup(root.clone()).await?;
+    let mut store = produce::Config::new(root.join("partitions"));
+    store.segment_limits = Some(partitionline_broker::segments::Limits::new(
+        150,
+        2,
+        4,
+        2,
+        8 * 1024 * 1024,
+        65536,
+        2 * 1024 * 1024,
+    )?);
+    let input = fixture("4.3.1", "produce-v3-acks1").await?;
+    for round in 0..2 {
+        let router = Router::open_with_store(root.join("catalog.journal"), common(), store.clone())
+            .await?
+            .0;
+        if round == 0 {
+            for n in 0..2 {
+                let response = router.respond(input.clone()).await?;
+                assert_eq!(error(&response), 0);
+                assert_eq!(offset(&response), n);
+            }
+        }
+        let response = router.respond(input.clone()).await?;
+        assert_eq!(error(&response), 56);
+        router.shutdown().await?;
+    }
+    // No silent second empty log is opened for an existing rolling identity.
+    assert!(Router::open_with_store(
+        root.join("catalog.journal"),
+        common(),
+        produce::Config::new(root.join("partitions"))
+    )
+    .await
+    .is_err());
+    // Both persistent data and sidecars/staging count in the configured envelope.
+    store.max_index_bytes = store.max_stores * store.segment_limits.unwrap().max_index_bytes() - 1;
+    assert!(matches!(
+        Router::open_with_store(root.join("catalog.journal"), common(), store).await,
+        Err(metadata::Error::Produce(produce::Error::InvalidConfig))
+    ));
+    cleanup(root).await?;
+    Ok(())
+}

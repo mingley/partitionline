@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "source-frozen-after-focused-stable-and-msrv-gates",
+  "paths": {
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "3df736c99f7af42204517a977ce5f507a7edb4e50eb54b3fa8e343f4eacb4081",
+      "git_blob_sha1": "e76f503f24195564d5ec96d097d38cc840692093",
+      "bytes": 56538
+    },
+    "partitionline-broker/src/journal.rs": {
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "git_blob_sha1": "294d0173013f0d4dd0a79985e423d5bb10da986c",
+      "bytes": 48288
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "7d7ba74e4702d56520a8b1714dbedbe3723eec84a9fd6dec765029cf5bcfde66",
+      "git_blob_sha1": "1913988e14fbc1bf6bff487df38872720327cc82",
+      "bytes": 14747
+    },
+    "partitionline-broker/src/produce.rs": {
+      "sha256": "194c5b9dac69d1dabc4981fd5db2badd93dee359cc97c176418f61dcca036986",
+      "git_blob_sha1": "ce5193249e92ce6297b51954636563338c0f46c2",
+      "bytes": 32767
+    },
+    "partitionline-broker/src/fetch.rs": {
+      "sha256": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
+      "git_blob_sha1": "0b59266de9e577dc123299b13e6822698be75117",
+      "bytes": 25264
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "68d39a191f36d7b59cd31aaa5f82198b76b312260539e48e6fc2849785b8d001",
+      "git_blob_sha1": "651f785c42a263b14effde5693c4ec3f8b59d9ed",
+      "bytes": 18374
+    },
+    "partitionline-broker/tests/partition.rs": {
+      "sha256": "1c1fe14ccdd83822355f835b4fa51e3718d2dd0fe64b183c412d13efc034b1de",
+      "git_blob_sha1": "febaa7f2080697ba9cac7c9b507e80ecb234c1f4",
+      "bytes": 10765
+    },
+    "partitionline-broker/tests/produce.rs": {
+      "sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "git_blob_sha1": "e22f6295e35f5eed00576419e273803bc51c4a51",
+      "bytes": 21757
+    },
+    "partitionline-broker/tests/fetch.rs": {
+      "sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+      "git_blob_sha1": "7cdae981f939b7ddeb9e509a4b79185a07321235",
+      "bytes": 60578
+    }
+  },
+  "documentation": {
+    "docs/evidence/broker/KL11-09/README.md": {
+      "sha256": "18de2d866fee410af1e4c02d1a5911803458a19118eebed79c7951cb893690b0",
+      "bytes": 5435
+    }
+  },
+  "focused_validation": {
+    "path": "docs/evidence/broker/KL11-09/development/focused-oracle-candidate/validation.json",
+    "sha256": "242f34669d7747c40873c7f8e224b1cb5e6cc38973392753f9fa79343e4cd84a"
+  }
+}

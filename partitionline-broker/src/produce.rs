@@ -13,7 +13,7 @@
 
 use crate::{
     catalog::{Catalog, TopicId},
-    journal, metadata, partition, protocol, records,
+    journal, metadata, partition, protocol, records, segments,
 };
 use std::{
     fs::{self, File},
@@ -39,19 +39,27 @@ pub static DATA_API_VERSIONS: [protocol::ApiVersion; 5] = [
 pub struct Config {
     /// Exclusively owned directory; its parent must exist. Names never enter it.
     pub directory: PathBuf,
-    /// Active and historical partition files/handles, 1..=4096; no eviction.
+    /// Active and historical partition store handles, 1..=4096; no eviction.
+    /// Rolling limits separately bound the data/sidecar files in each store.
     pub max_stores: usize,
-    /// Worst-case sum of configured file budgets, at most one TiB.
+    /// Worst-case sum of configured backend disk budgets, at most one TiB.
     pub max_disk_bytes: u64,
-    /// Worst-case index allocation, charged conservatively at64bytes per slot.
-    /// This excludes allocator bookkeeping; the total is at most512MiB.
+    /// Aggregate configured index envelopes; monolithic slots charge64bytes
+    /// each, while rolling limits include retained and transient index buffers.
+    /// Allocator bookkeeping is separate; the total is at most512MiB.
     pub max_index_bytes: usize,
     /// Aggregate partitions in a request, 1..=4096.
     pub max_partitions: usize,
     /// Aggregate owned normalized batches retained before append, at most64MiB.
     pub max_normalized_bytes: usize,
-    /// Per-file/index/entry/read budgets. Reads are reserved for future Fetch.
+    /// Per-file/index/entry/read budgets for the selected storage backend.
     pub journal_limits: journal::Limits,
+    /// Explicit rolling backend. None preserves the flat monolithic layout.
+    /// Rolling startup rejects legacy/mixed layouts rather than hiding records.
+    /// File/index budgets include sealed generations, staging and replacement.
+    /// At most `max_stores` active files plus four transient actor files are
+    /// open; no sealed-reader cache or unbounded index mapping is retained.
+    pub segment_limits: Option<segments::Limits>,
     /// Independent ordinary-record byte/count/work limits.
     pub record_limits: records::Limits,
     /// Optional pure Rust codec workspace, frame/window and work budgets.
@@ -60,7 +68,8 @@ pub struct Config {
 }
 impl Config {
     /// Default64 stores/FDs,64GiB file envelope,256MiB conservative index envelope.
-    /// One actor also retains at most16MiB normalized work and one append copy.
+    /// One actor also retains at most16MiB normalized work, one append copy and
+    /// one maximum-entry validation/scan payload during rolling/recovery/copy.
     pub fn new(directory: PathBuf) -> Self {
         Self {
             directory,
@@ -70,20 +79,39 @@ impl Config {
             max_partitions: 1024,
             max_normalized_bytes: 16 * 1024 * 1024,
             journal_limits: journal::Limits::default(),
+            segment_limits: None,
             record_limits: records::Limits::default(),
             #[cfg(feature = "codecs")]
             codec_limits: crate::codecs::Limits::default(),
         }
     }
     pub(crate) fn validate(&self) -> Result<(), Error> {
+        let per_index = self
+            .segment_limits
+            .map_or_else(
+                || self.journal_limits.max_index_entries().checked_mul(64),
+                |limits| Some(limits.max_index_bytes()),
+            )
+            .ok_or(Error::InvalidConfig)?;
         let index = self
             .max_stores
-            .checked_mul(self.journal_limits.max_index_entries())
-            .and_then(|n| n.checked_mul(64))
+            .checked_mul(per_index)
             .ok_or(Error::InvalidConfig)?;
         let disk = (self.max_stores as u64)
-            .checked_mul(self.journal_limits.max_file_bytes())
+            .checked_mul(self.segment_limits.map_or(
+                self.journal_limits.max_file_bytes(),
+                segments::Limits::max_disk_bytes,
+            ))
             .ok_or(Error::InvalidConfig)?;
+        if let Some(limits) = self.segment_limits {
+            limits
+                .journal_limits(self.journal_limits)
+                .map_err(|_| Error::InvalidConfig)?;
+            if limits.index_envelope().map_err(|_| Error::InvalidConfig)? > limits.max_index_bytes()
+            {
+                return Err(Error::InvalidConfig);
+            }
+        }
         if !(1..=4096).contains(&self.max_stores)
             || !(1..=4096).contains(&self.max_partitions)
             || !(1..=64 * 1024 * 1024).contains(&self.max_normalized_bytes)
@@ -160,6 +188,22 @@ struct Slot {
     index: i32,
     partition: partition::Partition,
 }
+fn open_partition(path: &Path, config: &Config) -> Result<partition::Partition, Error> {
+    match config.segment_limits {
+        Some(limits) => partition::Partition::open_segmented(
+            path,
+            0,
+            config.journal_limits,
+            config.record_limits,
+            limits,
+        )
+        .map(|(partition, _)| partition)
+        .map_err(Into::into),
+        None => partition::Partition::open(path, 0, config.journal_limits, config.record_limits)
+            .map(|(partition, _)| partition)
+            .map_err(Into::into),
+    }
+}
 pub(crate) struct Store {
     config: Config,
     slots: Vec<Slot>,
@@ -193,11 +237,19 @@ impl Store {
                 return Err(Error::ResourceLimit);
             }
             let entry = entry?;
-            if !entry.file_type()?.is_file() {
+            let kind = entry.file_type()?;
+            if if config.segment_limits.is_some() {
+                !kind.is_dir()
+            } else {
+                !kind.is_file()
+            } {
                 return Err(Error::InvalidStore);
             }
             let name = entry.file_name();
-            let (id, index) = parse_filename(name.to_str().ok_or(Error::InvalidStore)?)?;
+            let (id, index) = parse_storage_filename(
+                name.to_str().ok_or(Error::InvalidStore)?,
+                config.segment_limits.is_some(),
+            )?;
             if slots
                 .iter()
                 .any(|slot: &Slot| slot.id == id && slot.index == index)
@@ -208,12 +260,7 @@ impl Store {
             {
                 return Err(Error::InvalidStore);
             }
-            let (partition, _) = partition::Partition::open(
-                entry.path(),
-                0,
-                config.journal_limits,
-                config.record_limits,
-            )?;
+            let partition = open_partition(&entry.path(), &config)?;
             slots.push(Slot {
                 id,
                 index,
@@ -237,14 +284,12 @@ impl Store {
                 if self.slots.len() >= self.config.max_stores {
                     return Err(56);
                 }
-                let path = self.config.directory.join(filename(id, index));
-                let (partition, _) = partition::Partition::open(
-                    path,
-                    0,
-                    self.config.journal_limits,
-                    self.config.record_limits,
-                )
-                .map_err(storage_error)?;
+                let path = self.config.directory.join(storage_filename(
+                    id,
+                    index,
+                    self.config.segment_limits.is_some(),
+                ));
+                let partition = open_partition(&path, &self.config).map_err(|_| 56i16)?;
                 self.slots.push(Slot {
                     id,
                     index,
@@ -285,13 +330,14 @@ impl Store {
         index: i32,
         offset: i64,
         remaining_bytes: usize,
-    ) -> Result<Option<journal::Entry>, partition::Error> {
+        remaining_entries: usize,
+    ) -> Result<(Option<journal::Entry>, segments::Work), partition::Error> {
         let Some(slot) = self
             .slots
             .iter_mut()
             .find(|slot| slot.id == id && slot.index == index)
         else {
-            return Ok(None);
+            return Ok((None, segments::Work::default()));
         };
         let maximum = self
             .config
@@ -301,13 +347,49 @@ impl Store {
             .checked_add(std::mem::size_of::<journal::Entry>())
             .ok_or(partition::Error::InvalidLimits)?;
         let poisoned = slot.partition.is_poisoned();
-        let result = slot
-            .partition
-            .fetch(offset, 1, maximum)
-            .map(|mut entries| entries.pop());
+        let result =
+            slot.partition
+                .read_with_work(offset, maximum, remaining_bytes, remaining_entries);
         self.changed |= poisoned != slot.partition.is_poisoned();
         result
     }
+    pub(crate) fn timestamp_start(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        wanted: i64,
+    ) -> Result<i64, partition::Error> {
+        let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == id && slot.index == index)
+        else {
+            return Ok(0);
+        };
+        let poisoned = slot.partition.is_poisoned();
+        let result = slot.partition.timestamp_start(wanted);
+        self.changed |= poisoned != slot.partition.is_poisoned();
+        result
+    }
+}
+fn storage_filename(id: TopicId, index: i32, rolling: bool) -> String {
+    let mut name = filename(id, index);
+    if rolling {
+        name.truncate(name.len() - ".journal".len());
+        name.push_str(".segments");
+    }
+    name
+}
+fn parse_storage_filename(name: &str, rolling: bool) -> Result<(TopicId, i32), Error> {
+    if !rolling {
+        return parse_filename(name);
+    }
+    let base = name.strip_suffix(".segments").ok_or(Error::InvalidStore)?;
+    let parsed = parse_filename(&format!("{base}.journal"))?;
+    if storage_filename(parsed.0, parsed.1, true) != name {
+        return Err(Error::InvalidStore);
+    }
+    Ok(parsed)
 }
 fn filename(id: TopicId, index: i32) -> String {
     const HEX: &[u8; 16] = b"0123456789abcdef";

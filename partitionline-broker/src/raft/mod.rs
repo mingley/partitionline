@@ -8,3 +8,4 @@
 pub mod election;
 pub mod protocol;
 pub mod replication;
+pub mod snapshot;

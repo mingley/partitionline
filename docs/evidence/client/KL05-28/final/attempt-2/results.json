@@ -1,0 +1,459 @@
+{
+  "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "source_archive": "/workspace/work/client-capabilities-final/source",
+  "environment": {
+    "CARGO_TARGET_DIR": "/workspace/work/target-client-capabilities",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0"
+  },
+  "steps": [
+    {
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 2.7712243310015765,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "seconds": 2.7933632459971705,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "seconds": 53.82374264599639,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 44.80198520999693,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 2.4642350750000332,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-default-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4462703800018062,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-all-features-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 12.349064146001183,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 156.81960631399852,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 43.30999884800258,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 2.6113758360006614,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-all-features-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 1.60607597699709,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-package-clean",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "seconds": 0.9189037949981866,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "seconds": 15.004234383995936,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "seconds": 188.93547620599566,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 78.38984493499447,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 3.316912369002239,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-default-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 1.7099575949978316,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-all-features-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 14.64784378799959,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 189.88184648299648,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 77.18089350399532,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 4.049843034998048,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-all-features-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 2.196191729999555,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    }
+  ],
+  "passed": true
+}

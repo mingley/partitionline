@@ -1287,7 +1287,7 @@
   "election_source": "partitionline-broker/src/raft/election.rs",
   "election_source_sha256": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
   "raft_module_source": "partitionline-broker/src/raft/mod.rs",
-  "raft_module_source_sha256": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+  "raft_module_source_sha256": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028",
   "controller_fixture_root": "partitionline-broker/tests/fixtures/raft-protocol",
   "controller_fixtures_sha256": {
     "4.1.2/api-versions-0.request.bin": "083b780dc834d6977d7e794734ff05e50516f75699a7b51b57e0b6e8178aeaf6",
@@ -2297,9 +2297,9 @@
   "controller_implementation_gate": "KL11-13",
   "produce_fixture_root": "partitionline-broker/tests/fixtures/produce",
   "produce_source": "partitionline-broker/src/produce.rs",
-  "produce_source_sha256": "dc664197faf139a64af4f0e7b1a589662907c8aaa126d96b25bb2338d687ab7f",
+  "produce_source_sha256": "194c5b9dac69d1dabc4981fd5db2badd93dee359cc97c176418f61dcca036986",
   "produce_test_source": "partitionline-broker/tests/produce.rs",
-  "produce_test_source_sha256": "0ca64b3cfc5367837e7caf78cb39d156d4f263ba1f3561972a76561c85bcff3b",
+  "produce_test_source_sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
   "produce_fixtures_sha256": {
     "4.1.2/cases.tsv": "fda7e9cfc5f10c01492b8f16ff0c1f5762b5b81e78b5cbe8ba48aa130fc40b4c",
     "4.1.2/goldens.json": "f0d9e7cceb398633978a7a9bffc8986b85f95d8d509c7df4a69a6e3dfd25a0a1",
@@ -3631,9 +3631,9 @@
   ],
   "read_write_implementation_gate": "KL11-07",
   "fetch_source": "partitionline-broker/src/fetch.rs",
-  "fetch_source_sha256": "5252f9a682fcf1f03fb11cfa2949636007140d227b1a860543fb80910aa67701",
+  "fetch_source_sha256": "2bdfeda2a4134fefd8d11138f0999e838bf3dfed856dcbcf454ccbf79a2de80a",
   "fetch_test_source": "partitionline-broker/tests/fetch.rs",
-  "fetch_test_source_sha256": "9df92db9a23f24fd1139b8e14231b606282f57169c9e125af850f258997947c0",
+  "fetch_test_source_sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
   "fetch_fixture_root": "partitionline-broker/tests/fixtures/fetch",
   "fetch_fixtures_sha256": {
     "4.1.2/cases.tsv": "f80ab5cc0e21fb8ef35e3d2cf508a35234c2e8851d71e79e0233993b7a6319e5",

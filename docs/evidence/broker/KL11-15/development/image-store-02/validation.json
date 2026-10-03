@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "stage": "image/store source foundation only; no full15 qualification",
+  "basis_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "shadow": "db002 full archive plus owned image/store/test/fixture and scratch-only mod export; no09/other WORK overlays",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/snapshot.rs": "f6e17b1ab8738a9479d571a0f28d5a7c57eee45b1e169a98daa410d686b7da37",
+    "partitionline-broker/tests/raft_snapshot.rs": "e2420986f2c10d5926f5037f6b3d7310300c56abea60bcbf65a56169823c2ba8",
+    "partitionline-broker/tests/fixtures/raft-snapshot/apache-opaque-state.tsv": "84da0988ffa8dde61751e3091df474fbbc33ad3523bb273c01aecefa7f2bf331"
+  },
+  "passed": true,
+  "tests_per_toolchain": 10,
+  "behavioral_tests_per_toolchain": 9,
+  "subprocess_helper_tests_per_toolchain": 1,
+  "strict_clippy_toolchains": [
+    "stable",
+    "1.85.0"
+  ],
+  "format_passed": true,
+  "commands_sha256": "c70c37fd36680139a8245e59d17184c871bf65678af2bf329ccd2dac3118a9cd",
+  "retained_prior_failure_directory": "../image-store-01",
+  "limitations": [
+    "No Install WAL receipt yet",
+    "No Node snapshot-enabled replay/catch-up yet",
+    "No actor queue/chunk result/lifecycle integration yet",
+    "Development shadow, not final pushed source qualification"
+  ]
+}

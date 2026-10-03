@@ -1,0 +1,4 @@
+{"case":"incomplete.not-published","actual":0,"expected":0,"passed":true}
+{"case":"incomplete.partial-present","actual":1,"expected":1,"passed":true}
+{"case":"incomplete.close-removes-partial","actual":0,"expected":0,"passed":true}
+{"case":"writer.exclusive-end-maps-inclusive-offset","actual":2,"expected":3,"passed":false}

@@ -1,0 +1,2 @@
+$ taskset -c 0-2,4 cargo +stable clean -p partitionline
+     Removed 0 files

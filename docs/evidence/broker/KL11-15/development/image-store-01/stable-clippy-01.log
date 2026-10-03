@@ -1,0 +1,104 @@
+    Checking libc v0.2.189
+    Checking cfg-if v1.0.5
+    Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
+    Checking crc32c v0.6.8
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking getrandom v0.4.3
+    Checking tokio v1.53.1
+    Checking partitionline-broker v0.1.0 (/workspace/work/snapshot-draft-db002076/source/partitionline-broker)
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:23:9
+   |
+23 |         fs::create_dir(&path).unwrap();
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+   = note: requested on the command line with `-D clippy::unwrap-used`
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:27:9
+   |
+27 |         Store::open(self.0.join(name), identity(), limits()).unwrap()
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:36:5
+   |
+36 |     Identity::new("controller-fixture".into(), [7; 16], 0, vec![0, 1, 2]).unwrap()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:39:5
+   |
+39 |     Limits::new(8192, 8, 4096, 2048, 17, 4, 16).unwrap()
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:67:22
+   |
+67 |     let descriptor = store.start_read(generation).unwrap();
+   |                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:70:21
+   |
+70 |         let chunk = store.next_chunk().unwrap();
+   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: used `unwrap()` on a `Result` value
+  --> tests/raft_snapshot.rs:95:37
+   |
+95 |     let header = u32::from_be_bytes(bytes[12..16].try_into().unwrap()) as usize;
+   |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: if this value is an `Err`, it will panic
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#unwrap_used
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/raft_snapshot.rs:258:5
+    |
+258 |     fs::write(hostile.join("unknown-file"), b"x").unwrap();
+    |     ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+    = note: `-D clippy::disallowed-methods` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::disallowed_methods)]`
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/raft_snapshot.rs:308:17
+    |
+308 |     let bytes = fs::read(wire_path).unwrap();
+    |                 ^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/raft_snapshot.rs:334:5
+    |
+334 |     fs::write(&wire_path, bytes).unwrap();
+    |     ^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: could not compile `partitionline-broker` (test "raft_snapshot") due to 10 previous errors

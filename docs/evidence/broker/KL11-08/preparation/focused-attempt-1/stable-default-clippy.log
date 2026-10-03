@@ -1,0 +1,6 @@
+$ taskset -c 0-2,4 cargo +stable clippy --locked -- -D warnings
+    Checking rustls v0.23.45
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/workspace/work/client-capabilities-final/source)
+    Checking partitionline-broker-interop-peer v0.0.0 (/workspace/work/broker-interop-focused-peer)
+    Finished `dev` profile [unoptimized] target(s) in 7.82s

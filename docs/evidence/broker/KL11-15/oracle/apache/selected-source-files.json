@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "raft/src/main/java/org/apache/kafka/raft/FollowerState.java",
+    "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java",
+    "raft/src/main/java/org/apache/kafka/raft/LeaderState.java",
+    "raft/src/main/java/org/apache/kafka/raft/VoterSet.java",
+    "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java",
+    "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java",
+    "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java",
+    "raft/src/main/java/org/apache/kafka/raft/internals/RecordsIterator.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotReader.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotWriter.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotReader.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotWriter.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotReader.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotWriter.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/SnapshotReader.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/SnapshotWriter.java",
+    "raft/src/main/java/org/apache/kafka/snapshot/Snapshots.java",
+    "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java",
+    "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java",
+    "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java",
+    "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java",
+    "raft/src/test/java/org/apache/kafka/snapshot/FileRawSnapshotTest.java",
+    "raft/src/test/java/org/apache/kafka/snapshot/RecordsSnapshotWriterTest.java",
+    "raft/src/test/java/org/apache/kafka/snapshot/SnapshotWriterReaderTest.java",
+    "raft/src/test/java/org/apache/kafka/snapshot/SnapshotsTest.java"
+  ]
+}

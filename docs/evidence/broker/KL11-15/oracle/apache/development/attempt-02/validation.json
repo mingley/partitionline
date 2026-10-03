@@ -1,0 +1,572 @@
+{
+  "schema_version": 1,
+  "scope": "Official Apache snapshot components; no partitionline, durable quorum or wire interoperability claim",
+  "passed": true,
+  "probe_sha256": "43e3118a05bc698a436c19e9d4f0b74116b9b0f244c9d5a462222c6fe7372ab6",
+  "runner_sha256": "e24e52a9559843850ca8a848fae7100d56c0d5cb001c7985a7e9e3ae5f381bfb",
+  "pins_sha256": "f06b369402642ecf0fe0f82c73bbc0db769c7af70e38e289aec77774a1f81f7f",
+  "source_selection_sha256": "585df60a7956a0c0f48ec10f37be510c47c4b4e70cb616b6940190f2caea9d97",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.032,
+      "stdout": "java-version.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "java-version.stderr",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.1.2",
+        "/workspace/work/raft-snapshot-oracle/repro-02/adapted/4.1.2/ApacheSnapshotProbe.java"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.718,
+      "stdout": "4.1.2-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.1.2-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.1.2:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.1.2-replay-1"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.164,
+      "stdout": "4.1.2-replay-1.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.1.2-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.1.2:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.1.2-replay-2"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.214,
+      "stdout": "4.1.2-replay-2.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.1.2-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.1.2:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/negative-4.1.2",
+        "--wrong-offset"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 1,
+      "expected": "deliberate nonzero assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.164,
+      "stdout": "4.1.2-deliberate-wrong-offset.stdout",
+      "stdout_sha256": "75b304a94033bb77423b853b25e88e286b203a6505f5c2c3076819e685ed9049",
+      "stderr": "4.1.2-deliberate-wrong-offset.stderr",
+      "stderr_sha256": "bc75c0d9e19fdff16f9b54bac4902f92f2d3856f44408d09122d9bb046ec900d"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.2.1",
+        "/workspace/work/raft-snapshot-oracle/repro-02/adapted/4.2.1/ApacheSnapshotProbe.java"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.615,
+      "stdout": "4.2.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.2.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.2.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.2.1-replay-1"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.214,
+      "stdout": "4.2.1-replay-1.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.2.1-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.2.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.2.1-replay-2"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.214,
+      "stdout": "4.2.1-replay-2.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.2.1-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.2.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/negative-4.2.1",
+        "--wrong-offset"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 1,
+      "expected": "deliberate nonzero assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.164,
+      "stdout": "4.2.1-deliberate-wrong-offset.stdout",
+      "stdout_sha256": "75b304a94033bb77423b853b25e88e286b203a6505f5c2c3076819e685ed9049",
+      "stderr": "4.2.1-deliberate-wrong-offset.stderr",
+      "stderr_sha256": "bc75c0d9e19fdff16f9b54bac4902f92f2d3856f44408d09122d9bb046ec900d"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.3.1",
+        "/workspace/work/raft-snapshot-oracle/repro-02/adapted/4.3.1/ApacheSnapshotProbe.java"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.666,
+      "stdout": "4.3.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.3.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.3.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.3.1-replay-1"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.214,
+      "stdout": "4.3.1-replay-1.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.3.1-replay-1.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.3.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/snapshot-4.3.1-replay-2"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.214,
+      "stdout": "4.3.1-replay-2.stdout",
+      "stdout_sha256": "f48dc818e0e161fb71f2081e296a811122245e72aef2a7f32c093e32c27e2749",
+      "stderr": "4.3.1-replay-2.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-snapshot-oracle/repro-02/classes/4.3.1:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-snapshot-oracle/repro-02/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheSnapshotProbe",
+        "/workspace/work/raft-snapshot-oracle/repro-02/negative-4.3.1",
+        "--wrong-offset"
+      ],
+      "cwd": "/workspace/work/raft-snapshot-oracle/repro-02",
+      "exit_code": 1,
+      "expected": "deliberate nonzero assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.164,
+      "stdout": "4.3.1-deliberate-wrong-offset.stdout",
+      "stdout_sha256": "75b304a94033bb77423b853b25e88e286b203a6505f5c2c3076819e685ed9049",
+      "stderr": "4.3.1-deliberate-wrong-offset.stderr",
+      "stderr_sha256": "bc75c0d9e19fdff16f9b54bac4902f92f2d3856f44408d09122d9bb046ec900d"
+    }
+  ],
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "retained_archive": "apache-components-4.1.2.tar.gz",
+      "retained_archive_sha256": "9e49b920b1d1666224bcbfe49af79dd3a774c46bddc4fb08ca9ad8f4b52be6b8",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "raft/src/main/java/org/apache/kafka/raft/FollowerState.java": "558dfb03ad7e3b14d911770e21eccf27664920a6711525d8566fe8aedb50ec67",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "ce29d89883f722aaf7dbd9377acbc075dc4dd42ee9b295359e8e86ec21a9b755",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "b9855165ce2e6db25eba8fdbe2d2292fa6755bf6ce86c500592872fb5f8a0ebd",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "14b2a31ed3e71e41c47a54929e4cda4fffa74320b2ea2711eb914d6ef0baa64c",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "f337713700684ca2958917269c75c3c0470be1a5e35ab82ec8fb84c184a55cf2",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RecordsIterator.java": "8f4acbd55843256c43ecc7b9d529a7ffe21705cab51b62c9b06aaf905df69e5d",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotReader.java": "be439a98f99627abaec76f552f97eeb7caf627d5bf8f65f55ede503a60d368d5",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotWriter.java": "cd9604d8ce32fe2b8680152422efb36657ee0b4ff48ee84ebff531eb32a6f145",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotReader.java": "08fa88ef33cffd3d040b2124811735bcc64f12c93be13c2ec3d6956b46b4aa40",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotWriter.java": "14ba0277cdbd09ac72b90e7e79c1f256ff7c8651a5898b7572b9acc16ee39755",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotReader.java": "23325c2dad508d5481dd776e1a95de7d6ffa71bc1232029cab922cf6bfac17c1",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotWriter.java": "f980bbaa2cd344806b9c0d3cbc53935e6be7e4e06b8fb5edcb3d2cd80ef46db4",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotReader.java": "f48034ae91fd2c92da2785f5d89d9a5c115311b1e9afc2b34f65d39fd02fb5f4",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotWriter.java": "2b0406be57d4d0cd670935850715b9637d3a25ef73b169a4fb3d557812e2ea08",
+        "raft/src/main/java/org/apache/kafka/snapshot/Snapshots.java": "de4b70604f7684751b0264f0c59dbcda56d7b63f32ec8fdabfce367fc1bb1ce6",
+        "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java": "bf4e7c3745757cf37671dea10b72b1e029c1c4bca7f558cc4e0089161b717fcf",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "1fc6ee521ac5d958f768570bea4dc09d463180341ee6c618227c5ecb9b1e4e5d",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "77da9121c83a77c43ea4b0a12a8c0d5cbb32123c5041f66cf3ed39ff7f976240",
+        "raft/src/test/java/org/apache/kafka/snapshot/FileRawSnapshotTest.java": "2fbe9bc8d06083740c4f3cb49d6eef208be4054d6299679f65d62052d09a8736",
+        "raft/src/test/java/org/apache/kafka/snapshot/RecordsSnapshotWriterTest.java": "a204aee6b4a467027435a6f82a7c2dc23ff58d1de445ff60827b32222d256529",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotWriterReaderTest.java": "bd412a7c62a0c07098ffacc7a748788b80dbc3dda4c8e0cc3217eac2b873d038",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotsTest.java": "855ea269f38465f1ecd8b18079f15ae06ad04cd4d0f9555866a5f4da18217164"
+      },
+      "jars": {
+        "kafka-raft-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-raft-4.1.2.jar",
+          "bytes": 309751,
+          "sha256": "bcbfd5ab4ef8a140b89c6fc98b2e1539f4eca943bc7ac5db746f71f022d886f7"
+        },
+        "kafka-server-common-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar",
+          "bytes": 371073,
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        "kafka-clients-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 2
+        },
+        {
+          "from": ".setMaxBatchSizeBytes(",
+          "to": ".setMaxBatchSize(",
+          "occurrences": 1
+        }
+      ],
+      "adapted_source_file": "ApacheSnapshotProbe-4.1.2.adapted.java",
+      "adapted_source_sha256": "3a69d1d397d67fe109257760cfe038f7baa7ad8885b86ef71c5273f0b547d6e9",
+      "compiled_class_sha256": {
+        "ApacheSnapshotProbe$FixedTime.class": "00f6cbee405e033fe9d10361963f2a7c3a855abd436a003edfeea2ecdc5931d6",
+        "ApacheSnapshotProbe.class": "cceb54a66231b3d24b2ee580801fe024fc213e4fd9de0ce2fa982f091f26475c"
+      },
+      "snapshot_files": [
+        {
+          "file": "4.1.2-replay-1.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        },
+        {
+          "file": "4.1.2-replay-2.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        }
+      ],
+      "positive_checks_per_replay": 20,
+      "positive_replays": 2,
+      "deliberate_failing_assertion_detected": true
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "embedded_client_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "retained_archive": "apache-components-4.2.1.tar.gz",
+      "retained_archive_sha256": "3b8508c5c855679975771e180cddee91abf90f024e35c9407891fba7da13ee15",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "raft/src/main/java/org/apache/kafka/raft/FollowerState.java": "0bc5a67857ef9d2f62dcd1213e560fdafcf29f57f6493fde7d21a812fd14c0cf",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "d982c3101fa8a65923896bfe516c361d512d1f13f1d3c0d1bed400f8ae57d9ae",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "89369d898ff9ac5307232f6102b7de4d3f73b32e067528e7fa16113727e4f1f0",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "0a9f803f110fcba0121619b88307448be3e7f8cf709004d454caeeeeb08e956d",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "9b4b840ab051165763b1d16c3be4307021b45a2bbcc52564d0d9de355f83325d",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RecordsIterator.java": "8f4acbd55843256c43ecc7b9d529a7ffe21705cab51b62c9b06aaf905df69e5d",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotReader.java": "be439a98f99627abaec76f552f97eeb7caf627d5bf8f65f55ede503a60d368d5",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotWriter.java": "cd9604d8ce32fe2b8680152422efb36657ee0b4ff48ee84ebff531eb32a6f145",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotReader.java": "08fa88ef33cffd3d040b2124811735bcc64f12c93be13c2ec3d6956b46b4aa40",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotWriter.java": "14ba0277cdbd09ac72b90e7e79c1f256ff7c8651a5898b7572b9acc16ee39755",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotReader.java": "23325c2dad508d5481dd776e1a95de7d6ffa71bc1232029cab922cf6bfac17c1",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotWriter.java": "98c493d1fe63c80f1f149fac02039ffee621182ddb41236cc3cd71835e2a2780",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotReader.java": "f48034ae91fd2c92da2785f5d89d9a5c115311b1e9afc2b34f65d39fd02fb5f4",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotWriter.java": "2b0406be57d4d0cd670935850715b9637d3a25ef73b169a4fb3d557812e2ea08",
+        "raft/src/main/java/org/apache/kafka/snapshot/Snapshots.java": "de4b70604f7684751b0264f0c59dbcda56d7b63f32ec8fdabfce367fc1bb1ce6",
+        "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java": "5ab420d01f5107fd0792f1d27fe5f1a1d7f49d86cd16ebcbf284e8fb26e486b8",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "3f81cd5137965258006ac14d0be8bf3abe5b33ca52e2754e10694fa0edbc0858",
+        "raft/src/test/java/org/apache/kafka/snapshot/FileRawSnapshotTest.java": "2fbe9bc8d06083740c4f3cb49d6eef208be4054d6299679f65d62052d09a8736",
+        "raft/src/test/java/org/apache/kafka/snapshot/RecordsSnapshotWriterTest.java": "58e50aa797cb86b55d190c04f8c31a2e89750345efd4555de03e526b48ed87e2",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotWriterReaderTest.java": "bd412a7c62a0c07098ffacc7a748788b80dbc3dda4c8e0cc3217eac2b873d038",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotsTest.java": "855ea269f38465f1ecd8b18079f15ae06ad04cd4d0f9555866a5f4da18217164"
+      },
+      "jars": {
+        "kafka-raft-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-raft-4.2.1.jar",
+          "bytes": 310990,
+          "sha256": "1837a0a97128d73429e564de894f3a7e00310dbd33b051b8b0f035ae348d1e2a"
+        },
+        "kafka-server-common-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-server-common-4.2.1.jar",
+          "bytes": 384007,
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        "kafka-clients-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 2
+        }
+      ],
+      "adapted_source_file": "ApacheSnapshotProbe-4.2.1.adapted.java",
+      "adapted_source_sha256": "b4b0eb1b89d41eccef29717c302db0b5866bbc90335f0587e593f67b95e6f304",
+      "compiled_class_sha256": {
+        "ApacheSnapshotProbe$FixedTime.class": "00f6cbee405e033fe9d10361963f2a7c3a855abd436a003edfeea2ecdc5931d6",
+        "ApacheSnapshotProbe.class": "fe17d59bf4c9d317532dfa01276aedba7b07ced8e750b1adf98748e7ba15a0d3"
+      },
+      "snapshot_files": [
+        {
+          "file": "4.2.1-replay-1.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        },
+        {
+          "file": "4.2.1-replay-2.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        }
+      ],
+      "positive_checks_per_replay": 20,
+      "positive_replays": 2,
+      "deliberate_failing_assertion_detected": true
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "embedded_client_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "retained_archive": "apache-components-4.3.1.tar.gz",
+      "retained_archive_sha256": "6e11ca0e38a34a26f31dc68ae3f77ce1847a7088a3b7f72dc48f05897ec03210",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "raft/src/main/java/org/apache/kafka/raft/FollowerState.java": "0bc5a67857ef9d2f62dcd1213e560fdafcf29f57f6493fde7d21a812fd14c0cf",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "16a0abb19225a1b7c75790954010cf925a0d754e4d3955f5663d1c5348c932e8",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "0038bec6cb5a0477ad39040f65ff6402e8cdc6918b867a6e0b0d191365edc0ef",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "5f094da63a2e88983806bf5b506893efca8876b21f762ec2b7e181fc9138fa95",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "99b3264ef881e4944723b4be5251220009191625d0a8e0b3b5f5ebfd1108791e",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RecordsIterator.java": "ed1023a159de42c22346baac4e91e32db750d10e95860773b057cd3f64c493b3",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotReader.java": "528b476103999af04acd74883fe6747712185fa0754edfe036494a90a59339fa",
+        "raft/src/main/java/org/apache/kafka/snapshot/FileRawSnapshotWriter.java": "9ff9677c9a1c1bfffe2022270e544403bc3bd0ab773ae1659746d446680ca871",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotReader.java": "d8336de2b53a4ecb530a394550f950aa3c317ceddfb7c9b1533f2d998c604c30",
+        "raft/src/main/java/org/apache/kafka/snapshot/RawSnapshotWriter.java": "8d2c5110f703cefec4313f136d11786cffc557905a9490b26c31ed3ebc0c7461",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotReader.java": "9e9cdf658d6bba66549f1058eb3cf179c2a2c5e20aaba348fab2a5c34e6a4958",
+        "raft/src/main/java/org/apache/kafka/snapshot/RecordsSnapshotWriter.java": "db97bcd55b1b16ce0601cee8605f8004b2ffb90dcd8b7cfa6f1b3c66377d10e3",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotReader.java": "f48034ae91fd2c92da2785f5d89d9a5c115311b1e9afc2b34f65d39fd02fb5f4",
+        "raft/src/main/java/org/apache/kafka/snapshot/SnapshotWriter.java": "2b0406be57d4d0cd670935850715b9637d3a25ef73b169a4fb3d557812e2ea08",
+        "raft/src/main/java/org/apache/kafka/snapshot/Snapshots.java": "de4b70604f7684751b0264f0c59dbcda56d7b63f32ec8fdabfce367fc1bb1ce6",
+        "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientTest.java": "4c9d876481f585276702ed58e8238a7f77f41c3cd7253242ecdd0a784ca5800a",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "3f81cd5137965258006ac14d0be8bf3abe5b33ca52e2754e10694fa0edbc0858",
+        "raft/src/test/java/org/apache/kafka/snapshot/FileRawSnapshotTest.java": "069104c90c35416975d3a769f1025e5fab6ac1b2c7e44b085e402c1870fa809a",
+        "raft/src/test/java/org/apache/kafka/snapshot/RecordsSnapshotWriterTest.java": "b0bb3ba32eb94e950072c25130daea624e823c68fbb51b0a14f9a776b2336f70",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotWriterReaderTest.java": "92cfd7bb4ed433bf28ce2cbfb3103a5d059e839bb89c2b99adbdd8a7ec85f966",
+        "raft/src/test/java/org/apache/kafka/snapshot/SnapshotsTest.java": "855ea269f38465f1ecd8b18079f15ae06ad04cd4d0f9555866a5f4da18217164"
+      },
+      "jars": {
+        "kafka-raft-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-raft-4.3.1.jar",
+          "bytes": 333497,
+          "sha256": "6561ca329cdde1b835c9dc44dba4e473ab51b7d516c426fbdacd709c11a4b9cf"
+        },
+        "kafka-server-common-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-server-common-4.3.1.jar",
+          "bytes": 389964,
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        "kafka-clients-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "api_adaptations": [],
+      "adapted_source_file": "ApacheSnapshotProbe-4.3.1.adapted.java",
+      "adapted_source_sha256": "43e3118a05bc698a436c19e9d4f0b74116b9b0f244c9d5a462222c6fe7372ab6",
+      "compiled_class_sha256": {
+        "ApacheSnapshotProbe$FixedTime.class": "00f6cbee405e033fe9d10361963f2a7c3a855abd436a003edfeea2ecdc5931d6",
+        "ApacheSnapshotProbe.class": "f500b3002a63922336e71c6f3740abbc9aee7652d9d64e3956c467d7ecedbebf"
+      },
+      "snapshot_files": [
+        {
+          "file": "4.3.1-replay-1.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        },
+        {
+          "file": "4.3.1-replay-2.snapshot.bin",
+          "bytes": 262,
+          "sha256": "24d2ac5222927ddf228761986f0c941d7b7debf0a8e9579da26dfe2e128fe504"
+        }
+      ],
+      "positive_checks_per_replay": 20,
+      "positive_replays": 2,
+      "deliberate_failing_assertion_detected": true
+    }
+  ],
+  "positive_checks": 120,
+  "deliberate_failures_detected": 3
+}

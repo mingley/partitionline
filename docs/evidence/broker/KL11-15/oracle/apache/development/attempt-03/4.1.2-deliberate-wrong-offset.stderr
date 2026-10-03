@@ -1,0 +1,6 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.AssertionError: writer.exclusive-end-maps-inclusive-offset
+	at ApacheSnapshotProbe.eq(ApacheSnapshotProbe.java:38)
+	at ApacheSnapshotProbe.main(ApacheSnapshotProbe.java:73)
