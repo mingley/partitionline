@@ -1,0 +1,7 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.AssertionError: one.current-epoch-barrier: -1 != 10
+	at org.apache.kafka.raft.ApacheQuorumProbe.equal(ApacheQuorumProbe.java:49)
+	at org.apache.kafka.raft.ApacheQuorumProbe.leaderCases(ApacheQuorumProbe.java:124)
+	at org.apache.kafka.raft.ApacheQuorumProbe.main(ApacheQuorumProbe.java:239)

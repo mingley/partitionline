@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "stage": "independent Apache component source freeze; final exact-pushed replay pending",
+  "source_sha256": {
+    "ApacheQuorumProbe.java": "84aeec6168d8bef57e6cd78d96e3f07000261b13f321428173548e2e2683ff7b",
+    "prepare-and-run.py": "fa47c10a2a1a29beed4039bf3dd9558a198189b12d457d313df0d34c1506393e",
+    "pins.json": "91643c0293d8387f8911bdfbfb4b6cfdb1b20f88d7f8965d5efb87c924baab4b",
+    "basis.json": "28868c07303c07f41f3f99f567d85ed06afbbe429f09fe4e494a8c3ff36b5725",
+    "README.md": "c6a89bde6fec6aba17d567f808d64fbdd11f346e3f9ee99ba59a4c45e75e3ffe"
+  },
+  "development_positive_assertions": 330,
+  "development_negative_executions": 3,
+  "latest_development_validation": "development/attempt-09/validation.json",
+  "latest_development_validation_sha256": "50956f7d9a7b7ace324c6c794231910ec3987083628df3b5cdfec5d701b58f46",
+  "runtime73_claim": false,
+  "limitations": [
+    "No partitionline73 execution or multi-node/network qualification; typed routing and durable commit need independent runtime/history evidence."
+  ]
+}

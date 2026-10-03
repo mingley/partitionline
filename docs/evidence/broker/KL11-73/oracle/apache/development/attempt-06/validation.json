@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "scope": "Official Apache LeaderState/FollowerState and real local KafkaRaftLog components; no partitionline73 execution, multi-node durable-history or Kafka network claim",
+  "passed": false,
+  "probe_sha256": "6ce7a05d2d9b0f6ae11613e20b7dbdcdcea493d30aa9cd6082b9c414d27ae02b",
+  "runner_sha256": "03e296e31f2d03056cb9bdba194b96d8192563bc3791b4594e33deed55425241",
+  "pins_sha256": "a9e0f24dc62ea3fc2d0e3e5d0ddf38d5d5a105c1e11032aabd754d86685bde49",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "retained_archive": "apache-components-4.1.2.tar.gz",
+      "retained_archive_sha256": "f411f1e92eb8e695817646f775a449713ba3c2f989b13d0575b7879bda6f4c6c",
+      "retained_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "core/src/main/scala/kafka/raft/KafkaMetadataLog.scala": "ef8dd6dbb259343258bc11166e0c74543c89c0c41b7baac3f5e4230683f3429c",
+        "core/src/test/scala/kafka/raft/KafkaMetadataLogTest.scala": "a4eb6f188db35939bfaf133795eb7216fb22a0a46ae63daeef4313ed4bcccafd",
+        "raft/src/main/java/org/apache/kafka/raft/FollowerState.java": "558dfb03ad7e3b14d911770e21eccf27664920a6711525d8566fe8aedb50ec67",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "ce29d89883f722aaf7dbd9377acbc075dc4dd42ee9b295359e8e86ec21a9b755",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "b9855165ce2e6db25eba8fdbe2d2292fa6755bf6ce86c500592872fb5f8a0ebd",
+        "raft/src/main/java/org/apache/kafka/raft/MetadataLogConfig.java": "4d3a910bfc1b459dab27c2556729e9c0da9cf4d60d87121e9807cdce9fde5199",
+        "raft/src/main/java/org/apache/kafka/raft/ReplicatedLog.java": "d1d854d8e483fa3bc124b782a521f2071fcf2de94b63c92d092cf46c492c864a",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "14b2a31ed3e71e41c47a54929e4cda4fffa74320b2ea2711eb914d6ef0baa64c",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "f337713700684ca2958917269c75c3c0470be1a5e35ab82ec8fb84c184a55cf2",
+        "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "1fc6ee521ac5d958f768570bea4dc09d463180341ee6c618227c5ecb9b1e4e5d"
+      },
+      "jars": {
+        "kafka-server-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-4.1.2.jar",
+          "bytes": 219116,
+          "sha256": "1b1d9338047620908e23297d18b966c901f958c889e02feda5f0f56d83a737c5"
+        },
+        "kafka-storage-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-4.1.2.jar",
+          "bytes": 591039,
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        "kafka-storage-api-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-api-4.1.2.jar",
+          "bytes": 26987,
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        "kafka-raft-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-raft-4.1.2.jar",
+          "bytes": 309751,
+          "sha256": "bcbfd5ab4ef8a140b89c6fc98b2e1539f4eca943bc7ac5db746f71f022d886f7"
+        },
+        "kafka-server-common-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar",
+          "bytes": 371073,
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        "kafka-clients-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        "scala-logging_2.13-3.9.5.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/scala-logging_2.13-3.9.5.jar",
+          "bytes": 61858,
+          "sha256": "87a3017d3f43e6ace7566fe4c3d615134c6914ff871c8d64bb32ca1d996d0545"
+        },
+        "scala-library-2.13.16.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/scala-library-2.13.16.jar",
+          "bytes": 5926340,
+          "sha256": "1ebb2b6f9e4eb4022497c19b1e1e825019c08514f962aaac197145f88ed730f1"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        "log4j-core-2.25.3.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/log4j-core-2.25.3.jar",
+          "bytes": 2018402,
+          "sha256": "362b7fcb65b73aa46cc4bc53abf4eb216f444a83b5d1a037cb6fdfff0ae9f0f9"
+        },
+        "log4j-api-2.25.3.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/log4j-api-2.25.3.jar",
+          "bytes": 350610,
+          "sha256": "e886682920fa0fb9d6eb6395dcb4de088443f8646c89c5e5846e168e327f406f"
+        },
+        "kafka_2.13-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka_2.13-4.1.2.jar",
+          "bytes": 2064221,
+          "sha256": "7bb9b7db4d7877d2ab4c0a7ae40ad2cf96a4c5735b9f68432cce30157f4aeabd"
+        }
+      },
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 2
+        },
+        {
+          "from": "org.apache.kafka.raft.internals.KafkaRaftLog",
+          "to": "kafka.raft.KafkaMetadataLog",
+          "occurrences": 1
+        },
+        {
+          "from": "KafkaRaftLog",
+          "to": "KafkaMetadataLog",
+          "occurrences": 5
+        },
+        {
+          "from": "KafkaMetadataLog.createLog(",
+          "to": "KafkaMetadataLog.apply(",
+          "occurrences": 1
+        },
+        {
+          "from": "log.read(0, isolation, 4096)",
+          "to": "log.read(0, isolation)",
+          "occurrences": 1
+        }
+      ],
+      "adapted_source_sha256": "3e4820f5d84a49fd216ad521f2e4ab92ccc156d3ad895e4a50709b3c16c4763c",
+      "compiled_class_sha256": {
+        "org/apache/kafka/raft/ApacheQuorumProbe$Leader.class": "aa5fd9ec9c7e174aeb34976d8c4922b94cd0471de7b1b6f1559a5ee95b925748",
+        "org/apache/kafka/raft/ApacheQuorumProbe.class": "94666dc3a32acd1f58d8cf9a22e67bd8945928d93cbd4f2e0cb1740df88f3ec3"
+      }
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/raft-quorum-oracle/attempt-06",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.065,
+      "stdout": "java-version.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "java-version.stderr",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/raft-quorum-oracle/attempt-06/classes/4.1.2",
+        "/workspace/work/raft-quorum-oracle/attempt-06/adapted/4.1.2/ApacheQuorumProbe.java"
+      ],
+      "cwd": "/workspace/work/raft-quorum-oracle/attempt-06",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.719,
+      "stdout": "4.1.2-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.1.2-compile.stderr",
+      "stderr_sha256": "32a54b22d3774b3a881105a6d91bf37c8ba167a2677dfdde29530ed62a93cebd"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/raft-quorum-oracle/attempt-06/classes/4.1.2:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-oracle/attempt-06/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheQuorumProbe",
+        "/workspace/work/raft-quorum-oracle/attempt-06/log-4.1.2-replay-1"
+      ],
+      "cwd": "/workspace/work/raft-quorum-oracle/attempt-06",
+      "exit_code": 1,
+      "expected": "zero",
+      "accepted": false,
+      "elapsed_seconds": 0.367,
+      "stdout": "4.1.2-replay-1.stdout",
+      "stdout_sha256": "1bf17d638457f0f3aa8cd918062a2a68b9636e6e64c53d8dd16135b777ce950a",
+      "stderr": "4.1.2-replay-1.stderr",
+      "stderr_sha256": "d499b54c96378d75e458ddaf19ff4785b888a7a810f02e4c21c35f923bddae37"
+    }
+  ],
+  "error": "RuntimeError: Unexpected command result: 4.1.2-replay-1"
+}

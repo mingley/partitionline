@@ -23354,10 +23354,11 @@
       "title": "Run independent clients against the persisted single-node broker",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-avro-adapter-20261003",
       "depends_on": [
-        "KL11-07"
+        "KL11-07",
+        "KL05-28"
       ],
       "files": [
         "scripts/broker-interop.py",
@@ -23373,15 +23374,21 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "scripts/broker-interop.py",
+        "tests/conformance/broker/interop/",
+        "docs/evidence/broker/KL11-08/",
+        "docs/plan/evidence/KL11-08.json"
+      ]
     },
     {
       "id": "KL11-09",
       "title": "Roll journal segments and maintain bounded offset/time indexes",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-open-loop-20261003",
       "depends_on": [
         "KL11-03",
         "KL11-07"
@@ -23399,7 +23406,21 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": []
+      "evidence": [],
+      "write_set": [
+        "partitionline-broker/src/segments.rs",
+        "partitionline-broker/src/journal.rs",
+        "partitionline-broker/src/partition.rs",
+        "partitionline-broker/src/produce.rs",
+        "partitionline-broker/src/fetch.rs",
+        "partitionline-broker/tests/segments.rs",
+        "partitionline-broker/tests/journal.rs",
+        "partitionline-broker/tests/partition.rs",
+        "partitionline-broker/tests/produce.rs",
+        "partitionline-broker/tests/fetch.rs",
+        "docs/evidence/broker/KL11-09/",
+        "docs/plan/evidence/KL11-09.json"
+      ]
     },
     {
       "id": "KL11-10",
@@ -25520,8 +25541,8 @@
       "title": "Create/install metadata snapshots and recover controller state",
       "priority": "P1",
       "kind": "implementation",
-      "status": "pending",
-      "owner": null,
+      "status": "in_progress",
+      "owner": "codex-c-peer-20261003",
       "depends_on": [
         "KL11-73"
       ],
@@ -25539,7 +25560,15 @@
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
       "evidence": [],
-      "dependency_note": "Snapshot/replay requires durable content replication73; membership74 consumes snapshots15, preventing a dependency cycle with aggregate14."
+      "dependency_note": "Snapshot/replay requires durable content replication73; membership74 consumes snapshots15, preventing a dependency cycle with aggregate14.",
+      "write_set": [
+        "partitionline-broker/src/raft/snapshot.rs",
+        "partitionline-broker/tests/raft_snapshot.rs",
+        "partitionline-broker/tests/fixtures/raft-snapshot/",
+        "docs/evidence/broker/KL11-15/",
+        "docs/plan/evidence/KL11-15.json"
+      ],
+      "integration_coordinator": "Root owns raft/mod export. Replication WAL/open/install hooks require coordinated ownership after73 source freeze; no concurrent edit to73 runtime. Full snapshot plus replay acceptance remains required."
     },
     {
       "id": "KL11-16",
@@ -36080,7 +36109,17 @@
         "docs/plan/evidence/KL11-72.json",
         "docs/plan/tasks.json"
       ],
-      "integration_coordinator": "zstd_decision owns independent72 wire fixtures/probes;consumer_lookups owns36 production. Root alone edits shared plans/profile registry/exports; no production edits from oracle worker."
+      "integration_coordinator": "zstd_decision owns independent72 wire fixtures/probes;consumer_lookups owns36 production. Root alone edits shared plans/profile registry/exports; no production edits from oracle worker.",
+      "delegated_write_sets": {
+        "codex-consumer-lookups-20261003": [
+          "docs/evidence/broker/KL11-72/peers/",
+          "docs/evidence/broker/KL11-72/README.md",
+          "docs/evidence/broker/KL11-72/SHA256SUMS",
+          "docs/evidence/broker/KL11-72/evidence.json",
+          "docs/plan/evidence/KL11-72.json"
+        ]
+      },
+      "delegation_note": "Original independent Java/C SDK probes retain provenance. Production implementer completes orchestration with explicit attribution; failed native Describe cleanup cells remain failed and independent official Java schema decoding verifies server outcomes. No production workaround or unqualified all-peer pass."
     },
     {
       "id": "KL11-73",
@@ -36157,6 +36196,42 @@
       "validation": [
         "Run exact committed-source stable/Rust1.85 full broker gates and strict format/lint/documentation checks.",
         "Retain failures, limits, independent evidence and actual process/byte results; do not infer production readiness or Kafka wire interoperability from a typed local exchange."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL05-28",
+      "title": "Negotiate Producer and Admin capabilities per requested operation",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-avro-adapter-20261003",
+      "depends_on": [
+        "KL05-11",
+        "KL05-12"
+      ],
+      "files": [
+        "src/producer.rs",
+        "src/admin.rs",
+        "tests/client_capabilities.rs"
+      ],
+      "write_set": [
+        "src/producer.rs",
+        "src/admin.rs",
+        "tests/client_capabilities.rs",
+        "docs/evidence/client/KL05-28/",
+        "docs/plan/evidence/KL05-28.json"
+      ],
+      "deliverable": "Ordinary Producer and basic Admin work against truthful limited broker profiles; unsupported operations fail explicitly before unrelated network work.",
+      "acceptance": [
+        "Ordinary nontransactional Producer startup does not require FindCoordinator; transactional coordinator and idempotent InitProducerId requirements remain enforced.",
+        "Admin CreateTopics/DeleteTopics/Metadata startup does not require unrelated configuration, ACL or group APIs; each unavailable method returns Unsupported locally before discovery or dispatch.",
+        "Preserve public API/source compatibility and all supported-operation version gates, per-connection negotiation, SASL/TLS, retries, quotas, shutdown and transactional semantics.",
+        "Fresh public Rust-client broker interop and limited/mixed capability socket histories prove actual ordinary behavior and precise unsupported-operation failure. Preserve failures and exact source/commands/checksums."
+      ],
+      "validation": [
+        "Stable/MSRV default/all-feature focused capability and existing behavioral tests; full client strict fmt/Clippy/docs gates.",
+        "Actual Rust Producer/Consumer/Admin interoperability is qualified by dependent KL11-08; no fake broker advertisements."
       ],
       "evidence": []
     }

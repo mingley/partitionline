@@ -1,0 +1,15 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.NoClassDefFoundError: org/apache/kafka/server/logger/LoggingController
+	at kafka.utils.Log4jControllerRegistration$.<clinit>(Logging.scala:27)
+	at kafka.raft.KafkaMetadataLog$.<clinit>(KafkaMetadataLog.scala:580)
+	at kafka.raft.KafkaMetadataLog.apply(KafkaMetadataLog.scala)
+	at org.apache.kafka.raft.ApacheQuorumProbe.open(ApacheQuorumProbe.java:180)
+	at org.apache.kafka.raft.ApacheQuorumProbe.truncationCases(ApacheQuorumProbe.java:190)
+	at org.apache.kafka.raft.ApacheQuorumProbe.main(ApacheQuorumProbe.java:230)
+Caused by: java.lang.ClassNotFoundException: org.apache.kafka.server.logger.LoggingController
+	at java.base/jdk.internal.loader.BuiltinClassLoader.loadClass(BuiltinClassLoader.java:641)
+	at java.base/jdk.internal.loader.ClassLoaders$AppClassLoader.loadClass(ClassLoaders.java:188)
+	at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
+	... 6 more

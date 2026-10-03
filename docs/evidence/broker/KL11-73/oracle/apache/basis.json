@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "scope": "Pinned upstream component assertions with explicit setup/API adaptations. No partitionline73/runtime or multi-node durable-history qualification.",
+  "upstream_references": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "references": [
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java",
+          "sha256": "1fc6ee521ac5d958f768570bea4dc09d463180341ee6c618227c5ecb9b1e4e5d",
+          "named_test_lines": {
+            "testUpdateHighWatermarkQuorumSizeOne": 176,
+            "testUpdateHighWatermarkQuorumSizeThree": 271,
+            "testNonMonotonicHighWatermarkUpdate": 449
+          }
+        },
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java",
+          "sha256": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+          "named_test_lines": {
+            "testMonotonicHighWatermark": 86
+          }
+        },
+        {
+          "file": "core/src/test/scala/kafka/raft/KafkaMetadataLogTest.scala",
+          "sha256": "a4eb6f188db35939bfaf133795eb7216fb22a0a46ae63daeef4313ed4bcccafd",
+          "named_test_lines": {
+            "testTruncateBelowHighWatermark": 711
+          }
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "references": [
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java",
+          "sha256": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+          "named_test_lines": {
+            "testUpdateHighWatermarkQuorumSizeOne": 175,
+            "testUpdateHighWatermarkQuorumSizeThree": 270,
+            "testNonMonotonicHighWatermarkUpdate": 448
+          }
+        },
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java",
+          "sha256": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+          "named_test_lines": {
+            "testMonotonicHighWatermark": 86
+          }
+        },
+        {
+          "file": "core/src/test/scala/kafka/raft/KafkaMetadataLogTest.scala",
+          "sha256": "a4eb6f188db35939bfaf133795eb7216fb22a0a46ae63daeef4313ed4bcccafd",
+          "named_test_lines": {
+            "testTruncateBelowHighWatermark": 711
+          }
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "references": [
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java",
+          "sha256": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+          "named_test_lines": {
+            "testUpdateHighWatermarkQuorumSizeOne": 175,
+            "testUpdateHighWatermarkQuorumSizeThree": 270,
+            "testNonMonotonicHighWatermarkUpdate": 448
+          }
+        },
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/FollowerStateTest.java",
+          "sha256": "7f9c86e8dbb8dc394782555911db1388f7409527ea48499feeb9ebceb7ec88f6",
+          "named_test_lines": {
+            "testMonotonicHighWatermark": 86
+          }
+        },
+        {
+          "file": "raft/src/test/java/org/apache/kafka/raft/internals/KafkaRaftLogTest.java",
+          "sha256": "6f232299393413b27b8ec7107dbf9128b62f3255fd51c0ed3f8481b9d9938ad5",
+          "named_test_lines": {
+            "testTruncateBelowHighWatermark": 738
+          }
+        }
+      ]
+    }
+  ],
+  "adaptations": [
+    "Place probe in org.apache.kafka.raft to access the protected LeaderState constructor without reflection; replace upstream Mockito accumulator setup with real BatchAccumulator, Metrics and MemoryPool.NONE.",
+    "Use fixed directory IDs/voters and1/3/5-voter histories; five-voter and over-end precondition boundary cases are derived component extensions, not a verbatim upstream test suite.",
+    "Use explicit base offset, current partition epoch and timestamp1000 for real metadata-log batches, matching the upstream append helper requirements.",
+    "For4.1.2/4.2.1 use official Scala KafkaMetadataLog.apply/read(offset,isolation) and classic record package;4.3.1 uses renamed Java KafkaRaftLog.createLog/read(offset,isolation,bytes) and internal record package. Exact textual adaptations/counts and compiled sources are retained.",
+    "Deliberate failing variant changes only the current-epoch barrier expectation(-1 to10), leaves libraries/input history unchanged, and must exit nonzero with the named AssertionError."
+  ],
+  "component_boundary": "Bare Apache LeaderState accepts unvalidated over-local-end replica positions; actual probe documents this component precondition boundary. It does not establish KafkaRaftClient accepts malformed network ACKs; partitionline typed routing requires independent request/member/term/sequence/prefix validation.",
+  "durability_boundary": "Real local truncation+fsync/reopen preserves exact committed byte prefix, while reopened Apache local component high-watermark resets0; durable replicated commit is a separate73 WAL/causal-history responsibility."
+}

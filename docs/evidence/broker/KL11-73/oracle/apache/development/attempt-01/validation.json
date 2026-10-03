@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "Official Apache LeaderState/FollowerState and real local KafkaRaftLog components; no partitionline73 execution, multi-node durable-history or Kafka network claim",
+  "passed": false,
+  "probe_sha256": "7d0bf9c7d65d95b53ab957bc19a384469135e0e7a227201beb3bd1c92f59b477",
+  "runner_sha256": "173c06a727e545d390fe3eae32acdd534fcb99dc353f2bed6ac7bdf5fd10bb81",
+  "pins_sha256": "a9e0f24dc62ea3fc2d0e3e5d0ddf38d5d5a105c1e11032aabd754d86685bde49",
+  "releases": [],
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/raft-quorum-oracle/attempt-01",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.032,
+      "stdout": "java-version.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "java-version.stderr",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    }
+  ],
+  "error": "AssertionError: Official checksum-file mismatch"
+}
