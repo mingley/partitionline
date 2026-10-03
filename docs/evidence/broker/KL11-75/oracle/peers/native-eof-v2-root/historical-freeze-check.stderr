@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-freeze.py", line 33, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-freeze.py", line 21, in main
+    raise ValueError("Frozen peer source/evidence bytes or modes changed: " + row["path"])
+ValueError: Frozen peer source/evidence bytes or modes changed: compaction-native.c

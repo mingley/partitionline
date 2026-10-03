@@ -1,0 +1,141 @@
+{
+  "scope": "Independent verifier preparation: preserved actual Java reads and actual closed native compile binding; synthetic controls are not runtime qualification",
+  "verifier_sha256": "51c797c3972bd8cb385c01a2f8f0a5f5a14aefb6c5b0d070b038744b2996c57a",
+  "control_driver_sha256": "d1d7a6233282ee430bf70a85ba8b818ae096096ab2634a1b219b2240088e6a8b",
+  "preserved_actual_java_reads": [
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j412-j412.json",
+      "sha256": "3c2fe76a9a6fe42db6aa2c8788ea2ccf0db1dfdfa58818d6963a1a4195954cc2",
+      "actual_records": 27
+    },
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j421-j412.json",
+      "sha256": "da8ea7b90c191e04b77f6e6625ce2628bf49dfbcf1b42e9bf402361e20770878",
+      "actual_records": 27
+    },
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j431-j412.json",
+      "sha256": "e702319499c1865a0e4960a12a830bd9defd7694b285007f615b2d650da225eb",
+      "actual_records": 27
+    }
+  ],
+  "synthetic_native_stages_passed": [
+    "initial",
+    "first",
+    "before-expiry",
+    "expired",
+    "restart",
+    "appended"
+  ],
+  "synthetic_read_negative_controls": [
+    {
+      "name": "missing-eof",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "fabricated-end-position",
+      "rejected": true,
+      "reason": "exact records and SDK consumed-position contract"
+    },
+    {
+      "name": "bool-integer-eof",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "wrong-eof-highwatermark",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "false-zero-eof-records",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "unknown-event",
+      "rejected": true,
+      "reason": "no unreviewed read event"
+    },
+    {
+      "name": "extra-control-field",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "frontier-before-delivery",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "changed-header",
+      "rejected": true,
+      "reason": "exact records and SDK consumed-position contract"
+    },
+    {
+      "name": "bool-record-count",
+      "rejected": true,
+      "reason": "actual consumed cardinality"
+    }
+  ],
+  "actual_closed_native_compile_binding": {
+    "path": "/workspace/work/compaction-public-403be1e3/native-fcac9d1d/bound-native-build-v2.json",
+    "sha256": "d5a10a0352564180082fb7842bd1f04a4aeee4e91cdd5bf6e7160362bd18e872",
+    "passed": true
+  },
+  "synthetic_native_binding_negative_controls": [
+    {
+      "name": "wrong-helper-pin",
+      "rejected": true,
+      "reason": "actual corrected native compile and distinct server/helper pins"
+    },
+    {
+      "name": "wrong-server-pin",
+      "rejected": true,
+      "reason": "actual corrected native compile and distinct server/helper pins"
+    },
+    {
+      "name": "compiler-failed",
+      "rejected": true,
+      "reason": "actual corrected native compile and distinct server/helper pins"
+    },
+    {
+      "name": "core-source-changed",
+      "rejected": true,
+      "reason": "complete core/helper compile source guards unchanged"
+    },
+    {
+      "name": "helper-source-changed",
+      "rejected": true,
+      "reason": "complete core/helper compile source guards unchanged"
+    },
+    {
+      "name": "altered-raw-command",
+      "rejected": true,
+      "reason": "derived native binding preserves actual raw compiler outcomes"
+    },
+    {
+      "name": "wrong-own-git-blob",
+      "rejected": true,
+      "reason": "corrected native source binds its actual Git blob"
+    },
+    {
+      "name": "wrong-private-elf",
+      "rejected": true,
+      "reason": "native actual origin/raw/source/executable bytes and full modes"
+    },
+    {
+      "name": "wrong-native-mode",
+      "rejected": true,
+      "reason": "native actual origin/raw/source/executable bytes and full modes"
+    },
+    {
+      "name": "changed-sdk",
+      "rejected": true,
+      "reason": "actual pinned native SDK dependencies unchanged"
+    }
+  ],
+  "new_live_native_or_server_jobs": 0,
+  "passed": true
+}

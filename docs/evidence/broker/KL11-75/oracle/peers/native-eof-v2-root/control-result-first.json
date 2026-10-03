@@ -1,0 +1,41 @@
+{
+  "scope": "WORK independent verifier controls; no new native/broker/Rust runtime or qualifying lane",
+  "actual_preserved_java_rechecks": [
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j412-j412.json",
+      "sha256": "3c2fe76a9a6fe42db6aa2c8788ea2ccf0db1dfdfa58818d6963a1a4195954cc2",
+      "actual_java_recheck": true
+    },
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j421-j412.json",
+      "sha256": "da8ea7b90c191e04b77f6e6625ce2628bf49dfbcf1b42e9bf402361e20770878",
+      "actual_java_recheck": true
+    },
+    {
+      "path": "/workspace/work/compaction-public-403be1e3/live/stable-default/attempt-1/initial-read-j431-j412.json",
+      "sha256": "e702319499c1865a0e4960a12a830bd9defd7694b285007f615b2d650da225eb",
+      "actual_java_recheck": true
+    }
+  ],
+  "synthetic_native_finite_profile_stages_passed": [
+    "initial",
+    "first",
+    "before-expiry",
+    "expired",
+    "restart",
+    "appended"
+  ],
+  "synthetic_negative_controls_rejected": [
+    "missing-eof",
+    "fabricated-end-position",
+    "bool-integer-eof",
+    "wrong-eof-highwatermark",
+    "false-zero-EOF-records",
+    "extra-unknown-event",
+    "extra-nonempty-control-fields",
+    "reordered-frontiers",
+    "changed-record-header",
+    "bool-record-count"
+  ],
+  "verifier_sha256": "5d499ccbaf8f83b5338ad754f63ffc80a839074297870b73bbcb3fa192752e40"
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "Actual unchanged historical freeze rejects two modified inputs; the third corrected helper was added after that historical freeze and is covered by the new additive manifest",
+  "expected_actual_historical_check_exit": 1,
+  "changed_original_inputs": [
+    {
+      "path": "compaction-native.c",
+      "before": {
+        "path": "compaction-native.c",
+        "bytes": 14500,
+        "sha256": "622fa2cd1986906ce4ab7c6f77ee1716256a874572405e10913eef37ec22bd40",
+        "mode": 384
+      },
+      "after": {
+        "bytes": 16245,
+        "sha256": "99e75ca64e02807aa007379fbb8dfc9a0c017f9c3fe935f243a2dbba487eea03",
+        "mode": 384
+      }
+    },
+    {
+      "path": "run-live.py",
+      "before": {
+        "path": "run-live.py",
+        "bytes": 18108,
+        "sha256": "45688d992514399f863fdd42b3dc750b578f7ddb28d3dcfd47eaf66df8df02a7",
+        "mode": 384
+      },
+      "after": {
+        "bytes": 26479,
+        "sha256": "0cc6fdf46c5349630a93880beceb862f0b0e6c44694d4dc62b02661a3182f79d",
+        "mode": 384
+      }
+    }
+  ],
+  "additional_corrected_helper": "test-live-histories.py",
+  "server_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "actual_new_live_jobs": 0,
+  "preparation_failure_retained": {
+    "initial_assembly_exit": 1,
+    "cause": "Root reviewer assertion expected all three corrected helpers in the older 37-entry manifest; actual older manifest contains two, and the newer test-live-histories.py was not an older entry",
+    "subsequent_premature_new_freeze_check_exit": 1,
+    "cause_second": "Missing additive manifest because assembly stopped before creating it",
+    "correction": "Inspect actual historical rows; classify two modified entries and one later added helper. Original files unchanged."
+  }
+}
