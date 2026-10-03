@@ -1,0 +1,1299 @@
+{
+  "schema_version": 1,
+  "task": "KL11-74",
+  "status": "done",
+  "acceptance_met": true,
+  "disposition": "accepted bounded durable membership implementation; aggregate KL11-14 remains open through autonomous transport KL11-76 and native-wire KL11-70 remains separately pending",
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+    "partitionline-broker/src/raft/election.rs": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a",
+    "partitionline-broker/src/raft/snapshot.rs": "afb9b241bd99d1148a6f3e37414a86255395eca085b7609b8943d98e736d91db",
+    "partitionline-broker/src/raft/membership.rs": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+    "partitionline-broker/src/raft/protocol.rs": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+    "partitionline-broker/src/raft/mod.rs": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+    "partitionline-broker/tests/raft_replication.rs": "db96d17177dfa7fee4d3d5798215f57a90f6e91a35677458e386a7e2876d6f97",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_snapshot.rs": "b5ceb3058c945b25ce43b93eb3313f34e3704daf18c1e31632fac145d359f4ce",
+    "partitionline-broker/tests/raft_membership.rs": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+    "partitionline-broker/tests/raft_protocol.rs": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720"
+  },
+  "implementation": "One-at-a-time directory-qualified voter configuration changes with current-epoch high-watermark/prior-configuration admission, correlated caught-up addition, new-set durable majority, committed removed-leader fencing, exact canonical configuration source ordinals, snapshots and journal/election recovery. Fixed-voter and controller-v0 behavior retained.",
+  "commands": [
+    {
+      "name": "clean-before-source-switch",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments",
+        "--package",
+        "partitionline-broker"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "format",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-tls-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-tls-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-tls-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-tls-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl+tls-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl+tls-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl+tls-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-sasl+tls-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-oidc-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-oidc-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-oidc-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-oidc-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "clean-between-toolchains",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments",
+        "--package",
+        "partitionline-broker"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-tls-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-tls-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-tls-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-tls-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "tls",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl+tls-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl+tls-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl+tls-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-sasl+tls-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "sasl,tls",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-oidc-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-oidc-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-oidc-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-oidc-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-maintenance-after-default",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-maintenance-after-tls",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-maintenance-after-sasl",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-maintenance-after-sasl+tls",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-maintenance-after-oidc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-maintenance-after-default",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-maintenance-after-tls",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-maintenance-after-sasl",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-maintenance-after-sasl+tls",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-maintenance-after-oidc",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "actual_full_broker_commands": 61,
+    "qualification_commands": 51,
+    "guarded_cache_maintenance_commands": 10,
+    "profiles_per_toolchain": 6,
+    "toolchains": [
+      "stable1.99.0",
+      "Rust1.85.0"
+    ],
+    "actual_unfiltered_tests": 4368,
+    "failed_ignored_filtered_tests": 0,
+    "strict_actual_membership_history_checks": 24,
+    "actual_three_five_voter_history_cells": 12,
+    "events": 3996,
+    "raw_checkpoint_pairs": 840,
+    "remote_wal_authority_bindings": 636,
+    "observed_setting_admission_proofs": 48,
+    "distinct_trace_contents": 2,
+    "source_files_checked_before_after_commands": 71885,
+    "full_modes_pathset_git_blobs_verified": true,
+    "retained_work_only_unique_elf_gzips": 398,
+    "minimum_sampled_free_bytes": 3545296896,
+    "disk_floor_triggered": false,
+    "independent_apache_component_assertions": 854,
+    "intentional_apache_failure_controls": 9,
+    "independent_fixture_corruption_controls": 48
+  },
+  "evidence": {
+    "full_broker_qualification_packet": "docs/evidence/broker/KL11-75/storage/merged-qualification/final-403be1e3/",
+    "raw_validation_sha256": "26071d6c6c73b2f61c481c6d802cec9dfa6ca500c8f9691b2a9b151de8424ee2",
+    "normalized_validation_sha256": "248b83d10489c4210d7a378f64f0ec2db7662e13a077737adf4d3abae30a0916",
+    "strict_history_packet": "docs/evidence/broker/KL11-74/oracle/history/final-403be1e3/",
+    "strict_history_validation_sha256": "6614cd9e18754c297e5fae3b543c4f3ccb073a7327b5e983ba3ed610ba5b285f",
+    "strict_history_manifest_sha256": "f2c23db2c269ff0811de0b86e32433a482da233eafe952081c9e5cb0a434c43b",
+    "independent_pinned_apache_qualification": "docs/evidence/broker/KL11-74/oracle/apache/final-3aedadf6/validation.json",
+    "admission_checker_controls": "docs/evidence/broker/KL11-74/oracle/history/development/observed-settings-admission/validation.json",
+    "lossless_broker_packet_manifest_sha256": "a3282b56b91c8d1e17f97e2ec0c267b09ed1bfec5b2e004259c490c71ef6de5f",
+    "coordinator_review": "docs/evidence/broker/KL11-74/oracle/history/closure-403be1e3/"
+  },
+  "qualification_limits": [
+    "The histories use actual processes, journals and images with caller-driven typed exchanges; autonomous TCP peer scheduling is KL11-76.",
+    "Three/five-voter finite histories and corruption controls do not prove exhaustive consensus safety or physical power-loss durability.",
+    "Pinned Apache Add/RemoveVoter/LeaderState/control-record components ran against real local Apache metadata logs; full KafkaRaftClient runtime/TCP did not run.",
+    "No modern native Kafka replication-wire advertisement is added; KL11-70 owns that qualification.",
+    "Two distinct deterministic trace contents occurred across24 actual checker executions. Zero broker doctests exist; passing doctest commands do not represent doctest cases.",
+    "All earlier genuine failing attempts, superseded source proofs and binary archives remain unchanged and retain their original source labels.",
+    "Full Kafka feature coverage, production-duration fault campaigns and comparative world-leading performance remain unqualified."
+  ]
+}

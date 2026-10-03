@@ -1,0 +1,70 @@
+{
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "actual_test_results": 4368,
+  "actual_unfiltered_profile_executions": 12,
+  "log_hashes_independently_verified": true,
+  "all_fail_ignore_measured_filtered_counts_zero": true,
+  "profiles": [
+    {
+      "command": "stable-default-all-targets",
+      "actual_test_results": 304,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "stable-tls-all-targets",
+      "actual_test_results": 319,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "stable-sasl-all-targets",
+      "actual_test_results": 352,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "stable-sasl+tls-all-targets",
+      "actual_test_results": 369,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "stable-oidc-all-targets",
+      "actual_test_results": 414,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "stable-all-features-all-targets",
+      "actual_test_results": 426,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-default-all-targets",
+      "actual_test_results": 304,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-tls-all-targets",
+      "actual_test_results": 319,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-sasl-all-targets",
+      "actual_test_results": 352,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-sasl+tls-all-targets",
+      "actual_test_results": 369,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-oidc-all-targets",
+      "actual_test_results": 414,
+      "harness_result_summaries": 27
+    },
+    {
+      "command": "1.85.0-all-features-all-targets",
+      "actual_test_results": 426,
+      "harness_result_summaries": 27
+    }
+  ],
+  "review_limit": "Initial read-only command assumed nonexistent flat command-log paths and failed before reviewing any bytes; corrected to actual command.log subdirectories. No original logs changed."
+}

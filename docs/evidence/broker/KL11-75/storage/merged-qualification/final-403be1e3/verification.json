@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "scope": "publication verification only; original broker acceptance unchanged",
+  "verify_command": "taskset -c 0,1 python3 /workspace/work/broker-final403-publication/restore.py > /workspace/work/broker-final403-publication-tools/verify-command.log 2>&1",
+  "observed_exit_code": 0,
+  "verify_output": {
+    "passed": true,
+    "files": 39225,
+    "objects": 778,
+    "restored": false,
+    "compiled_artifacts_restored": 0
+  },
+  "all_selected_original_file_path_set_exact": true,
+  "all_selected_original_directory_path_set_exact": true,
+  "selected_files": 39225,
+  "selected_directories": 9568,
+  "all454_excluded_original_content_hashes_and_full07777_modes_rechecked": true,
+  "excluded_map_raw_sha256": "607158dd09c355e4678a98ca728a5f89aa2c0bea8e2daa1662e6f6d4a45d10b4",
+  "excluded_map_gzip_sha256": "bca77797b318af90bcf616b866c2ecafaa0bdbfe211c475712a5c6a6ca89619d",
+  "restore_created_inflated_tree": false,
+  "new_runtime_test_or_benchmark": false
+}

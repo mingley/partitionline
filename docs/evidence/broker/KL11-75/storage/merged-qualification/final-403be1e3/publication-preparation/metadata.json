@@ -1,0 +1,11 @@
+{
+  "scope": "generated publication-preparation metadata, separate from original broker evidence",
+  "initial_command": "taskset -c 0,1 python3 /workspace/work/broker-final403-publication-tools/prepare_packet.py > /workspace/work/broker-final403-publication-tools/command.log 2>&1",
+  "initial_observed_exit_code": 1,
+  "initial_failure": "incorrect metadata expectation that398 cache-object gzips plus56 selected ELF paths meant398 total gzip files plus56 raw files; corrected to446 gzip ELF files and8 raw ELF files",
+  "raw_proof_or_original_logs_rewritten": false,
+  "correction": "classification assertion and publication metadata only; original454 compiled paths all excluded",
+  "final_observed_exit_code": 0,
+  "original_roots_unchanged": true,
+  "cargo_or_runtime_tests_run": false
+}

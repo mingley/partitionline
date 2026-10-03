@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/work/broker-final403-publication-tools/prepare_packet.py", line 210, in <module>
+    main()
+  File "/workspace/work/broker-final403-publication-tools/prepare_packet.py", line 110, in main
+    assert sum(e['storage'] == 'gzip_ELF' for e in excluded) == 398
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

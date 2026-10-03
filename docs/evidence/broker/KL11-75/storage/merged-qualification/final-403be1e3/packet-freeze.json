@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "safe_to_copy_and_stage": true,
+  "manifest": "packet-manifest.json",
+  "manifest_sha256": "a3282b56b91c8d1e17f97e2ec0c267b09ed1bfec5b2e004259c490c71ef6de5f",
+  "manifest_full_mode": 384,
+  "source_commit": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "no_original_proof_or_source_mutations": true,
+  "no_compiled_payloads_published": true,
+  "raw_validation_sha256": "26071d6c6c73b2f61c481c6d802cec9dfa6ca500c8f9691b2a9b151de8424ee2",
+  "raw_normalized_sha256": "248b83d10489c4210d7a378f64f0ec2db7662e13a077737adf4d3abae30a0916",
+  "raw_origin_receipt_sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff"
+}

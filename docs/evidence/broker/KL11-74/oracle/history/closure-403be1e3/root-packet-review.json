@@ -1,0 +1,14 @@
+{
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "manifest_sha256": "a3282b56b91c8d1e17f97e2ec0c267b09ed1bfec5b2e004259c490c71ef6de5f",
+  "packet_paths": 793,
+  "packet_bytes": 7353031,
+  "all_manifest_and_extra_pathsets_hashes_full_modes_verified": true,
+  "original_restorable_files_bytes_full_modes_verified": 39225,
+  "original_directories_full_modes_verified": 9568,
+  "objects_lossless_gzip_hashes_verified": 778,
+  "compiled_secret_pattern_payloads_observed": 0,
+  "source_executables_unchanged": true,
+  "destination": "/workspace/partitionline/docs/evidence/broker/KL11-75/storage/merged-qualification/final-403be1e3",
+  "all454_original_excluded_compiled_files_hashes_modes_and_headers_verified": true
+}
