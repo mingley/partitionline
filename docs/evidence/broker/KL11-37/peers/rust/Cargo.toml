@@ -1,0 +1,24 @@
+[package]
+name = "partitionline-oidc-live-peer"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+# Repository layout: docs/evidence/broker/KL11-37/peers/rust/. Qualification
+# builds run this exact manifest only inside the immutable pushed tree.
+partitionline = { path = "../../../../../..", default-features = false }
+serde_json = "1.0.151"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+indexing_slicing = "deny"

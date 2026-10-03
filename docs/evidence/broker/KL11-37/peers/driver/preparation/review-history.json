@@ -1,0 +1,84 @@
+{
+  "status": "final independent source/infrastructure review found no remaining concrete blocker; runtime qualification remains pending",
+  "findings": [
+    {
+      "reviewer": "coordinator",
+      "finding": "post-fork Python preexec callback after threads can deadlock",
+      "correction": "inherited core0 and Popen umask, no preexec_fn"
+    },
+    {
+      "reviewer": "coordinator",
+      "finding": "leader exited can leave descendants and pipe readers",
+      "correction": "owned process group inspected/signalled even after leader exit, all readers joined; force makes grace fail"
+    },
+    {
+      "reviewer": "coordinator",
+      "finding": "runtime pins lacked complete immutable source/build identities",
+      "correction": "complete actual Git blob and full07777 source guards, origin receipt, immutable driver, exact peer compiler/source/runtime inputs"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "peer ordinal/actor could overwrite authoritative sequence/identity",
+      "correction": "separate driver_sequence; reserved identity fields rejected"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "any generic failed client operation could be mislabeled an OAuth negative",
+      "correction": "prior positive, one active peer, safe category, actual controlled authority witness, positive recovery; exact broker auth is separate from client-local/transport; asynchronous joined audit totals do not prove per-operation dispatch denial"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "shutdown before serve_forever can deadlock",
+      "correction": "track issuer-started state; every stop/close in bounded tracked thread; outer process deadline/failure if join stalls"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "Java readers never observed complete4-writer/restart history",
+      "correction": "all3 SDKs read complete ledger before/after joined restart, Rust reads both"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "unexpected driver failures had no safe classification",
+      "correction": "safe failure_stage enum and failed_step index retained"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "asynchronous stdout count snapshots cannot prove no dispatch during one denied operation",
+      "correction": "remove that phase assertion; retain joined raw audit totals and separately pin exact core socket denial proof"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "atomic registry updates reset prior steps and full-source baseline",
+      "correction": "initialize steps/source_before only in Run.__init__; actual file/proc control preserves them through repeated registry updates"
+    },
+    {
+      "reviewer": "coordinator and independent Java preparer",
+      "finding": "driver termination can bypass finally and leave separate sessions beyond driver group",
+      "correction": "driver SIGTERM/SIGINT raise controlled interruption; actual Linux subreaper outer owner confirms PID/starttime/PGID, sweeps separate groups and reaps adopted zombies"
+    },
+    {
+      "reviewer": "coordinator",
+      "finding": "Git expected-file checks silently ignored extra standalone Cargo.lock files",
+      "correction": "compare actual regular/symlink pathset with exact expected Git pathset; actual tiny Git control rejects an extra standalone lock"
+    },
+    {
+      "reviewer": "independent Java preparer",
+      "finding": "outer monitor-only300s excludes subsequent cleanup; repeated observation faults can abandon cleanup",
+      "correction": "one absolute total deadline reserves cleanup; cleanup attempts independently guarded, fallback observations revalidate confirmed identities; injected actual repeated observation-fault and tiny0.5s-total controls fail without surviving children"
+    },
+    {
+      "reviewer": "consumer worker, confirmed by independent Java preparer",
+      "finding": "native public -169 authentication code can originate in local callback failure",
+      "correction": "native -169 origin explicitly unproved; native58/RustBroker58/JavaSaslAuthenticationException retain separate protocol/class category; no fabricated broker-response claim"
+    }
+  ],
+  "historical_input_limit": "Initial WORK draft source bytes were not copied before review corrections; historical parse manifests retain exact earlier hashes only. No compiler or live run used them; they are not retroactively reconstructed.",
+  "qualification_scope": "Source parse and Rust formatting, offline lockfile resolution,5 actual stdlib/file/proc/pipe/Git controls and6 actual Linux process controls. Zero native/Rust compilation, SDK/TLS/broker live runs. Final source review and exact pushed runtime qualification remain pending.",
+  "final_review": {
+    "source_file": "final-independent-review.json",
+    "sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
+    "driver_sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+    "outer_sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+    "scope": "source and infrastructure controls; zero SDK/broker/compiler/live qualification"
+  }
+}

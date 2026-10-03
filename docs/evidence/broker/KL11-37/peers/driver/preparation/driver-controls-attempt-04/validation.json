@@ -1,0 +1,17 @@
+{
+  "scope": "changed driver5 infrastructure controls only; unchanged outer6 retain attempt03; zero SDK/broker/HTTPS/Cargo compile",
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "python3",
+    "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-preparation.py"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 0.1084214080037782,
+  "source_sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+  "source_unchanged": true,
+  "stdout_sha256": "348735e1fbf5327110abdb37a6f68dbf36150da9a4a950724569b32b5b4abec5",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "receipt_sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30"
+}

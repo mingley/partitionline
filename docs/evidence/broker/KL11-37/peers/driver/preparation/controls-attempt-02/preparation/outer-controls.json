@@ -1,0 +1,189 @@
+{
+  "source_sha256": "ec10adfae42067e9d5c7b964b28358edf4079f518a5eaf23154af18783da6588",
+  "scope": "5 actual Linux subreaper/proc/new-session process controls only; zero OIDC/broker/SDK/Cargo qualification",
+  "passed": true,
+  "cases": [
+    {
+      "case": "graceful",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": true,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "outer_interrupted": false,
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "c187188b44dc2cb551ac935c3503717575176949342c21b7408a2c9880d138bb"
+        ],
+        "events": [],
+        "confirmed_identity_count": 1,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "orphan",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "7afd3669b7c0fe26a30678807cd9d87c86ee72821abef154a5b985be728f99ed"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1136871,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1136871,
+                "starttime_ticks": 7285512
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "adopted-child-reaped",
+            "pid": 1136871,
+            "starttime_ticks": 7285512,
+            "status": 15
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "ignore-term",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "60c8daa4f79936f3dfe8d62d6ece40bddb7f763affd7e227c0215452c5052918"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1136873,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1136873,
+                "starttime_ticks": 7285533
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "owned-group-signalled",
+            "pgid": 1136873,
+            "signal": 9,
+            "identities": [
+              {
+                "pid": 1136873,
+                "starttime_ticks": 7285533
+              }
+            ]
+          },
+          {
+            "ordinal": 2,
+            "event": "adopted-child-reaped",
+            "pid": 1136873,
+            "starttime_ticks": 7285533,
+            "status": 9
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "missing-registry",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "unverified_ownership": true,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1136875,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1136875,
+                "starttime_ticks": 7285577
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "adopted-child-reaped",
+            "pid": 1136875,
+            "starttime_ticks": 7285577,
+            "status": 15
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "timeout",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": true,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "8460cae33000d65a34a91fc71692bf1ef30a3ff0f537652d95ae6b7f7dbe0fcd"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "controlled-driver-term",
+            "pid": 1136876,
+            "outer_interrupted": false
+          }
+        ],
+        "confirmed_identity_count": 1,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "scope": "Exact second actual infrastructure-control source/receipt bytes; no SDK/broker/OIDC",
+  "files": [
+    {
+      "path": "own-live.py",
+      "sha256": "ec10adfae42067e9d5c7b964b28358edf4079f518a5eaf23154af18783da6588",
+      "bytes": 12200,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/check-outer-owner.py",
+      "sha256": "8055b38ce4e143aa38dcedec69ae064a46e5d1e2c857cf3a7101af42e358e4d4",
+      "bytes": 3615,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/check-preparation.py",
+      "sha256": "8133262abf6c8fa79e29b7bb206f5efdd02805ddf591353c2e44fbbefa44bcfb",
+      "bytes": 4697,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/outer-controls.json",
+      "sha256": "220819a569baabb2f05853bd2d520a00fb9e398edeadbffbfcf65e2232e67647",
+      "bytes": 5866,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/preparation-controls.json",
+      "sha256": "9a7ef100b61fa443dfa3926a2d03b8daeb2ecef1070ed300004425f5a64623dd",
+      "bytes": 638,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "run-live.py",
+      "sha256": "338a27239f7a6234990d4cc0c4ea3952f83108200a838275af98fab20705cce4",
+      "bytes": 38904,
+      "full_mode": "0o600"
+    }
+  ]
+}

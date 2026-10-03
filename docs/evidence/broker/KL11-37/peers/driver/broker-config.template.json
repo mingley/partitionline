@@ -1,0 +1,21 @@
+{
+  "state_dir": "/workspace/work/UNIQUE/broker-state",
+  "stop_file": "/workspace/work/UNIQUE/stop",
+  "broker_port": 19093,
+  "profile": "metadata",
+  "maximum_runtime_secs": 240,
+  "issuer": "https://localhost:ISSUER_PORT/issuer",
+  "jwks_origin": "https://localhost:ISSUER_PORT",
+  "audience": "partitionline",
+  "client_id": "partitionline-probe",
+  "introspection_endpoint": "https://localhost:ISSUER_PORT/issuer/introspect",
+  "client_secret_file": "/workspace/work/UNIQUE/issuer/client-secret",
+  "issuer_ca_der_file": "/workspace/work/UNIQUE/issuer/ca.der",
+  "broker_certificate_der_file": "/workspace/work/UNIQUE/issuer/leaf.der",
+  "broker_key_der_file": "/workspace/work/UNIQUE/issuer/leaf.key.der",
+  "key_freshness_ms": 3000,
+  "key_refresh_ms": 200,
+  "revocation_lease_ms": 500,
+  "revocation_refresh_ms": 100,
+  "http_timeout_ms": 1000
+}

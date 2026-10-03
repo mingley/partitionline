@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "review_kind": "read-only source and retained infrastructure receipt review; no control rerun, compiler, SDK, broker, HTTPS live or Cargo executed by reviewer",
+  "inputs": [
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/run-live.py",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "bytes": 39676,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/own-live.py",
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "bytes": 16931,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/oidc-native-peer.c",
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5",
+      "bytes": 11180,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/src/main.rs",
+      "sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee",
+      "bytes": 16233,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/Cargo.lock",
+      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+      "bytes": 18805,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer-controls.json",
+      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+      "bytes": 11196,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/validation.json",
+      "sha256": "22a7dd990d11d5990694012acdefa9ba61893c439cbd8e1d86301968075cc414",
+      "bytes": 730,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/preparation-controls.json",
+      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+      "bytes": 748,
+      "full_mode": "0o600"
+    }
+  ],
+  "blocking_findings": [],
+  "reviewed_corrections": [
+    "hard owner deadline now includes reserved cleanup and all planned waits clamp to it; observed overrun fails",
+    "each cleanup stage independently guarded, repeated scan fault uses base observation or revalidated confirmed PID-only fallback and remains failed",
+    "full regular/symlink filesystem path set equals committed Git plus byte/executable/full baseline modes before and after",
+    "native -169 explicitly has unproved origin; only typed broker code58/class evidence receives broker-authentication label",
+    "complete public record ledger and joined audit retained; synchronized per-operation denial explicitly unproved",
+    "public outputs omit arbitrary exception/provider/token/secret text; real TLS verification and pinned normal daemon admission retained"
+  ],
+  "limitations": [
+    "Linux proc/signal/exec/wait syscalls are not forcibly interruptible; any observed overrun or unverified/forced cleanup fails",
+    "infrastructure controls establish child ownership only; signed issuer components, official SDK acquisition and actual broker wire behavior still require independently source-pinned live runs",
+    "source review does not certify exhaustive failure injection or denial per application operation"
+  ],
+  "historical_review": "/workspace/work/broker-oidc-review/outer-review-ec10adfa.json"
+}

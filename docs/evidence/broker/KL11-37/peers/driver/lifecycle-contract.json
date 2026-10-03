@@ -1,0 +1,161 @@
+{
+  "status": "source preparation only; no Cargo build or live qualification",
+  "process_deadline_seconds": 240,
+  "profile_contracts": {
+    "metadata": {
+      "api_keys": [
+        3,
+        17,
+        18,
+        19,
+        20,
+        36
+      ],
+      "record_operations": false
+    },
+    "read-write": {
+      "api_keys": [
+        0,
+        1,
+        2,
+        3,
+        17,
+        18,
+        19,
+        20,
+        36
+      ],
+      "record_operations": "ordinary RF1 local-fsync; no groups, commits, transactions, idempotence, replication or reauthentication"
+    }
+  },
+  "peers": {
+    "java": {
+      "releases": [
+        "4.1.2",
+        "4.2.1",
+        "4.3.1"
+      ],
+      "provider": "unchanged official OAuthBearerLoginCallbackHandler + ClientCredentialsJwtRetriever + OAuthBearerLoginModule",
+      "config": "properties",
+      "commands": [
+        "query PHASE",
+        "recreate PHASE",
+        "write PHASE",
+        "read PHASE",
+        "close PHASE"
+      ]
+    },
+    "native": {
+      "release": "2.15.0",
+      "provider": "unchanged actual SDK OAUTHBEARER callback + bounded real libcurl HTTPS retrieval",
+      "built_in_oidc": false,
+      "config": "four argv fields containing endpoints and file paths, never credential values",
+      "commands": [
+        "METADATA pass",
+        "METADATA fail",
+        "STOP"
+      ],
+      "record_operations": false
+    },
+    "rust": {
+      "provider": "existing public OidcConfig/Sasl::oidc HTTPS client_credentials",
+      "config": "JSON",
+      "commands": [
+        "query PHASE",
+        "recreate PHASE",
+        "write PHASE",
+        "read PHASE",
+        "close PHASE"
+      ]
+    }
+  },
+  "authority": {
+    "issuer": "https://localhost:ephemeral/issuer",
+    "audience": "partitionline",
+    "subject": "issuer-probe",
+    "client_id": "partitionline-probe",
+    "scope": "kafka",
+    "discriminator": "protected typ=at+jwt",
+    "live_signature": "RS256 independently generated OpenSSL RSA2048; ES256 belongs to separate component fixture matrix"
+  },
+  "normal_executable_gate": {
+    "artifact_kind": "normal-example-executable",
+    "command": [
+      "cargo",
+      "+stable",
+      "build",
+      "--offline",
+      "--locked",
+      "--example",
+      "oidc_live_probe",
+      "--no-default-features",
+      "--features",
+      "oidc"
+    ],
+    "source_sha": "future actual pushed pin after merged broker61 and independent normalization",
+    "test_harness_elf_qualifies": false,
+    "toolchains": [
+      "stable",
+      "1.85.0"
+    ]
+  },
+  "coverage_recipes": [
+    {
+      "name": "cross-sdk-ordinary",
+      "steps": "three Java releases write/read one predeclared record each; Rust writes and reads every field of shared history; native callback metadata; joined broker restart then fresh Java/Rust read identical complete histories"
+    },
+    {
+      "name": "key-removal",
+      "steps": "same-client positive; actual HTTPS generation0->1 and block new token acquisition; wait bounded key refresh; same-client query fails without replacement proof; close peer and restore token route; fresh process gets actual new token and succeeds"
+    },
+    {
+      "name": "revocation",
+      "steps": "positive; revoke actual issued token hashes and block token acquisition; wait past500ms revocation lease; existing query fails; restore token route; fresh process succeeds"
+    },
+    {
+      "name": "key-and-discovery-outage",
+      "steps": "positive; independently block keys then discovery with existing admitted key; wait4.3s past3s freshness; query fails; restore authority; fresh process succeeds"
+    },
+    {
+      "name": "introspection-outage",
+      "steps": "positive; block introspection; wait1.3s past500ms lease; query fails; restore route; fresh process succeeds"
+    },
+    {
+      "name": "expiry",
+      "steps": "set TTL10s before fresh process acquisition; positive; block new acquisition; wait10s; query fails; restore TTL60/acquisition; fresh process succeeds"
+    },
+    {
+      "name": "acquisition-outage",
+      "steps": "block token route; fresh official Java constructor fatal is separately expected_ready=false; native/Rust may construct ready then public query fails; restore route and fresh process succeeds"
+    }
+  ],
+  "claims_and_limits": [
+    "Cached unexpired SDK tokens may be reused. Token callback counts are not server acceptance; actual authority token/introspection events and typed application dispatch are separate receipts.",
+    "Lifetime0 means reconnect, not KIP368 mid-connection reauthentication. Existing token-endpoint outage does not revoke a current valid key/introspection lease.",
+    "No arbitrary SDK stderr/exception strings are persisted; bounded stderr digest/count and safe typed stdout are retained.",
+    "Private keys, credentials and live bearer bytes stay in ephemeral0700/0600 scratch or memory. Third-party SDK/HTTP/JSON copies are not claimed fully zeroized.",
+    "OS DNS/file system calls are counted/bounded in admission but not forcibly cancellable. Process deadline fallback is recorded as a failed graceful join, not a successful ownership proof.",
+    "Template placeholder hashes are not proof. Final inputs require exact immutable source/runtime/JAR/library/build bindings and all losing outcomes retained.",
+    "The outer owner starts the driver in its own process group. Its300s total deadline includes reserved cleanup; no planned wait extends that deadline. Noncancellable Linux proc/signal/exec/wait calls may overrun, and any observed overrun fails. Forced TERM/KILL, surviving groups/readers or unresolved ownership fail. Core0 and Popen umask are inherited without post-fork Python callbacks."
+  ],
+  "outer_driver_deadline_seconds": 300,
+  "origin_receipt_schema": {
+    "source_sha": "actual pushed SHA",
+    "source_root": "exact immutable archive absolute path",
+    "complete_git_tree_verified": true,
+    "mutable_worktree_inodes_disjoint": true,
+    "original_materialization_receipt": "hash-bound source audit proof, not a self-asserted placeholder"
+  },
+  "peer_build_receipt_schema": {
+    "source_sha": "actual pushed SHA",
+    "exit_code": 0,
+    "command": "exact compiler argv",
+    "runtime_inputs": "identical full path/hash list from configuration; Java must include all JAR/class/runtime inputs; native/Rust executable/runtime input set",
+    "source_inputs": "exact immutable published source/manifest hashes"
+  },
+  "negative_verdict_contract": "Prior positive on the same configured peer; exactly one active peer; safe Java exception/native code/Rust Error category; actual authority outage/revocation/active-peer expiry/key-replacement witness; later positive recovery. Independent stdout readers provide no synchronized per-operation dispatch barrier; joined raw audit totals are retained and precise denial remains separately source-pinned core socket proof. A timeout is not itself called an authentication error.",
+  "unexpected_failure_contract": "Retain safe failure_stage enum and failed_step index; do not persist arbitrary exception/provider message text.",
+  "cleanup_contract": "Started-state tracked before issuer shutdown; every stop/close independently bounded with tracked non-daemon threads. Every owned process group is inspected even after leader exit, all pipe readers join, and forced cleanup invalidates graceful ownership.",
+  "external_owner_gate": "Actual own-live.py Linux subreaper owner:100ms descendant plus PID/starttime-bound atomic registry tracking; absolute total300s including reserved cleanup; controlled driver TERM; independent guarded confirmed-session TERM/KILL sweeps before driver SIGKILL; adopted zombie reaping. Forced/surviving/unverified/overrun results fail. Six actual process controls and five separate stdlib/file/proc/pipe/Git controls qualify infrastructure only, including observation-fault and tiny-total-deadline controls. No OAuth/SDK result is inferred.",
+  "signed_policy_recipe": "Each signed negative uses a stopped/fresh same-configured peer after its prior positive baseline, with actual token_policy control set before restart. Witness binds only newly minted hashes since fresh peer start. Recover with valid policy and another fresh peer. Client-local JWT rejection is distinct from observed broker-authentication class/code."
+}

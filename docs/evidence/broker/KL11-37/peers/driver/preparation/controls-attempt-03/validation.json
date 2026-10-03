@@ -1,0 +1,63 @@
+{
+  "scope": "actual infrastructure controls only; no broker/HTTPS/SDK or compile/test/Cargo qualification",
+  "inputs": [
+    {
+      "path": "run-live.py",
+      "sha256": "739569aa6ad9f0ada913e7e91ae395491bdc8de0614d2bcd7534fcba325b08cd",
+      "bytes": 39317,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "own-live.py",
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "bytes": 16931,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/check-preparation.py",
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "bytes": 6287,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "preparation/check-outer-owner.py",
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "bytes": 4957,
+      "full_mode": "0o600"
+    }
+  ],
+  "source_unchanged": true,
+  "commands": [
+    {
+      "name": "preparation",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "python3",
+        "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-preparation.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 0.11193241301225498,
+      "stdout_sha256": "9f2294b2a3606ae5b383112fcc207a0c37c6a1db94622d4e158afce7b9d8e5bb",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "receipt_sha256": "f21a9012770a4ee21fe9609529850baaca7b3c1fed801f69bf7699538fc1e904"
+    },
+    {
+      "name": "outer",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "python3",
+        "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-outer-owner.py"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 2.09051205200376,
+      "stdout_sha256": "5b6d457446af15c706ebe3860319aebc2ec8633fcf922d5bbb03fe83e5a0d52f",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "receipt_sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480"
+    }
+  ],
+  "passed": true
+}

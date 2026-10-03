@@ -1,0 +1,27 @@
+{
+  "source_sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+  "scope": "5 actual stdlib/file/proc/pipe/Git controls only; zero HTTPS, broker, KafkaSDK or native/Rust compiler qualification",
+  "cases": [
+    {
+      "name": "real-registry-preserves-history-and-proc-identity",
+      "passed": true
+    },
+    {
+      "name": "counter-and-reserved-identity-injection",
+      "passed": true
+    },
+    {
+      "name": "actual-stdio-process-core0-graceful-group-readers",
+      "passed": true
+    },
+    {
+      "name": "actual-secret-key-pipe-injection-rejected",
+      "passed": true
+    },
+    {
+      "name": "actual-Git-whole-pathset-rejects-extra-standalone-lock",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

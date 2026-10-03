@@ -1,0 +1,76 @@
+{
+  "scope": "final source/configuration parse and independent review; unchanged Rust formatting from source-parse-attempt-05; no compiler/SDK/live qualification",
+  "passed": true,
+  "inputs": [
+    {
+      "path": "run-live.py",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "bytes": 39676,
+      "full_mode": "0o600",
+      "check": "AST parse only"
+    },
+    {
+      "path": "own-live.py",
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "bytes": 16931,
+      "full_mode": "0o600",
+      "check": "AST parse only"
+    },
+    {
+      "path": "preparation/check-preparation.py",
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "bytes": 6287,
+      "full_mode": "0o600",
+      "check": "AST parse only"
+    },
+    {
+      "path": "preparation/check-outer-owner.py",
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "bytes": 4957,
+      "full_mode": "0o600",
+      "check": "AST parse only"
+    },
+    {
+      "path": "lifecycle-contract.json",
+      "sha256": "bdca8862023d9213e18ffc8fb7496b056c2da442e307880e831f14d913a012ef",
+      "bytes": 8323,
+      "full_mode": "0o600",
+      "check": "JSON parse only"
+    },
+    {
+      "path": "native-plan.json",
+      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7",
+      "bytes": 2249,
+      "full_mode": "0o600",
+      "check": "JSON parse only"
+    },
+    {
+      "path": "live-config.template.json",
+      "sha256": "fac47b2987a91c5d810f360e04ea43db9fe107cd66258193b9f1c9a620dfeb2b",
+      "bytes": 9707,
+      "full_mode": "0o600",
+      "check": "JSON parse only"
+    },
+    {
+      "path": "failure-recipe.template.json",
+      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9",
+      "bytes": 6631,
+      "full_mode": "0o600",
+      "check": "JSON parse only"
+    },
+    {
+      "path": "broker-config.template.json",
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc",
+      "bytes": 856,
+      "full_mode": "0o600",
+      "check": "JSON parse only"
+    }
+  ],
+  "driver_controls_receipt": "driver-controls-attempt-04/preparation-controls.json",
+  "driver_controls_sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+  "outer_controls_receipt": "controls-attempt-03/outer-controls.json",
+  "outer_controls_sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+  "review_sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
+  "prior_format_configuration_failure_retained": "source-parse-attempt-04",
+  "offline_lockfile_resolution_only": "rust-lock-resolution/resolution.json"
+}

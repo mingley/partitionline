@@ -1,0 +1,23 @@
+{
+  "source_sha256": "338a27239f7a6234990d4cc0c4ea3952f83108200a838275af98fab20705cce4",
+  "scope": "4 actual stdlib/file/proc/pipe controls only; zero HTTPS, broker, KafkaSDK or native/Rust compiler qualification",
+  "cases": [
+    {
+      "name": "real-registry-preserves-history-and-proc-identity",
+      "passed": true
+    },
+    {
+      "name": "counter-and-reserved-identity-injection",
+      "passed": true
+    },
+    {
+      "name": "actual-stdio-process-core0-graceful-group-readers",
+      "passed": true
+    },
+    {
+      "name": "actual-secret-key-pipe-injection-rejected",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

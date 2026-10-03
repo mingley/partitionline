@@ -1,0 +1,37 @@
+{
+  "stage": "WORK source-only callback-provider preparation; not compiled or executed",
+  "sdk": {
+    "repository": "https://github.com/confluentinc/librdkafka.git",
+    "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+    "tag": "v2.15.0",
+    "library_path": "/workspace/work/c-peer/lib/librdkafka.so.1",
+    "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+    "header_and_json_parser": "/workspace/work/c-peer/source/src",
+    "built_in_oidc": false,
+    "reason": "Historical pin configured --disable-curl; unchanged OAUTHBEARER/SSL SDK is exercised through its standard public callback API."
+  },
+  "https_provider": {
+    "library": "available libcurl8.14.1",
+    "protocol": "explicit HTTPS, verified CA/hostname, HTTP1.1, Basic client credentials, no redirects",
+    "limits": "2-second whole request,1-second connect,64KiB response body,16KiB headers,32KiB compact token,64 refresh callbacks",
+    "claims": "Unverified exp/sub parse supplies required SDK callback metadata only; production broker independently validates signature/policy/revocation."
+  },
+  "sdk_apis": [
+    "rd_kafka_conf_set_oauthbearer_token_refresh_cb",
+    "rd_kafka_conf_enable_sasl_queue",
+    "rd_kafka_sasl_background_callbacks_enable",
+    "rd_kafka_oauthbearer_set_token",
+    "rd_kafka_metadata",
+    "rd_kafka_destroy",
+    "rd_kafka_wait_destroyed"
+  ],
+  "command_interface": "broker caPem tokenEndpoint clientSecretFile; then bounded METADATA pass/fail and STOP lines on stdin",
+  "bounds": "32 queries,5-second public metadata operation; orchestrator must impose240-second process-group ceiling and disable core dumps",
+  "outputs": "Finite typed JSON callback/query/join counters and numeric SDK error codes; callback/log/error bodies discarded",
+  "limits": [
+    "Metadata callback integration alone is not ordinary Produce/Fetch or native built-in OIDC provider qualification.",
+    "Owned request/secret/body buffers are wiped, but no claim all third-party curl/JSON/SDK/TLS allocations are scrubbed.",
+    "Network deadlines do not establish forcible cancellation of every operating-system resolver call.",
+    "All attempted compile/live failures remain distinct from eventual positive cohorts."
+  ]
+}

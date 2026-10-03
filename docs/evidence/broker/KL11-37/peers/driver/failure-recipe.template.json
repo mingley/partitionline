@@ -1,0 +1,321 @@
+{
+  "status": "source-only finite declared recipe; no live results",
+  "peer_substitution": "one actual pinned SDK peer per run; arbitrary extension after a failure is prohibited",
+  "steps": [
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": [
+          "/issuer/keys"
+        ]
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 4.3
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "keys_outage",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "outage",
+        "route": "/issuer/keys"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": []
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.1
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "keys_outage_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": [
+          "/issuer/.well-known/openid-configuration"
+        ]
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 4.3
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "discovery_outage",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "outage",
+        "route": "/issuer/.well-known/openid-configuration"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": []
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.1
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "discovery_outage_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": [
+          "/issuer/introspect"
+        ]
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.3
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "introspection_outage",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "outage",
+        "route": "/issuer/introspect"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": []
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.1
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "introspection_outage_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": [
+          "/issuer/token"
+        ]
+      }
+    },
+    {
+      "operation": "revoke-issued"
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.3
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "revoked",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "revoked"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "revocation_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "generation": 1,
+        "outage": [
+          "/issuer/token"
+        ]
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 1.1
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "key_removed",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "key-removed"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "rotated_fresh",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "ttl": 10
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "short_lifetime",
+      "expected_pass": true
+    },
+    {
+      "operation": "control",
+      "value": {
+        "outage": [
+          "/issuer/token"
+        ]
+      }
+    },
+    {
+      "operation": "wait",
+      "seconds": 10
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "expired",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "expired"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "ttl": 60,
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    },
+    {
+      "operation": "send",
+      "peer": "SELECTED_SDK_PEER_ID",
+      "action": "query",
+      "phase": "expiry_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "SELECTED_SDK_PEER_ID"
+    }
+  ],
+  "acquisition_failure_lanes": "separate token-outage cohort: Java expected_ready=false constructor fatal; native/Rust ready then expected_pass=false query; fresh-process recovery after restoring route"
+}

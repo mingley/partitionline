@@ -1,0 +1,336 @@
+{
+  "source_sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+  "scope": "6 actual Linux subreaper/proc/new-session process controls only; zero OIDC/broker/SDK/Cargo qualification",
+  "passed": true,
+  "cases": [
+    {
+      "case": "graceful",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": true,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": false,
+        "outer_interrupted": false,
+        "total_budget_seconds": 5,
+        "elapsed_seconds": 0.34134554798947647,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "ed1b899eb611851bf8912732730bbf2bed8c5118a3ae375f8f1e475ee0ee7999"
+        ],
+        "events": [],
+        "confirmed_identity_count": 1,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "orphan",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "total_budget_seconds": 5,
+        "elapsed_seconds": 0.23482316499575973,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "6bd04d8184fe83408f075aa750be857c206f988a49797ae35e54db13f21354f1"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1156391,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1156391,
+                "starttime_ticks": 7437469
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "adopted-child-reaped",
+            "pid": 1156391,
+            "starttime_ticks": 7437469,
+            "status": 15
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "ignore-term",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "total_budget_seconds": 5,
+        "elapsed_seconds": 0.3902580330031924,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "e8fbf2e0c878c7a35e502c38237b59101e880ca6ee0738ce96eefc91a08676d7"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1156393,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1156393,
+                "starttime_ticks": 7437492
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "owned-group-signalled",
+            "pgid": 1156393,
+            "signal": 9,
+            "identities": [
+              {
+                "pid": 1156393,
+                "starttime_ticks": 7437492
+              }
+            ]
+          },
+          {
+            "ordinal": 2,
+            "event": "adopted-child-reaped",
+            "pid": 1156393,
+            "starttime_ticks": 7437492,
+            "status": 9
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "missing-registry",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "total_budget_seconds": 5,
+        "elapsed_seconds": 0.2325129359960556,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": true,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owned-group-signalled",
+            "pgid": 1156395,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1156395,
+                "starttime_ticks": 7437531
+              }
+            ]
+          },
+          {
+            "ordinal": 1,
+            "event": "adopted-child-reaped",
+            "pid": 1156395,
+            "starttime_ticks": 7437531,
+            "status": 15
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "timeout",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": 0,
+        "timed_out": true,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "total_budget_seconds": 0.5,
+        "elapsed_seconds": 0.43399354700522963,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": false,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "f89a82ef83d8b69abf8ecbf7cd70b5b8c28cc2687261b0c549b2bf72b48da68b"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "controlled-driver-term",
+            "pid": 1156396,
+            "outer_interrupted": false
+          }
+        ],
+        "confirmed_identity_count": 1,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    },
+    {
+      "case": "scan-failure",
+      "assertions_passed": true,
+      "actual_owner_result": {
+        "scope": "Linux infrastructure group ownership; OIDC results are separate",
+        "passed": false,
+        "driver_exit_code": -9,
+        "timed_out": false,
+        "forced_cleanup": true,
+        "outer_interrupted": false,
+        "total_budget_seconds": 5,
+        "elapsed_seconds": 0.4151481809967663,
+        "deadline_includes_cleanup": true,
+        "total_deadline_exceeded": false,
+        "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+        "unverified_ownership": true,
+        "remaining": [],
+        "unconfirmed_registered_group_members": [],
+        "registry_sha256_history": [
+          "5466027b16228975ab22560c6e32940b3d9426f9e446deb0787114d08cca6269"
+        ],
+        "events": [
+          {
+            "ordinal": 0,
+            "event": "owner-monitor-interrupted"
+          },
+          {
+            "ordinal": 1,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 2,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 3,
+            "event": "owned-group-signalled",
+            "pgid": 1156398,
+            "signal": 15,
+            "identities": [
+              {
+                "pid": 1156398,
+                "starttime_ticks": 7437598
+              }
+            ]
+          },
+          {
+            "ordinal": 4,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 5,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 6,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 7,
+            "event": "owned-group-signalled",
+            "pgid": 1156398,
+            "signal": 9,
+            "identities": [
+              {
+                "pid": 1156398,
+                "starttime_ticks": 7437598
+              }
+            ]
+          },
+          {
+            "ordinal": 8,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 9,
+            "event": "owned-group-signalled",
+            "pgid": 1156397,
+            "signal": 9,
+            "identities": [
+              {
+                "pid": 1156397,
+                "starttime_ticks": 7437596
+              }
+            ]
+          },
+          {
+            "ordinal": 10,
+            "event": "owned-group-signalled",
+            "pgid": 1156398,
+            "signal": 9,
+            "identities": [
+              {
+                "pid": 1156398,
+                "starttime_ticks": 7437598
+              }
+            ]
+          },
+          {
+            "ordinal": 11,
+            "event": "adopted-child-reaped",
+            "pid": 1156398,
+            "starttime_ticks": 7437598,
+            "status": 9
+          },
+          {
+            "ordinal": 12,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 13,
+            "event": "cleanup-observation-failure"
+          },
+          {
+            "ordinal": 14,
+            "event": "cleanup-observation-failure"
+          }
+        ],
+        "confirmed_identity_count": 2,
+        "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+      }
+    }
+  ]
+}

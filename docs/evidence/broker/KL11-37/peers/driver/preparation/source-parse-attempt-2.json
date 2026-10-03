@@ -1,0 +1,65 @@
+{
+  "status": "AST/JSON parse and Rust formatting only; no compiler/SDK/socket runtime qualification",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5423,
+      "mode": "0o600",
+      "sha256": "a9e15ec664a90789a909638f6f299790cf8c8484ec7eea3e7cd14116f6164647"
+    },
+    {
+      "path": "broker-config.template.json",
+      "bytes": 856,
+      "mode": "0o600",
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc"
+    },
+    {
+      "path": "failure-recipe.template.json",
+      "bytes": 6631,
+      "mode": "0o600",
+      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9"
+    },
+    {
+      "path": "lifecycle-contract.json",
+      "bytes": 6291,
+      "mode": "0o600",
+      "sha256": "22a890b5f1f241de73fc649be177f53fe4257b64a69cf104f1b4aa117c366cc8"
+    },
+    {
+      "path": "live-config.template.json",
+      "bytes": 9508,
+      "mode": "0o600",
+      "sha256": "3c21f84ebce14a8e6c1d6e7369019ab5661fcd8b9decb2954b793b03ebc6a7ee"
+    },
+    {
+      "path": "native-plan.json",
+      "bytes": 2249,
+      "mode": "0o600",
+      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7"
+    },
+    {
+      "path": "oidc-native-peer.c",
+      "bytes": 11180,
+      "mode": "0o600",
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5"
+    },
+    {
+      "path": "run-live.py",
+      "bytes": 35187,
+      "mode": "0o600",
+      "sha256": "0442c4f6453774a86480fef190eee598baa43d7b8303f2b6ad07f6ae3dd82f37"
+    },
+    {
+      "path": "rust-peer/Cargo.toml",
+      "bytes": 607,
+      "mode": "0o600",
+      "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7"
+    },
+    {
+      "path": "rust-peer/src/main.rs",
+      "bytes": 16233,
+      "mode": "0o600",
+      "sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee"
+    }
+  ]
+}

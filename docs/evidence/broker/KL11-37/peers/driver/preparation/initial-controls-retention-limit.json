@@ -1,0 +1,12 @@
+{
+  "scope": "preparation stdlib/process controls only; no failed broker/SDK or production receipt affected",
+  "first_source_control": {
+    "reported_passes": 4,
+    "receipt_sha256": "0abf46c8fb246c999f48099042a650dec411489b105d93422c8489d101d4531e"
+  },
+  "first_outer_control": {
+    "reported_passes": 5,
+    "receipt_sha256": "368ff3501e3f83d1718ea0cacf8f62e927301658d4be6291bbfeea4155e88550"
+  },
+  "limitation": "First successful control JSON payloads were overwritten during a changed-source rerun before archival. Earlier stdout reports/hashes remain known, but original per-process payload bytes are unavailable and are not reconstructed or counted as source-qualified final artifacts. The complete second source/receipts are preserved under controls-attempt-02."
+}

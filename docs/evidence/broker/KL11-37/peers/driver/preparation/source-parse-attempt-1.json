@@ -1,0 +1,59 @@
+{
+  "scope": "AST/JSON parse only; no socket/Cargo/compiler/runtime qualification",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3879,
+      "mode": "0o600",
+      "sha256": "be6bf5a88d3120d1e7b9bb8eabc53a4c08998718f9b696a77c6ffd861e502f0c"
+    },
+    {
+      "path": "broker-config.template.json",
+      "bytes": 856,
+      "mode": "0o600",
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc"
+    },
+    {
+      "path": "lifecycle-contract.json",
+      "bytes": 4471,
+      "mode": "0o600",
+      "sha256": "7fc8487502babb1ab5c24366f4fefe1fb57688a8083d3f1e3a6a87b75dd03c72"
+    },
+    {
+      "path": "live-config.template.json",
+      "bytes": 2922,
+      "mode": "0o600",
+      "sha256": "bceac3f0ed58d708899e08b5ae48945cfaa168ce99c737da0c4296bc50749c98"
+    },
+    {
+      "path": "native-plan.json",
+      "bytes": 2249,
+      "mode": "0o600",
+      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7"
+    },
+    {
+      "path": "oidc-native-peer.c",
+      "bytes": 11180,
+      "mode": "0o600",
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5"
+    },
+    {
+      "path": "run-live.py",
+      "bytes": 21713,
+      "mode": "0o600",
+      "sha256": "1a393b3bad24043f61e29ddcb9e1adc168d3e8b64ddd2166417301a81d4f0ca9"
+    },
+    {
+      "path": "rust-peer/Cargo.toml",
+      "bytes": 619,
+      "mode": "0o600",
+      "sha256": "6a2861b9cbeac4f031d1a80ab97e6904ffa85e202d3fd4a0003771d3436aa761"
+    },
+    {
+      "path": "rust-peer/src/main.rs",
+      "bytes": 14125,
+      "mode": "0o600",
+      "sha256": "11987dfecf037f397e138bc3ebb8ff5a5b3d38d697d19d9570fabf1a9b376a8f"
+    }
+  ]
+}

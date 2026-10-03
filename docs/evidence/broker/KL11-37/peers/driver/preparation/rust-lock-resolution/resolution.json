@@ -1,0 +1,20 @@
+{
+  "scope": "offline resolution only, no compile/test/clean/live; temporary manifest differs only client path to immutable403",
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "origin_receipt_sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff",
+  "command": [
+    "cargo",
+    "+stable",
+    "generate-lockfile",
+    "--offline",
+    "--manifest-path",
+    "/workspace/work/broker-oidc/rust-peer-lock-proposal/Cargo.toml"
+  ],
+  "exit_code": 0,
+  "canonical_manifest_sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7",
+  "temporary_manifest_sha256": "c8a4cffdfa614ee90b70a898a43458c0bf338ec6bcfeafa10f49e3d880e20b9c",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "133b8fce6d2ac862201570f2ad4a71c24a1114ca635c07b948d2af73191340ea",
+  "lockfile_sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+  "lockfile_bytes": 18805
+}

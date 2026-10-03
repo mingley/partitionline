@@ -1,0 +1,391 @@
+{
+  "source_sha": "ACTUAL_PUSHED_SOURCE_SHA",
+  "git_repository": "/workspace/partitionline",
+  "source_root": "/workspace/work/IMMUTABLE_SOURCE_ARCHIVE",
+  "issuer_relative_path": "docs/evidence/broker/KL11-37/oracle/https/live-issuer/source/live-issuer.py",
+  "issuer_sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+  "normal_example_build_receipt": "/workspace/work/ACTUAL_NORMAL_EXAMPLE_BUILD.json",
+  "normal_example_build_receipt_sha256": "EXACT_BUILD_RECEIPT_SHA256",
+  "profile": "read-write",
+  "peers": [
+    {
+      "id": "java-4-1-2",
+      "kind": "java",
+      "release": "4.1.2",
+      "runtime_inputs": [
+        {
+          "path": "/workspace/work/PINNED_KAFKA_CLIENTS_4.1.2.jar",
+          "sha256": "ACTUAL_HASH"
+        }
+      ],
+      "command": [
+        "java",
+        "-Dorg.slf4j.simpleLogger.defaultLogLevel=off",
+        "-cp",
+        "ACTUAL_PINNED_18_JAR_CLASSPATH_PLUS_CLASSES_4.1.2",
+        "OAuthMetadataPeer",
+        "{config}"
+      ],
+      "build_receipt": "/workspace/work/EXACT_PEER_java-4-1-2_BUILD_RECEIPT.json",
+      "build_receipt_sha256": "ACTUAL_BUILD_RECEIPT_HASH",
+      "source_inputs": [
+        {
+          "path": "docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java",
+          "sha256": "ACTUAL_PUBLISHED_SOURCE_HASH"
+        }
+      ]
+    },
+    {
+      "id": "java-4-2-1",
+      "kind": "java",
+      "release": "4.2.1",
+      "runtime_inputs": [
+        {
+          "path": "/workspace/work/PINNED_KAFKA_CLIENTS_4.2.1.jar",
+          "sha256": "ACTUAL_HASH"
+        }
+      ],
+      "command": [
+        "java",
+        "-Dorg.slf4j.simpleLogger.defaultLogLevel=off",
+        "-cp",
+        "ACTUAL_PINNED_18_JAR_CLASSPATH_PLUS_CLASSES_4.2.1",
+        "OAuthMetadataPeer",
+        "{config}"
+      ],
+      "build_receipt": "/workspace/work/EXACT_PEER_java-4-2-1_BUILD_RECEIPT.json",
+      "build_receipt_sha256": "ACTUAL_BUILD_RECEIPT_HASH",
+      "source_inputs": [
+        {
+          "path": "docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java",
+          "sha256": "ACTUAL_PUBLISHED_SOURCE_HASH"
+        }
+      ]
+    },
+    {
+      "id": "java-4-3-1",
+      "kind": "java",
+      "release": "4.3.1",
+      "runtime_inputs": [
+        {
+          "path": "/workspace/work/PINNED_KAFKA_CLIENTS_4.3.1.jar",
+          "sha256": "ACTUAL_HASH"
+        }
+      ],
+      "command": [
+        "java",
+        "-Dorg.slf4j.simpleLogger.defaultLogLevel=off",
+        "-cp",
+        "ACTUAL_PINNED_18_JAR_CLASSPATH_PLUS_CLASSES_4.3.1",
+        "OAuthMetadataPeer",
+        "{config}"
+      ],
+      "build_receipt": "/workspace/work/EXACT_PEER_java-4-3-1_BUILD_RECEIPT.json",
+      "build_receipt_sha256": "ACTUAL_BUILD_RECEIPT_HASH",
+      "source_inputs": [
+        {
+          "path": "docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java",
+          "sha256": "ACTUAL_PUBLISHED_SOURCE_HASH"
+        }
+      ]
+    },
+    {
+      "id": "native-2-15",
+      "kind": "native",
+      "runtime_inputs": [
+        {
+          "path": "/workspace/work/NATIVE_PEER_EXECUTABLE",
+          "sha256": "ACTUAL_PEER_HASH"
+        },
+        {
+          "path": "/workspace/work/c-peer/lib/librdkafka.so.1",
+          "sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc"
+        }
+      ],
+      "command": [
+        "/workspace/work/NATIVE_PEER_EXECUTABLE",
+        "{bootstrap}",
+        "{ca_pem}",
+        "{token_url}",
+        "{client_secret_file}"
+      ],
+      "build_receipt": "/workspace/work/EXACT_PEER_native-2-15_BUILD_RECEIPT.json",
+      "build_receipt_sha256": "ACTUAL_BUILD_RECEIPT_HASH",
+      "source_inputs": [
+        {
+          "path": "docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
+          "sha256": "ACTUAL_PUBLISHED_SOURCE_HASH"
+        }
+      ]
+    },
+    {
+      "id": "rust-public",
+      "kind": "rust",
+      "runtime_inputs": [
+        {
+          "path": "/workspace/work/RUST_PEER_EXECUTABLE",
+          "sha256": "ACTUAL_PEER_HASH"
+        }
+      ],
+      "command": [
+        "/workspace/work/RUST_PEER_EXECUTABLE",
+        "{config}"
+      ],
+      "build_receipt": "/workspace/work/EXACT_PEER_rust-public_BUILD_RECEIPT.json",
+      "build_receipt_sha256": "ACTUAL_BUILD_RECEIPT_HASH",
+      "source_inputs": [
+        {
+          "path": "docs/evidence/broker/KL11-37/peers/rust/src/main.rs",
+          "sha256": "ACTUAL_PUBLISHED_SOURCE_HASH"
+        }
+      ]
+    }
+  ],
+  "steps": [
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "write",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "read",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-2-1",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-2-1",
+      "action": "write",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-2-1",
+      "action": "read",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-3-1",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-3-1",
+      "action": "write",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-3-1",
+      "action": "read",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "rust-public"
+    },
+    {
+      "operation": "send",
+      "peer": "rust-public",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "rust-public",
+      "action": "write",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "send",
+      "peer": "rust-public",
+      "action": "read",
+      "phase": "cross_sdk",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "rust-public"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "read",
+      "phase": "complete_cross_sdk",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-2-1",
+      "action": "read",
+      "phase": "complete_cross_sdk",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-3-1",
+      "action": "read",
+      "phase": "complete_cross_sdk",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "restart-broker"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "read",
+      "phase": "complete_restart",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-2-1",
+      "action": "read",
+      "phase": "complete_restart",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-2-1"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-3-1",
+      "action": "read",
+      "phase": "complete_restart",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-3-1"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "rust-public"
+    },
+    {
+      "operation": "send",
+      "peer": "rust-public",
+      "action": "read",
+      "phase": "restart",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "rust-public"
+    },
+    {
+      "operation": "start-peer",
+      "peer": "native-2-15"
+    },
+    {
+      "operation": "send",
+      "peer": "native-2-15",
+      "action": "query",
+      "phase": "initial",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "native-2-15"
+    }
+  ],
+  "immutable_origin_receipt": "/workspace/work/COMPLETE_IMMUTABLE_SOURCE_ORIGIN_RECEIPT.json",
+  "immutable_origin_receipt_sha256": "ACTUAL_ORIGIN_RECEIPT_HASH",
+  "driver_relative_path": "docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+  "driver_sha256": "ACTUAL_PUBLISHED_DRIVER_HASH",
+  "outer_relative_path": "docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+  "outer_sha256": "ACTUAL_PUBLISHED_OUTER_OWNER_HASH"
+}

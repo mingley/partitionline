@@ -1,0 +1,65 @@
+{
+  "status": "source-only review candidate; AST/JSON parse and Rust formatting; no Cargo/native compilation/socket SDK runtime",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5423,
+      "full_mode": "0o600",
+      "sha256": "a9e15ec664a90789a909638f6f299790cf8c8484ec7eea3e7cd14116f6164647"
+    },
+    {
+      "path": "broker-config.template.json",
+      "bytes": 856,
+      "full_mode": "0o600",
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc"
+    },
+    {
+      "path": "failure-recipe.template.json",
+      "bytes": 6631,
+      "full_mode": "0o600",
+      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9"
+    },
+    {
+      "path": "lifecycle-contract.json",
+      "bytes": 7126,
+      "full_mode": "0o600",
+      "sha256": "664032f31c5c7254e885a585ff1b47c049a6929e4070c9d331768f1e0025a50f"
+    },
+    {
+      "path": "live-config.template.json",
+      "bytes": 9508,
+      "full_mode": "0o600",
+      "sha256": "3c21f84ebce14a8e6c1d6e7369019ab5661fcd8b9decb2954b793b03ebc6a7ee"
+    },
+    {
+      "path": "native-plan.json",
+      "bytes": 2249,
+      "full_mode": "0o600",
+      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7"
+    },
+    {
+      "path": "oidc-native-peer.c",
+      "bytes": 11180,
+      "full_mode": "0o600",
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5"
+    },
+    {
+      "path": "run-live.py",
+      "bytes": 35629,
+      "full_mode": "0o600",
+      "sha256": "42443a9c397e8eb5f4272dcb91c2a73865c30efabdaa6a300345ee2c01bc15d7"
+    },
+    {
+      "path": "rust-peer/Cargo.toml",
+      "bytes": 607,
+      "full_mode": "0o600",
+      "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7"
+    },
+    {
+      "path": "rust-peer/src/main.rs",
+      "bytes": 16233,
+      "full_mode": "0o600",
+      "sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee"
+    }
+  ]
+}
