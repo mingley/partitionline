@@ -1,0 +1,541 @@
+{
+  "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "toolchain": "1.85.0",
+  "cwd": "/workspace/work/raft-wire/final-source-04986a07/source",
+  "source_integrity": "/workspace/work/raft-wire/final-source-04986a07/source-integrity.json",
+  "commands": [
+    {
+      "name": "rustc-version",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.012141483999585034,
+      "log": "rustc-version.log",
+      "log_sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "clean-broker",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.04853859299691976,
+      "log": "clean-broker.log",
+      "log_sha256": "d26e8294e6af98499e8c984f40585eaf3b29f056b07e039060e873fdead51c80",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "default-all-targets",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-msrv/default/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-msrv/default/compiled-report.json"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 13.636001225000655,
+      "log": "default-all-targets.log",
+      "log_sha256": "e4655903f3f105fdb7c6a734500392bcbb7b4b36f91ca5b5d76994db9f7ee792",
+      "suite_counts": [
+        {
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "golden_case_totals": [
+        201
+      ],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "all-features-all-targets",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-msrv/all-features/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-msrv/all-features/compiled-report.json"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 42.298628229000315,
+      "log": "all-features-all-targets.log",
+      "log_sha256": "10954cd5638fbee84af5667c3660193783dc1f63b8cd9e92964ae75e1f31705b",
+      "suite_counts": [
+        {
+          "passed": 35,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "golden_case_totals": [
+        201
+      ],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.20415540099929785,
+      "log": "fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "strict-clippy-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 4.2792409069988935,
+      "log": "strict-clippy-default.log",
+      "log_sha256": "89a3114d4d06aa34636cf067c67be304ddc80ff074d26165adf7cbbafb2cc60c",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "strict-clippy-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 12.65072826800315,
+      "log": "strict-clippy-all-features.log",
+      "log_sha256": "984943a24538cb6cf0a6ecb4badd9b1b88f55c12355efb71811013f5b5a9cd26",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "strict-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.8663959169971349,
+      "log": "strict-docs.log",
+      "log_sha256": "9015bc382f7fe754f83bc9d953fe7a7b04686f6ef41856b524bd050d60f0e1ea",
+      "suite_counts": [],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    },
+    {
+      "name": "doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.1470499990027747,
+      "log": "doctests.log",
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d",
+      "suite_counts": [
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ],
+      "golden_case_totals": [],
+      "all_tracked_source_files_unchanged": true
+    }
+  ],
+  "status": "passed"
+}

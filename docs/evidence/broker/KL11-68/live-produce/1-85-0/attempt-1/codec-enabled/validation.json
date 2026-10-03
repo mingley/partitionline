@@ -1,0 +1,205 @@
+{
+  "source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "source_archive": "/workspace/work/broker-log-live-produce/source-c34bdfd3",
+  "toolchain": "1.85.0",
+  "features": "codecs",
+  "port": 19135,
+  "state": "/workspace/work/broker-log-live-produce/1-85-0/attempt-1",
+  "peer_state": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/1-85-0/attempt-1/clients",
+  "restart": true,
+  "peer_source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+  "peers": [
+    {
+      "release": "4.1.2",
+      "phase": "compressed-enabled",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.1.2",
+        "19135",
+        "compressed-enabled",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/1-85-0/attempt-1/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.1.2\",\"phase\":\"compressed-enabled\",\"assertions\":462,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 0.8593140590019175,
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f"
+    },
+    {
+      "release": "4.2.1",
+      "phase": "compressed-enabled",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.2.1",
+        "19135",
+        "compressed-enabled",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/1-85-0/attempt-1/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.2.1\",\"phase\":\"compressed-enabled\",\"assertions\":462,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 0.9227339870012656,
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f"
+    },
+    {
+      "release": "4.3.1",
+      "phase": "compressed-enabled",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+        "OrdinaryPeer",
+        "4.3.1",
+        "19135",
+        "compressed-enabled",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/1-85-0/attempt-1/clients"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"release\":\"4.3.1\",\"phase\":\"compressed-enabled\",\"assertions\":462,\"status\":\"pass\"}\n",
+      "elapsed_seconds": 0.9050597540008312,
+      "classpath": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar",
+          "sha256": "0f3f1857ed33116583f480b4df5c0218836c47bfbc9c6221c0d73f356decf37b"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar",
+          "sha256": "d74a3334fb35195009b338a951f918203d6bbca3d1d359033dc33edd1cadc9ef"
+        },
+        {
+          "path": "/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+          "sha256": "793ca8734aa15687e7e64564eab8b6ae9ee2720eae27aa663074682144b1c386"
+        }
+      ],
+      "class_sha256": "312aa76baebe18440bf43bc516a74f90ce5728cfc73869349e8b555f1d955d31"
+    }
+  ],
+  "build": {
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-log-live-produce/source-c34bdfd3/partitionline-broker/Cargo.toml",
+      "--test",
+      "produce",
+      "--no-run",
+      "--message-format=json",
+      "--features",
+      "codecs"
+    ],
+    "exit_code": 0
+  },
+  "binary_sha256": "acc817c063f860915bcbac5d908d61ffbdba9eb46c567baa07a9dca46e36eb97",
+  "compiler": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n",
+  "server_command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "/workspace/work/broker-log-live-produce/target-msrv/debug/deps/produce-3c56077d111e8e71",
+    "serve_live_probe",
+    "--exact",
+    "--nocapture"
+  ],
+  "server_pid": 382715,
+  "server_exit_code": 0,
+  "passed": true,
+  "journal_hashes": {
+    "catalog.journal": "2164b10d97475fd7b357c0f6d5fb56919f6edd04755747e2ac31c131475850ea",
+    "partitions/00fefd2c4b82446294a9b4205fe24872-0.journal": "7eecfd9c2e2fc113beb8799ee7aaf4798731ad97b4fa5bffc6005eda4e249569",
+    "partitions/01d00ca6621440ba86d0309db5690d75-0.journal": "42b41998b4e5fa6990557195805b127be0049eee2fb5e566d017e6f06b971a2e",
+    "partitions/0931c0f7dd764a1ebc21a35cddf014c3-0.journal": "8e30f2cbc76b5f000038431ca8cf6e3b21ea99bb9e119792f6b473c9b1784607",
+    "partitions/0cf9079101e6476f8fdf33630989f9b1-0.journal": "0039331ea658b7751c57d45a8b3c65cc769275f711deb50b2abb31fccb97d24e",
+    "partitions/0d4c89abe05543668484486da52c2285-0.journal": "c0610782e57ff670ffec29f5d68d8662df3377609c46f761684ee80e04e0f692",
+    "partitions/0d69e0da8e344947a5c5e74f6eef22e0-0.journal": "033b7e300b34dc9fb300749bf9b701deff998cf1347437211c533251f08c509a",
+    "partitions/19f54c9775934f4baec8e50fcdc28315-0.journal": "ca09d5b95aa55761ba5a4f4f0de61261aab57968f3b47cea027627dc1fafb094",
+    "partitions/1cc8b641adb84ad88e65cebc36ae0b37-0.journal": "486797e1b91077c65dd564773404a149d8927b302db4707b7e9eb7c1cc7316db",
+    "partitions/3598273548a9431fa3f06930f1931c65-0.journal": "c01f7adfd2f189845925a9ed9313bb093e0dc4abc33e16877d5056c1c587a5c4",
+    "partitions/5c06d6648b6d478bb6791c24b645305e-0.journal": "d41f2c08dfab7d72def6eed76d488af1959682f6d59413efcdc36cb8d830810c",
+    "partitions/5d004b91f5c842ba95d5315f65b5e8e5-0.journal": "846ae26a8c7d291d9bf2f14cab9d45122aafeb22f17a1537724202b306a89f48",
+    "partitions/74cc7743c88547fd94206e4e59d4ae14-0.journal": "de89ed29249d5b79734499ce10c2e77bae2a82866f2fd92008d90899f90e3b56",
+    "partitions/74cc7743c88547fd94206e4e59d4ae14-1.journal": "17c94b5090d7b9e73397f6e0a65cb33b7b58f2c7b889c2a43a83743d1c2d5557",
+    "partitions/7e3a3a5a8a03447d9647e56d9de07aa7-0.journal": "fa5978abdb3cc7ad64a20a4f12c28873b87635fbd1cb2a43c1caf67b1c765f32",
+    "partitions/7e3a3a5a8a03447d9647e56d9de07aa7-1.journal": "917ae09f76c729059e155e708ff0844e9fd5d9211a4f4c585a39f4c7366d59b3",
+    "partitions/afb4e01c5c5a4e1481f808ae8e9fa8d9-0.journal": "592ebe3af2a68e16e93e5ea8e03ee7837f7b6d8d832d719071284f23037508a4",
+    "partitions/b1b184d8bec74554b77ecd2761eee6de-0.journal": "84f195d41e95ca00a45a8cc2f5bbd607429fb7c28a0bb5f8a405efbd752bc547",
+    "partitions/c47bdd4c67f2498b90bf4e17606a0313-0.journal": "6c89b3bd4bf21edd47753cabbe43115cdc48ed4abd987af5045b8ae8eb3952c0",
+    "partitions/de2429cffed747c7becdacb080639438-0.journal": "e706677e4437f90c12af9860937399545fc5b1b021c6806aa0bd5ce6a3e4a8c2",
+    "partitions/f6a5fe9403be45d781013826bf983b1c-0.journal": "f807b0fd191a3361179ccba43a2b7af2a07fc8633a96217f86ecf927a8946ebe",
+    "partitions/f6a5fe9403be45d781013826bf983b1c-1.journal": "9dc50adc46477d98748160b9350b911f84cca40020a2dd4e3498b2661519ef2b",
+    "ready": "b24d6d33736ecd5604a4b17bc9c6481039fac362bb7df044ef1c10a2bfd21db6",
+    "stop": "71a6d5178acc5f4dbe4f8963e4c5481f6649fd1b87239dcfc95b79257d9b8d58"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "component_files": {
+    "partitionline-broker/src/produce.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d"
+    },
+    "partitionline-broker/src/metadata.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "9ac1b2a453367cf85729da0d2183a8927547b88a961be6c32af896f705d94322"
+    },
+    "partitionline-broker/src/protocol.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a"
+    },
+    "partitionline-broker/tests/produce.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "0ca64b3cfc5367837e7caf78cb39d156d4f263ba1f3561972a76561c85bcff3b",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "0ca64b3cfc5367837e7caf78cb39d156d4f263ba1f3561972a76561c85bcff3b",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "0ca64b3cfc5367837e7caf78cb39d156d4f263ba1f3561972a76561c85bcff3b"
+    },
+    "partitionline-broker/tests/metadata.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c"
+    },
+    "partitionline-broker/tests/protocol.rs": {
+      "c34bdfd3fbba65492ea49b3804dd0ae5311364b0": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23",
+      "04986a07830a2e10f11946b3bd62c3359f462d90": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23",
+      "af0e990d560cfd1c1c77a9327bec26f6706ebb46": "a7ecc9ea9f1eb46cf26e20f96f91e3ba738d78dde1a298cc5329615d28923f23"
+    }
+  },
+  "all_component_blobs_identical": true,
+  "scope": "Component source identity only; entire source trees differ and full original reports retain their own exact source pins."
+}

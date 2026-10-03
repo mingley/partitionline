@@ -1,0 +1,9 @@
+{
+  "failure": "strict Java4.3.1 compile cannot resolve org.apache.kafka.common.record.CompressionType",
+  "cause": "Apache4.3 moved CompressionType into record.internal along with batch classes. Generator adapts imports to loaded pinned jar package.",
+  "product_failure": false,
+  "retained_logs": [
+    "live-peer-build/4.3.1-journal-compile.txt",
+    "live-produce/stable/attempt-1/reverse-decode-attempt-1/4.3.1-compile.log"
+  ]
+}

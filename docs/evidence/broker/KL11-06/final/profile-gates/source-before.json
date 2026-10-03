@@ -1,0 +1,13 @@
+{
+  "verifier_source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+  "archive_sha256": "43b9cbb78d5d4daedaccd10cd6fe8601c6b6c66018a5df263a928cb60c4f2055",
+  "archive_bytes": 88852480,
+  "gate_files_git_blob_verified": {
+    "scripts/check-broker-api-matrix.py": "0a46a399315d1f8480f834245a428af4bc87d1873b98535ce2ffc9377c36a1f0",
+    "tests/ci/test_broker_api_matrix.py": "dbea482e2dff355bb4b472297ec41c46add79133ca82891c49968c6023cc5f0a",
+    "tests/conformance/broker/implemented-api-versions.json": "840e2bbcee55e8a5d60359cb36b85244e3f41f8efa2187d7396eda4bacecf656",
+    "tests/conformance/broker/features.json": "7718a5ca944108f012351c2af75115b6f288061cf1d89c5b2a8c5ca09eec3e46"
+  },
+  "source_file_count": 14874,
+  "scope": "Whole exact Git archive; no mutable broker source drafts or registry overlays."
+}

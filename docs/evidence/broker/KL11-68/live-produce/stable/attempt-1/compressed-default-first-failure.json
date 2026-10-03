@@ -1,0 +1,10 @@
+{
+  "phase": "compressed-default",
+  "attempt": 1,
+  "failure": "ConnectException Connection refused before any codec request",
+  "cause": "successful source test harness has documented180second lifetime; it completed while peer extension was prepared",
+  "server_source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "product_failure": false,
+  "retained_log": "4.1.2-compressed-default.log",
+  "next_attempt": "restart same journal and execute immediately"
+}

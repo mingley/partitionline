@@ -1,0 +1,22 @@
+{
+  "source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "server_pid": 350312,
+  "server_command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "/workspace/work/broker-log-live-produce/target-stable/debug/deps/produce-6082aa461197432c",
+    "serve_live_probe",
+    "--exact",
+    "--nocapture"
+  ],
+  "binary_sha256": "2590a9d5d3c2e71bdc9bf4791ade5f00bd5fbb24113d435eb53c895c08a717de",
+  "state": "/workspace/work/broker-log-live-produce/stable/attempt-1",
+  "port": 19135,
+  "phase": "append-only; five APIs, Fetch not advertised or executed",
+  "start_monotonic": 29626.220324562,
+  "exit_code": 0,
+  "kernel_wait_status": 0,
+  "exit_code_source": "Linux zombie /proc/PID/stat field52, captured before reap",
+  "reason": "documented harness180second deadline"
+}

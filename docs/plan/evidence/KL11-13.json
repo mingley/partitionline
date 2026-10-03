@@ -1,0 +1,1428 @@
+{
+  "schema_version": 1,
+  "task": "KL11-13",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "tested_base_sha": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "profile": "fixed-controller-v0",
+  "implementation": "Bounded incoming RPC actor over durable fixed-membership election core; Vote52/0,Begin53/0,End54/0,ApiVersions18/0-4.",
+  "qualification": "not_run",
+  "source_files_sha256": {
+    "clippy.toml": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+    "partitionline-broker/Cargo.lock": "8bc7c85afb118a8a6147a9f621ca4e8ceb17b8c831f421fe2d88b4804adbbeae",
+    "partitionline-broker/Cargo.toml": "542845f7a6775f95fa45c420b306279a00ffe75ce593f67d86e099c79f7cbde6",
+    "partitionline-broker/src/lib.rs": "2d9599b00c825f768f7da354ce42179b3666374084966b266eadd0db3343b635",
+    "partitionline-broker/src/protocol.rs": "c0c81bcaba200dc27e670146fc6bf37342aadc506547ef606b597d708df5207a",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/src/raft/protocol.rs": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1",
+    "tests/conformance/broker/implemented-api-versions.json": "15fbba57d3f68acb02d7547083af4cd1a34d44b1c4d04b3c2b3a861e0b225602"
+  },
+  "final_runtime_results": {
+    "stable/default": {
+      "counts": {
+        "passed": 132,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rust_controller_tests": 10,
+      "golden_outcomes": 201,
+      "direct_payload_count": 186,
+      "tcp_payload_count": 18,
+      "tcp_frame_count": 18,
+      "compiled_report": "stable/default/compiled-report.json",
+      "commands_summary": "stable/summary.json"
+    },
+    "stable/all-features": {
+      "counts": {
+        "passed": 189,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rust_controller_tests": 10,
+      "golden_outcomes": 201,
+      "direct_payload_count": 186,
+      "tcp_payload_count": 18,
+      "tcp_frame_count": 18,
+      "compiled_report": "stable/all-features/compiled-report.json",
+      "commands_summary": "stable/summary.json"
+    },
+    "1.85.0/default": {
+      "counts": {
+        "passed": 132,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rust_controller_tests": 10,
+      "golden_outcomes": 201,
+      "direct_payload_count": 186,
+      "tcp_payload_count": 18,
+      "tcp_frame_count": 18,
+      "compiled_report": "msrv/default/compiled-report.json",
+      "commands_summary": "msrv/summary.json"
+    },
+    "1.85.0/all-features": {
+      "counts": {
+        "passed": 189,
+        "failed": 0,
+        "ignored": 0
+      },
+      "rust_controller_tests": 10,
+      "golden_outcomes": 201,
+      "direct_payload_count": 186,
+      "tcp_payload_count": 18,
+      "tcp_frame_count": 18,
+      "compiled_report": "msrv/all-features/compiled-report.json",
+      "commands_summary": "msrv/summary.json"
+    }
+  },
+  "strict_checks": {
+    "stable": {
+      "fmt": "passed",
+      "default_alltarget_clippy": "passed",
+      "allfeature_alltarget_clippy": "passed",
+      "allfeature_rustdoc": "passed",
+      "allfeature_doctest_command": "passed",
+      "doctest_count": 0
+    },
+    "rust1.85.0": {
+      "fmt": "passed",
+      "default_alltarget_clippy": "passed",
+      "allfeature_alltarget_clippy": "passed",
+      "allfeature_rustdoc": "passed",
+      "allfeature_doctest_command": "passed",
+      "doctest_count": 0
+    }
+  },
+  "independent_oracle": {
+    "schema_version": 1,
+    "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "oracle_task": "KL11-69",
+    "artifacts_sha256": {
+      "docs/evidence/broker/KL11-69/FINAL.md": "adda439eb1b451c2f1b12be3a8d39951d2b792cd214c21bf604076b96bbbd424",
+      "docs/evidence/broker/KL11-69/final-validation.json": "4b3fe7922bfba31112d50e0f22ec3c2528d8f722176eea6098164ef080774041",
+      "docs/evidence/broker/KL11-69/independent-source-review.json": "c54819413bc43f423198adb0943d2e26fd28757a8a5ba1b01a9aa5b3da11a398",
+      "docs/evidence/broker/KL11-69/final-matrix/results.json": "d91f7445af1dba4272b5a50bd96a6b797cdb901fd4516418e5c61945ecadc271",
+      "docs/evidence/broker/KL11-69/SHA256SUMS": "c89203d6353f4abd10bebcba0209ea95a2c9ec9bd403651951cc82b829f56118"
+    },
+    "oracle_cases": 201,
+    "actual_direct_payloads": 186,
+    "actual_tcp_payloads": 18,
+    "expected_corrupt_decode_failures": 6,
+    "frozen_runtime_captures_match_independent_receipt": true,
+    "four_reviewed_sources_match_archive_and_runtime_report": true,
+    "remaining_review_blockers": [],
+    "native_decode_cell": "stable/default",
+    "other_three_cells": "captured bytes identical; not independently rerun Java",
+    "qualification": "not_run"
+  },
+  "shared_registry_gate": {
+    "schema_version": 1,
+    "status": "passed",
+    "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "verifier_source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+    "combined_report_lanes": 4,
+    "controller_cases_per_lane": 201,
+    "controller_tcp_exchanges_per_lane": 18,
+    "protocol_metadata_produce_cases_per_lane": [
+      99,
+      555,
+      708
+    ],
+    "verifier_baseline_and_mutation_tests": 43,
+    "artifacts_sha256": {
+      "docs/evidence/broker/KL11-06/final/profile-gates/validation.json": "fcc47e6540b26d7bd45decab793b2275b19633c35c88a9306cd59f26ad16c1d8",
+      "docs/evidence/broker/KL11-06/final/profile-gates/stable-default.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/stable-default.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+      "docs/evidence/broker/KL11-06/final/profile-gates/verifier-ci.log": "ca181c3e43623fb5a4902442f7393f7cc7bf955bc10b4c86df3a9421d3c6c195"
+    },
+    "actual_gate_git_blobs_match_receipt": true,
+    "all_frozen_inputs_match_receipt": true,
+    "controller_and_shared_broker_sources_unchanged_between_pins": true,
+    "separate_data_api18_supplement": "docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+    "separate_data_api18_source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+    "data_api18_exchanges": 30,
+    "qualification": "not_run"
+  },
+  "bounds": {
+    "fixed_voters_max": 64,
+    "request_bytes_default": 8388608,
+    "request_bytes_max": 67108864,
+    "tags_per_block_default": 1024,
+    "tags_per_block_max": 65536,
+    "parsed_array_count_max": 64,
+    "preferred_successors_max": 31,
+    "queued_requests_default": 64,
+    "queued_requests_max": 1024,
+    "configured_queued_payload_bytes_max": 536870912,
+    "durable_snapshots_max": 65536,
+    "backoff_ms_max": 600000,
+    "peer_negotiation_ranges_max": 128,
+    "allocation_policy": "Borrowed peer strings/tags; no allocations from peer array counts; fixed31successor buffer and bounded queue. Payload counts/length budgets are not process RSS or caller-allocation-capacity limits."
+  },
+  "behavior": [
+    "Checked wire epoch+1/core representation; initial coreterm1 synchronized before exposure; nonempty wireepoch0 log supported.",
+    "Positive votes follow existing election synchronization; overflow/storage budget poisoning fences further affirmative replies.",
+    "Distinct configured peer grants are fully parsed, correlation/epoch/leader checked and counted once.",
+    "Malformed full request schemas fail before semantic mutation; stale valid epochs return74, cluster mismatch104, local semantic rejections42.",
+    "Begin asserted known leader may differ from existing same-term vote; durable prior vote remains.",
+    "End preserves knownleader/vote and applies actual supported rank timing; empty/rank0 deadline0, invalid/double/nonmember/>31successors fail before mutation.",
+    "Unsupported controller versions close and remain unadvertised; ApiVersions alone keeps special v0/error35 fallback.",
+    "Caller drives tick and cross-peer sends; incoming actor has no automatic election/replication loop."
+  ],
+  "intentional_policy_differences": [
+    "Unknown static candidate/leader returns42; Apache can grant unknown Vote and throws missing-endpoint Begin/End.",
+    "Conflicting known same-epoch leader returns42 retainingstate; Apache throws.",
+    "Reserved local empty log requires epoch0/offset0; Apache synthetic lastEpoch1/offset0 probe grants.",
+    "Unique fixed-member successors and cap31 exclude native duplicate/unconfigured and shift-wrapped lists.",
+    "Strict shared UTF8/nullable sentinel/tag ordering/full-consumption policy retains independently observed Apache leniencies in04/69 evidence."
+  ],
+  "failed_attempts": [
+    {
+      "artifact": "docs/evidence/broker/KL11-13/attempts/clippy-second.log",
+      "kind": "development_lint",
+      "result": "failed11blockingfixturefileoperations",
+      "correction": "Bounded synchronous helpers and spawn_blocking in async TCP driver."
+    },
+    {
+      "artifact": "docs/evidence/broker/KL11-13/attempts/golden-first/",
+      "kind": "golden_setup",
+      "result": "failed101at vote-lower-log-epoch",
+      "correction": "Trusted log:1:1 setup durably adopts epoch1 before installinglogsummary; all201cases thenmatch."
+    },
+    {
+      "artifact": "docs/evidence/broker/KL11-13/attempts/aggregate-first.json",
+      "kind": "evidence_tooling",
+      "result": "KeyError reading nonexistent case_count",
+      "correction": "Used actual report independent_fixture_cases field; no source or test changes."
+    }
+  ],
+  "review_corrections": [
+    "Removed initial inferred generic unsupported KRaftv0/error35 fallback before finalsource; only18has authentic specialhandling.",
+    "Empty preferredlist corrected to actual Apache immediate0rank; not absentmax."
+  ],
+  "artifacts": [
+    "docs/evidence/broker/KL11-13/README.md",
+    "docs/evidence/broker/KL11-13/source-integrity.json",
+    "docs/evidence/broker/KL11-13/source-archive-preparation.json",
+    "docs/evidence/broker/KL11-13/source-freeze.json",
+    "docs/evidence/broker/KL11-13/final-04986a07/results.json",
+    "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+    "docs/evidence/broker/KL11-13/independent-receipts.json",
+    "docs/evidence/broker/KL11-13/attempt-log-index.json",
+    "docs/evidence/broker/KL11-69/final-validation.json",
+    "docs/evidence/broker/KL11-69/independent-source-review.json",
+    "partitionline-broker/tests/fixtures/raft-protocol/manifest.json",
+    "docs/evidence/broker/KL11-13/registry-gate-receipts.json",
+    "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+    "docs/evidence/broker/KL11-13/SHA256SUMS"
+  ],
+  "limitations": [
+    "Only fixed trusted-controller version0/oneconfiguredpartition profile; modern directory/pre-vote/dynamicmembers remain pendingKL11-70.",
+    "Node/clientIDs do notauthenticate; restrictlistener totrustedpeers and bindjournalpath tosamecluster/topic/epochrepresentation.",
+    "Incoming actor and caller-drivenclock/outboundbytes; noautonomousdiscovery/poll/fetch/replication/commit/lease/fullKRaft qualification.",
+    "Logcontent/durablerecoveryconfirmation isexternallyowned; nativefreshnessprobes useexplicit bounded syntheticlog summaries andinmemorystate stores.",
+    "Queuedcancellation skipsunstartedwork; in-flightfsync cancellationambiguous; fsync canblock andshutdownjoinsratherthanaborts.",
+    "No load/RSS/socketbudget/performance/deployment/fullApache networksession orproductionqualification claimed.",
+    "Nativeindependentdecoder executedstable/default only; otherthreecells retain byte-identicalcaptures, notadditionalJava executions.",
+    "Finalallfeature tests use committedoptionalTLS/metrics/credentialfoundation only; sharedtransport/SASL WORKdrafts excluded."
+  ],
+  "verifier_source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+  "commands_artifacts": [
+    "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+    "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+    "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+    "docs/evidence/broker/KL11-69/final-matrix/results.json",
+    "docs/evidence/broker/KL11-06/final/profile-gates/validation.json"
+  ],
+  "results": {
+    "rust_alltarget_passes_four_cells": 642,
+    "rust_failures": 0,
+    "rust_ignored": 0,
+    "controller_rust_tests_per_cell": 10,
+    "independent_controller_golden_outcomes_per_cell": 201,
+    "independent_controller_golden_outcomes_four_cells": 804,
+    "tcp_exchanges_per_cell": 18,
+    "tcp_exchanges_four_cells": 72,
+    "direct_payloads_per_cell": 186,
+    "byte_identical_response_artifacts_all_four_cells": true,
+    "native_java_releases": 3,
+    "native_java_direct_payloads": 186,
+    "native_java_tcp_payloads": 18,
+    "expected_native_corrupt_decoder_failures": 6,
+    "actual_native_corrupt_decoder_failures": 6,
+    "combined_registry_cli_gates": 4,
+    "registry_baseline_mutation_tests": 43,
+    "fresh_additional_profile_report_tests": 12,
+    "fresh_profile_outcomes_per_cell": {
+      "protocol": 99,
+      "metadata": 555,
+      "produce": 708
+    }
+  },
+  "acceptance_evidence": [
+    {
+      "criterion": "Exact versioned Apache fixtures and cross-peer negotiation prove fields/error codes.",
+      "met": true,
+      "evidence": [
+        "partitionline-broker/tests/raft_protocol.rs",
+        "docs/evidence/broker/KL11-69/final-validation.json",
+        "docs/evidence/broker/KL11-13/final-04986a07/results.json"
+      ]
+    },
+    {
+      "criterion": "Stale/fenced/malformed paths fail with bounded work.",
+      "met": true,
+      "evidence": [
+        "partitionline-broker/src/raft/protocol.rs",
+        "docs/evidence/broker/KL11-13/final-04986a07/stable/default-all-targets.log",
+        "docs/evidence/broker/KL11-69/independent-source-review.json"
+      ]
+    },
+    {
+      "criterion": "Exact tested source, commands, case counts, failures and limits retained.",
+      "met": true,
+      "evidence": [
+        "docs/evidence/broker/KL11-13/source-integrity.json",
+        "docs/evidence/broker/KL11-13/attempt-log-index.json",
+        "docs/evidence/broker/KL11-13/README.md"
+      ]
+    },
+    {
+      "criterion": "Initial fixed trusted members/onepartition/v0 controller profile with modern versions unadvertised.",
+      "met": true,
+      "evidence": [
+        "docs/evidence/broker/KL11-13/registry-gate-receipts.json",
+        "docs/evidence/broker/KL11-06/final/profile-gates/validation.json"
+      ]
+    },
+    {
+      "criterion": "Checked epoch+1, synchronizedterm1 initialization, nonemptywireepoch0 logs.",
+      "met": true,
+      "evidence": [
+        "partitionline-broker/tests/raft_protocol.rs",
+        "docs/evidence/broker/KL11-69/final-validation.json"
+      ]
+    },
+    {
+      "criterion": "Actual supported End rank timing with cap31 and no mutation on invalid successors.",
+      "met": true,
+      "evidence": [
+        "partitionline-broker/tests/raft_protocol.rs",
+        "partitionline-broker/tests/fixtures/raft-protocol/manifest.json",
+        "docs/evidence/broker/KL11-69/final-matrix/results.json"
+      ]
+    },
+    {
+      "criterion": "Controller advertisement is distinct and backed by runtime dispatch.",
+      "met": true,
+      "evidence": [
+        "docs/evidence/broker/KL11-13/final-04986a07/stable/default/responses/transport/",
+        "docs/evidence/broker/KL11-06/final/profile-gates/validation.json"
+      ]
+    }
+  ],
+  "context_notes": [
+    "Rust and native controller behavior pinned04986; verifier/optionalprofile registry pinnedaf0. Four ownedcontroller files/sharedprotocol/manifest/lock are byte-identical betweenpins; verifier receipt separately checks exact Gitblobs.",
+    "Protocol/metadata/Produce reports are fresh focused reruns after the fullmatrix, with twelve additional namedtest invocations recorded; the full suite was not rerun just to emit sidecars.",
+    "Separate c34 dataAPI18 30exchanges belong to68 supplement; no attribution tocontrollerTCP captures or newRust gates.",
+    "Allfeature doctest command passed with0doctests defined.",
+    "Plan acceptance covers the approved initialprofile; fullKRaft/modernversions/productionqualification remain not_run/pending70."
+  ],
+  "commands": [
+    {
+      "name": "stable/rustc-version",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "--version",
+        "--verbose"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/rustc-version.log"
+    },
+    {
+      "name": "stable/clean-broker",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/clean-broker.log"
+    },
+    {
+      "name": "stable/default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-stable/default/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-stable/default/compiled-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/default-all-targets.log"
+    },
+    {
+      "name": "stable/all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-stable/all-features/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-stable/all-features/compiled-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/all-features-all-targets.log"
+    },
+    {
+      "name": "stable/fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/fmt.log"
+    },
+    {
+      "name": "stable/strict-clippy-default",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/strict-clippy-default.log"
+    },
+    {
+      "name": "stable/strict-clippy-all-features",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/strict-clippy-all-features.log"
+    },
+    {
+      "name": "stable/strict-docs",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/strict-docs.log"
+    },
+    {
+      "name": "stable/doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/stable/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/stable/doctests.log"
+    },
+    {
+      "name": "msrv/rustc-version",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/rustc-version.log"
+    },
+    {
+      "name": "msrv/clean-broker",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/clean-broker.log"
+    },
+    {
+      "name": "msrv/default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-msrv/default/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-msrv/default/compiled-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/default-all-targets.log"
+    },
+    {
+      "name": "msrv/all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/raft-wire/final-04986a07-msrv/all-features/responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/raft-wire/final-04986a07-msrv/all-features/compiled-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/all-features-all-targets.log"
+    },
+    {
+      "name": "msrv/fmt",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/fmt.log"
+    },
+    {
+      "name": "msrv/strict-clippy-default",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/strict-clippy-default.log"
+    },
+    {
+      "name": "msrv/strict-clippy-all-features",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/strict-clippy-all-features.log"
+    },
+    {
+      "name": "msrv/strict-docs",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/strict-docs.log"
+    },
+    {
+      "name": "msrv/doctests",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/final-04986a07/msrv/summary.json",
+      "log": "docs/evidence/broker/KL11-13/final-04986a07/msrv/doctests.log"
+    },
+    {
+      "name": "stable/default/compiled_registry_and_all_apache_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "protocol",
+        "--jobs",
+        "1",
+        "compiled_registry_and_all_apache_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/default/protocol-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/protocol.log"
+    },
+    {
+      "name": "stable/default/independent_apache_metadata_admin_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "--jobs",
+        "1",
+        "independent_apache_metadata_admin_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/default/metadata-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/metadata.log"
+    },
+    {
+      "name": "stable/default/independent_apache_produce_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "--jobs",
+        "1",
+        "independent_apache_produce_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/default/produce-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/produce.log"
+    },
+    {
+      "name": "stable/all-features/compiled_registry_and_all_apache_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "protocol",
+        "--all-features",
+        "--jobs",
+        "1",
+        "compiled_registry_and_all_apache_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/all-features/protocol-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/protocol.log"
+    },
+    {
+      "name": "stable/all-features/independent_apache_metadata_admin_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "--all-features",
+        "--jobs",
+        "1",
+        "independent_apache_metadata_admin_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/all-features/metadata-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/metadata.log"
+    },
+    {
+      "name": "stable/all-features/independent_apache_produce_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "--all-features",
+        "--jobs",
+        "1",
+        "independent_apache_produce_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/stable/all-features/produce-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/produce.log"
+    },
+    {
+      "name": "1.85.0/default/compiled_registry_and_all_apache_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "protocol",
+        "--jobs",
+        "1",
+        "compiled_registry_and_all_apache_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/default/protocol-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/protocol.log"
+    },
+    {
+      "name": "1.85.0/default/independent_apache_metadata_admin_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "--jobs",
+        "1",
+        "independent_apache_metadata_admin_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/default/metadata-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/metadata.log"
+    },
+    {
+      "name": "1.85.0/default/independent_apache_produce_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "--jobs",
+        "1",
+        "independent_apache_produce_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/default/produce-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/produce.log"
+    },
+    {
+      "name": "1.85.0/all-features/compiled_registry_and_all_apache_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "protocol",
+        "--all-features",
+        "--jobs",
+        "1",
+        "compiled_registry_and_all_apache_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/all-features/protocol-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/protocol.log"
+    },
+    {
+      "name": "1.85.0/all-features/independent_apache_metadata_admin_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "metadata",
+        "--all-features",
+        "--jobs",
+        "1",
+        "independent_apache_metadata_admin_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/all-features/metadata-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/metadata.log"
+    },
+    {
+      "name": "1.85.0/all-features/independent_apache_produce_goldens",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "--all-features",
+        "--jobs",
+        "1",
+        "independent_apache_produce_goldens",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+      "exit_code": 0,
+      "env": {
+        "CARGO_HOME": "/workspace/work/cargo",
+        "RUSTUP_HOME": "/workspace/work/rustup",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_TARGET_DIR": "/workspace/work/target-raft-wire-msrv",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/raft-wire/profile-reports-04986a07/msrv/all-features/produce-report.json"
+      },
+      "receipt": "docs/evidence/broker/KL11-13/profile-reports-04986a07/results.json",
+      "log": "docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/produce.log"
+    },
+    {
+      "name": "registry/stable-default",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/protocol-report.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/metadata-report.json",
+        "--produce-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/default/produce-report.json",
+        "--controller-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/default/compiled-report.json",
+        "--controller-tcp-responses",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/default/responses/transport",
+        "--data-api-versions-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gates/stable-default.json"
+      ],
+      "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+      "exit_code": 0,
+      "receipt": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gates/stable-default.log"
+    },
+    {
+      "name": "registry/stable-all-features",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/protocol-report.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/metadata-report.json",
+        "--produce-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/stable/all-features/produce-report.json",
+        "--controller-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/all-features/compiled-report.json",
+        "--controller-tcp-responses",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/stable/all-features/responses/transport",
+        "--data-api-versions-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.json"
+      ],
+      "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+      "exit_code": 0,
+      "receipt": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.log"
+    },
+    {
+      "name": "registry/msrv-default",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/protocol-report.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/metadata-report.json",
+        "--produce-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/default/produce-report.json",
+        "--controller-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/default/compiled-report.json",
+        "--controller-tcp-responses",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/default/responses/transport",
+        "--data-api-versions-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.json"
+      ],
+      "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+      "exit_code": 0,
+      "receipt": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.log"
+    },
+    {
+      "name": "registry/msrv-all-features",
+      "argv": [
+        "python3",
+        "-B",
+        "scripts/check-broker-api-matrix.py",
+        "--handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/protocol-report.json",
+        "--metadata-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/metadata-report.json",
+        "--produce-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/profile-reports-04986a07/msrv/all-features/produce-report.json",
+        "--controller-handler-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/all-features/compiled-report.json",
+        "--controller-tcp-responses",
+        "/workspace/partitionline/docs/evidence/broker/KL11-13/final-04986a07/msrv/all-features/responses/transport",
+        "--data-api-versions-report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+        "--report",
+        "/workspace/partitionline/docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.json"
+      ],
+      "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+      "exit_code": 0,
+      "receipt": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.log"
+    },
+    {
+      "name": "registry/baseline-mutation-tests",
+      "argv": [
+        "python3",
+        "-B",
+        "tests/ci/test_broker_api_matrix.py"
+      ],
+      "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+      "exit_code": 0,
+      "receipt": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gates/verifier-ci.log"
+    }
+  ]
+}

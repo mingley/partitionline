@@ -1,0 +1,65 @@
+[
+  {
+    "release": "4.1.2",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "OrdinaryPeer",
+      "4.1.2",
+      "19135",
+      "append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.634069798001292,
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.1.2-append.log",
+    "stdout": "{\"release\":\"4.1.2\",\"phase\":\"append\",\"assertions\":564,\"status\":\"pass\"}\n"
+  },
+  {
+    "release": "4.2.1",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "OrdinaryPeer",
+      "4.2.1",
+      "19135",
+      "append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.5608140280019143,
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.2.1-append.log",
+    "stdout": "{\"release\":\"4.2.1\",\"phase\":\"append\",\"assertions\":564,\"status\":\"pass\"}\n"
+  },
+  {
+    "release": "4.3.1",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "OrdinaryPeer",
+      "4.3.1",
+      "19135",
+      "append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.609521622001921,
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.3.1-append.log",
+    "stdout": "{\"release\":\"4.3.1\",\"phase\":\"append\",\"assertions\":564,\"status\":\"pass\"}\n"
+  }
+]

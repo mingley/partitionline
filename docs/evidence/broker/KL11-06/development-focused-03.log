@@ -1,0 +1,27 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/produce-draft/source/partitionline-broker)
+error[E0277]: `?` couldn't convert the error to `metadata::Error`
+    --> src/metadata.rs:1788:79
+     |
+1788 |             let (mut catalog, _) = Catalog::open(&path, config.catalog_limits)?;
+     |                                    -------------------------------------------^ the trait `From<catalog::Error>` is not implemented for `metadata::Error`
+     |                                    |
+     |                                    this can't be annotated with `?` because it has type `Result<_, catalog::Error>`
+     |
+note: `metadata::Error` needs to implement `From<catalog::Error>`
+    --> src/metadata.rs:119:1
+     |
+ 119 | pub enum Error {
+     | ^^^^^^^^^^^^^^
+     = note: the question mark operation (`?`) implicitly performs a conversion on the error value using the `From` trait
+help: `metadata::Error` implements trait `From<T>`
+    --> src/metadata.rs:155:1
+     |
+ 155 | impl From<protocol::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<protocol::Error>`
+...
+ 160 | impl From<produce::Error> for Error {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `From<produce::Error>`
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `partitionline-broker` (lib test) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

@@ -1,0 +1,17 @@
+{
+  "source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "pid": 352925,
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "/workspace/work/broker-log-live-produce/target-stable/debug/deps/produce-6082aa461197432c",
+    "serve_live_probe",
+    "--exact",
+    "--nocapture"
+  ],
+  "state": "/workspace/work/broker-log-live-produce/stable/attempt-1",
+  "start_monotonic": 30111.270110355,
+  "exit_code": 0,
+  "end_monotonic": 30119.432381168
+}

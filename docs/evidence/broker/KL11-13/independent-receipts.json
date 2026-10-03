@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "oracle_task": "KL11-69",
+  "artifacts_sha256": {
+    "docs/evidence/broker/KL11-69/FINAL.md": "adda439eb1b451c2f1b12be3a8d39951d2b792cd214c21bf604076b96bbbd424",
+    "docs/evidence/broker/KL11-69/final-validation.json": "4b3fe7922bfba31112d50e0f22ec3c2528d8f722176eea6098164ef080774041",
+    "docs/evidence/broker/KL11-69/independent-source-review.json": "c54819413bc43f423198adb0943d2e26fd28757a8a5ba1b01a9aa5b3da11a398",
+    "docs/evidence/broker/KL11-69/final-matrix/results.json": "d91f7445af1dba4272b5a50bd96a6b797cdb901fd4516418e5c61945ecadc271",
+    "docs/evidence/broker/KL11-69/SHA256SUMS": "c89203d6353f4abd10bebcba0209ea95a2c9ec9bd403651951cc82b829f56118"
+  },
+  "oracle_cases": 201,
+  "actual_direct_payloads": 186,
+  "actual_tcp_payloads": 18,
+  "expected_corrupt_decode_failures": 6,
+  "frozen_runtime_captures_match_independent_receipt": true,
+  "four_reviewed_sources_match_archive_and_runtime_report": true,
+  "remaining_review_blockers": [],
+  "native_decode_cell": "stable/default",
+  "other_three_cells": "captured bytes identical; not independently rerun Java",
+  "qualification": "not_run"
+}

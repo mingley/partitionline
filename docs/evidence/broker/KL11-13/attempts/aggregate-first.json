@@ -1,0 +1,6 @@
+{
+  "kind": "evidence_aggregation",
+  "exit_code": 1,
+  "error": "KeyError: 'case_count'",
+  "correction": "Read actual immutable compiled report field independent_fixture_cases. No source or Rust gate changed."
+}

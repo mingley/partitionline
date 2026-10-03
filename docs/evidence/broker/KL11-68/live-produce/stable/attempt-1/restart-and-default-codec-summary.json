@@ -1,0 +1,134 @@
+[
+  {
+    "release": "4.1.2",
+    "phase": "restart-append",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.1.2",
+      "19135",
+      "restart-append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.1936171850029496,
+    "stdout": "{\"release\":\"4.1.2\",\"phase\":\"restart-append\",\"assertions\":35,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.1.2-restart-append-attempt-2.log"
+  },
+  {
+    "release": "4.2.1",
+    "phase": "restart-append",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.2.1",
+      "19135",
+      "restart-append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.189055945000291,
+    "stdout": "{\"release\":\"4.2.1\",\"phase\":\"restart-append\",\"assertions\":35,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.2.1-restart-append-attempt-2.log"
+  },
+  {
+    "release": "4.3.1",
+    "phase": "restart-append",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.3.1",
+      "19135",
+      "restart-append",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.194610066999303,
+    "stdout": "{\"release\":\"4.3.1\",\"phase\":\"restart-append\",\"assertions\":35,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.3.1-restart-append-attempt-2.log"
+  },
+  {
+    "release": "4.1.2",
+    "phase": "compressed-default",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.1.2",
+      "19135",
+      "compressed-default",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.219655070999579,
+    "stdout": "{\"release\":\"4.1.2\",\"phase\":\"compressed-default\",\"assertions\":462,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.1.2-compressed-default-attempt-2.log"
+  },
+  {
+    "release": "4.2.1",
+    "phase": "compressed-default",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.2.1",
+      "19135",
+      "compressed-default",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.0924606820008194,
+    "stdout": "{\"release\":\"4.2.1\",\"phase\":\"compressed-default\",\"assertions\":462,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.2.1-compressed-default-attempt-2.log"
+  },
+  {
+    "release": "4.3.1",
+    "phase": "compressed-default",
+    "command": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "java",
+      "-Xmx128m",
+      "-cp",
+      "/workspace/work/broker-log-oracle/live-peer/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/snappy-java-1.1.10.5.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/lz4-java-1.8.0.jar:/workspace/work/c-peer/kafka_2.13-3.9.1/libs/zstd-jni-1.5.6-4.jar",
+      "OrdinaryPeer",
+      "4.3.1",
+      "19135",
+      "compressed-default",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/clients"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.04159994499787,
+    "stdout": "{\"release\":\"4.3.1\",\"phase\":\"compressed-default\",\"assertions\":462,\"status\":\"pass\"}\n",
+    "log": "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/4.3.1-compressed-default-attempt-2.log"
+  }
+]

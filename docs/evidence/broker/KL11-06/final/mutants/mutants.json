@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "source_commit": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "checks": [
+    {
+      "mutation": "zero-response-base-offset",
+      "source_commit": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+      "baseline_produce_sha256": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+      "mutant_produce_sha256": "85ecffcc441d047fc848472d806e3725c387ed0b66ada30b36071230dd79ac96",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/mutants/zero-response-base-offset/partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "offsets_replay_and_deleted_identity_never_reuses_data",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/mutants/zero-response-base-offset-target",
+        "-j",
+        "2",
+        "--",
+        "--exact"
+      ],
+      "observed_exit_code": 101,
+      "verdict": "failed",
+      "expected_behavioral_failure_verified": true,
+      "failed_test": "offsets_replay_and_deleted_identity_never_reuses_data",
+      "log": "zero-response-base-offset.log"
+    },
+    {
+      "mutation": "acks-zero-emits-frame",
+      "source_commit": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+      "baseline_produce_sha256": "adbbcf96cb239d641c4916ec0903cd9ca53b01bb6d5965e5e635fadee5ae192d",
+      "mutant_produce_sha256": "7117339940fccbae15d1853051957d6d53b408d63ef83e658e3a2e5df776e159",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/mutants/acks-zero-emits-frame/partitionline-broker/Cargo.toml",
+        "--test",
+        "produce",
+        "independent_apache_produce_goldens",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/mutants/acks-zero-emits-frame-target",
+        "-j",
+        "2",
+        "--",
+        "--exact"
+      ],
+      "observed_exit_code": 101,
+      "verdict": "failed",
+      "expected_behavioral_failure_verified": true,
+      "failed_test": "independent_apache_produce_goldens",
+      "log": "acks-zero-emits-frame.log"
+    }
+  ],
+  "all_expected_failures_verified": true,
+  "qualification": "not_run"
+}

@@ -1,0 +1,691 @@
+{
+  "schema_version": 1,
+  "task_id": "KL11-06",
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "scope": "Bounded ordinary Produce3-13 through an explicit data router and one catalog/partition storage actor; local fsynced acknowledgments and correct acks0 transport lifecycle.",
+  "provenance": "docs/evidence/broker/KL11-06/provenance.json",
+  "commands": [
+    {
+      "cell": "stable-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        24,
+        14,
+        0,
+        15,
+        8,
+        7,
+        8,
+        9,
+        9,
+        12,
+        0,
+        0,
+        16
+      ],
+      "passed_tests": 122,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-default-test.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-default-clippy.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-default-doc.log"
+    },
+    {
+      "cell": "stable-default",
+      "check": "doctest",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        0
+      ],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-default-doctest.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        31,
+        14,
+        12,
+        15,
+        8,
+        7,
+        8,
+        9,
+        9,
+        12,
+        10,
+        15,
+        16
+      ],
+      "passed_tests": 166,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-all-features-test.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-all-features-clippy.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-all-features-doc.log"
+    },
+    {
+      "cell": "stable-all-features",
+      "check": "doctest",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/stable",
+        "-j",
+        "2",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        0
+      ],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/stable-all-features-doctest.log"
+    },
+    {
+      "cell": "stable",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-06/final/stable-fmt.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        24,
+        14,
+        0,
+        15,
+        8,
+        7,
+        8,
+        9,
+        9,
+        12,
+        0,
+        0,
+        16
+      ],
+      "passed_tests": 122,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-default-test.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-default-clippy.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-default-doc.log"
+    },
+    {
+      "cell": "1.85.0-default",
+      "check": "doctest",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        0
+      ],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-default-doctest.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "test",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        31,
+        14,
+        12,
+        15,
+        8,
+        7,
+        8,
+        9,
+        9,
+        12,
+        10,
+        15,
+        16
+      ],
+      "passed_tests": 166,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-all-features-test.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "clippy",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-all-features-clippy.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "doc",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-all-features-doc.log"
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "check": "doctest",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--target-dir",
+        "/workspace/work/produce-final/targets/1.85.0",
+        "-j",
+        "2",
+        "--all-features",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "test_counts": [
+        0
+      ],
+      "passed_tests": 0,
+      "ignored_tests": 0,
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-all-features-doctest.log"
+    },
+    {
+      "cell": "1.85.0",
+      "check": "fmt",
+      "command": [
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/produce-final/source/partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "exit_code": 0,
+      "verdict": "passed",
+      "log": "docs/evidence/broker/KL11-06/final/1.85.0-fmt.log"
+    }
+  ],
+  "results": {
+    "stable_rust": "1.99.0",
+    "msrv_rust": "1.85.0",
+    "stable_default_passed": 122,
+    "stable_all_features_passed": 166,
+    "msrv_default_passed": 122,
+    "msrv_all_features_passed": 166,
+    "failed_final_tests": 0,
+    "ignored_final_tests": 0,
+    "strict_clippy_cells": 4,
+    "strict_rustdoc_cells": 4,
+    "explicit_doctest_cells": 4,
+    "declared_doctests": 0,
+    "format_toolchains": 2,
+    "produce_integration_functions_per_cell": 8,
+    "private_data_actor_cases_per_cell": 3,
+    "produce_declared_cases_per_cell": 708,
+    "produce_response_comparisons_per_cell": 576,
+    "produce_acks0_no_response_per_cell": 33,
+    "produce_acks0_closes_per_cell": 33,
+    "produce_structural_rejections_per_cell": 66,
+    "metadata_cases_per_cell": 555,
+    "protocol_cases_per_cell": 99,
+    "source_files_git_blob_verified_before_and_unchanged_after": 7884,
+    "compiled_profile_gate_cells": 4,
+    "profile_verifier_baseline_and_mutation_tests": 43,
+    "deliberately_failed_compiled_behavioral_mutants": 2,
+    "actual_independent_java_executions": 24,
+    "actual_independent_java_assertions": 9138,
+    "supplemental_data_api_versions_exchanges": 30,
+    "supplemental_data_api_versions_assertions": 390,
+    "actual_data_profile_v4_checks_original": 90,
+    "successful_server_processes_original": 6,
+    "successful_server_processes_supplement": 2,
+    "retained_uuid_restart_checks": 24,
+    "independent_apache_reverse_record_comparisons": 3744,
+    "distinct_stored_records": 1248,
+    "partition_journals_reverse_checked": 42,
+    "default_compressed_requests_rejected76": 264,
+    "enabled_compressed_requests_accepted": 240,
+    "enabled_compressed_normalized_records": 720,
+    "enabled_zstd_before7_rejected76": 24,
+    "native_produce": "not_run",
+    "qualification": "not_run"
+  },
+  "supported_data_api_versions": [
+    {
+      "api_key": 0,
+      "min_version": 3,
+      "max_version": 13
+    },
+    {
+      "api_key": 3,
+      "min_version": 0,
+      "max_version": 13
+    },
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    },
+    {
+      "api_key": 19,
+      "min_version": 2,
+      "max_version": 4
+    },
+    {
+      "api_key": 20,
+      "min_version": 1,
+      "max_version": 6
+    }
+  ],
+  "metadata_default_api_versions": [
+    {
+      "api_key": 3,
+      "min_version": 0,
+      "max_version": 13
+    },
+    {
+      "api_key": 18,
+      "min_version": 0,
+      "max_version": 4
+    },
+    {
+      "api_key": 19,
+      "min_version": 2,
+      "max_version": 4
+    },
+    {
+      "api_key": 20,
+      "min_version": 1,
+      "max_version": 6
+    }
+  ],
+  "registry_gate": {
+    "source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+    "handler_report_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+    "report": "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+    "sha256": "fcc47e6540b26d7bd45decab793b2275b19633c35c88a9306cd59f26ad16c1d8",
+    "scope": "Later source-pinned shared gate checks fresh combined reports whose Produce/metadata/protocol source blobs equal c34; c34 full gate and live proof keep their original source attribution."
+  },
+  "independent_evidence": {
+    "task_id": "KL11-68",
+    "accepted_portion": "KL11-06 ordinary Produce qualification only; Fetch/native portion remains open",
+    "report": "docs/evidence/broker/KL11-68/live-produce/validation.json",
+    "sha256": "1ccbff3a4a0ee8a570c9aa3b39a16eac0a4b6aed08da32c0b6bf863ad0868752",
+    "upstream_pins": "docs/evidence/broker/KL11-68/upstream-pins.json",
+    "oracle_generation": "docs/evidence/broker/KL11-68/produce-generation.json",
+    "data_api_versions_supplement": "docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+    "supplement_sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+    "live_features": "Default and codecs-enabled on stable/MSRV, all three official Apache Java SDKs",
+    "restart_kind": "Controlled process shutdown/reopen/checkpoint plus independent journal reverse decode; not power loss."
+  },
+  "failed_attempts": [
+    {
+      "kind": "startup_failure_cleanup_ownership_race",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-06/development-focused-01.log",
+      "disposition": "Failed startup now joins the storage actor before returning; immediate reopen and all final tests pass."
+    },
+    {
+      "kind": "missing_test_catalog_error_conversion",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-06/development-focused-03.log",
+      "disposition": "Test explicitly maps CatalogError; subsequent focused and final immutable source tests pass."
+    },
+    {
+      "kind": "verifier_boolean_schema_acceptance",
+      "verdict": "failed",
+      "log": "docs/evidence/broker/KL11-06/final/profile-gate-development/profile-verifier-ci-02.log",
+      "disposition": "A negative control exposed legacy metadata report accepting boolean schema_version; exact integer schemas now reject it, final43 tests pass."
+    },
+    {
+      "kind": "independent_oracle_or_harness_failure",
+      "report": "docs/evidence/broker/KL11-68/live-produce/stable/attempt-1/compressed-default-first-failure.json",
+      "disposition": "Harness documented180second limit expired during preparation; connection refused before any codec request; same-journal rerun passed."
+    },
+    {
+      "kind": "independent_oracle_or_harness_failure",
+      "report": "docs/evidence/broker/KL11-68/failures/journal-peer-attempt-1/failure.json",
+      "disposition": "Strict upstream4.3 package import mismatch in reverse oracle; fixed package adaptation, all3readers replayed successfully."
+    },
+    {
+      "kind": "independent_oracle_or_harness_failure",
+      "report": "docs/evidence/broker/KL11-68/failures/produce-attempt-1/failure.json",
+      "disposition": "First-phase Apache convenience builder wallclock nondeterminism, fixed explicit timestamp."
+    },
+    {
+      "kind": "independent_oracle_or_harness_failure",
+      "report": "docs/evidence/broker/KL11-68/failures/produce-attempt-2/failure.json",
+      "disposition": "First-phase remaining control-builder wallclock nondeterminism, fixed explicit timestamp."
+    },
+    {
+      "kind": "independent_oracle_or_harness_failure",
+      "report": "docs/evidence/broker/KL11-68/logs/storage-runtime-4.3.1-attempt-1.txt",
+      "disposition": "First-phase missing external metrics jar; pinned official jar extracted, replay passed."
+    }
+  ],
+  "deliberate_failed_variants": {
+    "report": "docs/evidence/broker/KL11-06/final/mutants/mutants.json",
+    "mutations": [
+      "zero-response-base-offset",
+      "acks-zero-emits-frame"
+    ],
+    "observed_exit_codes": [
+      101,
+      101
+    ],
+    "all_expected_behavioral_failures_verified": true
+  },
+  "artifacts": [
+    "partitionline-broker/src/produce.rs",
+    "partitionline-broker/src/metadata.rs",
+    "partitionline-broker/tests/produce.rs",
+    "docs/evidence/broker/KL11-06/README.md",
+    "docs/evidence/broker/KL11-06/provenance.json",
+    "docs/evidence/broker/KL11-06/checksums.json",
+    "docs/evidence/broker/KL11-06/final/validation.json",
+    "docs/evidence/broker/KL11-06/final/profile-gates/validation.json",
+    "docs/evidence/broker/KL11-06/final/mutants/mutants.json",
+    "scripts/check-broker-api-matrix.py",
+    "tests/ci/test_broker_api_matrix.py",
+    "tests/conformance/broker/implemented-api-versions.json",
+    "tests/conformance/broker/features.json"
+  ],
+  "limitations": [
+    "Ordinary single-node profile only: one magic2 batch/partition, no idempotence, transactions, control batches, producer sequencing or LogAppendTime admission. Explicit local43/87 restrictions are distinguished from actual Apache component outcomes.",
+    "Configured RF1 ISR contains only this node. acks1 and acks-1 wait for local fsync; no replicated durability, cluster quorum or production guarantee.",
+    "A partition input is one atomic journal entry. A multi-partition request is not a transaction. Cancellation/timeout/shutdown during admitted sync can commit without receipt; ordinary retry can duplicate records.",
+    "Trusted operator directory and exclusive process-local ownership; custom journal framing, no Apache storage format or cross-process directory lock. Historical deleted UUID files remain bounded and consume store/FD/index/disk budgets.",
+    "Configured queue/result/work/index/disk/FD accounting excludes allocator bookkeeping and caller-retained outputs after transfer. Metadata/API18 direct-call concurrency remains caller-managed; transport bounds wire use.",
+    "Optional pure Rust codecs normalize accepted compressed records to ordinary uncompressed magic2 with bounded workspace/work/lengths; default build rejects known compression. Zstd before Produce7 always receives76.",
+    "Controlled live process restart/checkpoint and independent journal reverse decoding establish persisted data/identity behavior, not machine or power-loss injection. Physical sync-fault proofs belong to completed journal/partition/catalog cards.",
+    "Official Apache serializers/parsers, ProduceRequest components and actual ordinary Java clients execute independently. Locally assembled response policy is not full Apache broker/controller runtime equivalence.",
+    "Data-profile ApiVersions0-4 is independently captured and decoded; the compiled static range list alone is not a wire proof. Registry-reflected hash labels alone are not execution provenance.",
+    "No Fetch/ListOffsets advertised by this source. Native Magic2 Produce remains not_run until real Fetch>=4 is implemented; no fabricated feature-negotiation range is used.",
+    "No security, retention, placement, full KRaft behavior, production readiness or performance qualification. qualification remains not_run."
+  ]
+}

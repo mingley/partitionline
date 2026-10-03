@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "draft_sha256": {
+    "partitionline-broker/src/raft/protocol.rs": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/tests/raft_protocol.rs": "86d6a1d54356a5cf607753af349169ff165839c416c995af21eaeedc5cbccbef"
+  },
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_protocol",
+        "independent_apache_controller_goldens_and_registry",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "name": "direct-goldens",
+      "exit_code": 0,
+      "log": "direct-goldens.log"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "raft_protocol",
+        "independent_controller_goldens_cross_actual_tcp_transport",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "name": "tcp-goldens",
+      "exit_code": 0,
+      "log": "tcp-goldens.log"
+    }
+  ]
+}

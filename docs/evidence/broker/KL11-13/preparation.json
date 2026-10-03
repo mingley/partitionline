@@ -1,0 +1,61 @@
+{
+  "task": "KL11-13",
+  "status": "draft-preparation-only",
+  "accepted": false,
+  "source_sha": null,
+  "source_context_git_head": "4fedc99e5d948b041f6ea7ff2ff11ef30d2debf1",
+  "draft_file_sha256": {
+    "partitionline-broker/src/raft/protocol.rs": "9f74908540cd996e184b2ba3405b859f90190e28c55da96451bb5ad0ce1eb06c",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/tests/raft_protocol.rs": "7c63163c6e209870a277dc13eeef36a56e3b7df48bfa0bb1220a359169bd3e68"
+  },
+  "tests_not_yet_run": [
+    "independent_apache_controller_goldens_and_registry",
+    "independent_controller_goldens_cross_actual_tcp_transport",
+    "immutable all-target/default/all-feature gates",
+    "native Apache actual Rust response replay"
+  ],
+  "attempt_history": [
+    {
+      "path": "attempts/behavior-first.log",
+      "result": "8 passed",
+      "scope": "uncommitted initial draft; later superseded by reviewed semantics"
+    },
+    {
+      "path": "attempts/clippy-second.log",
+      "result": "failed",
+      "errors": 11,
+      "reason": "Fixture file reads/writes blocked the async test executor; replaced with bounded synchronous helpers plus spawn_blocking in async TCP replay."
+    },
+    {
+      "paths": [
+        "attempts/stable-behavior-corrected.log",
+        "attempts/msrv-behavior-corrected.log"
+      ],
+      "result": "41 passed each,2 independent tests filtered",
+      "scope": "24 current lib +9 existing election +8 new controller local cases; source remains uncommitted"
+    },
+    {
+      "paths": [
+        "attempts/stable-clippy-corrected.log",
+        "attempts/msrv-clippy-corrected.log"
+      ],
+      "result": "passed",
+      "scope": "focused lib+raft_protocol strictClippy, not final all-target gate"
+    },
+    {
+      "path": "attempts/config-bound-corrected.log",
+      "result": "1 passed",
+      "scope": "Membership bound is checked before cloning caller configuration."
+    }
+  ],
+  "review_corrections": [
+    "Initial inferred generic v0/error35 fallback for unsupported KRaft versions was removed after review; only API18 has that special fallback. Higher KRaft versions close and are unadvertised.",
+    "Empty preferred-successor list matches actual Apache position0/count0 immediate timer; an absent local member in a nonempty list uses maximum backoff."
+  ],
+  "limitations": [
+    "No independent golden or exact-source acceptance result exists yet.",
+    "No live Kafka cluster, autonomous controller peer loop, replication, or production qualification is claimed."
+  ]
+}

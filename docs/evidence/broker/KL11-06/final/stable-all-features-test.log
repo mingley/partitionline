@@ -1,0 +1,281 @@
+   Compiling zeroize v1.9.0
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.14
+   Compiling typenum v1.20.1
+   Compiling cc v1.5.1
+   Compiling hybrid-array v0.4.15
+   Compiling cmov v0.5.4
+   Compiling ring v0.17.14
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling rustls-pki-types v1.15.1
+   Compiling rustls v0.23.45
+   Compiling crc32fast v1.5.2
+   Compiling once_cell v1.21.4
+   Compiling snap v1.1.2
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling subtle v2.6.1
+   Compiling miniz_oxide v0.9.1
+   Compiling rustls-webpki v0.103.15
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling flate2 v1.1.10
+   Compiling base64 v0.23.1
+   Compiling zstd-rs v0.1.0
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline-broker v0.1.0 (/workspace/work/produce-final/source/partitionline-broker)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.96s
+     Running unittests src/lib.rs (/workspace/work/produce-final/targets/stable/debug/deps/partitionline_broker-8c88d9aac3f2d047)
+
+running 31 tests
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test security::sasl::tests::apache_first_message_parser_scope_and_stricter_policy ... ok
+test security::sasl::tests::cancellation_releases_admission_and_running_worker_remains_bounded ... ok
+test security::sasl::tests::constant_time_api_rejects_first_middle_last_and_wrong_length ... ok
+test security::sasl::tests::cancelled_queued_work_does_not_execute_after_pool_unblocks ... ok
+test security::sasl::tests::contended_credential_access_is_bounded_and_releases_admission ... ok
+test security::sasl::tests::authentic_apache_plain_decisions ... ok
+test security::sasl::tests::authentic_apache_and_literal_rfc_scram_proofs ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.84s
+
+     Running tests/catalog.rs (/workspace/work/produce-final/targets/stable/debug/deps/catalog-561a2cd0f639cd09)
+
+running 14 tests
+test atomic_create_delete_tombstone_and_name_recreation_survive_restart ... ok
+test checksummed_malformed_operations_and_conflicting_histories_fail_closed ... ok
+test changed_file_poisoning_keeps_confirmed_state_and_recovery_repairs_tail ... ok
+test complete_journal_corruption_and_interior_byte_loss_fail_closed ... ok
+test deleted_collision_name_is_released_but_identity_is_not ... ok
+test deletes_count_against_operation_replay_and_journal_budgets ... ok
+test invalid_names_partitions_duplicate_names_ids_and_collisions_do_not_mutate ... ok
+test every_torn_tombstone_tail_prefix_recovers_whole_previous_catalog ... ok
+test independent_apache_name_vectors_match_and_reserved_ids_are_rejected ... ok
+test invalid_limits_and_tightened_journal_bounds_are_explicit ... ok
+test oversized_persisted_entry_and_duplicate_owner_are_rejected ... ok
+test stricter_restart_budgets_fail_without_rewriting_complete_history ... ok
+test topic_identity_partition_operation_and_replay_budgets_hold_before_append ... ok
+test process_exit_without_destructors_preserves_durable_history_and_reports_tails ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/codecs.rs (/workspace/work/produce-final/targets/stable/debug/deps/codecs-d5ac8e8ccd6fe625)
+
+running 12 tests
+test advertised_window_and_content_size_bombs_fail_without_decoding ... ok
+test all_actual_apache_fixtures_have_the_declared_admission_outcome ... ok
+test codec_units_are_aggregate_across_preflighted_frames_and_decoded_gzip_members ... ok
+test dictionary_skippable_legacy_reserved_and_optional_header_forms_are_rejected ... ok
+test each_normalization_budget_is_independent_and_positive ... ok
+test encoded_crc_and_count_checks_precede_bad_codec_streams ... ok
+test decoded_records_keep_existing_field_header_and_semantic_rejections ... ok
+test every_encoded_truncation_and_trailing_incomplete_batch_is_rejected ... ok
+test exact_decoded_bounds_succeed_and_one_byte_less_rejects_all_codecs ... ok
+test four_codecs_raw_snappy_and_concatenated_streams_preserve_exact_history_bytes ... ok
+test uncompressed_fast_path_borrows_and_still_validates_every_record ... ok
+test independent_expanding_streams_exercise_compressed_blocks_and_output_caps ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/journal.rs (/workspace/work/produce-final/targets/stable/debug/deps/journal-052c29e6ce1ca715)
+
+running 15 tests
+test durable_restart_preserves_explicit_record_counts_and_logical_ranges ... ok
+test actual_file_matches_documented_checksums_and_can_be_retained_for_oracle ... ok
+test complete_payload_and_header_corruption_never_truncate ... ok
+test external_file_growth_poisons_append_without_offset_advance ... ok
+test failed_open_releases_ownership_and_positive_limits_are_validated ... ok
+test fetch_output_charges_entry_storage_and_never_returns_partial_failure ... ok
+test file_and_index_budgets_hold_on_append_and_recovery ... ok
+test file_header_identity_and_partial_prefix_damage_fail_closed ... ok
+test interior_missing_payload_with_later_entry_is_not_a_torn_final_entry ... ok
+test invalid_append_and_offset_overflow_leave_committed_state_unchanged ... ok
+test live_inode_aliases_are_rejected_and_guard_releases_after_drop ... ok
+test protected_invalid_lengths_counts_and_offset_gaps_fail_closed ... ok
+test every_incomplete_tail_prefix_repairs_to_last_complete_entry ... ok
+test simultaneous_new_file_open_rejects_a_second_live_handle ... ok
+test process_exit_without_destructors_recovers_durable_and_incomplete_entries ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/metadata.rs (/workspace/work/produce-final/targets/stable/debug/deps/metadata-b19132e2459c4827)
+
+running 8 tests
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test serve_live_probe ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+test native_null_array_compatibility_is_exact_and_read_only ... ok
+test independent_apache_metadata_admin_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/partition.rs (/workspace/work/produce-final/targets/stable/debug/deps/partition-2ca700de2500ab0d)
+
+running 7 tests
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/produce.rs (/workspace/work/produce-final/targets/stable/debug/deps/produce-82d53939a2aa8fac)
+
+running 8 tests
+test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+test response_and_normalized_budgets_fail_before_append ... ok
+test serve_live_probe ... ok
+test malformed_entire_body_never_appends ... ok
+test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+test independent_apache_produce_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running tests/protocol.rs (/workspace/work/produce-final/targets/stable/debug/deps/protocol-ec846aca3486bfbc)
+
+running 9 tests
+test all_supported_request_truncations_fail_without_panicking ... ok
+test classic_and_flexible_headers_borrow_classic_client_id ... ok
+test semantic_software_validation_matches_apache_pattern ... ok
+test compiled_registry_and_all_apache_goldens ... ok
+test unsupported_api_versions_ignore_unknown_body_and_echo_signed_correlation ... ok
+test validated_limits_bound_frame_and_tag_work ... ok
+test software_utf8_null_string_length_and_tag_faults_fail_closed ... ok
+test malformed_or_unimplemented_connection_closes_while_peer_continues ... ok
+test real_tcp_pipeline_success_semantic_error_and_unsupported_fallback ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/raft_election.rs (/workspace/work/produce-final/targets/stable/debug/deps/raft_election-38ebe55c5dd6787b)
+
+running 9 tests
+test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+test deterministic_seeded_losing_partition_and_restart_histories ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/records.rs (/workspace/work/produce-final/targets/stable/debug/deps/records-fc9a47ec6c2159ee)
+
+running 12 tests
+test borrowed_projection_preserves_input_and_independent_batch_bases ... ok
+test damaged_unsupported_batches_still_fail_checksum_first ... ok
+test apache_generated_valid_features_and_hostile_fixtures_have_typed_outcomes ... ok
+test each_protected_bit_flip_fails_checksum_before_record_parsing ... ok
+test every_independent_byte_and_work_budget_is_checked ... ok
+test every_truncation_and_incomplete_trailing_prefix_is_rejected ... ok
+test exact_byte_and_count_limits_admit_the_complete_batch ... ok
+test limits_are_positive_and_have_checked_hard_maxima ... ok
+test signed_timestamp_varlong_boundaries_are_checked_without_wrapping ... ok
+test variable_fields_cannot_read_beyond_the_enclosing_record ... ok
+test zero_header_records_are_accepted_and_header_keys_values_remain_nullable_correctly ... ok
+test rejected_admission_leaves_journal_state_and_validated_restart_bytes_intact ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/sasl.rs (/workspace/work/produce-final/targets/stable/debug/deps/sasl-cfb350c60d218323)
+
+running 10 tests
+test malformed_first_is_terminal_and_limits_are_checked ... ok
+test imported_forms_and_all_hard_bounds_reject_invalid_values ... ok
+test credential_generation_rotation_and_snapshot_admission_bound ... ok
+test plain_wrong_password_unknown_identity_authz_and_malformed ... ok
+test scram_escaped_name_self_authz_and_unrelated_authz ... ok
+test strong_fresh_nonces_salts_and_redacted_debug_errors ... ok
+test scram_wrong_password_nonce_channel_binding_proof_and_replay ... ok
+test optional_extensions_are_ignored_but_bound_to_the_exact_proof ... ok
+test kafka_raw_utf8_passwords_and_identities_are_preserved ... ok
+test valid_scram_both_hashes_and_plain_from_verifiers ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+
+     Running tests/tls.rs (/workspace/work/produce-final/targets/stable/debug/deps/tls-7ecd08eaa0fae15b)
+
+running 15 tests
+test handshakes_and_established_sessions_share_cap_and_joined_shutdown ... ok
+test oversized_tls_record_and_handshake_lengths_fail_closed ... ok
+test pending_handshake_shutdown_can_be_cancelled_retried_and_drop_cleaned ... ok
+test admitted_pending_handshake_retains_pre_rotation_generation ... ok
+test rejects_invalid_limits_der_keys_trust_and_totals_eagerly ... ok
+test plaintext_never_falls_back_on_tls_listener ... ok
+test required_mtls_rejects_missing_untrusted_expired_and_wrong_purpose_clients ... ok
+test idle_and_fragmented_tls_progress_share_absolute_handshake_deadline ... ok
+test required_mtls_verifies_intermediate_chain_and_preserves_peer_metadata ... ok
+test verified_peer_chain_cap_closes_before_handler_dispatch ... ok
+test independent_openssl_peer_verifies_tls_versions_and_mtls_rejections ... ok
+test verifying_clients_reject_wrong_server_name_expiry_and_trust ... ok
+test server_only_tls_has_no_authenticated_client_identity ... ok
+test verified_tls12_and_tls13_frame_roundtrip ... ok
+test rotation_updates_new_server_identity_and_client_trust_preserving_old_session ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests/transport.rs (/workspace/work/produce-final/targets/stable/debug/deps/transport-ae048cb87be6bd30)
+
+running 16 tests
+test connection_overload_rejects_without_spawning_handler ... ok
+test dropping_transport_requests_socket_and_handler_cleanup ... ok
+test cancelled_shutdown_await_can_be_retried_and_still_joins ... ok
+test adversarial_lengths_close_before_payload_or_handler_and_isolate_peers ... ok
+test handler_error_and_oversized_response_close_only_their_connections ... ok
+test handler_work_is_bounded_and_shutdown_joins_active_and_queued_requests ... ok
+test hanging_handler_times_out_and_its_future_is_dropped ... ok
+test idle_connection_has_an_absolute_read_deadline ... ok
+test fragmented_prefix_body_empty_and_exact_limit_roundtrip ... ok
+test rejects_zero_and_out_of_range_configuration_without_io ... ok
+test pipelined_no_reply_sends_no_frame_and_keeps_connection_usable ... ok
+test truncated_prefix_and_body_never_invoke_handler ... ok
+test pipelined_requests_keep_wire_and_handler_order ... ok
+test slowloris_progress_does_not_reset_prefix_plus_body_deadline ... ok
+test handler_deadline_includes_waiting_for_concurrency_permit ... ok
+test unread_large_response_hits_absolute_write_deadline_and_joins ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+

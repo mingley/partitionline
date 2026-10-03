@@ -1,0 +1,1197 @@
+{
+  "task": "KL11-68",
+  "accepted_portion": "KL11-06 ordinary Produce qualification only; Fetch/native portion remains open",
+  "production_source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "first_oracle_source_sha": "ba8b94b271343d157411b822b04f2392e8180e51",
+  "source_archive_proof": "live-produce/source-c34bdfd3.json",
+  "source_archive_git_blob_files": 7884,
+  "toolchains": [
+    "stable1.99.0",
+    "1.85.0"
+  ],
+  "port": 19135,
+  "api_profile": {
+    "0": [
+      3,
+      13
+    ],
+    "3": [
+      0,
+      13
+    ],
+    "18": [
+      0,
+      4
+    ],
+    "19": [
+      2,
+      4
+    ],
+    "20": [
+      1,
+      6
+    ]
+  },
+  "actual_on_wire_profile_checks": 90,
+  "actual_on_wire_profiles": [
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "4929403ff2387c8f1afd70addf054b9bb9e123fdaeda23271048f17d73d6cf6b",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a3d9537e261093039976087b69606cc280349901687a863a882973c27f1f76f7",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "ab882810185298849e13930f9fe8a3b09aea54211fe2aafac359782535e5fec8",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "78de65b0dbe9022a0d710a51622ada1129561a8c2dd28784837da037d1c96f67",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "92a8d21bf504ecea6fa7db8d5999c7cc5536227248cfcef66bfdb2d926b38f76",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "72c8f612fc07f2ec2e6a955a218583c07e7df40e3ec55c9430716ed49a0aeb1e",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "02e94ccc3a34779b20c840dcca543707c429d19c8428fe6822d679f60627f6c2",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "3a71f841518b3b0c38850c1697f3044d51a60526407f94157c08142d48706ab4",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "5340fb62fd3fc3334fd2e970e5762e62365463d52ee5439ed2c5930cfb6a4488",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "d9e294a63653a9c166ad5268787ebc041275192714162a6d9b479647370ae59f",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "714c993c03de0c7596625c065f532d98fb86e0545fc505429a0037a21ac14c42",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-restart-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-compressed-default-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.1.2-compressed-enabled-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "af10833e114eada723f06099b8426f752aad910312bbe6ab73c76c11472cfed1",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "7ee23d4611161015e70e3af9e37cb3f2f431efa604420364cacd675da5ef6a08",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "b68c502338156889bb0167bd6f13ee8188fc98b8c735a2142c28129f1aebd160",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a0ab207fdfaa1274d9da1e95872dc7a093990bc55d6027517ac8140cd5f62065",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "87c6d300e9057b5de12a798f80717b3c2fa6f3394fcd32a1dfe719f7e99315a2",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "f05031909e07725084118b701fe7870951209c879728baa449e751f83d8406c6",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "98d8f00e30e92fefc94be1c816591acc18164a25e62e5f0f57d3ac8a71034e00",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "1481a0d3483233e9ba9b26fcd804f05d4f2a69197f21c518b94534c73f86d822",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "5dce5b0b00b48ac0952296e57873da2970629bcfbbd44c0f8b6c8bf36ace0640",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "2f69b3b5066fb9389d7f116ce57720e4708539a6598760900be520870c55dfc1",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "87d14544bbc6915debd4b5b3067ebb2a5c5bd921408c44f53ccd329e6f16ef26",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-restart-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-compressed-default-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.2.1-compressed-enabled-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "aba2abc565f3a54c25cc66286fda77da47fddf3aff6d0196cb3cc415fa1c33e1",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "fc91f77692b7648591deae9f73bc6c1adeca82c124b17cd3b07c94088d0769c0",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "8c018a8d844e79bb8bac7cf952c23e756ad30f88c417abdc004a647b6208fbe6",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "1f6edf99d0880c09db6159f1fe7a5131d600d74394c12d417845635f3ae80b0f",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "beb7336338abfdcc81c5a7537906166a3579513ddff116e0207aab6b95b051f5",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "358791808ac504f227aafd3f4d8a2442909eacb833da5b5d13f280c1b8d208af",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "6740f7936c3a549cbb7e14deee75f301858287a6bdececaefcbba2907da43bb7",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "4b36f232b99a31ccf846046574a5f46afc78cada5a6686c0ac3715f9026ae89e",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a93c49eaae68b9dce7ba716e29f2058cb1127870acbb077083096bf4f81f1dcd",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "2d227c77d67b3824f044709fa8787d1ec6d2dd715111fc25ef1221d5459907eb",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "127ee21274ce267fe78ef55c75d1498d657a68dce4958613451be9c6e1b54129",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-restart-append-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-compressed-default-history.json"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/stable/attempt-1/clients/4.3.1-compressed-enabled-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "4929403ff2387c8f1afd70addf054b9bb9e123fdaeda23271048f17d73d6cf6b",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a3d9537e261093039976087b69606cc280349901687a863a882973c27f1f76f7",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "ab882810185298849e13930f9fe8a3b09aea54211fe2aafac359782535e5fec8",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "78de65b0dbe9022a0d710a51622ada1129561a8c2dd28784837da037d1c96f67",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "92a8d21bf504ecea6fa7db8d5999c7cc5536227248cfcef66bfdb2d926b38f76",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "72c8f612fc07f2ec2e6a955a218583c07e7df40e3ec55c9430716ed49a0aeb1e",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "02e94ccc3a34779b20c840dcca543707c429d19c8428fe6822d679f60627f6c2",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "3a71f841518b3b0c38850c1697f3044d51a60526407f94157c08142d48706ab4",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "5340fb62fd3fc3334fd2e970e5762e62365463d52ee5439ed2c5930cfb6a4488",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "d9e294a63653a9c166ad5268787ebc041275192714162a6d9b479647370ae59f",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "714c993c03de0c7596625c065f532d98fb86e0545fc505429a0037a21ac14c42",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-restart-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-compressed-default-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "7a89e5b9c5fd65eff3218198941ca8893411d36c24e3a27e46d8f6ce346e30d7",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.1.2-compressed-enabled-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "af10833e114eada723f06099b8426f752aad910312bbe6ab73c76c11472cfed1",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "7ee23d4611161015e70e3af9e37cb3f2f431efa604420364cacd675da5ef6a08",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "b68c502338156889bb0167bd6f13ee8188fc98b8c735a2142c28129f1aebd160",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a0ab207fdfaa1274d9da1e95872dc7a093990bc55d6027517ac8140cd5f62065",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "87c6d300e9057b5de12a798f80717b3c2fa6f3394fcd32a1dfe719f7e99315a2",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "f05031909e07725084118b701fe7870951209c879728baa449e751f83d8406c6",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "98d8f00e30e92fefc94be1c816591acc18164a25e62e5f0f57d3ac8a71034e00",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "1481a0d3483233e9ba9b26fcd804f05d4f2a69197f21c518b94534c73f86d822",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "5dce5b0b00b48ac0952296e57873da2970629bcfbbd44c0f8b6c8bf36ace0640",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "2f69b3b5066fb9389d7f116ce57720e4708539a6598760900be520870c55dfc1",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "87d14544bbc6915debd4b5b3067ebb2a5c5bd921408c44f53ccd329e6f16ef26",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-restart-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-compressed-default-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "c97d59528e9bb8941e08257e0d1eaa5107a8043dd7c98be3414aaae478ddd5c2",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.2.1-compressed-enabled-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v3-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "aba2abc565f3a54c25cc66286fda77da47fddf3aff6d0196cb3cc415fa1c33e1",
+      "response_sha256": "e4ec015dfe3026f31f85bbf234b1eef4c1a4a10277a77a8d8f75eb626d4b6524",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v4-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "fc91f77692b7648591deae9f73bc6c1adeca82c124b17cd3b07c94088d0769c0",
+      "response_sha256": "f8036705e4992977a82d8ea2a26e9a5491b4ede197ad4ebec6874dbcbe188c84",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v5-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "8c018a8d844e79bb8bac7cf952c23e756ad30f88c417abdc004a647b6208fbe6",
+      "response_sha256": "fbdcf98e44b4fde9cb47ddd14ca881ff506d7ad5d6cc4c91c3197b40c5d961f3",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v6-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "1f6edf99d0880c09db6159f1fe7a5131d600d74394c12d417845635f3ae80b0f",
+      "response_sha256": "94b8e71259e1161feaeed38a9f6d349b9504067623684f3114128fd1888268b7",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v7-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "beb7336338abfdcc81c5a7537906166a3579513ddff116e0207aab6b95b051f5",
+      "response_sha256": "aa47bb86619810ca52f3ee8cbf000260ceabc145286d99db670117ab3e92d194",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v8-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "358791808ac504f227aafd3f4d8a2442909eacb833da5b5d13f280c1b8d208af",
+      "response_sha256": "4177c5b21445a6927de6f1ec346c214c5ea5d0c431f8f1e03f90d27d4713df18",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v9-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "6740f7936c3a549cbb7e14deee75f301858287a6bdececaefcbba2907da43bb7",
+      "response_sha256": "9999f9ad5927428372c55b4f9e2041d27dff7c59663ad2c2fad0837916ba59d4",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v10-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "4b36f232b99a31ccf846046574a5f46afc78cada5a6686c0ac3715f9026ae89e",
+      "response_sha256": "c55b48e474f09aaacd3bcfdc9403ef3f5de276ec3b8206b94ffcf5801f476304",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v11-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "a93c49eaae68b9dce7ba716e29f2058cb1127870acbb077083096bf4f81f1dcd",
+      "response_sha256": "3a56d5d6158e325dfba6b8230f4b00c5421d309709f2b3b9076802db7e7435d0",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v12-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "2d227c77d67b3824f044709fa8787d1ec6d2dd715111fc25ef1221d5459907eb",
+      "response_sha256": "667865b3c90b98199b37dc82d589aa2582873ae3f86861c559bb021968d8e58d",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "label": "acks0-v13-same-channel-next-response",
+      "api_version": 4,
+      "request_sha256": "127ee21274ce267fe78ef55c75d1498d657a68dce4958613451be9c6e1b54129",
+      "response_sha256": "434a9bb5ca07cbc045802f820835d5f49a7a769a2400bcc4dbecc1e9bbb4ae97",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "restart-append",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-restart-append-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "compressed-default",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-compressed-default-history.json"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "compressed-enabled",
+      "label": "actual-advertised-profile",
+      "api_version": 4,
+      "request_sha256": "8cf528d4b73fab58c9c467d9de54410ee500d25ab3d3dcc3e5e84c5a21822f59",
+      "response_sha256": "22baf52f67f6db1f156e382faed7b0ed90f76b9ad4877557bc2dd61f2522d785",
+      "frame_history": "live-produce/1-85-0/attempt-1/clients/4.3.1-compressed-enabled-history.json"
+    }
+  ],
+  "java_runtime_executions": 24,
+  "java_assertions": 9138,
+  "successful_server_processes": 6,
+  "all_actual_server_exit_codes": 0,
+  "actual_java_sdk_records": 312,
+  "forced_ordinary_records": 204,
+  "normalized_compressed_records": 720,
+  "codec_marker_records": 12,
+  "total_distinct_stored_records": 1248,
+  "default_compressed_requests_rejected76": 264,
+  "enabled_compressed_requests": 264,
+  "enabled_codec_requests_accepted": 240,
+  "enabled_zstd_pre7_requests_rejected76": 24,
+  "same_channel_acks0_no_response_checks": 66,
+  "acks0_partition_error_EOF_checks": 66,
+  "CRC_rejection2_checks": 66,
+  "retained_UUID_restart_checks": 24,
+  "independent_apache_reverse_record_comparisons": 3744,
+  "journal_decode_proofs": [
+    "live-produce/stable/attempt-1/reverse-decode-attempt-2/validation.json",
+    "live-produce/1-85-0/attempt-1/reverse-decode-attempt-1/validation.json"
+  ],
+  "journal_framing": "Independent bitwise Castagnoli CRC32C, bounded lengths/counts, exact EOF; no Rust linked",
+  "receipt_checks": "Every record ID/key/value/null/empty/header/timestamp/offset/order receipt and SHA256 matches all three Apache readers; normalized stored batches are ordinary uncompressed magic2",
+  "runtime_histories": [
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/stable/attempt-1/clients/4.1.2-append-history.json",
+      "history_sha256": "57768937b11f4edf8d6c3aef5cc9ed755a9ec30516bb2dd6f5ab01809049fb13"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/stable/attempt-1/clients/4.1.2-restart-append-history.json",
+      "history_sha256": "3415f5241a0a9873b981cc0703f17010145e8915d4a7ebbda778ff9937f33a31"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.1.2-compressed-default-history.json",
+      "history_sha256": "b25379e48fb2309497d2a1ab5299b7fab1fbe08bb78b5d4bfb4374f78287db38"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.1.2",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.1.2-compressed-enabled-history.json",
+      "history_sha256": "b82877fe8d0d7d0dda01af5218729857d21b98fb5d74de879eae52959166ea4a"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/stable/attempt-1/clients/4.2.1-append-history.json",
+      "history_sha256": "661d5b4de373b2281333f79b4a948cd9efabf9ebb702eba65a9645010e8230f4"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/stable/attempt-1/clients/4.2.1-restart-append-history.json",
+      "history_sha256": "a764c17a0118e8cd50157ac81e15f90721242283ed8cc1c6da8b53a3dbb8a96f"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.2.1-compressed-default-history.json",
+      "history_sha256": "ac4805f9c8fc4f8508e02cc9285a171c0a885eae511cc0fc986490cdef7303d2"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.2.1",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.2.1-compressed-enabled-history.json",
+      "history_sha256": "29ca07bb5b329264ac305cbb16d80fa264d50a4042defb1d8042c0affcc95b30"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/stable/attempt-1/clients/4.3.1-append-history.json",
+      "history_sha256": "21c7015d266811c3857f055a67b6958bbf62d70fe9465dd725786818b13de047"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/stable/attempt-1/clients/4.3.1-restart-append-history.json",
+      "history_sha256": "4d2daf97fc71f2249211772bfd1e211135909cd556d463a71313425727d33600"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.3.1-compressed-default-history.json",
+      "history_sha256": "b399a630d69617338a1c69ebe6d16168ce01640a059287e54c9655a20e907c2d"
+    },
+    {
+      "toolchain": "stable",
+      "release": "4.3.1",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/stable/attempt-1/clients/4.3.1-compressed-enabled-history.json",
+      "history_sha256": "057d38768b79e22599eeb5ba5fdbca8422db2369458af008f9e2bd0873ae2cb0"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.1.2-append-history.json",
+      "history_sha256": "a37d2200a7628b89f8241838dff1a9ed7c401a3975bce063891fed25c634d072"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.1.2-restart-append-history.json",
+      "history_sha256": "1556d9ab5532fc8a0dfe423ac143a86b6c0290b96f16cf8e899c494161571841"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.1.2-compressed-default-history.json",
+      "history_sha256": "4d80aced44d1108299f778b759ad535a09e24f1eed37f1fa43510642923be6e1"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.1.2",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.1.2-compressed-enabled-history.json",
+      "history_sha256": "3daa6806acb278c100139a481dd125fc584111dee312257a33159744917194fc"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.2.1-append-history.json",
+      "history_sha256": "d8e0a3333333f23f5c26161687dc0f3e3bde4e2168b9ae1d2936e19267a198a5"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.2.1-restart-append-history.json",
+      "history_sha256": "084e595733b3cc47625b10c5fe5a05c71d8b3f81d67a29873becad3838e2bd9b"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.2.1-compressed-default-history.json",
+      "history_sha256": "c6274c04e9f98723f873cca534f0f81714cfc92821fc101c6ea0566bdc2a271d"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.2.1",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.2.1-compressed-enabled-history.json",
+      "history_sha256": "78948061530ca6b9d04b375900421a460f5914a52f54e82f1861f226a6c242d5"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "append",
+      "assertions": 564,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.3.1-append-history.json",
+      "history_sha256": "116382d8fd01f05c489157246072ac257050b6a95bdb6c7032b0bbc156d609a5"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "restart-append",
+      "assertions": 35,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.3.1-restart-append-history.json",
+      "history_sha256": "bc20f6955de5fba1b911f95a6ad71dfe2155a1d6c5d6f7462e429a6cc05ec4e3"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "compressed-default",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.3.1-compressed-default-history.json",
+      "history_sha256": "85a3897cf15b23486b1d2ccde14293c3bc768f6b7b786479384f22323a31b908"
+    },
+    {
+      "toolchain": "1-85-0",
+      "release": "4.3.1",
+      "phase": "compressed-enabled",
+      "assertions": 462,
+      "history": "live-produce/1-85-0/attempt-1/clients/4.3.1-compressed-enabled-history.json",
+      "history_sha256": "def28d3e625fa4f34ed326a124b72edabeda02c6cf073fc0b743761240f0dd32"
+    }
+  ],
+  "peer_build_proofs": [
+    "live-peer-build/ordinary-java.json",
+    "live-peer-build/ordinary-java-checkpoint.json",
+    "live-peer-build/ordinary-java-codec.json"
+  ],
+  "peer_sources": {
+    "OrdinaryPeer.java": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+    "JournalPeer.java": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+    "run-produce-live.py": "a48eef244de18d0386a39c4bb3687c945274651619e46cade8fad2d9d3521359",
+    "decode-produce-journals.py": "f0482624c6b14958200cc65fef975b5c3f836901708441ec513a6910e480efad"
+  },
+  "retained_failures": [
+    {
+      "path": "live-produce/stable/attempt-1/compressed-default-first-failure.json",
+      "classification": "Harness documented180second limit expired during preparation; connection refused before any codec request; same-journal rerun passed."
+    },
+    {
+      "path": "failures/journal-peer-attempt-1/failure.json",
+      "classification": "Strict upstream4.3 package import mismatch in reverse oracle; fixed package adaptation, all3readers replayed successfully."
+    },
+    {
+      "path": "failures/produce-attempt-1/failure.json",
+      "classification": "First-phase Apache convenience builder wallclock nondeterminism, fixed explicit timestamp."
+    },
+    {
+      "path": "failures/produce-attempt-2/failure.json",
+      "classification": "First-phase remaining control-builder wallclock nondeterminism, fixed explicit timestamp."
+    },
+    {
+      "path": "logs/storage-runtime-4.3.1-attempt-1.txt",
+      "classification": "First-phase missing external metrics jar; pinned official jar extracted, replay passed."
+    }
+  ],
+  "limitations": [
+    "No Kafka Fetch or native producer runtime is claimed in this Produce portion; both wait actual KL11-07 Fetch/ListOffsets advertisement.",
+    "acks-1 qualifies only declared single-node ISR[0]/local fsync, no distributed replication.",
+    "acks0 has no client durable receipt; persistence is independently observed after shutdown/restart and journal decode.",
+    "Transaction/idempotence/control/LogAppendTime restrictions are explicit local ordinary-profile43, not upstream feature implementation.",
+    "Reverse decoding of actual journal payloads is offline byte interoperability, not a consumer wire result."
+  ],
+  "passed": true
+}

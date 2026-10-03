@@ -1,0 +1,246 @@
+{
+  "schema_version": 1,
+  "scope": "Preserved pre-freeze development attempts; immutable final validation recorded separately.",
+  "logs": [
+    {
+      "path": "attempts/behavior-first.log",
+      "sha256": "cdb014e7cbab3dbaf077899a1dd2a427cdfd5e2d6c84bcb121b7ae7abff778e1",
+      "bytes": 1437,
+      "suite_counts": [
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "path": "attempts/behavior-second.log",
+      "sha256": "6d032e86870fc9b3ca3f543cff8f6d7704bd973e1f5d8a66b2969d34b81872e1",
+      "bytes": 4002,
+      "suite_counts": [
+        {
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "path": "attempts/behavior-third.log",
+      "sha256": "4346a2f1a496781e05187a8902c6cb42c656c2074daa255fd5cc7a927450848a",
+      "bytes": 967,
+      "suite_counts": [
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 2
+        }
+      ]
+    },
+    {
+      "path": "attempts/clippy-first.log",
+      "sha256": "1a3c0b524bf648edac3dd42d2e6792329e46415c8b1f13a22e77b8461757a743",
+      "bytes": 404,
+      "suite_counts": []
+    },
+    {
+      "path": "attempts/clippy-second.log",
+      "sha256": "a834e5b4d82362e5acd1770606a9c15b7bee340d4d3f14b20cd0a6cb913bb54b",
+      "bytes": 4664,
+      "suite_counts": []
+    },
+    {
+      "path": "attempts/config-bound-corrected.log",
+      "sha256": "2783fbfd6785373923d2d518fa997453fdc6105f16c33edb5351bb3ab58212a1",
+      "bytes": 442,
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 9
+        }
+      ]
+    },
+    {
+      "path": "attempts/end31-corrected.log",
+      "sha256": "fb68dbfe934b3087a19a8ee58d963b567c26aa954c259687288c275ea2220107",
+      "bytes": 450,
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 9
+        }
+      ]
+    },
+    {
+      "path": "attempts/golden-first/direct-goldens.log",
+      "sha256": "f03ecd40143572243ea70298c041aefc6437d175182084371d511b8fd3e7d217",
+      "bytes": 521,
+      "suite_counts": [
+        {
+          "passed": 0,
+          "failed": 1,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 9
+        }
+      ]
+    },
+    {
+      "path": "attempts/golden-second/direct-goldens.log",
+      "sha256": "b99d4a2799172c7dbea8597c2898d95069c7ba1f85be8f7fd265f05229ca430f",
+      "bytes": 930,
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 9
+        }
+      ]
+    },
+    {
+      "path": "attempts/golden-second/tcp-goldens.log",
+      "sha256": "063148c6062a58c9b3cf9356b09205a722e6ea2cfc9f4fc4661fc0ecb283672a",
+      "bytes": 792,
+      "suite_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 9
+        }
+      ]
+    },
+    {
+      "path": "attempts/msrv-behavior-corrected.log",
+      "sha256": "73a625e821762daa5c8eaeabb4d46cd6dd09a8e4ab1b7f8fb6102705424ad003",
+      "bytes": 4266,
+      "suite_counts": [
+        {
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 2
+        }
+      ]
+    },
+    {
+      "path": "attempts/msrv-behavior-first.log",
+      "sha256": "be375b7d9e31588491a40b8d7831a3bd998898db255ef06c7882d537b1a3d340",
+      "bytes": 4488,
+      "suite_counts": [
+        {
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        }
+      ]
+    },
+    {
+      "path": "attempts/msrv-clippy-corrected.log",
+      "sha256": "ec305afbb5a6682ba552fd00de6d23ce61070248201ee606eccf91f741cce70a",
+      "bytes": 149,
+      "suite_counts": []
+    },
+    {
+      "path": "attempts/msrv-clippy-first.log",
+      "sha256": "f095009e7ff37da85e51adc66d02cba11c9b473adfe8a3af531b8491de069fb9",
+      "bytes": 404,
+      "suite_counts": []
+    },
+    {
+      "path": "attempts/stable-behavior-corrected.log",
+      "sha256": "8226cf682b844f7c72e144e40db87e743c4048104a14bd7810097cd0baa32ff1",
+      "bytes": 4251,
+      "suite_counts": [
+        {
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 2
+        }
+      ]
+    },
+    {
+      "path": "attempts/stable-clippy-corrected.log",
+      "sha256": "6cef283597cbfab4b0b21fdaed1fdfec89e303b4d14f284f98394a45f79284bd",
+      "bytes": 149,
+      "suite_counts": []
+    }
+  ]
+}

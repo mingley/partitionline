@@ -1,0 +1,12 @@
+{
+  "final_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "local_pre_import_sha": "768d96c66adfb4791c5f8fd0306cdc0314bf047a",
+  "tree_hashes": {
+    "768d96c66adfb4791c5f8fd0306cdc0314bf047a": "38eb1fe2ea322346e7ec7684522f83ce1238a255",
+    "04986a07830a2e10f11946b3bd62c3359f462d90": "38eb1fe2ea322346e7ec7684522f83ce1238a255"
+  },
+  "trees_identical": true,
+  "pre_import_archive_used_for_final_gates": false,
+  "final_archive_sha256": "9b989e9dfc6a66785ad003ddf7887a18071f94265f366b2bb3b7c26b5f100699",
+  "reason": "Coordinator imports API-pushed actual remote commit; final gates wait for and use the resolvable remote SHA."
+}

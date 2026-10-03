@@ -1,0 +1,14 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar -d /workspace/work/broker-log-oracle/journal-peer/4.3.1/classes /workspace/work/broker-log-oracle/journal-peer/4.3.1/JournalPeer.java
+/workspace/work/broker-log-oracle/journal-peer/4.3.1/JournalPeer.java:12: error: cannot find symbol
+import org.apache.kafka.common.record.CompressionType;
+                                     ^
+  symbol:   class CompressionType
+  location: package org.apache.kafka.common.record
+/workspace/work/broker-log-oracle/journal-peer/4.3.1/JournalPeer.java:51: error: cannot find symbol
+                if (batch.magic() != 2 || batch.compressionType() != CompressionType.NONE || batch.producerId() != -1
+                                                                     ^
+  symbol:   variable CompressionType
+  location: class JournalPeer
+2 errors
+
+exit_code=1

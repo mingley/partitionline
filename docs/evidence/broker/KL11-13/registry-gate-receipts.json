@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "handler_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "verifier_source_sha": "af0e990d560cfd1c1c77a9327bec26f6706ebb46",
+  "combined_report_lanes": 4,
+  "controller_cases_per_lane": 201,
+  "controller_tcp_exchanges_per_lane": 18,
+  "protocol_metadata_produce_cases_per_lane": [
+    99,
+    555,
+    708
+  ],
+  "verifier_baseline_and_mutation_tests": 43,
+  "artifacts_sha256": {
+    "docs/evidence/broker/KL11-06/final/profile-gates/validation.json": "fcc47e6540b26d7bd45decab793b2275b19633c35c88a9306cd59f26ad16c1d8",
+    "docs/evidence/broker/KL11-06/final/profile-gates/stable-default.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/stable-default.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/stable-all-features.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/msrv-default.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.log": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/msrv-all-features.json": "16c24521a34ff339add77ad7842d27e859c3a00330f760bed85b2d5bef968999",
+    "docs/evidence/broker/KL11-06/final/profile-gates/verifier-ci.log": "ca181c3e43623fb5a4902442f7393f7cc7bf955bc10b4c86df3a9421d3c6c195"
+  },
+  "actual_gate_git_blobs_match_receipt": true,
+  "all_frozen_inputs_match_receipt": true,
+  "controller_and_shared_broker_sources_unchanged_between_pins": true,
+  "separate_data_api18_supplement": "docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+  "separate_data_api18_source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+  "data_api18_exchanges": 30,
+  "qualification": "not_run"
+}

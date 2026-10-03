@@ -1,0 +1,40 @@
+# Fixed-controller version0 RPC evidence
+
+Source `04986a07830a2e10f11946b3bd62c3359f462d90` adds an incoming controller RPC actor for one configured metadata partition and fixed trusted voters. It dispatches ApiVersions18 versions0–4, Vote52 version0, BeginQuorumEpoch53 version0 and EndQuorumEpoch54 version0. These four advertised ranges are separate from standalone header, metadata, ordinary data and SASL listener profiles. Higher KRaft versions close before mutation; the ApiVersions unsupported-version v0/error35 fallback remains specific to API18.
+
+The wire epoch maps through checked `epoch + 1` into the durable election core. A new journal synchronizes coreterm1 before a controller is exposed, and a nonempty wireepoch0 log maps to coreterm1. Positive votes follow the core's synchronization boundary. The trusted recovery/replication owner can adopt a confirmed epoch before advancing a durable-log summary. Peer data never supplies an unchecked internal term. The operator must keep a journal path bound to its configured cluster/topic and this representation.
+
+The synchronous Controller runs on a storage thread. ControllerHandler owns it on one blocking actor with bounded admission. The queue accepts1–1024 pending requests with a512MiB aggregate configured request-byte ceiling; defaults are64 queued requests and8MiB request limit. Parser strings borrow input, arrays are bounded at64, unknown flexible tags are skipped with checked lengths and strict ordering, and successor identities occupy a fixed31-element buffer. Cancellation skips work whose reply receiver closed while queued; cancellation during an in-flight sync can leave a durable transition. Shutdown stops admission and joins the actor, including a retry after shutdown cancellation.
+
+## Immutable validation
+
+`source-integrity.json` pins all9096 archived files, archive SHA256 `9b989e9dfc6a66785ad003ddf7887a18071f94265f366b2bb3b7c26b5f100699`, and Git tar commit identity. The archive contains committed source only, without concurrent working-tree overlays. Every command checks the complete file map afterward. `run-final.py` records argument arrays, toolchain, bounded build environment and log hashes; builds use one job, debug info disabled, incremental compilation disabled and CPUs0–2,4.
+
+| Toolchain | Features | All-target tests | Independent controller outcomes | Actual TCP exchanges |
+| --- | --- | ---: | ---: | ---: |
+| stable | default |132 passed,0 failed,0 ignored |201 |18 |
+| stable | all |189 passed,0 failed,0 ignored |201 |18 |
+| Rust1.85.0 | default |132 passed,0 failed,0 ignored |201 |18 |
+| Rust1.85.0 | all |189 passed,0 failed,0 ignored |201 |18 |
+
+Both toolchains also pass formatting, strict default/all-feature all-target Clippy, strict all-feature rustdoc and the all-feature doctest command (0 doctests defined). The final logs and summaries are in `final-04986a07`. Each cell retains186 direct successful-response payloads and18 TCP payload/frame pairs; the other15 golden outcomes are expected connection closes. All four sets of222 retained binary captures are byte-identical. The201-outcome golden comparison is one named Rust test; it does not inflate the132/189 Rust test totals.
+
+The ten controller tests cover durable initialization/reopen, nonempty wireepoch0 logs, checked signed epoch boundaries, storage budget poisoning, stale fences, known leader conflicts, malformed prefixes/tags/trailing data, distinct vote counting, correlation checks, exact End ranking (including31 distinct fixed members), semantic validation, actor shutdown and actual TCP close/dispatch behavior. The caller-driven cross-peer test negotiates version0 from higher peer inventories and exchanges actual encoded Vote request/response bytes between two controllers.
+
+Independent Apache Java generation and native decoding belong to KL11-69. Its67 cases for each of4.1.2/4.2.1/4.3.1 use actual released request/response classes and actual KafkaRaftClient/QuorumState request handlers with bounded synthetic clock/log/network dependencies. Fixtures retain upstream outcomes separately from explicit local policy outcomes. The final KL11-69 receipt binds this source and the stable/default captures; the remaining three cells are independently retained here and shown byte-identical. The delegated implementation-registry gate at `af0e990d560cfd1c1c77a9327bec26f6706ebb46` passes all four combined protocol99/metadata555/Produce708/controller201 reports and18 controller TCP captures per lane, plus43 baseline/mutation tests. `registry-gate-receipts.json` binds the exact gate Git blobs, frozen inputs and external command/log/result hashes. The separately attributed data API18 supplement retains30 exchanges on source `c34bdfd3fbba65492ea49b3804dd0ae5311364b0`; it is not part of the controller TCP count. Controller and shared broker source/manifest/lock blobs are unchanged between the Rust/native and gate pins. Acceptance is met for this initial profile; full KRaft qualification remains outside it.
+
+## Deliberate profile bounds
+
+Unknown candidates/leaders are semantic error42 before mutation, although Apache can grant an unknown candidate Vote and can throw for unknown Begin/End endpoints. A conflicting known leader in the same epoch returns42 and preserves state, where Apache throws. A configured leader3 after a same-epoch vote for2 is accepted by both, and the durable vote2 remains. The local reserved empty-log coordinate requires epoch0/offset0; an Apache synthetic freshness probe accepts lastEpoch1/offset0. These differences are explicit fixed-quorum policy, not universal Kafka behavior.
+
+End preserves the known leader/vote and replaces the caller-driven deadline with the actual supported Apache rank backoff: empty list/rank0=0, rank1 of2=500ms, rank1 of3=250ms, rank2 of3=500ms, absent from a nonempty list=1000ms under the golden configuration. Duplicate or unconfigured successors fail before mutation. The structural cap31 excludes Java's shift-count wrapping at32/33; no claim is made that this deadline reproduces Apache's complete follower fetch lifecycle.
+
+The shared strict header policy rejects invalid UTF8, nullable lengths below-1, unordered/duplicate tags and supported-body trailing bytes. Earlier independently observed Java parser leniencies remain documented by KL11-04 and the retained KL11-69 references. Directory IDs, pre-vote, dynamic voter sets and higher versions remain unadvertised and tracked by KL11-70.
+
+## Attempts and limits
+
+`attempts` and `attempt-log-index.json` preserve all development runs. The first independent golden run failed at a fixture setup that installed a log epoch ahead of the adopted election epoch; trusted setup now adopts that epoch before installing the summary, and all201 cases pass. A development lint run found11 blocking fixture file operations; bounded file helpers and blocking-pool writes corrected them. The initial inferred generic unsupported-version v0 response and empty-End timer assumption were corrected through review before the final pin. A final evidence aggregation script initially read a nonexistent report field; that metadata error is retained separately and did not change any source or test result. Dirty-tree attempts can include an unrelated transient transport warning; final checks use only the clean source archive.
+
+Node IDs/client IDs do not authenticate peers. The listener must be restricted to trusted controllers. This actor handles incoming RPCs; it does not autonomously tick, discover peers, poll an outbound quorum, fetch/replicate metadata records, establish controller leases or commit records. Log contents and complete recovery reconciliation remain external responsibilities. Native Java probes use controlled adapters and in-memory election stores; they do not prove an Apache network session or filesystem durability. No multi-node network election, failover-under-partition, load/RSS/socket-budget, deployment or production qualification is claimed. Qualification remains `not_run`.
+
+From the repository root, verify the sealed evidence with `sha256sum -c docs/evidence/broker/KL11-13/SHA256SUMS`.
