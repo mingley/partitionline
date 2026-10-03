@@ -80,6 +80,17 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 22)
         self.assertEqual(results["gap_counts"]["unclassified_drift"], 0)
 
+    def test_share_v2_wire_does_not_advertise_unqualified_runtime(self):
+        for key in (78, 79):
+            self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"]["4.3.1"], [1, 2])
+            self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"]["4.2.1"], [1, 1])
+            self.assertEqual(cpc.CLIENT_SPOKEN_VERSIONS[key], [0, 1])
+        results = cpc.evaluate_protocol_coverage()
+        for key in (78, 79):
+            gaps = [g for g in results["version_gaps"] if g["api_key"] == key and g["version"] == 2]
+            self.assertEqual(len(gaps), 1)
+            self.assertIn("runtime remains capped at v1", gaps[0]["reason"])
+
     def test_deterministic_results(self):
         """
         Ensure evaluation is deterministic: two consecutive runs produce identical results.
@@ -202,12 +213,12 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 1. Version gaps
         self.assertIn("version_gaps", results)
         version_gaps = results["version_gaps"]
-        self.assertEqual(len(version_gaps), 38)
+        self.assertEqual(len(version_gaps), 39)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13 vs Apache3.9.1 max11
         self.assertFalse(any(g["api_key"] == 1 and g["version"] == 18 and g.get("direction") == "upstream_cap" for g in version_gaps))  # Fetch18 is implemented; old peer difference stays classified
         self.assertFalse(any(g["api_key"] == 2 and g["version"] == 11 for g in version_gaps))  # ListOffsets v11 implemented
-        self.assertTrue(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2
+        self.assertTrue(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2 runtime still pending
         self.assertFalse(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5 implemented
 
         # 2. Missing runtime wiring
@@ -289,7 +300,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         res = self.run_cli(["--diff-only"])
         self.assertEqual(res.returncode, 0)
         self.assertNotIn("Implemented Client APIs (66):", res.stdout)
-        self.assertIn("Version Gaps (38):", res.stdout)
+        self.assertIn("Version Gaps (39):", res.stdout)
 
     def test_cli_self_test_flag(self):
         """

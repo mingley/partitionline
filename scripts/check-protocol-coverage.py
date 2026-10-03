@@ -108,8 +108,8 @@ PINNED_APACHE_APIS: Dict[int, Dict[str, Any]] = {
     75: {"name": "DescribeTopicPartitions", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
     76: {"name": "ShareGroupHeartbeat", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
     77: {"name": "ShareGroupDescribe", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
-    78: {"name": "ShareFetch", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 2]}},
-    79: {"name": "ShareAcknowledge", "versions": {"3.9.1": [0, 0], "4.1.0": [0, 1], "4.1.2": [0, 1], "4.2.1": [0, 1], "4.3.1": [0, 1]}},
+    78: {"name": "ShareFetch", "versions": {"3.9.1": [0, 0], "4.1.0": [1, 1], "4.1.2": [1, 1], "4.2.1": [1, 1], "4.3.1": [1, 2]}},
+    79: {"name": "ShareAcknowledge", "versions": {"3.9.1": [0, 0], "4.1.0": [1, 1], "4.1.2": [1, 1], "4.2.1": [1, 1], "4.3.1": [1, 2]}},
     80: {"name": "AddRaftVoter", "versions": {"4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
     81: {"name": "RemoveRaftVoter", "versions": {"4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
     82: {"name": "UpdateRaftVoter", "versions": {"4.1.0": [0, 0], "4.1.2": [0, 0], "4.2.1": [0, 0], "4.3.1": [0, 0]}},
@@ -274,8 +274,9 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     # DescribeLogDirs (35)
     (35, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "DescribeLogDirs v0 removed in Kafka 4.0; client starts at v1"},
 
-    # ShareFetch (78)
-    (78, 2): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "ShareFetch v2 in Kafka 4.3.1; client capped at v1 (share.v2_wire_delta missing in features.json)"},
+    # Share v2 codecs are implemented; runtime stays capped until KL05-15.
+    (78, 2): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "ShareFetch v2 wire support has independent Apache4.3.1 fixtures; high-level runtime remains capped at v1 pending acquisition/acknowledgement qualification in KL05-15"},
+    (79, 2): {"pin": "4.3.1", "direction": "upstream_cap", "reason": "ShareAcknowledge v2 wire support has independent Apache4.3.1 fixtures; high-level runtime remains capped at v1 pending acquisition/acknowledgement qualification in KL05-15"},
 
     # Legacy versions removed in Kafka 4.0 where client still speaks classic v0/v1
     (8, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "OffsetCommit v0 removed in Kafka 4.0; client speaks 2-9"},

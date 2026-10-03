@@ -1,15 +1,9 @@
-//! Share groups (KIP-932): ShareGroupHeartbeat (76), ShareFetch (78),
-//! ShareAcknowledge (79). ShareGroupHeartbeat is flexible from v0
-//! (Kafka 4.0 early access v0; Kafka 4.1 stable v1). This crate
-//! speaks 0–1. Same fields. v2+ is not spoken. ShareFetch is flexible
-//! from v0. Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"`
-//! (v0 removed); Kafka 4.3.1 adds v2 (upstream-only, KL05-14 pins it
-//! and rejects it explicitly). This crate speaks 0–1. v0 and v1 fields
-//! differ (v0 PartitionMaxBytes; v1 MaxRecords / BatchSize /
-//! AcquisitionLockTimeoutMs). ShareAcknowledge is flexible from v0.
-//! Kafka 4.0 `validVersions` is `"0"`; Kafka 4.1 `"1"` (v0 removed);
-//! no v2 is defined upstream through Kafka 4.3.1. This crate speaks
-//! 0–1. Same fields. v2+ is not spoken.
+//! Share groups (KIP-932): ShareGroupHeartbeat (76), ShareFetch (78), and
+//! ShareAcknowledge (79). Heartbeat speaks v0–v1. Fetch and Acknowledge
+//! speak v0–v2, retaining historical v0 helpers. Apache Kafka 4.3.1 adds
+//! ShareAcquireMode to Fetch and IsRenewAck / acknowledgement type 4 to
+//! both requests (KIP-1206 / KIP-1222). Acknowledge v2 also returns
+//! AcquisitionLockTimeoutMs; Fetch v2 retains the v1 response fields.
 
 use std::collections::HashMap;
 
@@ -29,58 +23,63 @@ pub const ACK_RELEASE: i8 = 2;
 /// Reject an acquired record.
 pub const ACK_REJECT: i8 = 3;
 
-/// Newest Apache pin defining ShareFetch v2 (`scripts/check-protocol-coverage.py`
-/// frozen pins; KL01-11 evidence). The v2 field delta is not pinned to a
-/// verified schema offline, so v2 is upstream-only and explicitly rejected.
+/// Renew an acquired record's lock (ShareFetch / ShareAcknowledge v2+).
+pub const ACK_RENEW: i8 = 4;
+
+/// Newest ShareFetch version in the pinned Apache Kafka 4.3.1 schemas.
 pub const SHARE_FETCH_UPSTREAM_MAX_VERSION: i16 = 2;
+/// Newest ShareAcknowledge version in the pinned Apache Kafka 4.3.1 schemas.
+pub const SHARE_ACKNOWLEDGE_UPSTREAM_MAX_VERSION: i16 = 2;
+/// Newest ShareFetch wire version implemented by this crate.
+pub const SHARE_FETCH_CRATE_MAX_VERSION: i16 = 2;
+/// Newest ShareAcknowledge wire version implemented by this crate.
+pub const SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION: i16 = 2;
+/// ShareFetch wire versions, including historical Kafka 4.0 v0.
+pub const SHARE_FETCH_SUPPORTED_VERSIONS: [i16; 3] = [0, 1, 2];
+/// ShareAcknowledge wire versions, including historical Kafka 4.0 v0.
+pub const SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS: [i16; 3] = [0, 1, 2];
 
-/// Newest Apache pin version for ShareAcknowledge (no v2 is defined upstream
-/// through Kafka 4.3.1). v2+ is explicitly rejected.
-pub const SHARE_ACKNOWLEDGE_UPSTREAM_MAX_VERSION: i16 = 1;
-
-/// Newest ShareFetch version this crate speaks. The high-level runtime
-/// (`crate::share`) negotiates at most this version; KL05-15 owns any change.
-pub const SHARE_FETCH_CRATE_MAX_VERSION: i16 = 1;
-
-/// Newest ShareAcknowledge version this crate speaks. The high-level runtime
-/// (`crate::share`) negotiates at most this version; KL05-15 owns any change.
-pub const SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION: i16 = 1;
-
-/// ShareFetch versions this crate speaks (Kafka 4.0 v0, Kafka 4.1 v1).
-pub const SHARE_FETCH_SUPPORTED_VERSIONS: [i16; 2] = [0, 1];
-
-/// ShareAcknowledge versions this crate speaks (same fields on v0 and v1).
-pub const SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS: [i16; 2] = [0, 1];
-
-/// Check a ShareFetch version: `Ok(version)` for the spoken v0–v1, otherwise
-/// an explicit rejection. v2 names its upstream-only pin (Kafka 4.3.1);
-/// anything else names the spoken range. This is not
-/// [`check_share_acknowledge_version`] (ShareAcknowledge has no upstream v2).
+/// Reject versions outside the implemented ShareFetch v0–v2 range.
 pub fn check_share_fetch_version(version: i16) -> Result<i16> {
     if SHARE_FETCH_SUPPORTED_VERSIONS.contains(&version) {
-        return Ok(version);
+        Ok(version)
+    } else {
+        Err(Error::protocol(format!(
+            "ShareFetch version {version} is not implemented (crate speaks 0-2)"
+        )))
     }
-    if version == SHARE_FETCH_UPSTREAM_MAX_VERSION {
-        return Err(Error::protocol(format!(
-            "ShareFetch version {version} is not implemented (upstream Kafka 4.3.1 only; crate speaks 0-1)"
-        )));
-    }
-    Err(Error::protocol(format!(
-        "ShareFetch version {version} is not implemented (crate speaks 0-1)"
-    )))
 }
 
-/// Check a ShareAcknowledge version: `Ok(version)` for the spoken v0–v1,
-/// otherwise an explicit rejection. No v2 is defined upstream through Kafka
-/// 4.3.1, so v2+ is rejected as never-spoken. This is not
-/// [`check_share_fetch_version`] (ShareFetch v2 exists upstream in 4.3.1).
+/// Reject versions outside the implemented ShareAcknowledge v0–v2 range.
 pub fn check_share_acknowledge_version(version: i16) -> Result<i16> {
     if SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS.contains(&version) {
-        return Ok(version);
+        Ok(version)
+    } else {
+        Err(Error::protocol(format!(
+            "ShareAcknowledge version {version} is not implemented (crate speaks 0-2)"
+        )))
     }
-    Err(Error::protocol(format!(
-        "ShareAcknowledge version {version} is not implemented (no v2 defined upstream through Kafka 4.3.1; crate speaks 0-1)"
-    )))
+}
+
+/// Additional ShareFetch request fields introduced by Kafka 4.3.1 v2.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct ShareFetchRequestOptions {
+    /// 0: batch optimized; 1: record limit. Apache marks this field ignorable
+    /// on older versions; callers requiring record-limit semantics must gate
+    /// the negotiated version themselves.
+    pub acquire_mode: i8,
+    /// Whether acknowledgement batches contain Renew (type 4). True requires
+    /// version 2; it is never silently omitted on an older peer.
+    pub is_renew_ack: bool,
+}
+
+fn check_renew_version(version: i16, is_renew_ack: bool) -> Result<()> {
+    if is_renew_ack && version < 2 {
+        return Err(Error::Unsupported(
+            "Renew acknowledgements require share protocol v2".into(),
+        ));
+    }
+    Ok(())
 }
 
 /// Topic UUID plus partition indexes in a share-group assignment.
@@ -434,7 +433,7 @@ impl ShareFetchRequest {
     /// stays `0` (Java `ShareFetchResponse.of` last argument), not the
     /// success-path 15000. Official Java sets `throttleTimeMs` from the
     /// argument. [`encode_share_fetch_error`] still writes `0`. This crate
-    /// speaks 0–1. This is not
+    /// speaks 0–2. This is not
     /// [`encode_share_fetch_response_with_throttle`] /
     /// [`encode_share_fetch_response_with_error_code`] /
     /// ShareAcknowledge getErrorResponse.
@@ -659,7 +658,7 @@ impl ShareFetchResponse {
     /// stays convenience-encode 15000 on v1 (Java `toMessage` leaves the
     /// generated default `0`). Those fields have fixed width so the
     /// values do not change the size. Empty NodeEndpoints. This crate
-    /// speaks 0–1. This is not [`Self::to_message`] /
+    /// speaks 0–2. This is not [`Self::to_message`] /
     /// [`ShareFetchedPartition::records_size`] /
     /// [`ShareFetchRequest::error_response`].
     pub fn size_of(
@@ -683,7 +682,7 @@ impl ShareFetchResponse {
     /// Java default (`0`); [`encode_share_fetch_response`] still writes
     /// 15000 on v1. ErrorMessage stays null. NodeEndpoints are the
     /// `endpoints` argument (Java `of` always takes that list;
-    /// convenience encode still writes empty). This crate speaks 0–1.
+    /// convenience encode still writes empty). This crate speaks 0–2.
     /// This is not [`Self::to_message`] / [`Self::size_of`] /
     /// [`encode_share_fetch_response_with_throttle`] /
     /// [`encode_share_fetch_response_with_endpoints`] /
@@ -844,7 +843,7 @@ impl ShareAcknowledgeResponse {
     /// (null). NodeEndpoints are the `endpoints` argument (Java `of`
     /// always takes that list; convenience encode still writes empty).
     /// [`encode_share_acknowledge_topics_response`] still writes throttle
-    /// `0`. This crate speaks 0–1. This is not [`Self::to_message`] /
+    /// `0`. This crate speaks 0–2. This is not [`Self::to_message`] /
     /// [`encode_share_acknowledge_topics_response_with_throttle`] /
     /// [`encode_share_acknowledge_topics_response_with_endpoints`] /
     /// [`ShareAcknowledgeRequest::error_response`].
@@ -873,7 +872,7 @@ impl ShareAcknowledgeResponse {
 ///
 /// v0 and v1 are both flexible (`flexibleVersions: "0+"`). Kafka 4.0
 /// `validVersions` is `"0"` (`latestVersionUnstable`). Kafka 4.1
-/// `validVersions` is `"1"` (v0 removed). This crate speaks 0–1.
+/// `validVersions` is `"1"` (v0 removed). This crate speaks 0–2.
 /// Same fields. v2+ is not spoken.
 fn share_group_heartbeat_flexible(version: i16) -> Result<bool> {
     match version {
@@ -1094,13 +1093,13 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "ShareFetch v0–v1 body fields are a single wire encode"
+    reason = "ShareFetch v0–v2 body fields are a single wire encode"
 )]
-/// Encode a ShareFetch request (`version` 0–1).
+/// Encode a ShareFetch request (`version` 0–2).
 ///
 /// Kafka 4.0 JSON (`apiKey: 78`, `validVersions: "0"`,
 /// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
-/// 4.1 JSON (`validVersions: "1"` — v0 removed). This crate speaks 0–1.
+/// 4.1 JSON (`validVersions: "1"` — v0 removed). This crate speaks 0–2.
 /// v1 adds MaxRecords / BatchSize after MaxBytes and omits
 /// PartitionMaxBytes (v0 only). [`encode_share_fetch_request`] still
 /// writes BatchSize as MaxRecords ([`encode_share_fetch_request_with_batch_size`]
@@ -1112,7 +1111,7 @@ fn decode_ack_batches<B: Buf>(buf: &mut B) -> Result<Vec<AcknowledgementBatch>> 
 /// MinBytes is JSON `0+` (decode returns it; encode already takes `min_bytes`).
 /// MaxBytes is JSON `0+` (decode returns it; encode already takes `max_bytes`;
 /// JSON default `0x7fffffff`).
-/// v2+ is not spoken.
+/// v2 adds acquire mode / Renew fields; this overload selects their defaults.
 pub fn encode_share_fetch_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1150,7 +1149,7 @@ pub fn encode_share_fetch_request(
 /// value).
 #[expect(
     clippy::too_many_arguments,
-    reason = "ShareFetch ForgottenTopicsData is encoded with the rest of the v0–v1 body"
+    reason = "ShareFetch ForgottenTopicsData is encoded with the rest of the v0–v2 body"
 )]
 pub fn encode_share_fetch_request_with_forgotten(
     buf: &mut BytesMut,
@@ -1178,10 +1177,11 @@ pub fn encode_share_fetch_request_with_forgotten(
         topics,
         forgotten,
         max_records,
+        ShareFetchRequestOptions::default(),
     )
 }
 
-/// Encode ShareFetch v0–v1 with BatchSize.
+/// Encode ShareFetch v0–v2 with BatchSize.
 ///
 /// BatchSize is JSON `1+` (INT32 after MaxRecords). Kafka 4.1.0 JSON has
 /// no default; generated Java int32 default is `0`. Official Java
@@ -1193,7 +1193,7 @@ pub fn encode_share_fetch_request_with_forgotten(
 /// PartitionMaxBytes, and not response AcquisitionLockTimeoutMs.
 #[expect(
     clippy::too_many_arguments,
-    reason = "ShareFetch BatchSize is encoded with the rest of the v0–v1 body"
+    reason = "ShareFetch BatchSize is encoded with the rest of the v0–v2 body"
 )]
 pub fn encode_share_fetch_request_with_batch_size(
     buf: &mut BytesMut,
@@ -1221,6 +1221,47 @@ pub fn encode_share_fetch_request_with_batch_size(
         topics,
         &[],
         batch_size,
+        ShareFetchRequestOptions::default(),
+    )
+}
+
+/// Encode ShareFetch with explicit v2 acquire/renew fields and forgotten topics.
+/// Existing overloads retain batch-optimized acquire mode and infer Renew from
+/// their acknowledgement batches. Non-default acquire mode is omitted on v0/v1,
+/// as Apache's schema specifies. Renew on v0/v1 fails before writing bytes.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "ShareFetch fields form one wire request"
+)]
+pub fn encode_share_fetch_request_with_options(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    max_records: i32,
+    topics: &[ShareFetchTopic],
+    forgotten: &[ShareForgottenTopic],
+    batch_size: i32,
+    options: ShareFetchRequestOptions,
+) -> Result<()> {
+    encode_share_fetch_request_fields(
+        buf,
+        version,
+        group_id,
+        member_id,
+        share_session_epoch,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        max_records,
+        topics,
+        forgotten,
+        batch_size,
+        options,
     )
 }
 
@@ -1241,8 +1282,18 @@ fn encode_share_fetch_request_fields(
     topics: &[ShareFetchTopic],
     forgotten: &[ShareForgottenTopic],
     batch_size: i32,
+    options: ShareFetchRequestOptions,
 ) -> crate::error::Result<()> {
     let flexible = share_fetch_flexible(version)?;
+    let is_renew_ack = options.is_renew_ack
+        || topics.iter().any(|t| {
+            t.partitions.iter().any(|p| {
+                p.acknowledgements
+                    .iter()
+                    .any(|b| b.types.contains(&ACK_RENEW))
+            })
+        });
+    check_renew_version(version, is_renew_ack)?;
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
@@ -1252,6 +1303,10 @@ fn encode_share_fetch_request_fields(
     if version >= 1 {
         buf.put_i32(max_records);
         buf.put_i32(batch_size);
+    }
+    if version >= 2 {
+        buf.put_i8(options.acquire_mode);
+        buf.put_u8(u8::from(is_renew_ack));
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
@@ -1288,7 +1343,7 @@ fn encode_share_fetch_request_fields(
     Ok(())
 }
 
-/// Decode a ShareFetch request (`version` 0–1):
+/// Decode a ShareFetch request (`version` 0–2):
 /// `(group_id, member_id, epoch, max_records, topics, forgotten,
 /// batch_size, max_wait_ms, min_bytes, max_bytes)`.
 ///
@@ -1321,6 +1376,44 @@ pub fn decode_share_fetch_request<B: Buf>(
     i32,
     i32,
 )> {
+    let (gid, member, epoch, max_records, topics, forgotten, batch_size, wait, min, max, _) =
+        decode_share_fetch_request_with_options(buf, version)?;
+    Ok((
+        gid,
+        member,
+        epoch,
+        max_records,
+        topics,
+        forgotten,
+        batch_size,
+        wait,
+        min,
+        max,
+    ))
+}
+
+/// Decode all ShareFetch fields, retaining the v2 options. Older versions
+/// return default acquire mode 0 and IsRenewAck false.
+#[expect(
+    clippy::type_complexity,
+    reason = "Preserves the existing decoded request tuple plus v2 options"
+)]
+pub fn decode_share_fetch_request_with_options<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    String,
+    String,
+    i32,
+    i32,
+    Vec<ShareFetchTopic>,
+    Vec<ShareForgottenTopic>,
+    i32,
+    i32,
+    i32,
+    i32,
+    ShareFetchRequestOptions,
+)> {
     let flexible = share_fetch_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
@@ -1332,6 +1425,14 @@ pub fn decode_share_fetch_request<B: Buf>(
         (buf::get_i32(buf)?, buf::get_i32(buf)?)
     } else {
         (0, 0)
+    };
+    let options = if version >= 2 {
+        ShareFetchRequestOptions {
+            acquire_mode: buf::get_i8(buf)?,
+            is_renew_ack: buf::get_bool(buf)?,
+        }
+    } else {
+        ShareFetchRequestOptions::default()
     };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
@@ -1391,6 +1492,7 @@ pub fn decode_share_fetch_request<B: Buf>(
         max_wait_ms,
         min_bytes,
         max_bytes,
+        options,
     ))
 }
 
@@ -1407,7 +1509,7 @@ fn decode_leader<B: Buf>(buf: &mut B) -> Result<(i32, i32)> {
     Ok((id, epoch))
 }
 
-/// Encode a successful ShareFetch response (`version` 0–1).
+/// Encode a successful ShareFetch response (`version` 0–2).
 ///
 /// v1 adds AcquisitionLockTimeoutMs after ErrorMessage. v0 omits it.
 /// Top-level ErrorCode is 0 on this helper
@@ -1471,7 +1573,7 @@ pub fn encode_share_fetch_response_with_endpoints(
     encode_share_fetch_response_full(buf, version, topics, endpoints, 0, None, 15_000, 0)
 }
 
-/// Encode ShareFetch v0–v1 with ThrottleTimeMs.
+/// Encode ShareFetch v0–v2 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `0+`: written on every spoken version.
 /// [`encode_share_fetch_response`] still writes `0`. NodeEndpoints stay
@@ -1487,7 +1589,7 @@ pub fn encode_share_fetch_response_with_throttle(
     encode_share_fetch_response_full(buf, version, topics, &[], throttle_time_ms, None, 15_000, 0)
 }
 
-/// Encode ShareFetch v0–v1 with top-level ErrorMessage.
+/// Encode ShareFetch v0–v2 with top-level ErrorMessage.
 ///
 /// ErrorMessage is JSON `0+` (nullable compact STRING on every spoken
 /// version). JSON default is null. [`encode_share_fetch_response`] still
@@ -1504,7 +1606,7 @@ pub fn encode_share_fetch_response_with_error_message(
     encode_share_fetch_response_full(buf, version, topics, &[], 0, error_message, 15_000, 0)
 }
 
-/// Encode ShareFetch v0–v1 with AcquisitionLockTimeoutMs.
+/// Encode ShareFetch v0–v2 with AcquisitionLockTimeoutMs.
 ///
 /// AcquisitionLockTimeoutMs is JSON `1+` (INT32 after ErrorMessage).
 /// Kafka 4.1.0 JSON has no default; generated Java int32 default is `0`.
@@ -1533,7 +1635,7 @@ pub fn encode_share_fetch_response_with_acquisition_lock_timeout(
     )
 }
 
-/// Encode ShareFetch v0–v1 with top-level ErrorCode.
+/// Encode ShareFetch v0–v2 with top-level ErrorCode.
 ///
 /// ErrorCode is JSON `0+` (INT16 after ThrottleTimeMs). JSON default is
 /// `0`. [`encode_share_fetch_response`] still writes `0`. Decode returns
@@ -1615,7 +1717,7 @@ fn encode_share_fetch_response_full(
     Ok(())
 }
 
-/// Decode a ShareFetch response (`version` 0–1):
+/// Decode a ShareFetch response (`version` 0–2):
 /// `(topics, node_endpoints, throttle_time_ms, error_message,
 /// acquisition_lock_timeout_ms, error_code)`.
 ///
@@ -1739,7 +1841,7 @@ fn share_acknowledge_flexible(version: i16) -> Result<bool> {
     check_share_acknowledge_version(version).map(|_| true)
 }
 
-/// Encode ShareAcknowledge for one topic (`version` 0–1).
+/// Encode ShareAcknowledge for one topic (`version` 0–2).
 pub fn encode_share_acknowledge_request(
     buf: &mut BytesMut,
     version: i16,
@@ -1833,7 +1935,7 @@ impl ShareAcknowledgeRequest {
     /// Top-level ErrorCode is `error_code`. Official Java sets
     /// `throttleTimeMs` from the argument.
     /// [`encode_share_acknowledge_response`] still writes `0`. This crate
-    /// speaks 0–1. This is not
+    /// speaks 0–2. This is not
     /// [`ShareAcknowledgeResponsePartition::partition_response`] /
     /// [`ShareAcknowledgeResponse::error_counts`] / ShareFetch
     /// getErrorResponse.
@@ -1853,12 +1955,13 @@ impl ShareAcknowledgeRequest {
     }
 }
 
-/// ShareAcknowledge with several topics in one request (`version` 0–1).
+/// ShareAcknowledge with several topics in one request (`version` 0–2).
 ///
 /// Kafka 4.0 JSON (`apiKey: 79`, `validVersions: "0"`,
 /// `flexibleVersions: "0+"`, `latestVersionUnstable: true`) and Kafka
 /// 4.1 JSON (`validVersions: "1"` — v0 removed). Request and response
-/// fields are identical. This crate speaks 0–1. v2+ is not spoken.
+/// v0/v1 fields are identical. v2 adds IsRenewAck to the request and
+/// AcquisitionLockTimeoutMs to the response. This crate speaks 0–2.
 pub fn encode_share_acknowledge_topics(
     buf: &mut BytesMut,
     version: i16,
@@ -1867,10 +1970,42 @@ pub fn encode_share_acknowledge_topics(
     share_session_epoch: i32,
     topics: &[ShareAckTopic],
 ) -> crate::error::Result<()> {
+    encode_share_acknowledge_topics_with_renew(
+        buf,
+        version,
+        group_id,
+        member_id,
+        share_session_epoch,
+        topics,
+        false,
+    )
+}
+
+/// Encode ShareAcknowledge with the v2 IsRenewAck flag. Renew is also inferred
+/// from type-4 batches; older versions reject Renew before writing bytes.
+pub fn encode_share_acknowledge_topics_with_renew(
+    buf: &mut BytesMut,
+    version: i16,
+    group_id: &str,
+    member_id: &str,
+    share_session_epoch: i32,
+    topics: &[ShareAckTopic],
+    is_renew_ack: bool,
+) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
+    let is_renew_ack = is_renew_ack
+        || topics.iter().any(|t| {
+            t.partitions
+                .iter()
+                .any(|(_, batches)| batches.iter().any(|b| b.types.contains(&ACK_RENEW)))
+        });
+    check_renew_version(version, is_renew_ack)?;
     buf::put_string(buf, flexible, Some(group_id))?;
     buf::put_string(buf, flexible, Some(member_id))?;
     buf.put_i32(share_session_epoch);
+    if version >= 2 {
+        buf.put_u8(u8::from(is_renew_ack));
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf.extend_from_slice(&t.topic_id);
@@ -1942,7 +2077,7 @@ pub fn encode_share_fetch_error_with_throttle(
     clippy::type_complexity,
     reason = "ack request is group, member, epoch, and topic-partition batches"
 )]
-/// Decode a ShareAcknowledge request (`version` 0–1).
+/// Decode a ShareAcknowledge request (`version` 0–2).
 ///
 /// Returns `(group_id, member_id, epoch, topic-partition batches)`.
 pub fn decode_share_acknowledge_request<B: Buf>(
@@ -1954,10 +2089,31 @@ pub fn decode_share_acknowledge_request<B: Buf>(
     i32,
     Vec<([u8; 16], i32, Vec<AcknowledgementBatch>)>,
 )> {
+    let (group, member, epoch, topics, _) =
+        decode_share_acknowledge_request_with_renew(buf, version)?;
+    Ok((group, member, epoch, topics))
+}
+
+/// Decode ShareAcknowledge including the v2 IsRenewAck flag (false on v0/v1).
+#[expect(
+    clippy::type_complexity,
+    reason = "Preserves existing decoded request fields plus the v2 flag"
+)]
+pub fn decode_share_acknowledge_request_with_renew<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    String,
+    String,
+    i32,
+    Vec<([u8; 16], i32, Vec<AcknowledgementBatch>)>,
+    bool,
+)> {
     let flexible = share_acknowledge_flexible(version)?;
     let group_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let member_id = buf::get_string(buf, flexible)?.unwrap_or_default();
     let epoch = buf::get_i32(buf)?;
+    let is_renew_ack = version >= 2 && buf::get_bool(buf)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::new();
     for _ in 0..n {
@@ -1978,10 +2134,10 @@ pub fn decode_share_acknowledge_request<B: Buf>(
     if flexible {
         buf::skip_tagged_fields(buf)?;
     }
-    Ok((group_id, member_id, epoch, topics))
+    Ok((group_id, member_id, epoch, topics, is_renew_ack))
 }
 
-/// Encode a ShareAcknowledge response (`version` 0–1): throttle `0` plus
+/// Encode a ShareAcknowledge response (`version` 0–2): throttle `0` plus
 /// top-level error code and empty Responses.
 ///
 /// Official Java `ShareAcknowledgeRequest.getErrorResponse` writes
@@ -1997,7 +2153,7 @@ pub fn encode_share_acknowledge_response(
     encode_share_acknowledge_topics_response(buf, version, error_code, &[])
 }
 
-/// Encode a ShareAcknowledge response (`version` 0–1) with topic/partition
+/// Encode a ShareAcknowledge response (`version` 0–2) with topic/partition
 /// bodies.
 ///
 /// ThrottleTimeMs is JSON `0+` ([`encode_share_acknowledge_topics_response_with_throttle`];
@@ -2047,12 +2203,12 @@ pub fn encode_share_acknowledge_topics_response_with_endpoints(
     topics: &[ShareAcknowledgeResponseTopic],
     endpoints: &[NodeEndpoint],
 ) -> crate::error::Result<()> {
-    encode_share_acknowledge_topics_response_full(
-        buf, version, error_code, topics, endpoints, 0, None,
+    encode_share_acknowledge_topics_response_with_lock_timeout(
+        buf, version, error_code, topics, endpoints, 0, None, 0,
     )
 }
 
-/// Encode ShareAcknowledge v0–v1 with ThrottleTimeMs.
+/// Encode ShareAcknowledge v0–v2 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `0+`: written on every spoken version.
 /// [`encode_share_acknowledge_topics_response`] still writes `0`.
@@ -2068,7 +2224,7 @@ pub fn encode_share_acknowledge_topics_response_with_throttle(
     topics: &[ShareAcknowledgeResponseTopic],
     throttle_time_ms: i32,
 ) -> crate::error::Result<()> {
-    encode_share_acknowledge_topics_response_full(
+    encode_share_acknowledge_topics_response_with_lock_timeout(
         buf,
         version,
         error_code,
@@ -2076,10 +2232,11 @@ pub fn encode_share_acknowledge_topics_response_with_throttle(
         &[],
         throttle_time_ms,
         None,
+        0,
     )
 }
 
-/// Encode ShareAcknowledge v0–v1 with top-level ErrorMessage.
+/// Encode ShareAcknowledge v0–v2 with top-level ErrorMessage.
 ///
 /// ErrorMessage is JSON `0+` (nullable compact STRING on every spoken
 /// version). JSON default is null. [`encode_share_acknowledge_topics_response`]
@@ -2095,7 +2252,7 @@ pub fn encode_share_acknowledge_topics_response_with_error_message(
     topics: &[ShareAcknowledgeResponseTopic],
     error_message: Option<&str>,
 ) -> crate::error::Result<()> {
-    encode_share_acknowledge_topics_response_full(
+    encode_share_acknowledge_topics_response_with_lock_timeout(
         buf,
         version,
         error_code,
@@ -2103,6 +2260,7 @@ pub fn encode_share_acknowledge_topics_response_with_error_message(
         &[],
         0,
         error_message,
+        0,
     )
 }
 
@@ -2114,11 +2272,42 @@ fn encode_share_acknowledge_topics_response_full(
     endpoints: &[NodeEndpoint],
     throttle_time_ms: i32,
     error_message: Option<&str>,
+) -> Result<()> {
+    encode_share_acknowledge_topics_response_with_lock_timeout(
+        buf,
+        version,
+        error_code,
+        topics,
+        endpoints,
+        throttle_time_ms,
+        error_message,
+        0,
+    )
+}
+
+/// Encode all ShareAcknowledge response fields, including the v2 lock timeout.
+/// AcquisitionLockTimeoutMs is ignorable on v0/v1 and omitted there.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "Acknowledgement response fields are a single wire body"
+)]
+pub fn encode_share_acknowledge_topics_response_with_lock_timeout(
+    buf: &mut BytesMut,
+    version: i16,
+    error_code: i16,
+    topics: &[ShareAcknowledgeResponseTopic],
+    endpoints: &[NodeEndpoint],
+    throttle_time_ms: i32,
+    error_message: Option<&str>,
+    acquisition_lock_timeout_ms: i32,
 ) -> crate::error::Result<()> {
     let flexible = share_acknowledge_flexible(version)?;
     buf.put_i32(throttle_time_ms);
     buf.put_i16(error_code);
     buf::put_string(buf, flexible, error_message)?;
+    if version >= 2 {
+        buf.put_i32(acquisition_lock_timeout_ms);
+    }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
     for t in topics {
         buf.extend_from_slice(&t.topic_id);
@@ -2143,7 +2332,7 @@ fn encode_share_acknowledge_topics_response_full(
     Ok(())
 }
 
-/// Decode a ShareAcknowledge response (`version` 0–1): error code.
+/// Decode a ShareAcknowledge response (`version` 0–2): error code.
 ///
 /// Does not fail on a non-zero top-level ErrorCode. Topic/partition
 /// bodies are decoded and discarded. For those, use
@@ -2153,7 +2342,7 @@ pub fn decode_share_acknowledge_response<B: Buf>(buf: &mut B, version: i16) -> R
     Ok(error_code)
 }
 
-/// Decode a ShareAcknowledge response (`version` 0–1):
+/// Decode a ShareAcknowledge response (`version` 0–2):
 /// `(error_code, topics, node_endpoints, throttle_time_ms, error_message)`.
 ///
 /// Does not fail on a non-zero top-level or partition ErrorCode; callers
@@ -2176,10 +2365,33 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
     i32,
     Option<String>,
 )> {
+    let (code, topics, endpoints, throttle, message, _) =
+        decode_share_acknowledge_topics_response_with_lock_timeout(buf, version)?;
+    Ok((code, topics, endpoints, throttle, message))
+}
+
+/// Decode all ShareAcknowledge fields, including AcquisitionLockTimeoutMs.
+/// The lock timeout is present on v2 and defaults to 0 on older versions.
+#[expect(
+    clippy::type_complexity,
+    reason = "Preserves the existing response tuple plus the v2 lock timeout"
+)]
+pub fn decode_share_acknowledge_topics_response_with_lock_timeout<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(
+    i16,
+    Vec<ShareAcknowledgeResponseTopic>,
+    Vec<NodeEndpoint>,
+    i32,
+    Option<String>,
+    i32,
+)> {
     let flexible = share_acknowledge_flexible(version)?;
     let throttle_time_ms = buf::get_i32(buf)?;
     let error_code = buf::get_i16(buf)?;
     let error_message = buf::get_string(buf, flexible)?;
+    let acquisition_lock_timeout_ms = if version >= 2 { buf::get_i32(buf)? } else { 0 };
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
     let mut topics = Vec::with_capacity(n);
     for _ in 0..n {
@@ -2220,6 +2432,7 @@ pub fn decode_share_acknowledge_topics_response<B: Buf>(
         endpoints,
         throttle_time_ms,
         error_message,
+        acquisition_lock_timeout_ms,
     ))
 }
 
@@ -2738,7 +2951,7 @@ mod tests {
     }
 
     #[test]
-    fn share_acknowledge_v0_matches_v1_and_does_not_speak_v2() {
+    fn share_acknowledge_v0_matches_v1_and_rejects_v3() {
         // Official Kafka 4.0 JSON: validVersions "0", flexibleVersions "0+",
         // latestVersionUnstable. Official Kafka 4.1 JSON: validVersions "1"
         // (v0 removed). Same request/response fields. This crate speaks 0–1.
@@ -2764,7 +2977,7 @@ mod tests {
         assert!(!cur.has_remaining(), "v0 request leftover-empty");
         let err = encode_share_acknowledge_request(
             &mut BytesMut::new(),
-            2,
+            3,
             "sg",
             "m1",
             1,
@@ -2774,13 +2987,13 @@ mod tests {
         .unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 is not spoken, got {err}"
+            "v3 is not spoken, got {err}"
         );
         let mut empty: &[u8] = &[];
-        let err = decode_share_acknowledge_request(&mut empty, 2).unwrap_err();
+        let err = decode_share_acknowledge_request(&mut empty, 3).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 decode is not spoken, got {err}"
+            "v3 decode is not spoken, got {err}"
         );
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
         assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
@@ -2796,10 +3009,10 @@ mod tests {
         assert_eq!(decode_share_acknowledge_response(&mut cur, 0).unwrap(), 0);
         assert!(!cur.has_remaining(), "v0 response leftover-empty");
         v0.clear();
-        let err = encode_share_acknowledge_response(&mut v0, 2, 0).unwrap_err();
+        let err = encode_share_acknowledge_response(&mut v0, 3, 0).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 response is not spoken, got {err}"
+            "v3 response is not spoken, got {err}"
         );
     }
 
@@ -2955,7 +3168,7 @@ mod tests {
     }
 
     #[test]
-    fn share_fetch_v0_omits_v1_fields_and_does_not_speak_v2() {
+    fn share_fetch_v0_omits_v1_fields_and_rejects_v3() {
         // Official Kafka 4.0 JSON: validVersions "0", PartitionMaxBytes on
         // each partition, no MaxRecords / BatchSize / AcquisitionLockTimeoutMs.
         // Official Kafka 4.1 JSON: validVersions "1" (v0 removed); MaxRecords
@@ -2996,7 +3209,7 @@ mod tests {
         assert!(!cur.has_remaining(), "v0 request leftover-empty");
         let err = encode_share_fetch_request(
             &mut BytesMut::new(),
-            2,
+            3,
             "sg",
             "m1",
             0,
@@ -3009,13 +3222,13 @@ mod tests {
         .unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 is not spoken, got {err}"
+            "v3 is not spoken, got {err}"
         );
         let mut empty: &[u8] = &[];
-        let err = decode_share_fetch_request(&mut empty, 2).unwrap_err();
+        let err = decode_share_fetch_request(&mut empty, 3).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 decode is not spoken, got {err}"
+            "v3 decode is not spoken, got {err}"
         );
         assert_eq!(crate::protocol::api_keys::pick_version(0, 0, 0, 1), Some(0));
         assert_eq!(crate::protocol::api_keys::pick_version(1, 1, 0, 1), Some(1));
@@ -3051,10 +3264,10 @@ mod tests {
         assert!(endpoints.is_empty());
         assert!(!cur.has_remaining(), "v0 response leftover-empty");
         v0.clear();
-        let err = encode_share_fetch_response(&mut v0, 2, &resp).unwrap_err();
+        let err = encode_share_fetch_response(&mut v0, 3, &resp).unwrap_err();
         assert!(
             err.to_string().contains("not implemented"),
-            "v2 response is not spoken, got {err}"
+            "v3 response is not spoken, got {err}"
         );
     }
 
@@ -6529,102 +6742,45 @@ mod tests {
     }
 
     #[test]
-    fn share_fetch_versions_pin_v0_v1_and_reject_v2_explicitly() {
-        // KL05-14: frozen pins (scripts/check-protocol-coverage.py, KL01-11)
-        // record ShareFetch [0,0] on 3.9.1, [0,1] on 4.1.x/4.2.1 and [0,2]
-        // on 4.3.1. The crate speaks 0–1; v2 is upstream-only and rejected.
-        assert_eq!(SHARE_FETCH_SUPPORTED_VERSIONS, [0, 1]);
-        assert_eq!(SHARE_FETCH_CRATE_MAX_VERSION, 1);
-        assert_eq!(SHARE_FETCH_UPSTREAM_MAX_VERSION, 2);
-        assert_eq!(check_share_fetch_version(0).unwrap(), 0);
-        assert_eq!(check_share_fetch_version(1).unwrap(), 1);
-        let err = check_share_fetch_version(2).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "fetch v2 rejected, got {err}"
-        );
-        assert!(
-            err.to_string().contains("4.3.1"),
-            "fetch v2 names its upstream pin, got {err}"
-        );
-        let err = check_share_fetch_version(3).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "fetch v3 rejected, got {err}"
-        );
-        let err = check_share_fetch_version(-1).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "fetch v-1 rejected, got {err}"
-        );
-        // A broker offering only v2 cannot negotiate a spoken version.
+    fn share_fetch_and_acknowledge_support_current_versions_and_reject_unknown() {
+        assert_eq!(SHARE_FETCH_SUPPORTED_VERSIONS, [0, 1, 2]);
+        assert_eq!(SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS, [0, 1, 2]);
+        assert_eq!(SHARE_FETCH_CRATE_MAX_VERSION, 2);
+        assert_eq!(SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, 2);
+        for version in [0_i16, 1, 2] {
+            assert_eq!(check_share_fetch_version(version).unwrap(), version);
+            assert_eq!(check_share_acknowledge_version(version).unwrap(), version);
+            let mut bytes = BytesMut::new();
+            ShareFetchRequest::error_response(&mut bytes, version, 122, 13).unwrap();
+            let mut cur = bytes.as_ref();
+            let (topics, endpoints, throttle, message, lock_timeout, code) =
+                decode_share_fetch_response(&mut cur, version).unwrap();
+            assert!(cur.is_empty());
+            assert!(topics.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!((throttle, message, lock_timeout, code), (13, None, 0, 122));
+            bytes.clear();
+            ShareAcknowledgeRequest::error_response(&mut bytes, version, 30, 9).unwrap();
+            let mut cur = bytes.as_ref();
+            let (code, topics, endpoints, throttle, message, lock_timeout) =
+                decode_share_acknowledge_topics_response_with_lock_timeout(&mut cur, version)
+                    .unwrap();
+            assert!(cur.is_empty());
+            assert!(topics.is_empty());
+            assert!(endpoints.is_empty());
+            assert_eq!((code, throttle, message, lock_timeout), (30, 9, None, 0));
+        }
+        for version in [-1, 3] {
+            assert!(check_share_fetch_version(version).is_err());
+            assert!(check_share_acknowledge_version(version).is_err());
+        }
         assert_eq!(
             crate::protocol::api_keys::pick_version(2, 2, 0, SHARE_FETCH_CRATE_MAX_VERSION),
-            None
+            Some(2)
         );
         assert_eq!(
-            crate::protocol::api_keys::pick_version(0, 2, 0, SHARE_FETCH_CRATE_MAX_VERSION),
-            Some(1)
+            crate::protocol::api_keys::pick_version(1, 2, 0, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION),
+            Some(2)
         );
-        // v0/v1 error helpers still round-trip; the v1 error path keeps
-        // AcquisitionLockTimeoutMs at 0, not the 15000 success default.
-        for version in [0_i16, 1] {
-            let mut buf = BytesMut::new();
-            ShareFetchRequest::error_response(&mut buf, version, 122, 13).unwrap();
-            let mut cur = buf.as_ref();
-            let (topics, endpoints, throttle, error_message, acq, error_code) =
-                decode_share_fetch_response(&mut cur, version).unwrap();
-            assert!(cur.is_empty(), "fetch v{version} error leftover-empty");
-            assert!(topics.is_empty());
-            assert!(endpoints.is_empty());
-            assert_eq!(throttle, 13);
-            assert_eq!(error_message, None);
-            assert_eq!(acq, 0);
-            assert_eq!(error_code, 122);
-        }
-    }
-
-    #[test]
-    fn share_acknowledge_versions_pin_v0_v1_and_reject_v2_explicitly() {
-        // KL05-14: frozen pins record ShareAcknowledge [0,0] on 3.9.1 and
-        // [0,1] on 4.1.0 through 4.3.1. No v2 is defined upstream, so v2+
-        // is rejected as never-spoken. v0 and v1 bodies match.
-        assert_eq!(SHARE_ACKNOWLEDGE_SUPPORTED_VERSIONS, [0, 1]);
-        assert_eq!(SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, 1);
-        assert_eq!(SHARE_ACKNOWLEDGE_UPSTREAM_MAX_VERSION, 1);
-        assert_eq!(check_share_acknowledge_version(0).unwrap(), 0);
-        assert_eq!(check_share_acknowledge_version(1).unwrap(), 1);
-        let err = check_share_acknowledge_version(2).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "ack v2 rejected, got {err}"
-        );
-        assert!(
-            err.to_string().contains("4.3.1"),
-            "ack v2 names the newest pin without a v2, got {err}"
-        );
-        let err = check_share_acknowledge_version(-1).unwrap_err();
-        assert!(
-            err.to_string().contains("not implemented"),
-            "ack v-1 rejected, got {err}"
-        );
-        assert_eq!(
-            crate::protocol::api_keys::pick_version(2, 2, 0, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION),
-            None
-        );
-        // v0/v1 error helpers still round-trip with identical bodies.
-        for version in [0_i16, 1] {
-            let mut buf = BytesMut::new();
-            ShareAcknowledgeRequest::error_response(&mut buf, version, 30, 9).unwrap();
-            let mut cur = buf.as_ref();
-            let (error_code, topics, endpoints, throttle, error_message) =
-                decode_share_acknowledge_topics_response(&mut cur, version).unwrap();
-            assert!(cur.is_empty(), "ack v{version} error leftover-empty");
-            assert_eq!(error_code, 30);
-            assert!(topics.is_empty());
-            assert!(endpoints.is_empty());
-            assert_eq!(throttle, 9);
-            assert_eq!(error_message, None);
-        }
     }
 }

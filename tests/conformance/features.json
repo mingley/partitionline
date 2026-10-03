@@ -552,10 +552,10 @@
     "id": "share.v2_wire_delta",
     "profile": "share",
     "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "ShareFetch v2 and ShareAcknowledge v2 wire codecs are not implemented; tracked in KL05-14."
+    "disposition": "partial",
+    "entrypoint": "partitionline::protocol::share",
+    "evidence": "docs/evidence/client/KL05-14/wire-v2/evidence.json",
+    "notes": "ShareFetch2 and ShareAcknowledge2 codecs have independent official Apache4.3.1 request/response fixtures and focused Rust checks. Full immutable source/MSRV and three-release classification remain KL05-14 work; high-level runtime stays capped at v1 pending KL05-15."
   },
   {
     "id": "share.v2_runtime",

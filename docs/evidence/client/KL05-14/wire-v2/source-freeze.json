@@ -1,0 +1,50 @@
+{
+  "stage": "wire-v2-source-freeze",
+  "parent_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+  "production_qualification": false,
+  "wire_only": true,
+  "runtime_max_versions": {
+    "ShareFetch": 1,
+    "ShareAcknowledge": 1
+  },
+  "coverage_guard_tests": 16,
+  "files": {
+    "docs/evidence/client/KL05-14/wire-v2/apache-generation.log": "cf25b9a05626dfbe34955e3f7e147551af65cb80bf4b968bfd4019832a34dd1b",
+    "docs/evidence/client/KL05-14/wire-v2/candidate-failures.json": "b839d489a4eb4765550df005d97acd1dbc40345bfec761e59ae17602219bcb7f",
+    "docs/evidence/client/KL05-14/wire-v2/candidate-missing-helper-check.log": "b684ae802100f0d5693e4413362d7f41a8dd05d4f628fd1d292d8e7bafee78ac",
+    "docs/evidence/client/KL05-14/wire-v2/clippy.log": "2dcab50fe2c3bb21b6abf73a6e0a9be50f88bb78b0f1e21e0adf6e2bcd91a8df",
+    "docs/evidence/client/KL05-14/wire-v2/commands.json": "84e89ed76da80b1bd00e96b212c4982db8681385088760d21aecca8955112a1f",
+    "docs/evidence/client/KL05-14/wire-v2/coverage.log": "9ed30caa53c3e43325bbfa0fe9f1ef379f359a1b7f057347587fb3c535c8492e",
+    "docs/evidence/client/KL05-14/wire-v2/evidence.json": "1b350f2e8263a00d80cc545b9cacdb9f4851ecfec053daeb19d3b2b605c64698",
+    "docs/evidence/client/KL05-14/wire-v2/lib-tests.log": "159e49377acf776f5d080a1ade13f69c0871bd644d442c47fe77a5ddc2c146bb",
+    "docs/evidence/client/KL05-14/wire-v2/protocol-oracles.log": "81c2a76a89d12485b8f74686b68cc5e72a9ff754496dc928d4eebb9d9034ef68",
+    "scripts/check-protocol-coverage.py": "5a61dbf733507deacbf3184875f9f386fbc41163d61d24d945a582bf981012f7",
+    "src/protocol/share.rs": "f4b7a795c3cd5e183ce4a7de8c5740779c69c1c47cd3824f1afd1c33686228f0",
+    "src/share.rs": "a2a9535ab20fe200e60442045c07c6e7bd3989f8b7d9f973b275dbe386bf1ae7",
+    "tests/conformance/features.json": "2b0f6d3e99046548fd503430f5d6ad5bedee03c75a359ed160adaa2f551fcace",
+    "tests/conformance/test_check_protocol_coverage.py": "2579025b91f2a687495e088c38e012f4287cbd51867ba8841b47ac8bfc71f69d",
+    "tests/fixtures/protocol_oracles/share_v2/ShareV2Fixtures.java": "04b4f12839308409f0370d6801a422c50f97c9e96b9e0151dbbe7fc633a1f800",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v1_defaults_request.bin": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v1_partial_response.bin": "88ee5bfc0e5cebf5973b392930355e0c53fddbb23411a18c9b5764f2a7d638aa",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_defaults_request.bin": "c4f78bbaa5aeb40514cab66d75b22b2c4be4396ab60d96890adeadbf108e516e",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_partial_response.bin": "1e84e63c5ce6e420c1cb6e5453f7bb89d8797a998b79ff76ce402b40d262b7e2",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_renew_request.bin": "142ea0cca14badf93a775b167e6172b9f7828007453ec40bdacb867227e51299",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_session_error_response.bin": "6c143357c9a4e18ac2ed9bcbe95944abc3133ee600d3835a196842df3764ce98",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_acquired_subset_response.bin": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_defaults_request.bin": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_ignorable_record_limit_request.bin": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_acquired_subset_response.bin": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_defaults_request.bin": "c1533de98185b995b20bd605b5b20ceac4448c2f6828951638f7fa848bed0959",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_record_limit_request.bin": "e6df4f21a632ad88eafe4b13de4e4900b504b94b5f9cc5a070b887a06e1feee6",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_renew_request.bin": "9d0b97dce5c581a8c65a6104ebaf73d63fe2144c32af3f43a806289c8b7208f1",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_session_error_response.bin": "0b2ea6a7c82b6b0d53ccd0b833fdbbe2476a417b0da867f8b4e8c0b68e5e566c",
+    "tests/fixtures/protocol_oracles/share_v2/manifest.json": "06fcdf6666b6c766df619cf501a4456fc196ba4c00cfa22f24fa45192c4a5b72",
+    "tests/fixtures/protocol_oracles/share_v2/superseded_v2_pin.json": "949dae1b19c328ab0a787e3f02196d3c7c5fa4f68bb386054d7cbe4f707d3431",
+    "tests/fixtures/protocol_oracles/share_v2_pin.json": "4f51c7c8e9323c1caab203e8078c4b96ffd778b508ded1ec1c4607d578810f29",
+    "tests/protocol_oracles.rs": "783b4b5f3d877fade6086aa1869531806a00c0411dbbaedd8d56414160ecac54"
+  },
+  "limits": [
+    "Focused candidate proof preserved; whole immutable matrix and three-release SDK qualification still required before closing KL05-14.",
+    "High-level runtime cap remains1; both actual current upstream v2 APIs classified as pending runtime qualification."
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "KL05-14",
+  "stage": "wire-v2-candidate",
+  "source_sha": null,
+  "upstream_source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+  "source_files_sha256": {
+    "src/protocol/share.rs": "f4b7a795c3cd5e183ce4a7de8c5740779c69c1c47cd3824f1afd1c33686228f0",
+    "src/share.rs": "a2a9535ab20fe200e60442045c07c6e7bd3989f8b7d9f973b275dbe386bf1ae7",
+    "tests/protocol_oracles.rs": "783b4b5f3d877fade6086aa1869531806a00c0411dbbaedd8d56414160ecac54",
+    "tests/fixtures/protocol_oracles/share_v2_pin.json": "4f51c7c8e9323c1caab203e8078c4b96ffd778b508ded1ec1c4607d578810f29",
+    "tests/fixtures/protocol_oracles/share_v2/ShareV2Fixtures.java": "04b4f12839308409f0370d6801a422c50f97c9e96b9e0151dbbe7fc633a1f800",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v1_defaults_request.bin": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v1_partial_response.bin": "88ee5bfc0e5cebf5973b392930355e0c53fddbb23411a18c9b5764f2a7d638aa",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_defaults_request.bin": "c4f78bbaa5aeb40514cab66d75b22b2c4be4396ab60d96890adeadbf108e516e",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_partial_response.bin": "1e84e63c5ce6e420c1cb6e5453f7bb89d8797a998b79ff76ce402b40d262b7e2",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_renew_request.bin": "142ea0cca14badf93a775b167e6172b9f7828007453ec40bdacb867227e51299",
+    "tests/fixtures/protocol_oracles/share_v2/ack_v2_session_error_response.bin": "6c143357c9a4e18ac2ed9bcbe95944abc3133ee600d3835a196842df3764ce98",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_acquired_subset_response.bin": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_defaults_request.bin": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v1_ignorable_record_limit_request.bin": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_acquired_subset_response.bin": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_defaults_request.bin": "c1533de98185b995b20bd605b5b20ceac4448c2f6828951638f7fa848bed0959",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_record_limit_request.bin": "e6df4f21a632ad88eafe4b13de4e4900b504b94b5f9cc5a070b887a06e1feee6",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_renew_request.bin": "9d0b97dce5c581a8c65a6104ebaf73d63fe2144c32af3f43a806289c8b7208f1",
+    "tests/fixtures/protocol_oracles/share_v2/fetch_v2_session_error_response.bin": "0b2ea6a7c82b6b0d53ccd0b833fdbbe2476a417b0da867f8b4e8c0b68e5e566c",
+    "tests/fixtures/protocol_oracles/share_v2/manifest.json": "06fcdf6666b6c766df619cf501a4456fc196ba4c00cfa22f24fa45192c4a5b72",
+    "tests/fixtures/protocol_oracles/share_v2/superseded_v2_pin.json": "949dae1b19c328ab0a787e3f02196d3c7c5fa4f68bb386054d7cbe4f707d3431"
+  },
+  "independent_peer": "Apache kafka-clients 4.3.1 SHA256 dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+  "changes": [
+    "Fetch v2 acquire mode and IsRenewAck request fields; unchanged v1 response field layout",
+    "Acknowledge v2 IsRenewAck request field and AcquisitionLockTimeoutMs response field",
+    "Renew type4; old versions reject renew before mutating output",
+    "Historical v0/v1 helper layouts and return signatures preserved; richer fields exposed through overloads",
+    "Incorrect prior Ack-v2 absence pin retained as superseded_v2_pin.json and live pin corrected from immutable upstream schemas",
+    "High-level share runtime deliberately remains capped at v1 pending KL03-16/KL05-15"
+  ],
+  "validation": {
+    "lib_protocol_share": "52 passed",
+    "protocol_oracles": "39 passed, 1 existing live-broker ignore",
+    "clippy_all_features": "lib and protocol_oracles targets passed with -D warnings",
+    "rustfmt": "src/protocol/share.rs and src/share.rs pass; new oracle blocks formatted without rewriting preexisting whole-file drift"
+  },
+  "limits": [
+    "Wire fixtures independently generated offline; no Rust v2 runtime or digest-pinned Docker qualification in this stage",
+    "Existing src/protocol/records.rs and buf.rs externally held and unchanged by this lane",
+    "source_sha to be filled by root after tested frozen stage is pushed"
+  ]
+}

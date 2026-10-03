@@ -1,0 +1,19 @@
+{
+  "candidate_failures": [
+    {
+      "command": "cargo check --offline --locked --lib",
+      "diagnostic": "E0425: preexisting ShareAcknowledgeResponse::of still referenced the renamed private response encoder",
+      "raw_log": "candidate-missing-helper-check.log",
+      "resolution": "Preserved a private compatibility adapter; final library and oracle clippy pass."
+    },
+    {
+      "command": "cargo test --offline --locked --test protocol_oracles",
+      "diagnostic": "E0596: four immutable slice bindings passed as mutable decoder cursors in new truncation/version rejection test",
+      "raw_log_retained": false,
+      "resolution": "Changed only those bindings to mutable; every fixture prefix is now rejected and final oracle target passes39 tests."
+    }
+  ],
+  "limits": [
+    "The full first E0596 log was overwritten before retention; its diagnostic is preserved from tool output as a summary, not represented as a reconstructed raw log."
+  ]
+}

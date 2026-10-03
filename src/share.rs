@@ -31,7 +31,7 @@ use crate::protocol::share::{
     encode_share_acknowledge_topics, encode_share_fetch_request,
     encode_share_group_heartbeat_request, AcknowledgementBatch, ShareAckTopic, ShareFetchPartition,
     ShareFetchTopic, ShareGroupHeartbeatRequest, ShareTopicPartitions, ACK_ACCEPT, ACK_REJECT,
-    ACK_RELEASE, SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION, SHARE_FETCH_CRATE_MAX_VERSION,
+    ACK_RELEASE,
 };
 use crate::Uuid;
 
@@ -482,6 +482,11 @@ impl<'a> IntoIterator for &'a ShareRecords {
     }
 }
 
+// Wire v2 is independently supported; runtime advertisement waits for the
+// acquisition and acknowledgement state-machine qualification (KL05-15).
+const SHARE_FETCH_RUNTIME_MAX_VERSION: i16 = 1;
+const SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION: i16 = 1;
+
 /// KIP-932 share group member (`ShareGroupHeartbeat` v0–v1 / ShareFetch v0–v1 / ShareAcknowledge v0–v1).
 pub struct ShareGroup {
     consumer: Consumer,
@@ -522,7 +527,7 @@ pub struct ShareGroup {
 }
 
 fn spoken_share_acknowledge(version: i16) -> Result<i16> {
-    if (0..=SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION).contains(&version) {
+    if (0..=SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION).contains(&version) {
         Ok(version)
     } else {
         Err(Error::Unsupported(
@@ -532,7 +537,7 @@ fn spoken_share_acknowledge(version: i16) -> Result<i16> {
 }
 
 fn spoken_share_fetch(version: i16) -> Result<i16> {
-    if (0..=SHARE_FETCH_CRATE_MAX_VERSION).contains(&version) {
+    if (0..=SHARE_FETCH_RUNTIME_MAX_VERSION).contains(&version) {
         Ok(version)
     } else {
         Err(Error::Unsupported(
@@ -608,7 +613,7 @@ impl ShareGroup {
                     v.min_version,
                     v.max_version,
                     0,
-                    SHARE_FETCH_CRATE_MAX_VERSION,
+                    SHARE_FETCH_RUNTIME_MAX_VERSION,
                 )
             })
             .ok_or_else(|| Error::Unsupported("broker does not support ShareFetch v0-1".into()))?;
@@ -620,7 +625,7 @@ impl ShareGroup {
                     v.min_version,
                     v.max_version,
                     0,
-                    SHARE_ACKNOWLEDGE_CRATE_MAX_VERSION,
+                    SHARE_ACKNOWLEDGE_RUNTIME_MAX_VERSION,
                 )
             })
             .ok_or_else(|| {
