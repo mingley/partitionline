@@ -1,0 +1,79 @@
+{
+  "excluded_original_full_logs": [
+    {
+      "bytes": 254530,
+      "full_mode": "0600",
+      "git_blob_sha1": "0f5c9ba3ad4f28084b53d1d7773dc920599d2d1d",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339756.decoded.log",
+      "sha256": "48c3e9f751e6c7d11ff303aee514ea6fca954c52bb30c3c7aadc4cb684c31977"
+    },
+    {
+      "bytes": 259834,
+      "full_mode": "0600",
+      "git_blob_sha1": "a86e7f47f932862afa7f2ddeeb39496b8f0fd9a7",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339845.decoded.log",
+      "sha256": "dee997c6693bdf0c5ad9246f7f620a3c19dee1b6b4ac92e24880e99a417cf1dd"
+    },
+    {
+      "bytes": 271442,
+      "full_mode": "0600",
+      "git_blob_sha1": "bd7ccd81598d4a13e9f91d6e213447b949b921fc",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339705.decoded.log",
+      "sha256": "f257a2c7a117d62f6461f4c5331fba490bf050758a958b00a412c277f66ee652"
+    }
+  ],
+  "files": [
+    {
+      "bytes": 38642,
+      "full_mode": "0600",
+      "git_blob_sha1": "6254a49dd68110b0327ef9f865c8cda9e48150c6",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.before.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa"
+    },
+    {
+      "bytes": 41454,
+      "full_mode": "0600",
+      "git_blob_sha1": "2e7895e5f8845ac1ce442f31f0844b4f92f6780e",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.candidate.rs",
+      "sha256": "41e66afb14a65446f5a3cf3a3da6f6c76c222d7c0bc2de32409b88f0969f4922"
+    },
+    {
+      "bytes": 513,
+      "full_mode": "0600",
+      "git_blob_sha1": "2c325e679316af6f94cf635d1006b97aa43b7e4d",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/producer.rs.patch",
+      "sha256": "ebc3ec67d21f1861fa1690f67167b393e1017867ce8c0d127f9a715d0c698038"
+    },
+    {
+      "bytes": 4402,
+      "full_mode": "0600",
+      "git_blob_sha1": "069efec6dd0290838d7d6aa9637a2fe06cbab649",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.rs.patch",
+      "sha256": "a9cc13b9f6876dd2e04914c1f488678b7b9aad5373088ef359649e2c6d707bd6"
+    },
+    {
+      "bytes": 23961,
+      "full_mode": "0600",
+      "git_blob_sha1": "e4b579fdb223412f63e2981ef6d3513ccf12d1cd",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/ci-sticky-excerpts.json",
+      "sha256": "2e905e78767334c3a0cfdff8b9f137b863dd73da52a6dceac65c2aafe67a8186"
+    },
+    {
+      "bytes": 9001,
+      "full_mode": "0600",
+      "git_blob_sha1": "74a4b9acef9284fd4292ad185c58dc4376e794cd",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/validation.json",
+      "sha256": "47f19ed84799d2ee5e8fb174a04283857a1908fe56102b2f3d275af01f8e1215"
+    }
+  ],
+  "payload_bytes": 117973,
+  "schema_version": 1,
+  "script": {
+    "bytes": 15111,
+    "full_mode": "0600",
+    "git_blob_sha1": "5d0dbd81434d184b56c4c3f1deb536c6df93430f",
+    "path": "/workspace/work/integration/sticky-ci-34a2-review-01/prepare.py",
+    "sha256": "424b4ab2b790d650ccd5cdf72f9c9fbeec24569faf1812458825e64bca42f10e"
+  },
+  "source_sha": "34a2e672408d64309b0c6cb3dca428f59bd30e0b"
+}

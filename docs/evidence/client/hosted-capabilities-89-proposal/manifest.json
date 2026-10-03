@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "relative_path": "capabilities.yml",
+      "bytes": 2373,
+      "sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "ci-client-capabilities.py",
+      "bytes": 20483,
+      "sha256": "70b145e98ec9a30518e6d75d2f1787cdbc5d23a19eb4028fa5205900c6667a2b",
+      "full_mode": 384,
+      "allocated_bytes": 24576
+    },
+    {
+      "relative_path": "contract.json",
+      "bytes": 3607,
+      "sha256": "036752d41e864f99bc281d1aa43b9b483501157a5166b72e17412d06b0945783",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "historical-88/capabilities.yml",
+      "bytes": 2373,
+      "sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "historical-88/ci-client-capabilities.py",
+      "bytes": 20382,
+      "sha256": "c2c2009354225881a385f328965bea9ad3ff33ae6d74a988658c20747e4a53e1",
+      "full_mode": 384,
+      "allocated_bytes": 20480
+    },
+    {
+      "relative_path": "historical-88/job.yml",
+      "bytes": 2062,
+      "sha256": "3d2a55cd0156153ef7301b1392dc8f22bc9f8d51873c81516d6dc8ef1df5fbaa",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "job.yml",
+      "bytes": 2062,
+      "sha256": "3d2a55cd0156153ef7301b1392dc8f22bc9f8d51873c81516d6dc8ef1df5fbaa",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "review.md",
+      "bytes": 2689,
+      "sha256": "14367b8be73b53bf532a99e04240e257a1a0854238a309e08ac4ad1a0c7e2091",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    },
+    {
+      "relative_path": "scope-rebase-89.json",
+      "bytes": 898,
+      "sha256": "1954c0b9f11873387dedf9f6ae350dfe6727e9bc3b829ec0d85035822b6aa522",
+      "full_mode": 384,
+      "allocated_bytes": 4096
+    }
+  ],
+  "logical_bytes": 56929,
+  "source_only_limit_bytes": 102400,
+  "actual_local_Cargo_SDK_Docker_or_proposal_execution": 0,
+  "static_AST_compile_only": true
+}

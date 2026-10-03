@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "historical88_helper_sha256": "c2c2009354225881a385f328965bea9ad3ff33ae6d74a988658c20747e4a53e1",
+  "historical88_actual_Cargo_SDK_or_tests": 0,
+  "authoritative89_helper_sha256": "70b145e98ec9a30518e6d75d2f1787cdbc5d23a19eb4028fa5205900c6667a2b",
+  "authoritative_counts": {
+    "write_txn_markers_v2": 12,
+    "share_offsets_v1": 10,
+    "partitioner": 14,
+    "sticky_partitioner": 29,
+    "streams_protocol": 24,
+    "total": 89
+  },
+  "new_sticky_case": "unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases",
+  "sticky_candidate_origin": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.candidate.rs",
+  "sticky_candidate_sha256": "41e66afb14a65446f5a3cf3a3da6f6c76c222d7c0bc2de32409b88f0969f4922",
+  "source_expected_GitHub_SHA_dynamic_exact_checked": true,
+  "uncompiled_unexecuted_counts_are_future_scope_only": true
+}

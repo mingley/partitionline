@@ -1,0 +1,235 @@
+{
+  "actual_hosted_each": {
+    "tests_failed": 6,
+    "tests_passed": 22
+  },
+  "actual_hosted_jobs": [
+    {
+      "bytes": 254530,
+      "full_mode": "0600",
+      "git_blob_sha1": "0f5c9ba3ad4f28084b53d1d7773dc920599d2d1d",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339756.decoded.log",
+      "sha256": "48c3e9f751e6c7d11ff303aee514ea6fca954c52bb30c3c7aadc4cb684c31977"
+    },
+    {
+      "bytes": 259834,
+      "full_mode": "0600",
+      "git_blob_sha1": "a86e7f47f932862afa7f2ddeeb39496b8f0fd9a7",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339845.decoded.log",
+      "sha256": "dee997c6693bdf0c5ad9246f7f620a3c19dee1b6b4ac92e24880e99a417cf1dd"
+    },
+    {
+      "bytes": 271442,
+      "full_mode": "0600",
+      "git_blob_sha1": "bd7ccd81598d4a13e9f91d6e213447b949b921fc",
+      "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339705.decoded.log",
+      "sha256": "f257a2c7a117d62f6461f4c5331fba490bf050758a958b00a412c277f66ee652"
+    }
+  ],
+  "causal_event_orders": 90,
+  "classifications": [
+    "3 fixture byte limits166>160 corrected to200, aggregate third240>200 still blocked",
+    "1 fixture lacks declared topics, explicitly create all5",
+    "1 fixture warms transactional producer before begin, warm separate valid transaction",
+    "1 real buffer.memory0 counter underflow, count unlimited reservations symmetrically"
+  ],
+  "controls": [
+    {
+      "detail": "all three original 160-byte fixtures hit the genuine single-record limit before queue pressure",
+      "name": "single_record_original_fixture_is_rejected",
+      "passed": true
+    },
+    {
+      "detail": "same payload160 gauge/assertions; third payload exceeds cap without single-record rejection",
+      "name": "corrected_fixture_reaches_aggregate_pressure",
+      "passed": true
+    },
+    {
+      "detail": "compatible finite three-release history, not a reconstructed actual warm retry count",
+      "name": "old_unlimited_gauge_reproduces_observed_wrap",
+      "passed": true
+    },
+    {
+      "detail": {
+        "all_prefix_gauges": "exact live ownership sum",
+        "causal_event_orders": 90,
+        "payloads": [
+          4,
+          0,
+          8
+        ]
+      },
+      "name": "corrected_counting_all_causal_reserve_release_orders",
+      "passed": true
+    },
+    {
+      "detail": "every owned reservation is counted even when cap0; no saturating subtraction",
+      "name": "unlimited_route-refused_releases_exactly_once",
+      "passed": true
+    },
+    {
+      "detail": "every owned reservation is counted even when cap0; no saturating subtraction",
+      "name": "unlimited_cancelled-before-enqueue_releases_exactly_once",
+      "passed": true
+    },
+    {
+      "detail": "every owned reservation is counted even when cap0; no saturating subtraction",
+      "name": "unlimited_acked_releases_exactly_once",
+      "passed": true
+    },
+    {
+      "detail": "every owned reservation is counted even when cap0; no saturating subtraction",
+      "name": "unlimited_terminal-error_releases_exactly_once",
+      "passed": true
+    },
+    {
+      "detail": "metadata mock intentionally advertises only created topics; no fabricated auto creation",
+      "name": "topic_fixture_declares_every_test_topic",
+      "passed": true
+    },
+    {
+      "detail": "warm transaction completes; injected failure runs in a fresh transaction with cleared partition enrollment",
+      "name": "transaction_warm_is_inside_distinct_completed_transaction",
+      "passed": true
+    },
+    {
+      "detail": "no test removed, ignored, filtered or weakened by dropping its semantic assertions",
+      "name": "all_existing_test_functions_preserved",
+      "passed": true
+    },
+    {
+      "detail": "draft socket test covers ordinary/sticky, failed routing, payload+header gauge, ack and terminal error",
+      "name": "new_regression_genuine_both_admission_paths",
+      "passed": true
+    }
+  ],
+  "coordination": "Root alone installs. C_peer Producer owner must port this narrow function correction into superseding auth draft.",
+  "execution": {
+    "cache_writes": 0,
+    "cargo": 0,
+    "compiler": 0,
+    "listeners": 0,
+    "repo_writes": 0,
+    "rustfmt": 0,
+    "sdk_runtime": 0
+  },
+  "next_required": [
+    "actual hosted sticky29 regression suite on corrected source",
+    "strict client lint and relevant producer suites",
+    "do not claim old actual failure histories now pass"
+  ],
+  "original_bytes_and_full_modes_unchanged": true,
+  "production_fix": {
+    "changed_function": "Shared::try_reserve_buffer",
+    "expected_result_sha256": "6832e2043ffd545c950f8dd68f850bbc9d5ece617e3f6aeb86c1a22a9486772e",
+    "file": "src/producer.rs",
+    "invariant": "cap0 disables ceiling only; every byte reservation must still increment before its exactly-once release",
+    "patch": "producer.rs.patch"
+  },
+  "python_controls_passed": 12,
+  "schema_version": 1,
+  "scope": "Actual hosted six-failure classification; source-only correction and finite Python models. No corrected Rust run.",
+  "source_after": [
+    {
+      "bytes": 218265,
+      "full_mode": "0600",
+      "git_blob_sha1": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "path": "/workspace/partitionline/src/producer.rs",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    {
+      "bytes": 38642,
+      "full_mode": "0644",
+      "git_blob_sha1": "6254a49dd68110b0327ef9f865c8cda9e48150c6",
+      "path": "/workspace/partitionline/tests/sticky_partitioner.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa"
+    },
+    {
+      "bytes": 30557,
+      "full_mode": "0600",
+      "git_blob_sha1": "abbf12da6380628f4eaed893f81d6b876d266cfb",
+      "path": "/workspace/partitionline/src/metrics.rs",
+      "sha256": "a6fbef0a70e3a4ffa7c248ef71ab5cb9457c4d48fdd0f8cce6033cf9d2ca40ac"
+    },
+    {
+      "bytes": 380411,
+      "full_mode": "0600",
+      "git_blob_sha1": "871d59a025e347b41b1522805a5131db79cdd9ec",
+      "path": "/workspace/partitionline/tests/common/mod.rs",
+      "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113"
+    },
+    {
+      "bytes": 171836,
+      "full_mode": "0600",
+      "git_blob_sha1": "e9a6b76d68a6053c8d4a5148d219550b62a9ee81",
+      "path": "/workspace/partitionline/src/protocol/records.rs",
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+    },
+    {
+      "bytes": 61797,
+      "full_mode": "0600",
+      "git_blob_sha1": "73bf96bc5f8f23e3cc07723bd7b7068b216e464f",
+      "path": "/workspace/partitionline/src/protocol/buf.rs",
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+    }
+  ],
+  "source_before": [
+    {
+      "bytes": 218265,
+      "full_mode": "0600",
+      "git_blob_sha1": "d1ae873a0ccdb26b802e9aa85087838c2479b9a7",
+      "path": "/workspace/partitionline/src/producer.rs",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    {
+      "bytes": 38642,
+      "full_mode": "0644",
+      "git_blob_sha1": "6254a49dd68110b0327ef9f865c8cda9e48150c6",
+      "path": "/workspace/partitionline/tests/sticky_partitioner.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa"
+    },
+    {
+      "bytes": 30557,
+      "full_mode": "0600",
+      "git_blob_sha1": "abbf12da6380628f4eaed893f81d6b876d266cfb",
+      "path": "/workspace/partitionline/src/metrics.rs",
+      "sha256": "a6fbef0a70e3a4ffa7c248ef71ab5cb9457c4d48fdd0f8cce6033cf9d2ca40ac"
+    },
+    {
+      "bytes": 380411,
+      "full_mode": "0600",
+      "git_blob_sha1": "871d59a025e347b41b1522805a5131db79cdd9ec",
+      "path": "/workspace/partitionline/tests/common/mod.rs",
+      "sha256": "61ea3f4e8ddbe7f9d7f8776a292fa1892a95ce438922c8df9db4ada20c325113"
+    },
+    {
+      "bytes": 171836,
+      "full_mode": "0600",
+      "git_blob_sha1": "e9a6b76d68a6053c8d4a5148d219550b62a9ee81",
+      "path": "/workspace/partitionline/src/protocol/records.rs",
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+    },
+    {
+      "bytes": 61797,
+      "full_mode": "0600",
+      "git_blob_sha1": "73bf96bc5f8f23e3cc07723bd7b7068b216e464f",
+      "path": "/workspace/partitionline/src/protocol/buf.rs",
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+    }
+  ],
+  "source_sha": "34a2e672408d64309b0c6cb3dca428f59bd30e0b",
+  "test_candidate": {
+    "added_regressions": 1,
+    "after_tests": 29,
+    "before_tests": 28,
+    "candidate": {
+      "bytes": 41454,
+      "full_mode": "0600",
+      "git_blob_sha1": "2e7895e5f8845ac1ce442f31f0844b4f92f6780e",
+      "path": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.candidate.rs",
+      "sha256": "41e66afb14a65446f5a3cf3a3da6f6c76c222d7c0bc2de32409b88f0969f4922"
+    },
+    "file": "tests/sticky_partitioner.rs",
+    "runtime_status": "uncompiled and unexecuted"
+  }
+}

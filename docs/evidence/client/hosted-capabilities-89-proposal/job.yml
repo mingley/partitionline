@@ -1,0 +1,43 @@
+  # Isolated from unrelated all-target runtime blockers; exact source proof is
+  # uploaded on failure too. This is Rust socket/codec evidence, not SDK runtime.
+  client-capabilities:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: ['1.85.0', stable]
+        features: [default, all-features]
+    env:
+      RUSTUP_TOOLCHAIN: ${{ matrix.rust }}
+      CARGO_BUILD_JOBS: '2'
+      CARGO_PROFILE_DEV_DEBUG: '0'
+      CARGO_PROFILE_TEST_DEBUG: '0'
+      CARGO_INCREMENTAL: '0'
+      CARGO_TERM_COLOR: never
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Exact selected public API and codec cases with reverse exports
+        run: python3 -B scripts/ci-client-capabilities.py --toolchain '${{ matrix.rust }}' --features '${{ matrix.features }}'
+      - id: proof
+        name: Retain complete or failed focused proof with original Unix modes
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: client-capabilities-${{ github.sha }}-${{ matrix.rust }}-${{ matrix.features }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            target/client-capabilities/${{ matrix.rust }}/${{ matrix.features }}/evidence.tar.gz
+            target/client-capabilities/${{ matrix.rust }}/${{ matrix.features }}/artifact-manifest.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Record public artifact identity
+        if: always() && steps.proof.outcome == 'success'
+        run: |
+          printf '%s\n' 'artifact_id=${{ steps.proof.outputs.artifact-id }}' 'artifact_url=${{ steps.proof.outputs.artifact-url }}' 'artifact_digest=${{ steps.proof.outputs.artifact-digest }}' >> "$GITHUB_STEP_SUMMARY"

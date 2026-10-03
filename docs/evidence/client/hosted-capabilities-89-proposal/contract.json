@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "status": "source-only proposal; no hosted or local qualification has run",
+  "authoritative_unique_test_cases": 89,
+  "per_cell_counts": {
+    "write_txn_markers_v2": 12,
+    "share_offsets_v1": 10,
+    "partitioner": 14,
+    "sticky_partitioner": 29,
+    "streams_protocol": 24
+  },
+  "cells": [
+    {
+      "toolchain": "stable",
+      "features": "default"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features"
+    }
+  ],
+  "workflow_repo_target": ".github/workflows/capabilities.yml",
+  "producer_job": "client-capabilities",
+  "helper_repo_target": "scripts/ci-client-capabilities.py",
+  "artifact_name": "client-capabilities-<GITHUB_SHA>-<toolchain>-<features>-<GITHUB_RUN_ID>-<GITHUB_RUN_ATTEMPT>",
+  "artifact_files": [
+    "evidence.tar.gz",
+    "artifact-manifest.json"
+  ],
+  "tar_root": "evidence",
+  "tar_validation_path": "evidence/validation.json",
+  "tar_source_inventory_path": "evidence/source-inventory.json.gz",
+  "tar_export_root": "evidence/reverse",
+  "outer_fields": [
+    "schema_version",
+    "source_sha",
+    "toolchain",
+    "features",
+    "passed",
+    "public_ci",
+    "archive",
+    "inner_validation_path",
+    "inner_validation_sha256",
+    "export_transfer_modes_preserved_in_tar"
+  ],
+  "archive_fields": [
+    "path",
+    "sha256",
+    "bytes",
+    "original_full_mode"
+  ],
+  "source_inventory_fields": [
+    "path",
+    "sha256",
+    "bytes",
+    "full_mode",
+    "uncompressed_sha256",
+    "uncompressed_bytes",
+    "file_count"
+  ],
+  "command_fields": [
+    "name",
+    "argv",
+    "cwd",
+    "environment_additions",
+    "timeout_seconds",
+    "pid",
+    "pgid",
+    "exit_code",
+    "trigger",
+    "duration_seconds",
+    "joined",
+    "stdout",
+    "stderr"
+  ],
+  "command_stream_fields": [
+    "path",
+    "sha256",
+    "bytes"
+  ],
+  "streams_commands": [
+    "streams_protocol-discovery",
+    "streams_protocol-execution"
+  ],
+  "streams_admission": "components.streams.passed, valid exact source/all fullmodes, verified toolchain, actualStreams24PASS, full234exportSHA/bytes/full600 and4dirs700, original committed bytes/row identity,8MiB bound; overall focused89 result remains separately visible",
+  "component_fields": [
+    "passed",
+    "qualification_scope",
+    "toolchain_verified",
+    "overall_focused_passed",
+    "actual_passed_tests",
+    "expected_tests",
+    "export_file_count",
+    "external_Java_reverse_completed"
+  ],
+  "always_failed_or_partial_raw_proof_retained": true,
+  "ordinary_failed_or_uncompiled_suite_does_not_block_other_suites": true,
+  "source_process_or_disk_guard_failure_blocks_independent_admission": true,
+  "counts_are_real_Cargo_discovery_then_exact_execution_names_results_not_source_regex_estimates": true,
+  "export_files_per_cell": 234,
+  "rust_payloads_per_cell": 114,
+  "original_payloads_per_cell": 114,
+  "indices_per_cell": 6,
+  "maximum_export_bytes_per_cell": 8388608,
+  "export_payload_modes": 384,
+  "export_directory_modes": 448,
+  "Unix_modes_survive_artifact_transport_via_tar": true,
+  "unchanged_original_88_proposal_path": "/workspace/work/client-capability-hosted-proposal-01/historical-88",
+  "actual_local_Cargo_SDK_or_Docker_commands": 0,
+  "current_proposal_AST_syntax_checked_without_executing": true,
+  "current_helper_sha256": "70b145e98ec9a30518e6d75d2f1787cdbc5d23a19eb4028fa5205900c6667a2b",
+  "workflow_fragment_sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916"
+}

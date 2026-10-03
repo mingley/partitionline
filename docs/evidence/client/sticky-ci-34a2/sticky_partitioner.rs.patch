@@ -1,0 +1,120 @@
+--- a/tests/sticky_partitioner.rs
++++ b/tests/sticky_partitioner.rs
+@@ -142,7 +142,7 @@
+             .connections(1)
+             .partitioner(StickyPartitioner::seeded(123))
+             .linger(Duration::from_secs(30))
+-            .buffer_memory(160)
++            .buffer_memory(200)
+             .batch_bytes(10_000),
+     )
+     .await
+@@ -434,7 +434,7 @@
+             .connections(1)
+             .partitioner(StickyPartitioner::seeded(2))
+             .linger(Duration::from_secs(30))
+-            .buffer_memory(160),
++            .buffer_memory(200),
+     )
+     .await
+     .unwrap();
+@@ -515,6 +515,9 @@
+ #[tokio::test]
+ async fn retained_topic_text_and_idle_eviction_stay_within_hard_caps() {
+     let mock = common::Mock::start().await;
++    for topic in ["a", "bb", "ccc", "dddd", "toolongfortextcap"] {
++        mock.set_topic_partitions(topic, 1);
++    }
+     let producer = Producer::new(
+         ProducerConfig::bootstrap([mock.addr.clone()])
+             .connections(1)
+@@ -556,7 +559,9 @@
+     )
+     .await
+     .unwrap();
+-    warm(&producer).await.unwrap();
++    producer.begin_transaction().await.unwrap();
++    warm(&producer).await.unwrap();
++    producer.commit_transaction().await.unwrap();
+     producer.begin_transaction().await.unwrap();
+     producer.inject_pre_send_fault(PreSendFault::TxnPartition);
+     for _ in 0..3 {
+@@ -886,7 +891,7 @@
+                 seed: Some(9),
+                 ..StickyPartitionerConfig::default()
+             }))
+-            .buffer_memory(160)
++            .buffer_memory(200)
+             .linger(Duration::from_secs(30)),
+     )
+     .await
+@@ -1059,3 +1064,69 @@
+     assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
+     producer.close().await.unwrap();
+ }
++
++#[tokio::test]
++async fn unlimited_byte_budget_tracks_payload_reservations_and_terminal_releases() {
++    // Both ordinary and sticky admission share the payload reservation owner.
++    // Zero removes the cap; it must not disable the observable byte gauge.
++    for sticky in [false, true] {
++        let mock = common::Mock::start().await;
++        let mut config = ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30))
++            .batch_bytes(100_000);
++        if sticky {
++            config = config.partitioner(StickyPartitioner::seeded(9));
++        }
++        let producer = Producer::new(config).await.unwrap();
++        warm(&producer).await.unwrap();
++        assert_eq!(producer.metrics().bytes_buffered, 0);
++        // t has only partition 0. Sticky reservation precedes this route
++        // refusal, so every repeated rollback must return the gauge to zero.
++        for _ in 0..20 {
++            assert!(matches!(
++                producer.try_send(ProduceRecord::to("t").partition(1).value(&b"rollback"[..])),
++                Err(Error::QueueFull)
++            ));
++            assert_eq!(producer.metrics().bytes_buffered, 0);
++        }
++        let first = mock.produce_batches().len();
++        admit(&producer, ProduceRecord::to("t").value(&b"alpha"[..]))
++            .await
++            .unwrap();
++        admit(
++            &producer,
++            ProduceRecord::to("t")
++                .key(&b"k"[..])
++                .value(&b"beta"[..])
++                .header("trace", &b"context"[..]),
++        )
++        .await
++        .unwrap();
++        assert_eq!(producer.metrics().bytes_buffered, 22);
++        producer.flush().await.unwrap();
++        assert_eq!(producer.metrics().bytes_buffered, 0);
++        assert_eq!(
++            mock.produce_batches()
++                .into_iter()
++                .skip(first)
++                .map(|batch| batch.2)
++                .sum::<i32>(),
++            2
++        );
++        producer.inject_pre_send_fault(PreSendFault::Write);
++        admit(&producer, ProduceRecord::to("t").value(&b"fail"[..]))
++            .await
++            .unwrap();
++        assert_eq!(producer.metrics().bytes_buffered, 4);
++        assert!(producer.flush().await.is_err());
++        assert_eq!(producer.metrics().bytes_buffered, 0);
++        if sticky {
++            assert_eq!(producer.__test_sticky_records(), Some((0, 100_000)));
++        }
++        let observer = producer.clone();
++        producer.close().await.unwrap();
++        assert_eq!(observer.metrics().bytes_buffered, 0);
++    }
++}

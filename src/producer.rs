@@ -1256,6 +1256,9 @@ impl Shared {
     fn try_reserve_buffer(&self, bytes: u64) -> bool {
         let cap = self.cfg.buffer_memory;
         if cap == 0 {
+            // Unlimited capacity still owns a counted reservation: failed
+            // admission, cancellation and delivery each release it once.
+            let _ = self.buffered_bytes.fetch_add(bytes, Ordering::Relaxed);
             return true;
         }
         let cap = u64::try_from(cap).unwrap_or(u64::MAX);

@@ -1,0 +1,164 @@
+{
+  "base": "43b7f837e329e838948e21715b1573b7ded2f5e4",
+  "installed": [
+    {
+      "path": "tests/sticky_partitioner.rs",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.candidate.rs",
+      "before_sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "sha256": "41e66afb14a65446f5a3cf3a3da6f6c76c222d7c0bc2de32409b88f0969f4922",
+      "full_mode": "0644"
+    },
+    {
+      "path": "src/producer.rs",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/producer.rs.patch",
+      "before_sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "sha256": "6832e2043ffd545c950f8dd68f850bbc9d5ece617e3f6aeb86c1a22a9486772e"
+    },
+    {
+      "path": "scripts/ci-client-capabilities.py",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/ci-client-capabilities.py",
+      "before_sha256": null,
+      "sha256": "70b145e98ec9a30518e6d75d2f1787cdbc5d23a19eb4028fa5205900c6667a2b",
+      "full_mode": "0600"
+    },
+    {
+      "path": ".github/workflows/capabilities.yml",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/capabilities.yml",
+      "before_sha256": null,
+      "sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/sticky_partitioner.before.rs",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.before.rs",
+      "before_sha256": null,
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/sticky_partitioner.candidate.rs",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.candidate.rs",
+      "before_sha256": null,
+      "sha256": "41e66afb14a65446f5a3cf3a3da6f6c76c222d7c0bc2de32409b88f0969f4922",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/producer.rs.patch",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/producer.rs.patch",
+      "before_sha256": null,
+      "sha256": "ebc3ec67d21f1861fa1690f67167b393e1017867ce8c0d127f9a715d0c698038",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/sticky_partitioner.rs.patch",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/sticky_partitioner.rs.patch",
+      "before_sha256": null,
+      "sha256": "a9cc13b9f6876dd2e04914c1f488678b7b9aad5373088ef359649e2c6d707bd6",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/ci-sticky-excerpts.json",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/ci-sticky-excerpts.json",
+      "before_sha256": null,
+      "sha256": "2e905e78767334c3a0cfdff8b9f137b863dd73da52a6dceac65c2aafe67a8186",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/validation.json",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/validation.json",
+      "before_sha256": null,
+      "sha256": "47f19ed84799d2ee5e8fb174a04283857a1908fe56102b2f3d275af01f8e1215",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/prepare.py",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/prepare.py",
+      "before_sha256": null,
+      "sha256": "424b4ab2b790d650ccd5cdf72f9c9fbeec24569faf1812458825e64bca42f10e",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/sticky-ci-34a2/stage-handoff.json",
+      "origin": "/workspace/work/integration/sticky-ci-34a2-review-01/stage-handoff.json",
+      "before_sha256": null,
+      "sha256": "be2b4bff2f6fd2c785764362e872a3e78e0c438227fd4a2b85867b8cf7ddb51c",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/capabilities.yml",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/capabilities.yml",
+      "before_sha256": null,
+      "sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/ci-client-capabilities.py",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/ci-client-capabilities.py",
+      "before_sha256": null,
+      "sha256": "70b145e98ec9a30518e6d75d2f1787cdbc5d23a19eb4028fa5205900c6667a2b",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/contract.json",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/contract.json",
+      "before_sha256": null,
+      "sha256": "036752d41e864f99bc281d1aa43b9b483501157a5166b72e17412d06b0945783",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/historical-88/capabilities.yml",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/historical-88/capabilities.yml",
+      "before_sha256": null,
+      "sha256": "c63d0b081ba19dff9d37781e0ae3956ba014945a62effc687584a2efe69a8916",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/historical-88/ci-client-capabilities.py",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/historical-88/ci-client-capabilities.py",
+      "before_sha256": null,
+      "sha256": "c2c2009354225881a385f328965bea9ad3ff33ae6d74a988658c20747e4a53e1",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/historical-88/job.yml",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/historical-88/job.yml",
+      "before_sha256": null,
+      "sha256": "3d2a55cd0156153ef7301b1392dc8f22bc9f8d51873c81516d6dc8ef1df5fbaa",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/job.yml",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/job.yml",
+      "before_sha256": null,
+      "sha256": "3d2a55cd0156153ef7301b1392dc8f22bc9f8d51873c81516d6dc8ef1df5fbaa",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/review.md",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/review.md",
+      "before_sha256": null,
+      "sha256": "14367b8be73b53bf532a99e04240e257a1a0854238a309e08ac4ad1a0c7e2091",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/scope-rebase-89.json",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/scope-rebase-89.json",
+      "before_sha256": null,
+      "sha256": "1954c0b9f11873387dedf9f6ae350dfe6727e9bc3b829ec0d85035822b6aa522",
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/client/hosted-capabilities-89-proposal/manifest.json",
+      "origin": "/workspace/work/client-capability-hosted-proposal-01/manifest.json",
+      "before_sha256": null,
+      "sha256": "e1327b5ed4c13810662c57bfba66eb239a5567af5f7b40f64c42ca6242ed85d8",
+      "full_mode": "0600"
+    }
+  ],
+  "held_sources_unchanged": {
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "actual_Rust_Cargo_SDK_execution": 0,
+  "qualification": "unexecuted code installed for hosted CI; focused workflow discovers and verifies 89 actual cases per cell"
+}
