@@ -658,7 +658,7 @@ def evaluate_protocol_coverage(
             info = missing_runtime_apis[api_key]
             if api_key in CLIENT_SPOKEN_VERSIONS:
                 unclassified_drift.append({"type": "runtime_unverified", "api_key": api_key,
-                                          "description": f"API{api_key} claims client support without a declared callable runtime operation"})
+                                          "description": f"API{api_key} claims client support without a qualified callable runtime operation"})
             missing_runtime_wiring.append({
                 "api_key": api_key,
                 "name": api_name,

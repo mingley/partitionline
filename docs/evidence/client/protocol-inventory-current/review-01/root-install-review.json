@@ -1,0 +1,56 @@
+{
+  "base_head": "dbd7cedbbf338dd77ab6f36ffb3032caa0730611",
+  "installed": [
+    {
+      "path": "scripts/check-protocol-coverage.py",
+      "baseline_sha256": "73514be8c856b82a4327f56b6258f95dd3864eb003b23f7637b5702122001385",
+      "candidate_sha256": "f675ed899d3ecda99a296f629577a8c8addf600bde8216a70a634952e2b7ac15",
+      "installed_sha256": "b8f2aa585fa35f2d464d801d2b24fd80ce730050b6f60e05cc9c5403edb42e57",
+      "full_mode": "0o700",
+      "root_refinements": [
+        "Static attribution is a declaration, not runtime qualification"
+      ]
+    },
+    {
+      "path": "tests/conformance/features.json",
+      "baseline_sha256": "f18c3802086995a14f154af2e529c1007179a1d7212af732258434c2fca60260",
+      "candidate_sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+      "installed_sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+      "full_mode": "0o600",
+      "root_refinements": []
+    },
+    {
+      "path": "tests/conformance/cases.json",
+      "baseline_sha256": "e35cbceb913b4bd4a693a94701bb9f7fe042c73860e3587081c644ee38de830e",
+      "candidate_sha256": "d605b3bbd9e4b54791324605e896aa672b3de0aaa327004cd101fe8fe44d1a30",
+      "installed_sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58",
+      "full_mode": "0o600",
+      "root_refinements": [
+        "Preserve unrelated historical delivery reason byte spelling"
+      ]
+    },
+    {
+      "path": "tests/conformance/test_check_protocol_coverage.py",
+      "baseline_sha256": "4e558823f5ef295f5255bf3629e2510b018d04e23aeb16b1d0fb9e959011246c",
+      "candidate_sha256": "d0000d30a68d484406150f8b7c94f7f32d135ca0cfbbc8dca3edf2fcd4e8a09c",
+      "installed_sha256": "d0000d30a68d484406150f8b7c94f7f32d135ca0cfbbc8dca3edf2fcd4e8a09c",
+      "full_mode": "0o600",
+      "root_refinements": []
+    }
+  ],
+  "taskbook_before_sha256": "99b18e2be0785b450975b4dbb7ef27142e7685fbeb60db886635d9564fcdedc2",
+  "taskbook_after_sha256": "17f4697740744ff5d839bc94f727dbad0f2cb9159d3401169b77d420810c93a6",
+  "old_tasks_preserved_except_declared_claim": 304,
+  "new_tasks": [
+    "KL05-31",
+    "KL05-32",
+    "KL05-33"
+  ],
+  "dependencies_acyclic": true,
+  "limits": [
+    "Static callable feature attribution does not execute or qualify runtime operations.",
+    "Historical proof remains at original pins;31 new current cases remain not_run/unsupported.",
+    "Full current protocol completeness remains false; Streams runtime and higher-version functionality are open.",
+    "No Rust/JVM/server execution was performed by this installation."
+  ]
+}

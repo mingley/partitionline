@@ -608,13 +608,39 @@
     {
       "id": "KL01-14",
       "title": "Turn every remaining conformance gap into a bounded card",
-      "priority": "P1", "kind": "analysis", "status": "pending", "owner": null,
-      "depends_on": ["KL01-09", "KL01-11", "KL01-13"],
-      "files": ["tests/conformance/cases.json", "tests/conformance/features.json", "docs/plan/tasks.json"],
+      "priority": "P1",
+      "kind": "analysis",
+      "status": "in_progress",
+      "owner": "codex-coordinator-20261003",
+      "depends_on": [
+        "KL01-09",
+        "KL01-11",
+        "KL01-13"
+      ],
+      "files": [
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "docs/plan/tasks.json"
+      ],
       "deliverable": "An exhaustive disposition/backlog reconciliation for the pinned applicable upstream corpus, not a cherry-picked pass list.",
-      "acceptance": ["Every claimed API/version and applicable Java/system/librdkafka case is either independently evidenced or linked to an open implementation/conformance card.", "Create one API or small behavioral family per new card, including remaining group, transaction, auth, telemetry and common-admin fixtures; never create an implement-all-oracles task.", "Core/full-feature qualification remains blocked while required cases are failed, not_run, unsupported or externally blocked; exclude only genuinely inapplicable cases with reasons."],
-      "validation": ["Run the schema coverage and conformance report checkers against the complete inventories.", "Verify no uncovered required case lacks a task and no new dependency cycle was introduced."],
-      "evidence": []
+      "acceptance": [
+        "Every claimed API/version and applicable Java/system/librdkafka case is either independently evidenced or linked to an open implementation/conformance card.",
+        "Create one API or small behavioral family per new card, including remaining group, transaction, auth, telemetry and common-admin fixtures; never create an implement-all-oracles task.",
+        "Core/full-feature qualification remains blocked while required cases are failed, not_run, unsupported or externally blocked; exclude only genuinely inapplicable cases with reasons."
+      ],
+      "validation": [
+        "Run the schema coverage and conformance report checkers against the complete inventories.",
+        "Verify no uncovered required case lacks a task and no new dependency cycle was introduced."
+      ],
+      "evidence": [],
+      "write_set": [
+        "scripts/check-protocol-coverage.py",
+        "tests/conformance/cases.json",
+        "tests/conformance/features.json",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "docs/plan/tasks.json",
+        "docs/evidence/client/protocol-inventory-current/"
+      ]
     },
     {
       "id": "KL01-15",
@@ -49592,6 +49618,139 @@
         ]
       },
       "integration_coordinator": "Both27/90 cards share one sole Admin writer with disjoint API semantics; common Admin changes are checkpointed together and each API retains separate actual fixtures/outcomes. Root owns exports/shared registries/task status. Original drafts and source-only corrections are preserved; no compiler or runtime success is claimed by this ownership record.",
+      "evidence": []
+    },
+    {
+      "id": "KL05-31",
+      "title": "Implement bounded typed Streams v0 request and response codecs",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-zstd-decision-20261003",
+      "depends_on": [
+        "KL01-03",
+        "KL05-28"
+      ],
+      "files": [
+        "new: src/protocol/streams.rs",
+        "new: tests/streams_protocol.rs",
+        "new: tests/fixtures/streams/"
+      ],
+      "write_set": [
+        "src/protocol/streams.rs",
+        "tests/streams_protocol.rs",
+        "tests/fixtures/streams/",
+        "docs/evidence/client/streams-codecs/",
+        "docs/plan/evidence/KL05-31.json"
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "src/protocol/mod.rs",
+          "src/protocol/api_keys.rs",
+          "src/lib.rs exports/docs"
+        ]
+      },
+      "deliverable": "API88/API89 v0 typed request/response codecs with checked aggregate resource limits, exact nullable topology/member/task semantics and independent Apache vectors.",
+      "acceptance": [
+        "Cover every reachable field from exact Kafka4.1.2/4.2.1/4.3.1 schemas: heartbeat topology/regex/copartition, task offsets/assignment, endpoints/status and describe topology/members; preserve signed defaults and null versus empty.",
+        "Validate versions and positive finite limits before allocation/output growth; bound complete wire bytes, single/aggregate strings, per-array/aggregate elements, decoded reservation and unknown tags; minimum remaining wire proof before count allocation.",
+        "Use actual signed nullable-struct presence and flexible headers/tags; reject truncated/overflow/trailing bodies; record actual Apache parser leniency separately from Rust canonical validation.",
+        "Generate independent vectors with actual three pinned Apache serializers and reverse-parse Rust bytes; include every-field, unknown-tag, limits, malformed/truncated and null/empty fixtures.",
+        "Preserve existing source compatibility and frozen historical outcomes; no server support or framework execution claim from codecs or client calls.",
+        "Push exact source before immutable qualification; retain first failures, actual commands, source/archive/class hashes, full file modes and ownership cleanup evidence."
+      ],
+      "validation": [
+        "Focused stable/1.85 default/all-feature codec and malformed-input tests; strict fmt/Clippy/rustdoc.",
+        "Actual pinned Java fixture generation and reverse parsing; source registration alone cannot become runtime coverage."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL05-32",
+      "title": "Add caller-driven Streams heartbeat client operation",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-31"
+      ],
+      "files": [
+        "new: src/streams.rs",
+        "new: tests/streams_heartbeat.rs"
+      ],
+      "write_set": [
+        "src/streams.rs",
+        "tests/streams_heartbeat.rs",
+        "tests/fixtures/streams-heartbeat/",
+        "docs/evidence/client/streams-heartbeat/",
+        "docs/plan/evidence/KL05-32.json"
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "src/lib.rs exports/docs",
+          "tests/conformance/features.json",
+          "tests/conformance/cases.json",
+          "scripts/check-protocol-coverage.py"
+        ]
+      },
+      "deliverable": "A public caller-driven typed Streams heartbeat operation using actual GROUP coordinator negotiation, bounded ownership and one absolute deadline.",
+      "acceptance": [
+        "Keep Streams separate from consumer/share membership; expose join/update/leave epoch and topology/task semantics with response-driven assignment and reconciliation visible to caller.",
+        "Negotiate advertised API88 v0, fail unsupported before unrelated discovery/dispatch, and require explicit caller allowance for unstable protocol use; v0 alone does not identify broker release.",
+        "Actual socket histories prove GROUP coordinator routing, retriable refresh, fatal/member/topology errors, correlation/body consumption, deadline/cancellation and bounded shutdown without invented Streams server functionality.",
+        "Preserve existing source compatibility and frozen historical outcomes; no server support or framework execution claim from codecs or client calls.",
+        "Push exact source before immutable qualification; retain first failures, actual commands, source/archive/class hashes, full file modes and ownership cleanup evidence."
+      ],
+      "validation": [
+        "Actual public Rust socket peer and applicable genuine Apache heartbeat request/response outcomes.",
+        "Focused stable/1.85 default/all-feature behavioral and strict gates; broader immutable client regressions."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "KL05-33",
+      "title": "Expose typed public Admin Streams group description",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "pending",
+      "owner": null,
+      "depends_on": [
+        "KL05-31",
+        "KL05-30"
+      ],
+      "files": [
+        "src/admin.rs",
+        "new: tests/streams_describe.rs"
+      ],
+      "write_set": [
+        "src/admin.rs",
+        "tests/streams_describe.rs",
+        "tests/fixtures/streams-describe/",
+        "docs/evidence/client/streams-describe/",
+        "docs/plan/evidence/KL05-33.json"
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "src/lib.rs exports/docs",
+          "tests/conformance/features.json",
+          "tests/conformance/cases.json",
+          "scripts/check-protocol-coverage.py"
+        ]
+      },
+      "deliverable": "Admin::describe_streams_groups with typed topology/task/member responses, truthful v0 negotiation and actual public operation evidence.",
+      "acceptance": [
+        "Share the sole Admin ownership lease; do not overlap KL05-29/30 Admin edits.",
+        "Route actual GROUP coordinators, preserve group order/duplicates/partial errors, recover coordinator invalidation and use one absolute deadline with cancellation.",
+        "Negotiate API89 v0 with explicit unstable allowance policy and reject unavailable APIs locally; expose every typed topology/member field and Streams group classification without silently discarding fields.",
+        "Independently execute genuine Apache Admin describeStreamsGroups in applicable pinned releases and compare real public Rust socket outcomes.",
+        "Preserve existing source compatibility and frozen historical outcomes; no server support or framework execution claim from codecs or client calls.",
+        "Push exact source before immutable qualification; retain first failures, actual commands, source/archive/class hashes, full file modes and ownership cleanup evidence."
+      ],
+      "validation": [
+        "Focused socket/fixture tests and real pinned Java Admin operation traces.",
+        "Stable/1.85 default/all-feature strict and immutable full-client gates."
+      ],
       "evidence": []
     }
   ]

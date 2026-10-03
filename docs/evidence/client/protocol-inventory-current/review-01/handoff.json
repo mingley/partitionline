@@ -1,0 +1,56 @@
+{
+  "scope": "WORK-only proposal; repository unchanged by worker; no Cargo/JVM/network execution",
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "files": [
+    {
+      "path": "/workspace/work/protocol-inventory-review/correction-proposal.md",
+      "sha256": "a8e21a9ad14f173cc16b974ca5f1619a5ee67475bf3520a7acde7b022fb604fd",
+      "bytes": 9675
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/streams-source-design.md",
+      "sha256": "585fb77571f904d15a6509db3f99103c218e395fb528f53f338c1949297f7784",
+      "bytes": 6993
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/native-describe-capture-plan.md",
+      "sha256": "34173712cedc950dae465ef16ebf3acf7193e616490f9cdefe11aaded08ccef5",
+      "bytes": 3328
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/corrected-inventory-proposal.json",
+      "sha256": "df278487951ed567985173e79fdea13ebda75a8a699c0e1fe6c13aa968f62936",
+      "bytes": 316245
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/official-audit.json",
+      "sha256": "e187562885568a30a8d6685a1e7ced9bc49d823a526aa7432f2186da6d639d34",
+      "bytes": 196300
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/verified-inventory-objects.json",
+      "sha256": "477e57d47765a7b6ff7701dcc3d8d5945bb62621bc02b1839c6c2bd40f4ce3ee",
+      "bytes": 747
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/class-provenance.json",
+      "sha256": "a75871b35631dbf5b4f0c776e632e270e5a021df90093cb7e8d6f10d4eccd2b7",
+      "bytes": 5046
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/reviewed-source.json",
+      "sha256": "0169ad3a314b9362949403a73c8e1066b9561af8d0f2c6c89fe615e103516397",
+      "bytes": 1745
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/current-checker-result.json",
+      "sha256": "e256849e17b9cb5ec1c3edb1ff74ff8095dbce394f85220579e86e1e0da15615",
+      "bytes": 31307
+    },
+    {
+      "path": "/workspace/work/protocol-inventory-review/registry-extract.json",
+      "sha256": "833837f06124f9e2601d13de6479eee7aea650989970bb5f286f5cb9bc43cb69",
+      "bytes": 11393
+    }
+  ]
+}

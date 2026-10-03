@@ -1,0 +1,16 @@
+{
+  "command": [
+    "python3",
+    "tests/conformance/test_check_protocol_coverage.py",
+    "-v"
+  ],
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "TMPDIR": "/workspace/work/integration/protocol-inventory-install-01/tmp"
+  },
+  "cwd": "/workspace/partitionline",
+  "actual_tests": 32,
+  "passed": true,
+  "log_sha256": "76a46f2cb3b6f3b5a5e48b9001f9b26a55567a431b1fbe5e1d837e38c7edfcb5",
+  "limits": "Static inventory/classification gates; no new protocol/runtime qualification."
+}

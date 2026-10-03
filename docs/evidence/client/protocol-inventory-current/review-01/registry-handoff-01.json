@@ -1,0 +1,46 @@
+{
+  "scope": "WORK-only coordinator review candidates; no repository mutation or Cargo/JVM/network execution",
+  "base_head": "dbd7cedbbf338dd77ab6f36ffb3032caa0730611",
+  "files": [
+    {
+      "target": "scripts/check-protocol-coverage.py",
+      "baseline_sha256": "73514be8c856b82a4327f56b6258f95dd3864eb003b23f7637b5702122001385",
+      "candidate": "/workspace/work/protocol-inventory-review/candidate/scripts/check-protocol-coverage.py",
+      "candidate_sha256": "f675ed899d3ecda99a296f629577a8c8addf600bde8216a70a634952e2b7ac15",
+      "patch": "/workspace/work/protocol-inventory-review/check-protocol-coverage.py.patch",
+      "patch_sha256": "21fdedece94f8aa9359aeaa48af81291a4c444df61e396f900788f6652210f33"
+    },
+    {
+      "target": "tests/conformance/features.json",
+      "baseline_sha256": "f18c3802086995a14f154af2e529c1007179a1d7212af732258434c2fca60260",
+      "candidate": "/workspace/work/protocol-inventory-review/candidate/tests/conformance/features.json",
+      "candidate_sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+      "patch": "/workspace/work/protocol-inventory-review/features.json.patch",
+      "patch_sha256": "39c39cc4e9ebdcde2f71728438c17150341325a389ab1da53ffc0218dfe8999b"
+    },
+    {
+      "target": "tests/conformance/cases.json",
+      "baseline_sha256": "e35cbceb913b4bd4a693a94701bb9f7fe042c73860e3587081c644ee38de830e",
+      "candidate": "/workspace/work/protocol-inventory-review/candidate/tests/conformance/cases.json",
+      "candidate_sha256": "d605b3bbd9e4b54791324605e896aa672b3de0aaa327004cd101fe8fe44d1a30",
+      "patch": "/workspace/work/protocol-inventory-review/cases.json.patch",
+      "patch_sha256": "3ddffa2723668ae5084c5ec6db6a0bdee903e6855382565227dd1289f8ef5245"
+    },
+    {
+      "target": "tests/conformance/test_check_protocol_coverage.py",
+      "baseline_sha256": "4e558823f5ef295f5255bf3629e2510b018d04e23aeb16b1d0fb9e959011246c",
+      "candidate": "/workspace/work/protocol-inventory-review/candidate/tests/conformance/test_check_protocol_coverage.py",
+      "candidate_sha256": "d0000d30a68d484406150f8b7c94f7f32d135ca0cfbbc8dca3edf2fcd4e8a09c",
+      "patch": "/workspace/work/protocol-inventory-review/test_check_protocol_coverage.py.patch",
+      "patch_sha256": "f76db9e7f26fb90a19496b4771f5643490d01fc54f77319e1f8718d79dc94779"
+    }
+  ],
+  "validation": {
+    "python_command": "PYTHONDONTWRITEBYTECODE=1 python3 tests/conformance/test_check_protocol_coverage.py -v",
+    "cwd": "/workspace/work/protocol-inventory-review/candidate",
+    "exit_code": 0,
+    "log": "/workspace/work/protocol-inventory-review/candidate-tests-01.log",
+    "log_sha256": "679090c66efccf1047793dbe345536f9f0e34d66bf9fae00e779ad135830aeeb",
+    "limits": "Classification gates, not new protocol/runtime qualification; new31 current cases explicitly not_run/unsupported."
+  }
+}

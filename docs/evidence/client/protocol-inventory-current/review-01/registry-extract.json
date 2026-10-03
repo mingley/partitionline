@@ -1,0 +1,374 @@
+{
+  "tests/conformance/cases.json": [
+    {
+      "id": "api-broker-internal-027-write-txn-markers",
+      "api_family": null,
+      "api_version": null,
+      "profile": "admin",
+      "adapter": "none",
+      "source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "immutable_source_pin": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+      "peer_version_pin": "4.1.0",
+      "peer_pin": "4.1.0",
+      "disposition": "not_applicable",
+      "denominator": false,
+      "reason": "Broker-internal inter-broker API (api_key: 27, WRITE_TXN_MARKERS, clusterAction in ApiKeys.java / src/protocol/api_keys.rs); out of scope for client SDK profiles."
+    }
+  ],
+  "tests/conformance/features.json": [
+    {
+      "id": "manual_consumer.unassign",
+      "profile": "manual consumer",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::consumer::Consumer::unassign",
+      "evidence": "src/consumer.rs:Consumer::unassign",
+      "notes": "Clears current partition assignments and drops active fetch streams."
+    },
+    {
+      "id": "transactions.abort",
+      "profile": "transactions",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::producer::Producer::abort_transaction",
+      "evidence": "tests/full_surface.rs:test_transactions",
+      "notes": "Aborts transaction via EndTxn (api 26) with ABORT marker."
+    },
+    {
+      "id": "full_admin.abort_transaction",
+      "profile": "full admin",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::admin::Admin::abort_transaction",
+      "evidence": "src/admin.rs:Admin::abort_transaction",
+      "notes": "AbortTransaction via WriteTxnMarkers api 27 v0-v1."
+    },
+    {
+      "id": "full_admin.describe_share_group_offsets",
+      "profile": "full admin",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::admin::Admin::describe_share_group_offsets",
+      "evidence": "src/admin.rs:Admin::describe_share_group_offsets",
+      "notes": "DescribeShareGroupOffsets api 90 v0 for share group offset checkpoints."
+    },
+    {
+      "id": "full_admin.alter_share_group_offsets",
+      "profile": "full admin",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::admin::Admin::alter_share_group_offsets",
+      "evidence": "src/admin.rs:Admin::alter_share_group_offsets",
+      "notes": "AlterShareGroupOffsets api 91 v0 to modify share group offsets."
+    },
+    {
+      "id": "full_admin.delete_share_group_offsets",
+      "profile": "full admin",
+      "layer": "runtime",
+      "disposition": "present",
+      "entrypoint": "partitionline::admin::Admin::delete_share_group_offsets",
+      "evidence": "src/admin.rs:Admin::delete_share_group_offsets",
+      "notes": "DeleteShareGroupOffsets api 92 v0 to reset share group state."
+    },
+    {
+      "id": "streams.runtime",
+      "profile": "streams",
+      "layer": "runtime",
+      "disposition": "out_of_scope",
+      "entrypoint": "none",
+      "evidence": "docs/ROADMAP.md:2",
+      "notes": "Kafka Streams is a higher-level stateful stream processing library and runtime; out of scope for the core client protocol library."
+    }
+  ],
+  "tests/conformance/broker/features.json": [
+    {
+      "id": "api.27",
+      "api_key": 27,
+      "name": "WRITE_TXN_MARKERS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "1",
+          "response": "1",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1"
+        },
+        "4.2.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1-2"
+        },
+        "4.3.1": {
+          "request": "1-2",
+          "response": "1-2",
+          "request_flexible": "1+",
+          "response_flexible": "1+",
+          "stable": "1-2"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "api.88",
+      "api_key": 88,
+      "name": "STREAMS_GROUP_HEARTBEAT",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "api.89",
+      "api_key": 89,
+      "name": "STREAMS_GROUP_DESCRIBE",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "none"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "api.90",
+      "api_key": 90,
+      "name": "DESCRIBE_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        },
+        "4.3.1": {
+          "request": "0-1",
+          "response": "0-1",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0-1"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "api.91",
+      "api_key": 91,
+      "name": "ALTER_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "api.92",
+      "api_key": 92,
+      "name": "DELETE_SHARE_GROUP_OFFSETS",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "version_ranges": {
+        "4.1.2": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.2.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        },
+        "4.3.1": {
+          "request": "0",
+          "response": "0",
+          "request_flexible": "0+",
+          "response_flexible": "0+",
+          "stable": "0"
+        }
+      },
+      "owner_task": "KL11-04",
+      "note": "Pinned upstream contract only; handler implementation and qualification remain missing. Advertise only versions actually implemented and tested.",
+      "upstream_disposition": "active",
+      "upstream_applicability": "required",
+      "upstream_listeners": {
+        "4.1.2": [
+          "broker"
+        ],
+        "4.2.1": [
+          "broker"
+        ],
+        "4.3.1": [
+          "broker"
+        ]
+      },
+      "inventory_gate": "KL11-57",
+      "upstream_matrix": "tests/conformance/broker/api-matrix.json"
+    },
+    {
+      "id": "contract.KL11-32",
+      "name": "Implement share/streams group membership coordination",
+      "implementation": "missing",
+      "qualification": "not_run",
+      "owner_task": "KL11-32"
+    }
+  ]
+}

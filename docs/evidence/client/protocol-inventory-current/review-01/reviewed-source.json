@@ -1,0 +1,30 @@
+{
+  "source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "sha256": {
+    "scripts/check-protocol-coverage.py": "73514be8c856b82a4327f56b6258f95dd3864eb003b23f7637b5702122001385",
+    "tests/conformance/cases.json": "e35cbceb913b4bd4a693a94701bb9f7fe042c73860e3587081c644ee38de830e",
+    "tests/conformance/features.json": "f18c3802086995a14f154af2e529c1007179a1d7212af732258434c2fca60260",
+    "tests/conformance/broker/features.json": "7c5c0612ace951ebb6c517a194fcf48f6249618b541d79dd46167c923951b443",
+    "tests/conformance/broker/api-matrix.json": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+    "src/admin.rs": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+    "src/protocol/admin.rs": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0",
+    "src/protocol/txn.rs": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+    "src/protocol/api_keys.rs": "95c9e6ceb3e996402217c2737c219c70c82c48f14147e72af59fb3221746ac1b",
+    "src/protocol/header.rs": "07f189a6474640e1a8e95c993d41b2ec2accfbab61695ac495703856d2d5862f",
+    "src/protocol/mod.rs": "14b234967992a14d550e710c9bf1a4b58be9bdc9bfcbf3303aa6f7ed26c3f3e4"
+  },
+  "git_objects_match": {
+    "scripts/check-protocol-coverage.py": true,
+    "tests/conformance/cases.json": true,
+    "tests/conformance/features.json": true,
+    "tests/conformance/broker/features.json": true,
+    "tests/conformance/broker/api-matrix.json": true,
+    "src/admin.rs": true,
+    "src/protocol/admin.rs": true,
+    "src/protocol/txn.rs": true,
+    "src/protocol/api_keys.rs": true,
+    "src/protocol/header.rs": true,
+    "src/protocol/mod.rs": true
+  },
+  "scope": "Read-only source review; no Cargo/JVM/network commands"
+}

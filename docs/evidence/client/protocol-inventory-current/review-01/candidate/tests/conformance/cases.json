@@ -1953,7 +1953,7 @@
       "peer_pin": "4.3.1",
       "disposition": "local_consistency",
       "denominator": true,
-      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Unexpired lock excludes second member; controlled expiry increments delivery1\u21922; stale accept121; Release leads count3; Reject consumes lock; separate group independent.",
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Unexpired lock excludes second member; controlled expiry increments delivery1→2; stale accept121; Release leads count3; Reject consumes lock; separate group independent.",
       "artifacts": [
         "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
       ],

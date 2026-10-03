@@ -1,0 +1,116 @@
+[
+  {
+    "version": "4.1.2",
+    "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+    "classes": [
+      {
+        "path": "org/apache/kafka/clients/admin/internals/AbortTransactionHandler.class",
+        "sha256": "c4f954d0fd6c78c34d66899f06fe6076ac323d24f2cd3011472edde901294b5e"
+      },
+      {
+        "path": "org/apache/kafka/clients/admin/internals/DescribeStreamsGroupsHandler.class",
+        "sha256": "6e9ea2c9b5f51bc041ddb642724b1c5439c9b79e0fcd581247ddaa9e2362e169"
+      },
+      {
+        "path": "org/apache/kafka/common/message/DescribeShareGroupOffsetsResponseData.class",
+        "sha256": "56ca981ecb687732c66c069d067aeef52f0e3d5be984ba9beb557e37730231ec"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "sha256": "c04b896f10b75887017d15d64a743558128f5649f18cbd1fedb5b2974d00bffb"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "sha256": "b844f44e78e587c6dba48f4ef23def66bc5b05ac036b4caa0f32e1c37d2b361e"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "sha256": "c6111c4392243de060edd28c4b971232bef3c6f4ccda55045fe93bc54f28525d"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "sha256": "54725db49690177ae914e499d3b9e87d679bb972cb396101c03297dc1dd7aa0e"
+      },
+      {
+        "path": "org/apache/kafka/common/message/WriteTxnMarkersRequestData.class",
+        "sha256": "ecf6eb5cfb7a2835fc212d7db178771113e32983df307e280b780645b7e35a3f"
+      }
+    ]
+  },
+  {
+    "version": "4.2.1",
+    "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+    "classes": [
+      {
+        "path": "org/apache/kafka/clients/admin/internals/AbortTransactionHandler.class",
+        "sha256": "c4f954d0fd6c78c34d66899f06fe6076ac323d24f2cd3011472edde901294b5e"
+      },
+      {
+        "path": "org/apache/kafka/clients/admin/internals/DescribeStreamsGroupsHandler.class",
+        "sha256": "c3a1060f214530dca281b7494264469351d51d70474441c2a87244eb7f7a8b1a"
+      },
+      {
+        "path": "org/apache/kafka/common/message/DescribeShareGroupOffsetsResponseData.class",
+        "sha256": "5314f7f3a8761844b320098a4ad15f5cbcdca64a1f9159e548961fc05abbbbb5"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "sha256": "c04b896f10b75887017d15d64a743558128f5649f18cbd1fedb5b2974d00bffb"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "sha256": "73d9166a3d78acf1ea50cefe88aa6d3e77d9072aad9b4051898d6785433f9510"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "sha256": "c6111c4392243de060edd28c4b971232bef3c6f4ccda55045fe93bc54f28525d"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "sha256": "542af5e86961000f8c1ded75f47ba3230c72923a9e9b894a443d3dffcb2915cb"
+      },
+      {
+        "path": "org/apache/kafka/common/message/WriteTxnMarkersRequestData.class",
+        "sha256": "8e3bfd9599ebd43fa2d9329a70ad772d621770413779a937f758a97ca8811135"
+      }
+    ]
+  },
+  {
+    "version": "4.3.1",
+    "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "classes": [
+      {
+        "path": "org/apache/kafka/clients/admin/internals/AbortTransactionHandler.class",
+        "sha256": "fc743a1e4b3712f5fc280b0e88257fe2f8a123961da63755b8087b4160d026ca"
+      },
+      {
+        "path": "org/apache/kafka/clients/admin/internals/DescribeStreamsGroupsHandler.class",
+        "sha256": "a0cfdf54c0782f1735eaa09929bc78959251f173eee2925b30d187621c013b7f"
+      },
+      {
+        "path": "org/apache/kafka/common/message/DescribeShareGroupOffsetsResponseData.class",
+        "sha256": "1ae07e0b1aba211bc23042d67b5506a9674d849bfab8a877e3b52f0b4aacd42d"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeRequestData.class",
+        "sha256": "e9ede5d54fae4980514a07124b7c340c6fb924478461ff4927fa5df8620d6c00"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupDescribeResponseData.class",
+        "sha256": "cd3583b0dfbf96a3cae18a7ffa7fb96ee5712d302086ec8d3ca8511fc5583b6f"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatRequestData.class",
+        "sha256": "2b1410a3dce94dab88caffd4ad35579479bf64f37c09a4050cec97219e653cb8"
+      },
+      {
+        "path": "org/apache/kafka/common/message/StreamsGroupHeartbeatResponseData.class",
+        "sha256": "523ada784b9102d999530dd0aa4b8689187934c8168ec60b4943fa8195fee466"
+      },
+      {
+        "path": "org/apache/kafka/common/message/WriteTxnMarkersRequestData.class",
+        "sha256": "4b60b9ee36853f3fa427cd75525c6478780ef95c6d1d1553373bf6238ec53029"
+      }
+    ]
+  }
+]
