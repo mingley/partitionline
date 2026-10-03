@@ -318,6 +318,24 @@ impl Election {
     pub fn state(&self) -> State {
         self.machine.state()
     }
+    /// Advance to a trusted higher term without voting or asserting a leader.
+    ///
+    /// The term is synchronized before return; an equal/lower term is a no-op.
+    /// Wire adapters can initialize their nonzero internal epoch representation
+    /// through this transition. It does not prove a peer election or quorum.
+    pub fn adopt_term(&mut self, term: u64, now_ms: u64) -> Result<bool, Error> {
+        self.machine.adopt_term(term, now_ms)
+    }
+    /// Override a follower's election deadline after a validated leader resignation.
+    ///
+    /// The caller must already have fenced the leader/term through
+    /// [`Self::observe_leader`]. A leader cannot use this to retain authority.
+    /// The current durable term/vote and known leader remain unchanged; this
+    /// permits a new election when the absolute deadline expires, not a new
+    /// same-term vote. Backoff is bounded to ten minutes and may be zero.
+    pub fn end_epoch_backoff(&mut self, backoff_ms: u64, now_ms: u64) -> Result<(), Error> {
+        self.machine.end_epoch_backoff(backoff_ms, now_ms)
+    }
     /// Initialization or reported incomplete-tail repair performed while opening.
     pub fn recovery(&self) -> journal::Recovery {
         self.recovery
@@ -401,6 +419,43 @@ struct Machine<S> {
 }
 
 impl<S: Store> Machine<S> {
+    fn adopt_term(&mut self, term: u64, now_ms: u64) -> Result<bool, Error> {
+        if self.poisoned {
+            return Err(Error::Poisoned);
+        }
+        if term == 0 {
+            return Err(Error::InvalidRequest);
+        }
+        self.clock(now_ms)?;
+        if term <= self.persistent.term {
+            return Ok(false);
+        }
+        self.follower(self.deadline_ms);
+        let deadline = self.draw_deadline(now_ms)?;
+        self.persist(PersistentState {
+            term,
+            voted_for: None,
+            log: self.persistent.log,
+        })?;
+        self.follower(deadline);
+        Ok(true)
+    }
+    fn end_epoch_backoff(&mut self, backoff_ms: u64, now_ms: u64) -> Result<(), Error> {
+        if self.poisoned {
+            return Err(Error::Poisoned);
+        }
+        if self.role != Role::Follower || self.leader.is_none() {
+            return Err(Error::InvalidRequest);
+        }
+        if backoff_ms > 600_000 {
+            return Err(Error::InvalidTimeouts);
+        }
+        self.clock(now_ms)?;
+        self.deadline_ms = now_ms
+            .checked_add(backoff_ms)
+            .ok_or(Error::DeadlineOverflow)?;
+        Ok(())
+    }
     fn new(
         store: S,
         membership: Membership,

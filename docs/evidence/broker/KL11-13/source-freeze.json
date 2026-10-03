@@ -1,0 +1,12 @@
+{
+  "base_source_sha": "8cf2516e9c9727f8a7fa45da5d066e301aa35d02",
+  "files": {
+    "partitionline-broker/src/raft/protocol.rs": "26a0e15db5a907008e69972772be39bcaed15777aec782aa490bb1d0792469f7",
+    "partitionline-broker/src/raft/election.rs": "c8b15bc86ea6173f12c52108da8ed3fd89d7a4af5f97481fb3bc4b1771845d3e",
+    "partitionline-broker/src/raft/mod.rs": "0360ae4aa1a86a40ee4eb656648df9685db42b4ba0d240c47c5613285d0c4e30",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+  },
+  "independent_oracle": "docs/evidence/broker/KL11-69/source-freeze.json",
+  "scope": "Bounded fixed-voter controller0 Vote/Begin/End and authentic201wire goldens; full exact-source gates and profile registry qualification pending. Explicit caller tick; no replication/pre-vote/modern directory/automatic runtime claim.",
+  "qualification": "not_run"
+}

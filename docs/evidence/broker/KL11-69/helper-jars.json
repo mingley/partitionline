@@ -1,0 +1,98 @@
+[
+  {
+    "release": "4.1.2",
+    "jar": "kafka-raft-4.1.2.jar",
+    "sha256": "bcbfd5ab4ef8a140b89c6fc98b2e1539f4eca943bc7ac5db746f71f022d886f7",
+    "bytes": 309751,
+    "distribution_provenance": {
+      "version": "4.1.2",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+    },
+    "archive_member": "kafka_2.13-4.1.2/libs/kafka-raft-4.1.2.jar"
+  },
+  {
+    "release": "4.1.2",
+    "jar": "kafka-server-common-4.1.2.jar",
+    "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1",
+    "bytes": 371073,
+    "distribution_provenance": {
+      "version": "4.1.2",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "jar_build_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c"
+    },
+    "archive_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar"
+  },
+  {
+    "release": "4.2.1",
+    "jar": "kafka-raft-4.2.1.jar",
+    "sha256": "1837a0a97128d73429e564de894f3a7e00310dbd33b051b8b0f035ae348d1e2a",
+    "bytes": 310990,
+    "distribution_provenance": {
+      "version": "4.2.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+    },
+    "archive_member": "kafka_2.13-4.2.1/libs/kafka-raft-4.2.1.jar"
+  },
+  {
+    "release": "4.2.1",
+    "jar": "kafka-server-common-4.2.1.jar",
+    "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f",
+    "bytes": 384007,
+    "distribution_provenance": {
+      "version": "4.2.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "jar_build_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58"
+    },
+    "archive_member": "kafka_2.13-4.2.1/libs/kafka-server-common-4.2.1.jar"
+  },
+  {
+    "release": "4.3.1",
+    "jar": "kafka-raft-4.3.1.jar",
+    "sha256": "6561ca329cdde1b835c9dc44dba4e473ab51b7d516c426fbdacd709c11a4b9cf",
+    "bytes": 333497,
+    "distribution_provenance": {
+      "version": "4.3.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+    },
+    "archive_member": "kafka_2.13-4.3.1/libs/kafka-raft-4.3.1.jar"
+  },
+  {
+    "release": "4.3.1",
+    "jar": "kafka-server-common-4.3.1.jar",
+    "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654",
+    "bytes": 389964,
+    "distribution_provenance": {
+      "version": "4.3.1",
+      "apache_distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "jar_build_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+    },
+    "archive_member": "kafka_2.13-4.3.1/libs/kafka-server-common-4.3.1.jar"
+  }
+]

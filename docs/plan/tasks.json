@@ -18141,7 +18141,8 @@
         "docs/plan/evidence/KL11-06.json",
         "docs/plan/tasks.json"
       ],
-      "integration_coordinator": "c_peer owns bounded Produce3\u201313 and optional shared catalog/storage actor extension; no fake Fetch advertisement. Root alone edits shared lib/Cargo/lock and plan. KL11-68 owns independent fixtures/peers. Raft/SASL compose separate profiles; common header/gate changes require root coordination. Shared protocol.rs is reserved to the root coordinator under13; registry/verifier changes in06 are also integrated only by root."
+      "integration_coordinator": "Root coordinates all source freezes/pushes. c_peer exclusively edits the shared optional Produce/controller registry and verifier in this wave; metadata/default profiles remain unchanged. Consumer36 and root may send proposals but do not edit delegated gate files.",
+      "shared_gate_owner": "c_peer delegated by root20261003; edit after controller13/oracle69 source batch is pushed. Root retains global plan/commits and mutable source coordination."
     },
     {
       "id": "KL11-07",
@@ -18869,7 +18870,8 @@
         "docs/plan/evidence/KL11-13.json",
         "docs/plan/tasks.json"
       ],
-      "integration_coordinator": "rpc_reuse owns raft production/test/evidence files. KL11-69 independently owns fixtures/oracles. Root exclusively edits shared protocol.rs, registries/verifier CI and plan to avoid KL11-06/36 overlapping writes. All profile advertisement changes need frozen behavioral evidence."
+      "integration_coordinator": "Root coordinates all source freezes/pushes. c_peer exclusively edits the shared optional Produce/controller registry and verifier in this wave; metadata/default profiles remain unchanged. Consumer36 and root may send proposals but do not edit delegated gate files.",
+      "shared_gate_owner": "c_peer delegated by root20261003; edit after controller13/oracle69 source batch is pushed. Root retains global plan/commits and mutable source coordination."
     },
     {
       "id": "KL11-14",
