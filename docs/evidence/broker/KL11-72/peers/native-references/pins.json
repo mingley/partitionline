@@ -1,0 +1,16 @@
+{
+  "repository": "https://github.com/confluentinc/librdkafka.git",
+  "tag": "v2.15.0",
+  "commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "tree": "429a83d1ba5350c0846aeaee4efe821b463f6b85",
+  "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+  "source_sha256": {
+    "LICENSE": "c545fe812d514aa0151449062eecfc181b8c9d49b6c0b540593110bf79749eaa",
+    "src/rdkafka.h": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+    "src/rdkafka_sasl_scram.c": "232e5c09c8a47bd9a19c1064630d11431bfa1a69c0b5fa1b3ed190a7f64623f7",
+    "src/rdkafka_sasl_plain.c": "46257a40fd5924c3a286cd92db34bd6e3b98c4ae408e53547907c912f53d3a98",
+    "src/rdkafka_admin.c": "8ed0e410007040262668e3b7b83dacf69241a8184ba174e7d32ab1d9dd4b1179",
+    "src/rdkafka_request.c": "c2234ef3c33acab9ec1110459284a84f80889188715c1e37d3d2646426673354"
+  },
+  "scope": "Reuse the independently pinned OpenSSL-enabled native library; retain SASL/admin/serializer references, no rebuild and no broker production dependency."
+}

@@ -1,0 +1,92 @@
+{
+  "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+  "status": "passed",
+  "commands": [
+    {
+      "name": "stable-strict-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+      "exit_code": 0,
+      "log": "stable-strict-default.log",
+      "seconds": 42.389
+    },
+    {
+      "name": "1.85.0-strict-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+      "exit_code": 0,
+      "log": "1.85.0-strict-default.log",
+      "seconds": 77.49
+    },
+    {
+      "name": "updated-conformance-coverage",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-protocol-coverage.py",
+        "--json",
+        "--output",
+        "/workspace/work/fetch-v18/final-supplement/coverage-report.json"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "updated-conformance-coverage.log",
+      "seconds": 0.064
+    },
+    {
+      "name": "updated-conformance-guards",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/conformance",
+        "-p",
+        "test_check_protocol_coverage.py"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "updated-conformance-guards.log",
+      "seconds": 0.365
+    }
+  ],
+  "immutable_source_unchanged": true
+}

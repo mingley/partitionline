@@ -1,0 +1,10 @@
+    Blocking waiting for file lock on package cache
+   Compiling once_cell v1.21.4
+   Compiling syn v2.0.119
+   Compiling rustls v0.23.45
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing-core v0.1.36
+   Compiling tracing v0.1.44
+   Compiling tokio-rustls v0.26.5
+   Compiling partitionline v0.1.0 (/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30)
+    Finished `dev` profile [unoptimized] target(s) in 1m 01s

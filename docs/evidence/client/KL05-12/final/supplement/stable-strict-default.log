@@ -1,0 +1,5 @@
+    Checking once_cell v1.21.4
+    Checking rustls v0.23.45
+    Checking tokio-rustls v0.26.5
+    Checking partitionline v0.1.0 (/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30)
+    Finished `dev` profile [unoptimized] target(s) in 42.32s

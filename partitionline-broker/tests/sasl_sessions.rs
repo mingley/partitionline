@@ -942,3 +942,74 @@ async fn absolute_sasl_admission_deadline_also_caps_unfinished_tls_handshake() -
     store.shutdown().await?;
     Ok(())
 }
+
+async fn authenticated_control_case(key: i16) -> Result {
+    let path = Path::new();
+    let store = store(&path).await?;
+    let generation = store
+        .plain(Secret::new(b"\0user\0pencil".to_vec()))
+        .await?
+        .generation();
+    let probe = Arc::new(Probe::default());
+    let mut server = plaintext(
+        store.clone(),
+        probe.clone(),
+        Limits {
+            frame_bytes: 256,
+            ..Limits::default()
+        },
+    )
+    .await?;
+    let request = match key {
+        17 => handshake(1, 301, "SCRAM-SHA-256"),
+        36 => authenticate(2, 302, b"\0user\0pencil"),
+        50 => {
+            let mut request = header(50, 0, 303, true);
+            request.extend_from_slice(&[0, 0]);
+            request
+        }
+        51 => upsert_packet("user", Algorithm::Sha256, "forbidden-by-control-cap", 304),
+        _ => return Err("unexpected test control API".into()),
+    };
+    let mut socket = TcpStream::connect(server.local_addr()).await?;
+    scram(&mut socket, Algorithm::Sha256, "admin", "pencil", 2, false).await?;
+    // Classic nullable ClientId also occurs in flexible request headers. The
+    // frame and schema remain valid under the wider transport allocation cap.
+    let mut padded = request[..8].to_vec();
+    padded.extend_from_slice(&300i16.to_be_bytes());
+    padded.extend_from_slice(&[b'x'; 300]);
+    padded.extend_from_slice(&request[10..]);
+    assert!(padded.len() > 256);
+    send(&mut socket, &padded).await?;
+    assert!(
+        closed(&mut socket).await?,
+        "control API{key} bypassed its configured ceiling"
+    );
+    assert_eq!(
+        store
+            .plain(Secret::new(b"\0user\0pencil".to_vec()))
+            .await?
+            .generation(),
+        generation
+    );
+    assert_eq!(probe.calls.load(Ordering::SeqCst), 0);
+    server.shutdown().await?;
+    store.shutdown().await?;
+    Ok(())
+}
+#[tokio::test]
+async fn authenticated_handshake_control_ceiling_precedes_header_parse() -> Result {
+    authenticated_control_case(17).await
+}
+#[tokio::test]
+async fn authenticated_authenticate_control_ceiling_precedes_header_parse() -> Result {
+    authenticated_control_case(36).await
+}
+#[tokio::test]
+async fn authenticated_describe_control_ceiling_precedes_header_parse() -> Result {
+    authenticated_control_case(50).await
+}
+#[tokio::test]
+async fn authenticated_alter_control_ceiling_precedes_header_parse_and_storage() -> Result {
+    authenticated_control_case(51).await
+}

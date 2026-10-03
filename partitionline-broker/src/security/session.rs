@@ -83,6 +83,8 @@ pub struct Limits {
     /// Total preauth wire bytes, including length prefixes; 1KiB through 1MiB.
     pub preauth_bytes: usize,
     /// Maximum one preauth/control payload, 256 bytes through 64KiB.
+    /// Post-proof buffers use the transport allocation cap; known control APIs
+    /// enforce this smaller logical cap before parsing, copies or work.
     pub frame_bytes: usize,
     /// Total preauth requests/tokens, 2 through 32.
     pub control_rounds: usize,
@@ -320,6 +322,13 @@ impl Session {
                 .try_into()
                 .map_err(|_| Error::Malformed)?,
         );
+        // Authenticated application frames retain the caller's transport cap.
+        // Enforce the smaller control cap before header parsing/field copies or
+        // work admission; original post-proof allocation is still transport-capped.
+        if matches!(key, 17 | 36 | 50 | 51) && request.len() > self.profile.0.limits.frame_bytes {
+            self.state = State::Failed;
+            return Err(Error::Budget);
+        }
         if key == 18 {
             let limits = crate::protocol::Limits::new(
                 self.profile.0.limits.frame_bytes,

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+  "status": "passed",
+  "immutable_source_integrity": [
+    {
+      "directory": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+      "git_blob_files": 9405,
+      "all_files_unchanged": true
+    },
+    {
+      "directory": "/workspace/work/fetch-v18/compiled-mutant-source",
+      "git_blob_files": 9405,
+      "all_files_unchanged": true
+    }
+  ],
+  "full_rust_commands": 26,
+  "fresh_apache_commands": 12,
+  "compiled_negative_controls": 2,
+  "full_test_counts": {
+    "stable-default-tests": {
+      "passed": 1804,
+      "ignored": 4
+    },
+    "stable-all-tests": {
+      "passed": 1805,
+      "ignored": 4
+    },
+    "1.85.0-default-tests": {
+      "passed": 1804,
+      "ignored": 4
+    },
+    "1.85.0-all-tests": {
+      "passed": 1805,
+      "ignored": 4
+    }
+  },
+  "apache_releases": [
+    "4.1.0",
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "fresh_fixture_bodies": 120,
+  "independently_parsed_rust_pairs": 32,
+  "ignored_tests": "Four existing live/environment tests per full lane; no removed or newly ignored tests.",
+  "limits": [
+    "Request/response body oracle and local simulated-peer negotiation proof; no new real Apache cluster production or distributed fault qualification.",
+    "Ordinary consumer default omission and explicit replica sidecars only; no follower acknowledgement/quorum-commit runtime.",
+    "No performance comparison or global fastest claim."
+  ],
+  "supplement_commands": 4,
+  "strict_clippy_cells": 4,
+  "strict_doc_cells": 2,
+  "doctest_cells": 2,
+  "doctests_passed_per_cell": 4,
+  "conformance_guard_tests": 15,
+  "conformance_disposition": "three current Apache Fetch18 cells independent_pass"
+}

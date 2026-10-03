@@ -1,0 +1,48 @@
+{
+  "task_id": "KL05-12",
+  "reviewer": "zstd_decision",
+  "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+  "scope": "Independent read-only review of final source, public source compatibility, actual pinned Apache schema delta and submitted tests; no compilation, test execution or peer rerun by this reviewer.",
+  "verified_git_source_objects_sha256": {
+    "src/protocol/fetch.rs": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+    "src/consumer.rs": "65671d05e822b39882f601df8b6cf22ef244eff1ee6432269577f9b0a351343a",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "tests/protocol_oracles.rs": "8d93745cbec0515561a4881377cdacdcd3319c3c4fd46abef3914f90c992f317",
+    "tests/consumer_fetch_semantics.rs": "01664988d5f31db1a09a06f79e0eecafd05b99a01163c11d22cbafab65d47c90",
+    "tests/common/fetch_fixture.rs": "778660e3be001d8caa38f89e7d6d4bd0d97f1dbdf2061cea6e6692168edc1e42",
+    "tests/conformance/java/FetchV18Fixtures.java": "3c4fa1354671d32ba3dc12b7001f19794be556f20f86dd2c72be13b955d8e173",
+    "tests/fixtures/protocol_oracles/fetch_v18/manifest.json": "de2317405ab9c06becda718bc1f1ae7fbe189f551a5f923d86324a7f4e833227"
+  },
+  "upstream_schema_reference": {
+    "release": "4.3.1",
+    "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+    "request_delta": "Partition HighWatermark int64, versions/taggedVersions18+, tag1, ignorable, default9223372036854775807, unknown-1.",
+    "response_delta": "Version18 no response changes."
+  },
+  "findings": [
+    {
+      "topic": "Public source compatibility",
+      "result": "Existing FetchPartition fields/layout and constructors unchanged; decode tuple alias retains the same structural tuple and field order. New replica watermarks use explicitly selected aligned sidecar functions."
+    },
+    {
+      "topic": "Wire tags",
+      "result": "Encoder emits sorted partition tags0(directory) and1(watermark); omits defaultMAX and omits watermark on lower versions. Both decoders validate exactly8 bytes for known18 tag1; older versions skip unknown tags. No replica/quorum acknowledgement semantics claimed."
+    },
+    {
+      "topic": "Sidecar failure atomicity",
+      "result": "Sidecar dimensions are checked after version validation and before any buffer writes, including empty topics/partitions. Existing decoder does not allocate a watermark sidecar."
+    },
+    {
+      "topic": "Ordinary consumer negotiation",
+      "result": "Both control and per-leader data connection negotiation use the shared max18 constant; ordinary consumer encoder omits unsupported-default watermark. Lower names/UUIDs and session behavior retain existing version branches."
+    },
+    {
+      "topic": "Submitted tests reviewed",
+      "result": "Apache fixtures cover empty/default/unknown/zero/known/signedMIN/both tags/unknown tags/session; lower17 omission fixtures and exact request/response pairs. Negative tests cover exact known tag length, duplicate/unordered tags, every truncation and pre-write shape failure. Five maintained consumer cases run12 and18 with observed socket version assertions, alongside existing lower-version/session/fallback coverage."
+    }
+  ],
+  "remaining_blocking_findings": [],
+  "production_qualification": false,
+  "test_attribution": "Root owns and executes final stable/MSRV/client/Apache gates. This receipt reviews source and test design only; it does not reuse those runs as reviewer execution."
+}

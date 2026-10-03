@@ -1,0 +1,2 @@
+- let watermark = version >= 18 && high_watermark != REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;
++ let watermark = version >= 19 && high_watermark != REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;

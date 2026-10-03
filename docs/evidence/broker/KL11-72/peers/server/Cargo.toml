@@ -1,0 +1,12 @@
+[package]
+name = "partitionline-sasl-wire-evidence"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[workspace]
+
+[dependencies]
+partitionline-broker = { path = "../../../../../../partitionline-broker", features = ["sasl", "tls"] }
+tokio = { version = "1", features = ["io-std", "io-util", "macros", "rt-multi-thread"] }

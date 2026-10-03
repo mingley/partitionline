@@ -1809,14 +1809,16 @@
       "source_kind": "upstream_generated_wire_fixtures",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "KL05-12: ten18 cases, five17 omission/fallback cases, Java generator executing against checksum-pinned SDK. Exact-source Rust and bidirectional parsing qualification pending.",
+      "reason": "KL05-12: exact-source stable/MSRV default/all-feature and strict gates; fresh checksum-pinned Apache fixtures and independent parsing of Rust-emitted bodies; lower-version and actual simulated-peer Fetch18 regression coverage retained.",
       "evidence": "docs/plan/evidence/KL05-12.json",
       "artifacts": [
         "tests/conformance/fetch-v18-delta.json",
-        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json"
-      ]
+        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+        "docs/evidence/client/KL05-12/final/validation.json"
+      ],
+      "tested_source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30"
     },
     {
       "id": "proto-fetch-v18-independent-apache-4-2-1",
@@ -1829,14 +1831,16 @@
       "source_kind": "upstream_generated_wire_fixtures",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "KL05-12: ten18 cases, five17 omission/fallback cases, Java generator executing against checksum-pinned SDK. Exact-source Rust and bidirectional parsing qualification pending.",
+      "reason": "KL05-12: exact-source stable/MSRV default/all-feature and strict gates; fresh checksum-pinned Apache fixtures and independent parsing of Rust-emitted bodies; lower-version and actual simulated-peer Fetch18 regression coverage retained.",
       "evidence": "docs/plan/evidence/KL05-12.json",
       "artifacts": [
         "tests/conformance/fetch-v18-delta.json",
-        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json"
-      ]
+        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+        "docs/evidence/client/KL05-12/final/validation.json"
+      ],
+      "tested_source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30"
     },
     {
       "id": "proto-fetch-v18-independent-apache-4-3-1",
@@ -1849,14 +1853,16 @@
       "source_kind": "upstream_generated_wire_fixtures",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "KL05-12: ten18 cases, five17 omission/fallback cases, Java generator executing against checksum-pinned SDK. Exact-source Rust and bidirectional parsing qualification pending.",
+      "reason": "KL05-12: exact-source stable/MSRV default/all-feature and strict gates; fresh checksum-pinned Apache fixtures and independent parsing of Rust-emitted bodies; lower-version and actual simulated-peer Fetch18 regression coverage retained.",
       "evidence": "docs/plan/evidence/KL05-12.json",
       "artifacts": [
         "tests/conformance/fetch-v18-delta.json",
-        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json"
-      ]
+        "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+        "docs/evidence/client/KL05-12/final/validation.json"
+      ],
+      "tested_source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30"
     }
   ]
 }

@@ -1,0 +1,266 @@
+{
+  "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+  "status": "passed",
+  "commands": [
+    {
+      "name": "4.1.0-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.1.0",
+        "--kafka-jar",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.1.0",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 0.969,
+      "log": "4.1.0-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.1.0-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.0:/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.1.0-stable-decode-rust.log"
+    },
+    {
+      "name": "4.1.0-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.0:/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.1.0-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.1.2-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.1.2",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.1.2",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.071,
+      "log": "4.1.2-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.1.2-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.166,
+      "log": "4.1.2-stable-decode-rust.log"
+    },
+    {
+      "name": "4.1.2-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.165,
+      "log": "4.1.2-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.2.1-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.2.1",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.2.1",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.121,
+      "log": "4.2.1-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.2.1-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.168,
+      "log": "4.2.1-stable-decode-rust.log"
+    },
+    {
+      "name": "4.2.1-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.167,
+      "log": "4.2.1-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.3.1-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.3.1",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.3.1",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.023,
+      "log": "4.3.1-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.3.1-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.3.1-stable-decode-rust.log"
+    },
+    {
+      "name": "4.3.1-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.165,
+      "log": "4.3.1-1.85.0-decode-rust.log"
+    }
+  ],
+  "apache_releases": 4,
+  "regenerated_bodies_per_release": 30,
+  "rust_pairs_per_release_and_toolchain": 4,
+  "rust_body_parse_pairs": 32
+}

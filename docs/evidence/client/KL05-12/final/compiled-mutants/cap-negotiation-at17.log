@@ -1,0 +1,30 @@
+   Compiling partitionline v0.1.0 (/workspace/work/fetch-v18/compiled-mutant-source)
+warning: unused import: `FETCH_CRATE_MAX_VERSION`
+  --> src/consumer.rs:31:47
+   |
+31 |     FetchTopic, FetchedTopic, ForgottenTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
+   |                                               ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline` (lib) generated 1 warning (run `cargo fix --lib -p partitionline` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 16.65s
+     Running tests/consumer_fetch_semantics.rs (/workspace/work/fetch-v18/target-stable/debug/deps/consumer_fetch_semantics-9192035710ce5069)
+
+running 1 test
+
+thread 'fetch_mixed_version_both_bootstrap_leader_orders' (449793) panicked at tests/consumer_fetch_semantics.rs:2375:9:
+assertion `left == right` failed: older bootstrap must not cap newer leader 1 below its supported Fetch version
+  left: Some(17)
+ right: Some(18)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test fetch_mixed_version_both_bootstrap_leader_orders ... FAILED
+
+failures:
+
+failures:
+    fetch_mixed_version_both_bootstrap_leader_orders
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 62 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test consumer_fetch_semantics`

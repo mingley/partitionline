@@ -1,0 +1,32 @@
+[
+  {
+    "version": "4.1.2",
+    "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+    "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+    "files_sha256": {
+      "metadata/src/main/java/org/apache/kafka/image/ScramImage.java": "a27dac91c7bf63173541f5281a90f55903af54304f0a7ce9556558cf4f84acec",
+      "metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+      "core/src/main/scala/kafka/server/KafkaApis.scala": "130b24805702460598f3f0cedcf33cd149f607e351018d5e9d391ee7fb69439d"
+    }
+  },
+  {
+    "version": "4.2.1",
+    "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+    "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+    "files_sha256": {
+      "metadata/src/main/java/org/apache/kafka/image/ScramImage.java": "daedc2fa92e0713ca4899d1fa984b58558637af9a46b8df71a4d28e0e00b85b3",
+      "metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+      "core/src/main/scala/kafka/server/KafkaApis.scala": "16907072bbddf8884557db74460bacf3ff2521ac4e7e948110dc77d52c538ac2"
+    }
+  },
+  {
+    "version": "4.3.1",
+    "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+    "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+    "files_sha256": {
+      "metadata/src/main/java/org/apache/kafka/image/ScramImage.java": "daedc2fa92e0713ca4899d1fa984b58558637af9a46b8df71a4d28e0e00b85b3",
+      "metadata/src/main/java/org/apache/kafka/controller/ScramControlManager.java": "e9cf5b1433e72b8173fc722f920dd2b24a905de6d5ee4557bacc38c1961aca1d",
+      "core/src/main/scala/kafka/server/KafkaApis.scala": "f93449b57e580b8460fd5179d64c192efe7c3dc009bb3a454610e2fb232f83ca"
+    }
+  }
+]

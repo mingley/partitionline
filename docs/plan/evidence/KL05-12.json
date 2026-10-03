@@ -1,24 +1,2121 @@
 {
   "schema_version": 1,
   "task": "KL05-12",
-  "status": "in_progress",
-  "source_sha": null,
+  "status": "done",
+  "acceptance_met": true,
+  "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
   "source_freeze": "docs/evidence/client/KL05-12/source-freeze.json",
   "commands": [
-    "Focused stable3integration suites after nullable empty-record correction: [('17', '0', '0'), ('62', '0', '1'), ('36', '0', '1')]",
-    "Fetchunit56passed",
-    "Strict focused allfeatures secondattempt0",
-    "Four SDK authenticgenerator+Rust-body decoder all0"
+    {
+      "name": "stable-rustc",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "--version",
+        "--verbose"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 0.542,
+      "log": "stable-rustc.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 2.712,
+      "log": "stable-fmt.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-default-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--offline",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 55.251,
+      "log": "stable-default-examples.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-default-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 154.948,
+      "log": "stable-default-tests.log",
+      "test_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 36,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-all-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--offline",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "1",
+        "--all-features"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 38.842,
+      "log": "stable-all-examples.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-all-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--all-features"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 150.325,
+      "log": "stable-all-tests.log",
+      "test_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 36,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-fetch18-emitted",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--test",
+        "protocol_oracles",
+        "fetch_v18_rust_bodies_match",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 0.638,
+      "log": "stable-fetch18-emitted.log",
+      "test_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-metrics",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 0.67,
+      "log": "stable-metrics.log",
+      "test_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 1.343,
+      "log": "stable-credential-default.log",
+      "test_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 0.999,
+      "log": "stable-credential-tracing.log",
+      "test_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 51.301,
+      "log": "stable-strict.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 2.551,
+      "log": "stable-docs.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "stable-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "stable",
+      "exit_code": 0,
+      "seconds": 1.561,
+      "log": "stable-doctests.log",
+      "test_counts": [
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-rustc",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 0.567,
+      "log": "1.85.0-rustc.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 2.897,
+      "log": "1.85.0-fmt.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-default-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--offline",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 77.617,
+      "log": "1.85.0-default-examples.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-default-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 185.711,
+      "log": "1.85.0-default-tests.log",
+      "test_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 36,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-all-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--offline",
+        "--locked",
+        "--examples",
+        "--jobs",
+        "1",
+        "--all-features"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 61.967,
+      "log": "1.85.0-all-examples.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-all-tests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--all-features"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 186.939,
+      "log": "1.85.0-all-tests.log",
+      "test_counts": [
+        {
+          "passed": 1100,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 32,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 3,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 110,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 17,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 62,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 330,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 7,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 36,
+          "failed": 0,
+          "ignored": 1
+        },
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-fetch18-emitted",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--test",
+        "protocol_oracles",
+        "fetch_v18_rust_bodies_match",
+        "--jobs",
+        "1",
+        "--",
+        "--nocapture"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 0.644,
+      "log": "1.85.0-fetch18-emitted.log",
+      "test_counts": [
+        {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-metrics",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--lib",
+        "metrics::tests",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 0.602,
+      "log": "1.85.0-metrics.log",
+      "test_counts": [
+        {
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-credential-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 1.202,
+      "log": "1.85.0-credential-default.log",
+      "test_counts": [
+        {
+          "passed": 28,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-credential-tracing",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--test",
+        "credential_redact",
+        "--features",
+        "tracing",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 1.211,
+      "log": "1.85.0-credential-tracing.log",
+      "test_counts": [
+        {
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 88.755,
+      "log": "1.85.0-strict.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--offline",
+        "--locked",
+        "--no-deps",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 3.554,
+      "log": "1.85.0-docs.log",
+      "test_counts": [],
+      "source_unchanged": true
+    },
+    {
+      "name": "1.85.0-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--offline",
+        "--locked",
+        "--doc",
+        "--all-features",
+        "--jobs",
+        "1"
+      ],
+      "toolchain": "1.85.0",
+      "exit_code": 0,
+      "seconds": 1.734,
+      "log": "1.85.0-doctests.log",
+      "test_counts": [
+        {
+          "passed": 4,
+          "failed": 0,
+          "ignored": 0
+        }
+      ],
+      "source_unchanged": true
+    },
+    {
+      "name": "4.1.0-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.1.0",
+        "--kafka-jar",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.1.0",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 0.969,
+      "log": "4.1.0-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.1.0-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.0:/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.1.0-stable-decode-rust.log"
+    },
+    {
+      "name": "4.1.0-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.0:/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.1.0-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.1.2-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.1.2",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.1.2",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.071,
+      "log": "4.1.2-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.1.2-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.166,
+      "log": "4.1.2-stable-decode-rust.log"
+    },
+    {
+      "name": "4.1.2-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.165,
+      "log": "4.1.2-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.2.1-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.2.1",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.2.1",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.121,
+      "log": "4.2.1-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.2.1-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.168,
+      "log": "4.2.1-stable-decode-rust.log"
+    },
+    {
+      "name": "4.2.1-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.167,
+      "log": "4.2.1-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "4.3.1-fresh-compile-and-verify",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/conformance/java/generate_fetch_v18.py",
+        "--version",
+        "4.3.1",
+        "--kafka-jar",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "--slf4j-jar",
+        "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "--java-bin",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+        "--output",
+        "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30/tests/fixtures/protocol_oracles/fetch_v18",
+        "--artifacts",
+        "/workspace/work/fetch-v18/final-java/4.3.1",
+        "--verify"
+      ],
+      "exit_code": 0,
+      "seconds": 1.023,
+      "log": "4.3.1-fresh-compile-and-verify.log"
+    },
+    {
+      "name": "4.3.1-stable-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/stable-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.164,
+      "log": "4.3.1-stable-decode-rust.log"
+    },
+    {
+      "name": "4.3.1-1.85.0-decode-rust",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+        "-Xmx64m",
+        "-cp",
+        "/workspace/work/fetch-v18/final-java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "FetchV18Fixtures",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "/workspace/work/fetch-v18/immutable-attempt1/1.85.0-rust-bodies",
+        "--decode-rust"
+      ],
+      "exit_code": 0,
+      "seconds": 0.165,
+      "log": "4.3.1-1.85.0-decode-rust.log"
+    },
+    {
+      "name": "strip-hwm-tag",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--test",
+        "protocol_oracles",
+        "fetch_v18_rust_bodies_match_apache_and_can_be_parsed_independently",
+        "--jobs",
+        "1",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "test": "fetch_v18_rust_bodies_match_apache_and_can_be_parsed_independently",
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "intended_behavior_failure": true,
+      "marker": "assertion `left == right` failed",
+      "changed_file": "src/protocol/fetch.rs",
+      "changed_occurrences": 1,
+      "original_sha256": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+      "mutated_sha256": "1909d56d3edfa8f4e3d281b9f3e19b6b0190311256ea7d1c8b74ef8c8366c269",
+      "source_restored": true,
+      "seconds": 11.122,
+      "log": "strip-hwm-tag.log"
+    },
+    {
+      "name": "cap-negotiation-at17",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--all-features",
+        "--test",
+        "consumer_fetch_semantics",
+        "fetch_mixed_version_both_bootstrap_leader_orders",
+        "--jobs",
+        "1",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "test": "fetch_mixed_version_both_bootstrap_leader_orders",
+      "exit_code": 101,
+      "expected_exit_code": 101,
+      "intended_behavior_failure": true,
+      "marker": "older bootstrap must not cap newer leader 1 below its supported Fetch version",
+      "changed_file": "src/consumer.rs",
+      "changed_occurrences": 2,
+      "original_sha256": "65671d05e822b39882f601df8b6cf22ef244eff1ee6432269577f9b0a351343a",
+      "mutated_sha256": "8883f66e218345afff4934fb490a41ffb061df3a2ce8eab378eedafdcd2f7f85",
+      "source_restored": true,
+      "seconds": 16.726,
+      "log": "cap-negotiation-at17.log"
+    },
+    {
+      "name": "stable-strict-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+      "exit_code": 0,
+      "log": "stable-strict-default.log",
+      "seconds": 42.389
+    },
+    {
+      "name": "1.85.0-strict-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--all-targets",
+        "--jobs",
+        "1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+      "exit_code": 0,
+      "log": "1.85.0-strict-default.log",
+      "seconds": 77.49
+    },
+    {
+      "name": "updated-conformance-coverage",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "scripts/check-protocol-coverage.py",
+        "--json",
+        "--output",
+        "/workspace/work/fetch-v18/final-supplement/coverage-report.json"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "updated-conformance-coverage.log",
+      "seconds": 0.064
+    },
+    {
+      "name": "updated-conformance-guards",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/conformance",
+        "-p",
+        "test_check_protocol_coverage.py"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0,
+      "log": "updated-conformance-guards.log",
+      "seconds": 0.365
+    }
   ],
   "results": {
-    "authentic_apache_fixtures": "30 bodies; Apache4.1.0 and three current4.1.2/4.2.1/4.3.1 regenerate unchanged",
-    "actual_java_parses_rust": "fourrequest/responsepairs eachSDK, all0",
-    "full_exact_source_matrix": "pending",
-    "independent_read_only_review": "zstd_decision WORK production hashes no blocker; exactsource binding pending"
+    "schema_version": 1,
+    "source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+    "status": "passed",
+    "immutable_source_integrity": [
+      {
+        "directory": "/workspace/work/fetch-v18/source-7bae3e34b5acedb6cac8b8232c9878f83fd7be30",
+        "git_blob_files": 9405,
+        "all_files_unchanged": true
+      },
+      {
+        "directory": "/workspace/work/fetch-v18/compiled-mutant-source",
+        "git_blob_files": 9405,
+        "all_files_unchanged": true
+      }
+    ],
+    "full_rust_commands": 26,
+    "fresh_apache_commands": 12,
+    "compiled_negative_controls": 2,
+    "full_test_counts": {
+      "stable-default-tests": {
+        "passed": 1804,
+        "ignored": 4
+      },
+      "stable-all-tests": {
+        "passed": 1805,
+        "ignored": 4
+      },
+      "1.85.0-default-tests": {
+        "passed": 1804,
+        "ignored": 4
+      },
+      "1.85.0-all-tests": {
+        "passed": 1805,
+        "ignored": 4
+      }
+    },
+    "apache_releases": [
+      "4.1.0",
+      "4.1.2",
+      "4.2.1",
+      "4.3.1"
+    ],
+    "fresh_fixture_bodies": 120,
+    "independently_parsed_rust_pairs": 32,
+    "ignored_tests": "Four existing live/environment tests per full lane; no removed or newly ignored tests.",
+    "limits": [
+      "Request/response body oracle and local simulated-peer negotiation proof; no new real Apache cluster production or distributed fault qualification.",
+      "Ordinary consumer default omission and explicit replica sidecars only; no follower acknowledgement/quorum-commit runtime.",
+      "No performance comparison or global fastest claim."
+    ],
+    "supplement_commands": 4,
+    "strict_clippy_cells": 4,
+    "strict_doc_cells": 2,
+    "doctest_cells": 2,
+    "doctests_passed_per_cell": 4,
+    "conformance_guard_tests": 15,
+    "conformance_disposition": "three current Apache Fetch18 cells independent_pass"
   },
+  "maintained_regressions": {
+    "A01": "seek_inside_batch_must_not_return_earlier_records: Fetch12/18",
+    "A02": "committed_transaction_after_abort_for_same_pid_must_be_visible: Fetch12/18",
+    "A03": "mixed_partition_retry_must_preserve_successful_records: Fetch12/18",
+    "A04": "out_of_range_with_reset_none_must_fail_without_advancing: Fetch12/18",
+    "A05": "commit_after_capped_poll_must_not_commit_buffered_records: Fetch17/18; actual negotiated version observed; restart begins at delivered-only commit"
+  },
+  "independent_review": "docs/evidence/client/KL05-12/independent-review.json",
+  "artifacts": [
+    "docs/evidence/client/KL05-12/final/validation.json",
+    "docs/evidence/client/KL05-12/final/rust-matrix/commands.json",
+    "docs/evidence/client/KL05-12/final/apache-java/validation.json",
+    "docs/evidence/client/KL05-12/final/compiled-mutants/validation.json",
+    "tests/conformance/fetch-v18-delta.json",
+    "tests/fixtures/protocol_oracles/fetch_v18/manifest.json",
+    "docs/evidence/client/KL05-12/final/supplement/validation.json"
+  ],
   "limits": [
-    "Existingignoredlive tests remain separately qualified; full production/globalperformance claims remain open.",
-    "ExistingRustemptyVec records encodesnullable null; ApachefixtureEMPTY encodesnonnull zero-length. Both parsed independently with equal required fields; source unchanged.",
-    "No follower acknowledgment or quorum-commit runtime in this clientcodec."
-  ]
+    "Request/response body oracle and local simulated-peer negotiation proof; no new real Apache cluster production or distributed fault qualification.",
+    "Ordinary consumer default omission and explicit replica sidecars only; no follower acknowledgement/quorum-commit runtime.",
+    "No performance comparison or global fastest claim."
+  ],
+  "independent_review_sha256": "cbf55562680ecaf004dcdfbcbb71c97e489e43c576f9691a774accffb0403e92"
 }
