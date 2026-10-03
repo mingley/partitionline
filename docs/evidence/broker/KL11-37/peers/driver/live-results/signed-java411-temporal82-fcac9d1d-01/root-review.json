@@ -1,0 +1,177 @@
+{
+  "passed": true,
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "packet_sha256": "4d8696ddd670dd930a4af3d52624d9772e2e1184643972bf251ee46622850c6d",
+  "files": [
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/complete-source-identity.json.gz",
+      "sha256": "73144930f40bc66fb4f9dfc1defa082900b19013d25ddc37d79e45c780c61b4c",
+      "bytes": 2590415,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/complete-source-identity.restore.json",
+      "sha256": "5c7f019e13a8b5092d4ba83ff91e8375e40640c9cc3d003d310fd40c61aac310",
+      "bytes": 380,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/declared-lifecycle.json",
+      "sha256": "bbc6d4c21eb4a169ac4f07744ea3e6d4b56b12c8dd79766d8506917f635c6e5e",
+      "bytes": 32139,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/events.json",
+      "sha256": "48faabcaa1fad0e364c9d273465092942dabc71422b0f1fa782168872de9c60c",
+      "bytes": 98714,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/issued-public-metadata.json",
+      "sha256": "586a7eb9e4c9aff416a92bb7f83071c6ca170bf2168cd3e5d6d66660c5968dd8",
+      "bytes": 4992,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/issuer-events.json",
+      "sha256": "8a8f5f6bb5893a6783a3ace4dcd17fbbea385c7995a96fd9c321ca658421fe0a",
+      "bytes": 90558,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/outer-ownership.json",
+      "sha256": "acc752f4be38d1b7ca81957991d6ce593e36e67a9e938f199ecb3158c65e509b",
+      "bytes": 2465,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/owned-process-groups.json",
+      "sha256": "7a784379805d90c1432432c0d1083bd48e481f276df8a9cb3c2eba52e5de26ab",
+      "bytes": 2833,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/private-mode-inventory.json",
+      "sha256": "f5290672fe5983d31eb70aa19f56d0733d051188854186a21b4dfe47d28e06fb",
+      "bytes": 3871,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/raw/validation.json",
+      "sha256": "c8663ef8e2535146148fd4180bfaa889a82959a39694b6f14476b5f7f6467adf",
+      "bytes": 10019,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/execution/launch-preflight.json",
+      "sha256": "148e9e457b5fb201e46ed1b649c0d766fe6b5bfd38730a40a9f964e49231fc81",
+      "bytes": 1485,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/execution/mode-audit.log",
+      "sha256": "d7d5a32c883f311d36f6e33dc28814b33a112349dbafefb47273c2aecd8f9c22",
+      "bytes": 121,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/execution/outer.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/execution/validation.json",
+      "sha256": "34c5e2dd650d92c6e42110a653090848f8913cddf3c2841d0cd955205a53268b",
+      "bytes": 12701,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/configuration/manifest.json",
+      "sha256": "2464428289402c20e21443db75cc426a86c03abb6ad36aeb397eb191515b4685",
+      "bytes": 3088,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/configuration/signed-stable-java-4-1-2-temporal82-revised-01.json",
+      "sha256": "8be7d8aca291e062f486fa32e14649b03fe0bfc20a271ef10f085bb6112da5c5",
+      "bytes": 23178,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/signed-stable-java-4-1-2-temporal-query-review-01.recipe.json",
+      "sha256": "0dfaba71c3beea9fba1b8b57359a518b5ba4d8904d23126fadcd77ca51b3fc87",
+      "bytes": 10675,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/manifest.json",
+      "sha256": "5fc22fbf0a8ce90e2b9ab5e953f2414f64afba4c211dff8f9b30b2ccb42c5f72",
+      "bytes": 2701,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/materialize-java411-temporal82-config-01.py",
+      "sha256": "2758bd36428662b1fba63a3da76ac673b46e1df56e198bfbebadbae9077317e7",
+      "bytes": 5247,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/run-java411-temporal82-01.py",
+      "sha256": "7011f49affa1ebe4c0937aae4f3bec71a8add5c7a87c4fc07954d0a1f0de4211",
+      "bytes": 8041,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/java411-temporal82-execution-01.log",
+      "sha256": "0d4f5f0c88b7b5bfffbae0716a687278e819d1ad0623627274ed1ca05a39d2b1",
+      "bytes": 1093,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/audit-private-modes.py",
+      "sha256": "d7b927ae5f9b5e9bab7729d8159aaaf94a6ce84f64730539f60a449b3b4373bd",
+      "bytes": 1530,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/preparation/stage-java411-temporal82-result-01.py",
+      "sha256": "d773e0cf764c0afe02949222de9e06c2a862cdc2d1c2996e1d762af5ae42f4a9",
+      "bytes": 9104,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/VALIDATION.json",
+      "sha256": "b98f555a015a1ee5f225e0752cb147b4394ad7f5e550aefde448dc8cce88cc22",
+      "bytes": 4692,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-results/signed-java411-temporal82-fcac9d1d-01/SHA256SUMS",
+      "sha256": "16bd635e961278f640609e81bfcdab5d519aa4b27b3615a0fd8af285157a1fc6",
+      "bytes": 2412,
+      "full_mode": "0o600"
+    }
+  ],
+  "actual_steps": 82,
+  "actual_public_queries": 20,
+  "positive_baselines": 7,
+  "positive_recoveries": 7,
+  "actual_broker_authentication_denials": 6,
+  "wrong_typ_admin_failed_auth_metric": 0.0,
+  "local_missing_subject_refusal_separate": true,
+  "whole_git_blob_sha_full07777_pathset_reverified": 73196,
+  "runtime_inputs_reverified": 68,
+  "actual_unforced_joined_owners": 24,
+  "outer_confirmed_identities": 26,
+  "source_gzip_exact_roundtrip": true,
+  "private_payloads_read_or_hashed": false,
+  "limits": [
+    "Finite RF1 metadata OIDC profile at fcac9d1d; no current-main complete qualification.",
+    "No synchronized broker-dispatch denial barrier was proved by these independent stdout traces.",
+    "Future nbf is inferred from pinned issuer policy; public metadata does not include nbf.",
+    "Original32configs and original3PASS1FAIL observations remain unchanged; other SDK cohorts remain pending.",
+    "Wrong-typ query has Consumer failed-auth1 and merged SaslAuthenticationException; Admin failed-auth metric is0, so do not claim that per-client metric is1 in every negative phase."
+  ]
+}

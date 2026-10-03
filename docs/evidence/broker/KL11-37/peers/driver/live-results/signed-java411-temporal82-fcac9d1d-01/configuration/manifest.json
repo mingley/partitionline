@@ -1,0 +1,68 @@
+{
+  "name": "signed-stable-java-4-1-2-temporal82-revised-01",
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "profile": "metadata",
+  "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01.json",
+  "config_sha256": "8be7d8aca291e062f486fa32e14649b03fe0bfc20a271ef10f085bb6112da5c5",
+  "config_bytes": 23178,
+  "config_mode": "0o600",
+  "steps": 82,
+  "recipe": "/workspace/work/broker-oidc/future-nbf-recipe-review-01/signed-stable-java-4-1-2-temporal-query-review-01.recipe.json",
+  "recipe_sha256": "0dfaba71c3beea9fba1b8b57359a518b5ba4d8904d23126fadcd77ca51b3fc87",
+  "original_config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-1-2.json",
+  "original_config_sha256": "28e7b70d0816687bf6d9136d968a55766d60a8cf7dbdaea1a021ed2ab82bd8d6",
+  "original_config_unchanged": true,
+  "original32_recipes_not_replaced": true,
+  "runtime_rehashes": 68,
+  "normal_binding": "/workspace/work/normal-oidc-example-fcac9d1d/build-bindings/stable.json",
+  "normal_binding_sha256": "c340073cc9c61e8b78554f9113f1c72642dc2f250efd11b7edcb361894b1c305",
+  "source_guard": {
+    "files": 73196,
+    "before_equals_after": true,
+    "full07777_and_exact_pathset": true
+  },
+  "fresh_output_private_paths": true,
+  "outer_command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+    "--config",
+    "/workspace/work/broker-oidc/live-configs-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01.json",
+    "--output",
+    "/workspace/work/broker-oidc/live-runs-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01",
+    "--private-scratch",
+    "/workspace/work/broker-oidc/private-live-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01"
+  ],
+  "temporal_negative_witnesses": [
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "expired",
+        "expected_rejection_layer": "broker-authentication"
+      }
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "future_nbf",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "future_nbf",
+        "expected_rejection_layer": "broker-authentication"
+      }
+    }
+  ],
+  "missing_subject_local_constructor_unchanged": true,
+  "execution": "WORK-only configuration preparation; NO live/Cargo. Root runtime GO required after Avro exclusive CPU0,1 lease and fresh disk/source/artifact forecast.",
+  "root_review_basis": "5fc22 recipe approved for config preparation; focused12 expired actual broker-authentication PASS remains a separate cohort.",
+  "free_bytes": 1278328832
+}

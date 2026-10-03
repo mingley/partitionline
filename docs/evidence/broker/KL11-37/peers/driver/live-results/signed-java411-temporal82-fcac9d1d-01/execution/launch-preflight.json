@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "manifest_sha256": "2464428289402c20e21443db75cc426a86c03abb6ad36aeb397eb191515b4685",
+  "artifact_before": {
+    "passed": true,
+    "runtime_input_rehashes": 68,
+    "normal_sha256": "99394810a872ed0c326d0643a568ac2afa75a644225b45801c707a391019691b",
+    "config_sha256": "8be7d8aca291e062f486fa32e14649b03fe0bfc20a271ef10f085bb6112da5c5",
+    "all_original_32_configs_unchanged": true
+  },
+  "free_before": 1303547904,
+  "operational_reserve_bytes": 50331648,
+  "projected_free": 1253216256,
+  "floor_bytes": 367001600,
+  "reserve_limit": "Operational forecast, not an arbitrary SDK-output hard cap.",
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+    "--config",
+    "/workspace/work/broker-oidc/live-configs-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01.json",
+    "--output",
+    "/workspace/work/broker-oidc/live-runs-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01",
+    "--private-scratch",
+    "/workspace/work/broker-oidc/private-live-fcac9d1d-java411-temporal82-01/signed-stable-java-4-1-2-temporal82-revised-01"
+  ],
+  "producer_sha256": "7011f49affa1ebe4c0937aae4f3bec71a8add5c7a87c4fc07954d0a1f0de4211",
+  "execution_rootGO": true
+}

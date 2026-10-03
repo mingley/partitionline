@@ -1,0 +1,131 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "actual_steps": 82,
+  "wrapper_elapsed_seconds": 57.82846011999936,
+  "outer_elapsed_seconds": 57.28793496500293,
+  "signed_policy_profile": [
+    "valid",
+    "wrong_issuer",
+    "wrong_audience",
+    "expired",
+    "future_nbf",
+    "wrong_typ",
+    "missing_typ",
+    "missing_subject"
+  ],
+  "actual_query_count": 20,
+  "positive_query_baselines": 7,
+  "positive_query_recoveries": 7,
+  "broker_authentication_query_denials": {
+    "wrong_issuer": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    },
+    "wrong_audience": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    },
+    "expired": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    },
+    "future_nbf": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    },
+    "wrong_typ": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    },
+    "missing_typ": {
+      "error_types": [
+        "org.apache.kafka.common.errors.SaslAuthenticationException"
+      ],
+      "provider_token_success": 1
+    }
+  },
+  "missing_subject_separate_local_provider_refusal": {
+    "actual_error_types": [
+      "org.apache.kafka.common.KafkaException",
+      "org.apache.kafka.common.KafkaException",
+      "org.apache.kafka.common.KafkaException",
+      "javax.security.auth.login.LoginException"
+    ],
+    "before_ready": true,
+    "peer_exit_code": 1,
+    "broker_verdict_proved": false
+  },
+  "public_authority_issuances": 21,
+  "expired_witness": {
+    "public_metadata": {
+      "token_sha256": "ae2f1222d157cabcf9688d632ad24e2eb96e24b281b57d73876fbed84940dd54",
+      "issued_epoch": 1791046664,
+      "expires_epoch": 1791046724,
+      "subject": "issuer-probe",
+      "policy": "expired",
+      "generation": 0
+    },
+    "actual_token_endpoint_event": {
+      "ordinal": 288,
+      "endpoint": "/issuer/token",
+      "status": 200,
+      "epoch": 1791046784
+    },
+    "seconds_past_expiration_at_acquisition": 60
+  },
+  "future_nbf_witness": {
+    "public_metadata": {
+      "token_sha256": "b3fa6cfaf64ab7d2d8480454256baac7b74953697ee17e140c411c0031dce042",
+      "issued_epoch": 1791046790,
+      "expires_epoch": 1791046910,
+      "subject": "issuer-probe",
+      "policy": "future_nbf",
+      "generation": 0
+    },
+    "actual_token_endpoint_event": {
+      "ordinal": 404,
+      "endpoint": "/issuer/token",
+      "status": 200,
+      "epoch": 1791046790
+    },
+    "source_inferred_not_before_epoch": 1791046850,
+    "source_inferred_seconds_future_at_acquisition": 60,
+    "inference_limit": "Public metadata does not include nbf. This value follows the exact hash-bound issuer future_nbf branch claims[nbf]=now+60, while issued_epoch=now and token route epoch match. No private token was decoded/read/hashed."
+  },
+  "authority_link_limit": "Endpoint events omit token hashes; links use unique negative-policy metadata, sequential fresh-peer boundaries and source-pinned fixed policies, with one-second granularity. Signed issuer component proofs remain separate.",
+  "processes_joined_unforced": 22,
+  "logical_broker_issuer_joined": true,
+  "expected_process_exits": {
+    "zero": 21,
+    "one_for_missing_subject_local_refusal": 1
+  },
+  "outer_confirmed_identities": 26,
+  "outer_remaining": [],
+  "private_paths_only_audit": {
+    "passed": true,
+    "path_count": 23,
+    "sha256": "f5290672fe5983d31eb70aa19f56d0733d051188854186a21b4dfe47d28e06fb"
+  },
+  "source_whole_files_before_after": 73196,
+  "runtime_rehashes_each_before_after": 68,
+  "source_gzip_roundtrip_bytes": 23229060,
+  "source_gzip_roundtrip_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4",
+  "raw_source_mode_limit": "Raw JSON serialized in memory and compressed directly. Restore mode600 is designated policy; actual source row full07777 is measured.",
+  "original_32_configs_hashes_unchanged": true,
+  "original_3PASS_1FAIL_observations_unchanged": true,
+  "phase_dispatch_denial_proved": false,
+  "scope": "Stable fcac metadata6 probe + genuine official Java4.1.2 HTTPS acquisition, seven negative signed policies and positive reconnect recovery. This does not qualify other SDKs/server toolchains/reauth/wholeKafka.",
+  "minimum_free_bytes": 1301553152,
+  "free_after_execution": 1298825216
+}

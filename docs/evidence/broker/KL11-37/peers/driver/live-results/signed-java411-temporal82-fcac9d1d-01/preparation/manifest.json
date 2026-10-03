@@ -1,0 +1,89 @@
+{
+  "scope": "Future-nbf diffs WORKonly, no live/config/product/source mutation",
+  "original_recipe": {
+    "path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-java-4-1-2.recipe.json",
+    "sha256": "2e95e05c68e9927d6e17a9117202db731b791cfabb9f566fabcd30942c405561",
+    "unchanged": true
+  },
+  "proposed_recipe": {
+    "path": "/workspace/work/broker-oidc/future-nbf-recipe-review-01/signed-stable-java-4-1-2-temporal-query-review-01.recipe.json",
+    "sha256": "0dfaba71c3beea9fba1b8b57359a518b5ba4d8904d23126fadcd77ca51b3fc87",
+    "steps": 82
+  },
+  "changed": [
+    {
+      "original_index": 29,
+      "policy": "expired",
+      "old_step": {
+        "operation": "start-peer",
+        "peer": "java-4-1-2",
+        "expected_ready": false,
+        "authority_witness": {
+          "condition": "signed-policy",
+          "policy": "expired"
+        }
+      },
+      "new_steps": [
+        {
+          "operation": "start-peer",
+          "peer": "java-4-1-2"
+        },
+        {
+          "operation": "send",
+          "peer": "java-4-1-2",
+          "action": "query",
+          "phase": "expired",
+          "expected_pass": false,
+          "authority_witness": {
+            "condition": "signed-policy",
+            "policy": "expired",
+            "expected_rejection_layer": "broker-authentication"
+          }
+        },
+        {
+          "operation": "stop-peer",
+          "peer": "java-4-1-2"
+        }
+      ]
+    },
+    {
+      "original_index": 39,
+      "policy": "future_nbf",
+      "old_step": {
+        "operation": "start-peer",
+        "peer": "java-4-1-2",
+        "expected_ready": false,
+        "authority_witness": {
+          "condition": "signed-policy",
+          "policy": "future_nbf"
+        }
+      },
+      "new_steps": [
+        {
+          "operation": "start-peer",
+          "peer": "java-4-1-2"
+        },
+        {
+          "operation": "send",
+          "peer": "java-4-1-2",
+          "action": "query",
+          "phase": "future_nbf",
+          "expected_pass": false,
+          "authority_witness": {
+            "condition": "signed-policy",
+            "policy": "future_nbf",
+            "expected_rejection_layer": "broker-authentication"
+          }
+        },
+        {
+          "operation": "stop-peer",
+          "peer": "java-4-1-2"
+        }
+      ]
+    }
+  ],
+  "missing_subject_local_constructor_stays_separate": true,
+  "otherSDKrecipes_unchanged": true,
+  "bytecode_semantics_review": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/semantics-review.json",
+  "approval_dependency": "Rootindependentfuture-nbfreview + focusedexpired12 actualPASS before updatedfullsignedmatrixGO"
+}

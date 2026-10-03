@@ -1,0 +1,142 @@
+{
+  "driver": {
+    "pid": 1204938,
+    "pgid": 1204938,
+    "starttime_ticks": 9097966
+  },
+  "owned_groups": [
+    {
+      "actor": "broker",
+      "pid": 1205026,
+      "pgid": 1205026,
+      "starttime_ticks": 9098641
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205043,
+      "pgid": 1205043,
+      "starttime_ticks": 9098662
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205123,
+      "pgid": 1205123,
+      "starttime_ticks": 9098891
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205186,
+      "pgid": 1205186,
+      "starttime_ticks": 9099054
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205286,
+      "pgid": 1205286,
+      "starttime_ticks": 9099288
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205384,
+      "pgid": 1205384,
+      "starttime_ticks": 9099525
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205435,
+      "pgid": 1205435,
+      "starttime_ticks": 9099700
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205532,
+      "pgid": 1205532,
+      "starttime_ticks": 9099937
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205630,
+      "pgid": 1205630,
+      "starttime_ticks": 9100177
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205696,
+      "pgid": 1205696,
+      "starttime_ticks": 9100341
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205779,
+      "pgid": 1205779,
+      "starttime_ticks": 9100580
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205879,
+      "pgid": 1205879,
+      "starttime_ticks": 9100814
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1205941,
+      "pgid": 1205941,
+      "starttime_ticks": 9100972
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206037,
+      "pgid": 1206037,
+      "starttime_ticks": 9101199
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206118,
+      "pgid": 1206118,
+      "starttime_ticks": 9101428
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206183,
+      "pgid": 1206183,
+      "starttime_ticks": 9101584
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206283,
+      "pgid": 1206283,
+      "starttime_ticks": 9101823
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206380,
+      "pgid": 1206380,
+      "starttime_ticks": 9102054
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206453,
+      "pgid": 1206453,
+      "starttime_ticks": 9102236
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206534,
+      "pgid": 1206534,
+      "starttime_ticks": 9102463
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206631,
+      "pgid": 1206631,
+      "starttime_ticks": 9102693
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1206668,
+      "pgid": 1206668,
+      "starttime_ticks": 9102805
+    }
+  ],
+  "scope": "PID/starttime bound process groups; no secret argv or token data"
+}

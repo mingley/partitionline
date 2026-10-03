@@ -1,0 +1,544 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "complete_source_unchanged": true,
+  "unresolved_negative_recovery_peers": [],
+  "failed_step": null,
+  "failure_stage": null,
+  "phase_dispatch_denial_proved": false,
+  "audit_limit": "Independent stdout readers do not create a synchronized phase barrier. Retained complete joined audit totals are distinct from precise denial proven by source-pinned core socket tests.",
+  "steps": [
+    {
+      "ordinal": 0,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 1,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 2,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 3,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 4,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 5,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 6,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 7,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 8,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 9,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 10,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 11,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 12,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 13,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 14,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 15,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 16,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 17,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 18,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 19,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 20,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 21,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 22,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 23,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 24,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 25,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 26,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 27,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 28,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 29,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 30,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 31,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 32,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 33,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 34,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 35,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 36,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 37,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 38,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 39,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 40,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 41,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 42,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 43,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 44,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 45,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 46,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 47,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 48,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 49,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 50,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 51,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 52,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 53,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 54,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 55,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 56,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 57,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 58,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 59,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 60,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 61,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 62,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 63,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 64,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 65,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 66,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 67,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 68,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 69,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 70,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 71,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 72,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 73,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 74,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 75,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 76,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 77,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 78,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 79,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 80,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 81,
+      "operation": "stop-peer",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "owner": "broker",
+      "joined": true
+    },
+    {
+      "owner": "broker-process-0",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-1",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-2",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-3",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-4",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-5",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-6",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-7",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-8",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-9",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-10",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-11",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-12",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-13",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-14",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-15",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-16",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-17",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-18",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-19",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-20",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-21",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "issuer",
+      "joined": true
+    }
+  ],
+  "ordinary_expected_history": [],
+  "scope": "real token acquisition/socket metadata and explicitly selected ordinary RF1 records; reconnect lifetime0"
+}

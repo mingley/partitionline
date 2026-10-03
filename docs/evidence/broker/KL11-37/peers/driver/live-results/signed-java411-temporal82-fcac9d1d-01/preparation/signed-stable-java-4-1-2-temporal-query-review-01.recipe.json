@@ -1,0 +1,503 @@
+{
+  "name": "signed-stable-java-4-1-2-temporal-query-review-01",
+  "server_toolchain": "stable",
+  "profile": "metadata",
+  "status": "WORK-only additive proposal, no config replacement/launch",
+  "steps": [
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_issuer_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "wrong_issuer"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2",
+      "expected_ready": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_issuer",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "wrong_issuer"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_issuer_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_audience_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "wrong_audience"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2",
+      "expected_ready": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_audience",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "wrong_audience"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_audience_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "expired"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "expired",
+        "expected_rejection_layer": "broker-authentication"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "expired_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "future_nbf_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "future_nbf"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "future_nbf",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "future_nbf",
+        "expected_rejection_layer": "broker-authentication"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "future_nbf_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_typ_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "wrong_typ"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2",
+      "expected_ready": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_typ",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "wrong_typ"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "wrong_typ_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "missing_typ_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "missing_typ"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2",
+      "expected_ready": true
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "missing_typ",
+      "expected_pass": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "missing_typ"
+      }
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "missing_typ_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid",
+        "outage": []
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "missing_subject_baseline",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "missing_subject"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2",
+      "expected_ready": false,
+      "authority_witness": {
+        "condition": "signed-policy",
+        "policy": "missing_subject"
+      }
+    },
+    {
+      "operation": "control",
+      "value": {
+        "token_policy": "valid"
+      }
+    },
+    {
+      "operation": "start-peer",
+      "peer": "java-4-1-2"
+    },
+    {
+      "operation": "send",
+      "peer": "java-4-1-2",
+      "action": "query",
+      "phase": "missing_subject_recovered",
+      "expected_pass": true
+    },
+    {
+      "operation": "stop-peer",
+      "peer": "java-4-1-2"
+    }
+  ],
+  "step_count": 82,
+  "driver_budget_seconds": 240,
+  "outer_total_budget_seconds": 300,
+  "outer_cleanup_included": true,
+  "deny_claim": "typed public failure plus actual authority witness; client/local/transport/native-unproved origin differs from broker protocol response; no synchronized application-dispatch absence proof",
+  "selected_peer": "java-4-1-2",
+  "policies": [
+    "valid",
+    "wrong_issuer",
+    "wrong_audience",
+    "expired",
+    "future_nbf",
+    "wrong_typ",
+    "missing_typ",
+    "missing_subject"
+  ],
+  "fresh_after_prior_positive": true,
+  "issuer_sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+  "java_local_expected": [
+    "missing_subject"
+  ],
+  "native_origin": "-169 remains public-authentication-origin-unproved; callback rejection distinct from actual broker58",
+  "evidence_limit": "OnlyexpiredJava4.1.2READYobserved;future_nbf staticofficialclasssemantics needindependentreview/actualbrokerquery. OtherSDK recipes remainunchanged."
+}
