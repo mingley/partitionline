@@ -5,18 +5,25 @@
 //! Terms use the controller's checked wire epoch plus one representation. Storage
 //! paths and peer identities are trusted configuration, not authentication.
 //! The append-only operation WAL synchronizes suffix changes and commit markers;
-//! readers never observe entries above its durable committed end. Snapshot and
-//! dynamic voter transitions belong to separate contracts.
+//! readers never observe entries above its durable committed end. Explicit
+//! snapshot mode selects canonical full-prefix images through synced Install
+//! receipts; dynamic voter transitions remain a separate contract.
 //! Defaults bound records to1MiB, chunks/fetches to2MiB (4MiB configurable
 //! ceiling), live content to4096 entries/64MiB and the WAL to65536 operations/
 //! 256MiB. Startup uses the Journal's bounded index plus one bounded chunk and
 //! at most1MiB of operation-tail positions, released before readiness. Actor
 //! queue/canceled-input/unconsumed-receipt/one-in-flight envelopes are charged
 //! conservatively against512MiB; returned consumed records are caller-owned.
+//! Snapshot mode additionally charges old/replacement live state and one bounded
+//! image decode against that same ceiling. Its startup commit-floor index is at
+//! most512KiB and is released before readiness. The Store owns at most four file
+//! descriptors in addition to the two existing journals; complete generations
+//! remain finite and consume the explicitly configured image disk budget.
 
 use super::{
     election::{self, LogPosition, Role, Tally},
     protocol::{self, Controller},
+    snapshot,
 };
 use crate::journal::{self, Journal};
 use std::{
@@ -158,6 +165,54 @@ impl Config {
         }
         Ok(())
     }
+    fn validate_snapshots(&self, store: &snapshot::Store) -> Result<(), Error> {
+        self.validate()?;
+        let identity = store.identity();
+        let mut voters = self.controller.voters.clone();
+        voters.sort_unstable();
+        if store.poisoned() {
+            return Err(Error::Poisoned);
+        }
+        if !store.idle() {
+            return Err(Error::Busy);
+        }
+        if identity.cluster() != self.controller.cluster_id
+            || identity.topic() != self.controller.topic
+            || identity.partition() != self.controller.partition as u32
+            || identity.voters() != voters
+        {
+            return Err(Error::ForeignGroup);
+        }
+        let limits = store.limits();
+        if limits.records() > self.limits.live_entries
+            || limits.payload_bytes() > self.limits.live_bytes as u64
+            || limits.record_bytes() > self.limits.record_bytes
+        {
+            return Err(Error::InvalidConfig);
+        }
+        let envelope = (self.limits.chunk_bytes
+            + self.limits.live_entries * std::mem::size_of::<Record>())
+        .max(self.limits.fetch_bytes)
+        .max(self.controller.protocol_limits.max_request_bytes())
+        .max(limits.chunk_bytes())
+            + std::mem::size_of::<Command>()
+            + std::mem::size_of::<State>();
+        let bytes = envelope
+            .checked_mul(self.max_queued_requests * 2 + 1)
+            .and_then(|n| {
+                n.checked_add(
+                    2 * (self.limits.live_bytes
+                        + self.limits.live_entries * std::mem::size_of::<Record>()),
+                )
+            })
+            .and_then(|n| n.checked_add(limits.decoded_bytes() as usize))
+            .and_then(|n| n.checked_add(32 * 1024 * 1024))
+            .ok_or(Error::Bounds)?;
+        if bytes > 512 * 1024 * 1024 {
+            return Err(Error::InvalidConfig);
+        }
+        Ok(())
+    }
 }
 /// Distinguish opaque metadata from an internal current-term commit barrier.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -204,6 +259,10 @@ pub enum Error {
     Stopped,
     /// Bounded allocation failed.
     Allocation,
+    /// Snapshot operations require the explicit snapshot-enabled owner.
+    SnapshotsDisabled,
+    /// Bounded image publication, validation or transfer failure.
+    Snapshot(snapshot::Error),
     /// Election/controller persistence or parsing failed.
     Controller(protocol::Error),
     /// Existing append-only Journal failure.
@@ -223,6 +282,11 @@ impl From<protocol::Error> for Error {
 impl From<journal::Error> for Error {
     fn from(e: journal::Error) -> Self {
         Self::Storage(e)
+    }
+}
+impl From<snapshot::Error> for Error {
+    fn from(error: snapshot::Error) -> Self {
+        Self::Snapshot(error)
     }
 }
 
@@ -281,6 +345,66 @@ impl<'a> Reader<'a> {
     }
 }
 
+fn position(out: &mut Vec<u8>, value: LogPosition) {
+    out.extend_from_slice(&value.term.to_be_bytes());
+    out.extend_from_slice(&value.index.to_be_bytes());
+}
+fn read_position(reader: &mut Reader<'_>) -> Result<LogPosition, Error> {
+    Ok(LogPosition {
+        term: reader.u64()?,
+        index: reader.u64()?,
+    })
+}
+fn descriptor(out: &mut Vec<u8>, value: snapshot::Descriptor) {
+    out.extend_from_slice(&value.generation);
+    position(out, value.base);
+    out.extend_from_slice(&(value.records as u32).to_be_bytes());
+    out.extend_from_slice(&[0; 4]);
+    out.extend_from_slice(&value.payload_bytes.to_be_bytes());
+    out.extend_from_slice(&value.bytes.to_be_bytes());
+    out.extend_from_slice(&value.checksum.to_be_bytes());
+    out.extend_from_slice(&[0; 4]);
+}
+fn read_descriptor(reader: &mut Reader<'_>) -> Result<snapshot::Descriptor, Error> {
+    let generation = reader.take(16)?.try_into().map_err(|_| Error::Corrupt)?;
+    let base = read_position(reader)?;
+    let records = reader.u32()? as usize;
+    reader.zero(4)?;
+    let payload_bytes = reader.u64()?;
+    let bytes = reader.u64()?;
+    let checksum = reader.u32()?;
+    reader.zero(4)?;
+    Ok(snapshot::Descriptor {
+        generation,
+        base,
+        records,
+        payload_bytes,
+        bytes,
+        checksum,
+    })
+}
+
+#[derive(Clone, Copy)]
+struct Install {
+    authority: u8,
+    term: u64,
+    leader: u32,
+    peer: u32,
+    sequence: u64,
+    leader_commit: u64,
+    image: snapshot::Descriptor,
+    previous: LogPosition,
+    previous_commit: u64,
+    retained: LogPosition,
+    commit: u64,
+}
+struct Replacement {
+    records: Vec<Record>,
+    live_bytes: usize,
+    retain_suffix: bool,
+    last: LogPosition,
+}
+
 struct Log {
     journal: Journal,
     records: Vec<Record>,
@@ -291,10 +415,22 @@ struct Log {
     limits: Limits,
     local: u32,
     voters: Vec<u32>,
+    group: Vec<u8>,
+    snapshots: Option<snapshot::Store>,
+    selected: Option<snapshot::Descriptor>,
+    recovery_floors: Option<Vec<u64>>,
 }
 impl Log {
     fn open(path: &Path, config: &Config) -> Result<(Self, Vec<LogPosition>), Error> {
+        Self::open_inner(path, config, None)
+    }
+    fn open_inner(
+        path: &Path,
+        config: &Config,
+        snapshots: Option<snapshot::Store>,
+    ) -> Result<(Self, Vec<LogPosition>), Error> {
         let (journal, recovery) = Journal::open(path, 0, config.limits.journal()?)?;
+        let floors = snapshots.as_ref().map(|_| Vec::new());
         let mut log = Self {
             journal,
             records: Vec::new(),
@@ -305,9 +441,15 @@ impl Log {
             limits: config.limits,
             local: config.controller.local_id,
             voters: config.controller.voters.clone(),
+            group: Vec::new(),
+            snapshots,
+            selected: None,
+            recovery_floors: floors,
         };
         log.voters.sort_unstable();
         let identity = Self::identity(config)?;
+        log.group = reserve(identity.len() - 20)?;
+        log.group.extend_from_slice(&identity[20..]);
         if log.journal.entry_count() == 0 {
             log.journal.append(1, &identity)?;
         }
@@ -315,6 +457,11 @@ impl Log {
         confirmed_tails
             .try_reserve_exact(log.journal.entry_count())
             .map_err(|_| Error::Allocation)?;
+        if let Some(floors) = &mut log.recovery_floors {
+            floors
+                .try_reserve_exact(log.journal.entry_count())
+                .map_err(|_| Error::Allocation)?;
+        }
         for offset in 0..log.journal.next_offset() {
             let entries = log.journal.fetch(
                 offset,
@@ -333,6 +480,9 @@ impl Log {
                 log.replay(&entry.payload)?;
             }
             confirmed_tails.push(log.last());
+            if let Some(floors) = &mut log.recovery_floors {
+                floors.push(log.committed);
+            }
         }
         Ok((log, confirmed_tails))
     }
@@ -511,6 +661,151 @@ impl Log {
         self.max_term = self.max_term.max(term);
         Ok(())
     }
+    fn store(&mut self) -> Result<&mut snapshot::Store, Error> {
+        self.snapshots.as_mut().ok_or(Error::SnapshotsDisabled)
+    }
+    fn replacement(&mut self, install: Install, replay: bool) -> Result<Replacement, Error> {
+        if install.previous != self.last()
+            || install.previous_commit != self.committed
+            || install.authority > 1
+            || !(1..=MAX_TERM).contains(&install.term)
+            || install.term < self.max_term
+            || install.image.base.term > install.term
+            || install.image.base.index < self.committed
+            || self
+                .selected
+                .is_some_and(|old| install.image.base.index < old.base.index)
+            || install.peer != self.local
+            || !self.voters.contains(&install.leader)
+            || install.leader_commit < install.image.base.index
+            || (install.authority == 0
+                && (install.leader != self.local
+                    || install.sequence != 0
+                    || install.image.base.index != self.committed
+                    || install.leader_commit != self.committed
+                    || install.commit != self.committed))
+            || (install.authority == 1
+                && (install.leader == self.local
+                    || install.sequence == 0
+                    || install.commit != install.image.base.index))
+        {
+            return Err(Error::InvalidPeer);
+        }
+        let image = self.store()?.load(install.image.generation)?;
+        if image.descriptor != install.image {
+            return Err(Error::Corrupt);
+        }
+        let mut exact_overlap = true;
+        for entry in &image.entries {
+            let old = self.records.get(entry.index as usize - 1);
+            if let Some(old) = old {
+                let same = old.term == entry.term
+                    && (old.kind == RecordKind::Barrier) == entry.barrier
+                    && old.payload == entry.payload;
+                if !same {
+                    if entry.index <= self.committed || old.term == entry.term {
+                        return Err(Error::InvalidPeer);
+                    }
+                    exact_overlap = false;
+                }
+            }
+        }
+        if !exact_overlap && install.term <= self.last().term {
+            return Err(Error::InvalidPeer);
+        }
+        let retain_suffix = exact_overlap && self.last().index > install.image.base.index;
+        let last = if retain_suffix {
+            self.last()
+        } else {
+            install.image.base
+        };
+        if replay && install.retained != last {
+            return Err(Error::Corrupt);
+        }
+        let suffix_bytes = if retain_suffix {
+            self.records[install.image.records..]
+                .iter()
+                .map(|r| r.payload.len())
+                .sum()
+        } else {
+            0usize
+        };
+        let live_bytes = usize::try_from(image.descriptor.payload_bytes)
+            .map_err(|_| Error::Bounds)?
+            .checked_add(suffix_bytes)
+            .ok_or(Error::Bounds)?;
+        if last.index > self.limits.live_entries as u64 || live_bytes > self.limits.live_bytes {
+            return Err(Error::Bounds);
+        }
+        let mut records = Vec::new();
+        records
+            .try_reserve_exact(last.index as usize)
+            .map_err(|_| Error::Allocation)?;
+        for entry in image.entries {
+            if entry.payload.len() > self.limits.record_bytes {
+                return Err(Error::Bounds);
+            }
+            records.push(Record {
+                term: entry.term,
+                index: entry.index,
+                kind: if entry.barrier {
+                    RecordKind::Barrier
+                } else {
+                    RecordKind::Data
+                },
+                payload: entry.payload,
+            });
+        }
+        Ok(Replacement {
+            records,
+            live_bytes,
+            retain_suffix,
+            last,
+        })
+    }
+    fn install_memory(&mut self, install: Install, mut replacement: Replacement) {
+        if replacement.retain_suffix {
+            replacement
+                .records
+                .extend(self.records.drain(install.image.records..));
+        }
+        self.records = replacement.records;
+        self.live_bytes = replacement.live_bytes;
+        self.committed = install.commit;
+        self.max_term = self.max_term.max(install.term);
+        self.selected = Some(install.image);
+    }
+    fn install(&mut self, mut install: Install) -> Result<(), Error> {
+        let replacement = self.replacement(install, false)?;
+        install.retained = replacement.last;
+        let mut out = header(5, 256 + self.group.len())?;
+        out.push(install.authority);
+        out.extend_from_slice(&[0; 7]);
+        out.extend_from_slice(&install.term.to_be_bytes());
+        out.extend_from_slice(&install.leader.to_be_bytes());
+        out.extend_from_slice(&install.peer.to_be_bytes());
+        out.extend_from_slice(&install.sequence.to_be_bytes());
+        out.extend_from_slice(&install.leader_commit.to_be_bytes());
+        descriptor(&mut out, install.image);
+        position(&mut out, install.previous);
+        out.extend_from_slice(&install.previous_commit.to_be_bytes());
+        position(&mut out, replacement.last);
+        out.extend_from_slice(&install.commit.to_be_bytes());
+        out.push(u8::from(self.selected.is_some()));
+        out.extend_from_slice(&[0; 7]);
+        if let Some(old) = self.selected {
+            out.extend_from_slice(&old.generation);
+            position(&mut out, old.base);
+            out.extend_from_slice(&old.checksum.to_be_bytes());
+            out.extend_from_slice(&[0; 4]);
+        } else {
+            out.extend_from_slice(&[0; 40]);
+        }
+        out.extend_from_slice(&self.group);
+        self.journal.append(1, &out)?;
+        self.install_memory(install, replacement);
+        Ok(())
+    }
     fn replay(&mut self, bytes: &[u8]) -> Result<(), Error> {
         let mut r = Reader::new(bytes);
         if r.take(8)? != MAGIC {
@@ -612,6 +907,56 @@ impl Log {
                 }
                 self.committed = index;
                 self.max_term = self.max_term.max(term);
+            }
+            5 => {
+                let authority = r.u8()?;
+                r.zero(7)?;
+                let term = r.u64()?;
+                let leader = r.u32()?;
+                let peer = r.u32()?;
+                let sequence = r.u64()?;
+                let leader_commit = r.u64()?;
+                let image = read_descriptor(&mut r)?;
+                let previous = read_position(&mut r)?;
+                let previous_commit = r.u64()?;
+                let retained = read_position(&mut r)?;
+                let commit = r.u64()?;
+                let flag = r.u8()?;
+                r.zero(7)?;
+                let generation: [u8; 16] = r.take(16)?.try_into().map_err(|_| Error::Corrupt)?;
+                let base = read_position(&mut r)?;
+                let checksum = r.u32()?;
+                r.zero(4)?;
+                match (flag, self.selected) {
+                    (0, None)
+                        if generation == [0; 16]
+                            && base == LogPosition::default()
+                            && checksum == 0 => {}
+                    (1, Some(old))
+                        if old.generation == generation
+                            && old.base == base
+                            && old.checksum == checksum => {}
+                    _ => return Err(Error::Corrupt),
+                }
+                if r.take(self.group.len())? != self.group {
+                    return Err(Error::ForeignGroup);
+                }
+                r.finished()?;
+                let install = Install {
+                    authority,
+                    term,
+                    leader,
+                    peer,
+                    sequence,
+                    leader_commit,
+                    image,
+                    previous,
+                    previous_commit,
+                    retained,
+                    commit,
+                };
+                let replacement = self.replacement(install, true)?;
+                self.install_memory(install, replacement);
             }
             _ => return Err(Error::Corrupt),
         }
@@ -719,12 +1064,36 @@ pub struct Response {
     /// Positive retry index on rejection; zero on success.
     pub conflict_index: u64,
 }
+/// Correlated snapshot offer; the receiving owner validates the fixed group in the image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SnapshotRequest {
+    /// Authenticated configured leader, distinct from the receiver.
+    pub leader: u32,
+    /// Configured receiving replica.
+    pub peer: u32,
+    /// Positive correlation shared with append-request admission.
+    pub sequence: u64,
+    /// Normalized current leader term.
+    pub term: u64,
+    /// Leader's durable committed end, at least the offered base.
+    pub leader_commit: u64,
+    /// Exact immutable generation and full-prefix checksum.
+    pub descriptor: snapshot::Descriptor,
+}
+/// Durable image receipt bound to the exact offered generation and request.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SnapshotResponse {
+    /// Correlated durable prefix reply.
+    pub response: Response,
+    /// Exact installed immutable image.
+    pub descriptor: snapshot::Descriptor,
+}
 /// Confirmed storage and election diagnostics; no volatile role is a read lease.
 #[derive(Debug, Clone, Copy)]
 pub struct State {
     /// Replica identity.
     pub local_id: u32,
-    /// Initial profile has no snapshot base; `(0,0)` denotes empty.
+    /// Selected image's inclusive base; full records remain resident, with no compaction.
     pub base_position: LogPosition,
     /// Durable local tail, including uncommitted records.
     pub last_position: LogPosition,
@@ -751,6 +1120,7 @@ struct Outstanding {
     term: u64,
     previous: LogPosition,
     target: LogPosition,
+    snapshot: Option<snapshot::Descriptor>,
 }
 struct Peer {
     id: u32,
@@ -775,6 +1145,10 @@ pub struct Node {
     grace_deadline: u64,
     now_ms: u64,
     poisoned: bool,
+    incoming_snapshot: Option<(SnapshotRequest, u64)>,
+    outgoing_snapshot: Option<SnapshotRequest>,
+    #[cfg(test)]
+    install_cut: Option<([u8; 16], bool)>,
 }
 impl Node {
     /// Recover both journals, validate identity/content, and reconcile before admission.
@@ -790,6 +1164,31 @@ impl Node {
     ) -> Result<Self, Error> {
         config.validate()?;
         let (log, confirmed_tails) = Log::open(wal_path.as_ref(), &config)?;
+        Self::finish_open(log, confirmed_tails, election_path, config, now_ms)
+    }
+    /// Open an explicitly enabled image owner and replay authoritative Install receipts.
+    ///
+    /// The consumed Store must be idle, usable and match the exact fixed group.
+    /// Its decode/replacement/queue envelope is bounded by512MiB. Complete image
+    /// publication alone is inert; only a synchronized WAL receipt selects it.
+    pub fn open_with_snapshots(
+        wal_path: impl AsRef<Path>,
+        election_path: impl AsRef<Path>,
+        config: Config,
+        store: snapshot::Store,
+        now_ms: u64,
+    ) -> Result<Self, Error> {
+        config.validate_snapshots(&store)?;
+        let (log, tails) = Log::open_inner(wal_path.as_ref(), &config, Some(store))?;
+        Self::finish_open(log, tails, election_path, config, now_ms)
+    }
+    fn finish_open(
+        mut log: Log,
+        confirmed_tails: Vec<LogPosition>,
+        election_path: impl AsRef<Path>,
+        config: Config,
+        now_ms: u64,
+    ) -> Result<Self, Error> {
         let mut controller = Controller::open(election_path, config.controller.clone(), now_ms)?;
         let old = controller.state().persistent;
         if log.max_term > old.term
@@ -798,7 +1197,23 @@ impl Node {
         {
             return Err(Error::Corrupt);
         }
-        controller.reconcile_durable_log(old.log, log.last(), log.committed)?;
+        // A synchronized Install may advance commit beyond the old election
+        // tail. Reconcile from the actual prior tail's WAL-confirmed floor;
+        // passing the newly installed commit would reject legitimate catch-up.
+        let floor = if log.snapshots.is_some() {
+            let offset = confirmed_tails
+                .iter()
+                .rposition(|tail| *tail == old.log)
+                .ok_or(Error::Corrupt)?;
+            *log.recovery_floors
+                .as_ref()
+                .and_then(|floors| floors.get(offset))
+                .ok_or(Error::Corrupt)?
+        } else {
+            log.committed
+        };
+        controller.reconcile_durable_log(old.log, log.last(), floor)?;
+        drop(log.recovery_floors.take());
         drop(confirmed_tails);
         let mut peers = Vec::new();
         peers
@@ -825,6 +1240,10 @@ impl Node {
             grace_deadline: 0,
             now_ms,
             poisoned: false,
+            incoming_snapshot: None,
+            outgoing_snapshot: None,
+            #[cfg(test)]
+            install_cut: None,
         })
     }
     /// Borrow the immutable fixed group configuration.
@@ -834,10 +1253,19 @@ impl Node {
     /// Confirmed state; poisoned content cannot be fetched or mutated.
     pub fn state(&self) -> State {
         let election = self.controller.state();
-        let poisoned = self.poisoned || election.poisoned;
+        let poisoned = self.poisoned
+            || election.poisoned
+            || self
+                .log
+                .snapshots
+                .as_ref()
+                .is_some_and(snapshot::Store::poisoned);
         State {
             local_id: self.config.controller.local_id,
-            base_position: LogPosition::default(),
+            base_position: self
+                .log
+                .selected
+                .map_or(LogPosition::default(), |image| image.base),
             last_position: self.log.last(),
             committed_end: self.log.committed,
             election,
@@ -866,6 +1294,10 @@ impl Node {
     }
     fn reset_authority(&mut self) {
         self.active_term = None;
+        self.outgoing_snapshot = None;
+        if let Some(store) = &mut self.log.snapshots {
+            store.cancel_read();
+        }
         for peer in &mut self.peers {
             peer.outstanding = None;
             peer.contact = None;
@@ -890,10 +1322,13 @@ impl Node {
         result.map_err(Error::Controller)
     }
     fn sync_summary(&mut self) -> Result<(), Error> {
+        self.sync_summary_from(self.log.committed)
+    }
+    fn sync_summary_from(&mut self, floor: u64) -> Result<(), Error> {
         let old = self.controller.state().persistent.log;
-        if let Err(error) =
-            self.controller
-                .reconcile_durable_log(old, self.log.last(), self.log.committed)
+        if let Err(error) = self
+            .controller
+            .reconcile_durable_log(old, self.log.last(), floor)
         {
             self.poisoned = true;
             self.reset_authority();
@@ -909,12 +1344,316 @@ impl Node {
                     | journal::Error::Poisoned
                     | journal::Error::ChangedFile
                     | journal::Error::Corrupt { .. }
+            )) | Err(Error::Snapshot(
+                snapshot::Error::Storage(_) | snapshot::Error::Poisoned
+            ))
+        ) || self
+            .log
+            .snapshots
+            .as_ref()
+            .is_some_and(snapshot::Store::poisoned)
+        {
+            self.poisoned = true;
+            self.reset_authority();
+        }
+        result
+    }
+    fn selected_image_result<T>(&mut self, result: Result<T, Error>) -> Result<T, Error> {
+        // Unlike a malformed unselected incoming image, the selected generation
+        // is an authoritative recovery dependency. Detected damage fences this
+        // owner even though its current in-memory prefix remains intact.
+        if matches!(
+            &result,
+            Err(Error::Snapshot(
+                snapshot::Error::Corrupt
+                    | snapshot::Error::Checksum
+                    | snapshot::Error::ForeignIdentity
+                    | snapshot::Error::MissingImage
+                    | snapshot::Error::Incomplete
+                    | snapshot::Error::InvalidDescriptor
+                    | snapshot::Error::Bounds
             ))
         ) {
             self.poisoned = true;
             self.reset_authority();
         }
-        result
+        self.storage_result(result)
+    }
+    fn reconcile_install(&mut self, install: Install) -> Result<(), Error> {
+        #[cfg(test)]
+        if self.install_cut == Some((install.image.generation, false)) {
+            std::process::exit(87);
+        }
+        self.sync_summary_from(install.previous_commit)?;
+        #[cfg(test)]
+        if self.install_cut == Some((install.image.generation, true)) {
+            std::process::exit(87);
+        }
+        Ok(())
+    }
+    /// Read the inert descriptor selected by the last synchronized Install receipt.
+    pub fn selected_snapshot(&self) -> Result<Option<snapshot::Descriptor>, Error> {
+        self.ready()?;
+        Ok(self.log.selected)
+    }
+    /// Publish a canonical committed prefix and select it with a synchronized receipt.
+    ///
+    /// The full prefix remains resident and uncommitted suffixes are retained. No
+    /// physical compaction or application-state fold is performed. Generations
+    /// are finite; exhausting their configured budget fails before publication.
+    pub fn checkpoint(
+        &mut self,
+        generation: [u8; 16],
+        now_ms: u64,
+    ) -> Result<snapshot::Descriptor, Error> {
+        self.clock(now_ms)?;
+        if self.incoming_snapshot.is_some() || self.outgoing_snapshot.is_some() {
+            return Err(Error::Busy);
+        }
+        self.log.store()?;
+        let count = self.log.committed as usize;
+        let mut entries = Vec::new();
+        entries
+            .try_reserve_exact(count)
+            .map_err(|_| Error::Allocation)?;
+        for record in &self.log.records[..count] {
+            let mut payload = reserve(record.payload.len())?;
+            payload.extend_from_slice(&record.payload);
+            entries.push(snapshot::Entry {
+                term: record.term,
+                index: record.index,
+                barrier: record.kind == RecordKind::Barrier,
+                payload,
+            });
+        }
+        let base = LogPosition {
+            index: self.log.committed,
+            term: self.log.term_at(self.log.committed).ok_or(Error::Corrupt)?,
+        };
+        let result = self
+            .log
+            .store()?
+            .create(generation, base, &entries)
+            .map_err(Error::from);
+        let published = self.storage_result(result)?;
+        drop(entries);
+        let image = published.descriptor();
+        let install = Install {
+            authority: 0,
+            term: self.controller.state().persistent.term,
+            leader: self.config.controller.local_id,
+            peer: self.config.controller.local_id,
+            sequence: 0,
+            leader_commit: self.log.committed,
+            image,
+            previous: self.log.last(),
+            previous_commit: self.log.committed,
+            retained: self.log.last(),
+            commit: self.log.committed,
+        };
+        let result = self.log.install(install);
+        self.storage_result(result)?;
+        self.reconcile_install(install)?;
+        Ok(image)
+    }
+    /// Offer the selected committed image with one outstanding correlation per peer.
+    /// At most one owner-local image reader is open; a snapshot ACK confirms only
+    /// the offered base, never the sender's later suffix.
+    pub fn prepare_snapshot(&mut self, peer: u32, now_ms: u64) -> Result<SnapshotRequest, Error> {
+        let term = self.leader(now_ms)?;
+        let position = self.peer_position(peer)?;
+        if self.peers[position].outstanding.is_some()
+            || self.outgoing_snapshot.is_some()
+            || self.incoming_snapshot.is_some()
+        {
+            return Err(Error::Busy);
+        }
+        let image = self.log.selected.ok_or(Error::SnapshotsDisabled)?;
+        let sequence = self.sequence.checked_add(1).ok_or(Error::Bounds)?;
+        let result = self
+            .log
+            .store()?
+            .start_read(image.generation)
+            .map_err(Error::from);
+        let actual = self.selected_image_result(result)?;
+        if actual != image {
+            self.log.store()?.cancel_read();
+            self.poisoned = true;
+            self.reset_authority();
+            return Err(Error::Corrupt);
+        }
+        let request = SnapshotRequest {
+            leader: self.config.controller.local_id,
+            peer,
+            sequence,
+            term,
+            leader_commit: self.log.committed,
+            descriptor: image,
+        };
+        self.peers[position].outstanding = Some(Outstanding {
+            sequence,
+            term,
+            previous: image.base,
+            target: image.base,
+            snapshot: Some(image),
+        });
+        self.sequence = sequence;
+        self.outgoing_snapshot = Some(request);
+        Ok(request)
+    }
+    /// Read a bounded sequential chunk for the exact outstanding offer.
+    pub fn snapshot_chunk(
+        &mut self,
+        request: SnapshotRequest,
+        now_ms: u64,
+    ) -> Result<snapshot::Chunk, Error> {
+        self.leader(now_ms)?;
+        if self.outgoing_snapshot != Some(request) {
+            return Err(Error::InvalidPeer);
+        }
+        let position = self.peer_position(request.peer)?;
+        if self.peers[position].outstanding.is_none_or(|out| {
+            out.sequence != request.sequence
+                || out.term != request.term
+                || out.snapshot != Some(request.descriptor)
+        }) {
+            return Err(Error::InvalidPeer);
+        }
+        let result = self.log.store()?.next_chunk().map_err(Error::from);
+        let chunk = self.selected_image_result(result)?;
+        if chunk.done {
+            self.outgoing_snapshot = None;
+        }
+        Ok(chunk)
+    }
+    /// Fence a valid configured leader before opening one bounded incoming transfer.
+    pub fn begin_snapshot(&mut self, request: SnapshotRequest, now_ms: u64) -> Result<(), Error> {
+        self.clock(now_ms)?;
+        if self.incoming_snapshot.is_some() || self.outgoing_snapshot.is_some() {
+            return Err(Error::Busy);
+        }
+        if request.peer != self.config.controller.local_id
+            || request.leader == request.peer
+            || !self.config.controller.voters.contains(&request.leader)
+            || request.sequence == 0
+            || !(1..=MAX_TERM).contains(&request.term)
+            || request.term < self.controller.state().persistent.term
+            || request.term < self.log.max_term
+            || request.descriptor.base.term > request.term
+            || request.descriptor.base.index < self.log.committed
+            || self
+                .log
+                .selected
+                .is_some_and(|old| request.descriptor.base.index < old.base.index)
+            || request.leader_commit < request.descriptor.base.index
+        {
+            return Err(Error::InvalidPeer);
+        }
+        self.log.store()?;
+        let deadline = now_ms
+            .checked_add(self.config.quorum_timeout_ms)
+            .ok_or(Error::Bounds)?;
+        let observed =
+            self.controller
+                .observe_replication_leader(request.leader, request.term, now_ms);
+        if !self.controller_result(observed)? {
+            return Err(Error::InvalidPeer);
+        }
+        let result = self
+            .log
+            .store()?
+            .begin_receive(request.descriptor)
+            .map_err(Error::from);
+        self.storage_result(result)?;
+        self.incoming_snapshot = Some((request, deadline));
+        Ok(())
+    }
+    fn incoming(&mut self, request: SnapshotRequest, now_ms: u64) -> Result<(), Error> {
+        self.clock(now_ms)?;
+        let state = self.controller.state();
+        let (expected, deadline) = self.incoming_snapshot.ok_or(Error::InvalidPeer)?;
+        if expected != request {
+            return Err(Error::InvalidPeer);
+        }
+        if now_ms > deadline
+            || state.persistent.term != request.term
+            || state.leader != Some(request.leader)
+        {
+            self.abort_snapshot()?;
+            return Err(Error::InvalidPeer);
+        }
+        Ok(())
+    }
+    /// Accept only bounded exact-order bytes under the still-current offer and deadline.
+    pub fn receive_snapshot_chunk(
+        &mut self,
+        request: SnapshotRequest,
+        offset: u64,
+        bytes: &[u8],
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        self.incoming(request, now_ms)?;
+        let result = self
+            .log
+            .store()?
+            .receive_chunk(request.descriptor.generation, offset, bytes)
+            .map_err(Error::from);
+        self.storage_result(result)
+    }
+    /// Synchronize image publication, authoritative Install WAL and local election
+    /// reconciliation before returning a durable correlated receipt.
+    pub fn finish_snapshot(
+        &mut self,
+        request: SnapshotRequest,
+        now_ms: u64,
+    ) -> Result<SnapshotResponse, Error> {
+        self.incoming(request, now_ms)?;
+        let result = self
+            .log
+            .store()?
+            .finish_receive(request.descriptor.generation)
+            .map_err(Error::from);
+        let image = self.storage_result(result)?.descriptor();
+        self.incoming_snapshot = None;
+        if image != request.descriptor {
+            return Err(Error::Corrupt);
+        }
+        let install = Install {
+            authority: 1,
+            term: request.term,
+            leader: request.leader,
+            peer: request.peer,
+            sequence: request.sequence,
+            leader_commit: request.leader_commit,
+            image,
+            previous: self.log.last(),
+            previous_commit: self.log.committed,
+            retained: image.base,
+            commit: image.base.index,
+        };
+        let result = self.log.install(install);
+        self.storage_result(result)?;
+        self.reconcile_install(install)?;
+        Ok(SnapshotResponse {
+            descriptor: image,
+            response: Response {
+                peer: request.peer,
+                leader: request.leader,
+                sequence: request.sequence,
+                term: request.term,
+                success: true,
+                matched: image.base,
+                conflict_index: 0,
+            },
+        })
+    }
+    /// Cancel a staged incoming transfer without selecting its image.
+    pub fn abort_snapshot(&mut self) -> Result<(), Error> {
+        if self.incoming_snapshot.take().is_some() {
+            let result = self.log.store()?.abort_receive().map_err(Error::from);
+            self.storage_result(result)?;
+        }
+        Ok(())
     }
     /// Existing bounded v0 controller request path, sharing this recovered owner.
     pub fn respond_controller(&mut self, input: &[u8], now_ms: u64) -> Result<Vec<u8>, Error> {
@@ -996,6 +1735,13 @@ impl Node {
     pub fn poll(&mut self, now_ms: u64) -> Result<bool, Error> {
         self.clock(now_ms)?;
         self.update_authority();
+        if self.incoming_snapshot.is_some_and(|(request, deadline)| {
+            now_ms > deadline
+                || self.controller.state().persistent.term != request.term
+                || self.controller.state().leader != Some(request.leader)
+        }) {
+            self.abort_snapshot()?;
+        }
         if self.active_term.is_some()
             && now_ms >= self.grace_deadline
             && !self.quorum_recent(now_ms)
@@ -1084,6 +1830,7 @@ impl Node {
             term,
             previous,
             target,
+            snapshot: None,
         });
         self.sequence = sequence;
         Ok(Request {
@@ -1107,6 +1854,13 @@ impl Node {
             return Err(Error::InvalidPeer);
         }
         self.peers[position].outstanding = None;
+        if self
+            .outgoing_snapshot
+            .is_some_and(|request| request.peer == peer && request.sequence == sequence)
+        {
+            self.outgoing_snapshot = None;
+            self.log.store()?.cancel_read();
+        }
         Ok(())
     }
     fn validate_request(&self, request: &Request) -> Result<LogPosition, Error> {
@@ -1273,6 +2027,32 @@ impl Node {
         response: Response,
         now_ms: u64,
     ) -> Result<u64, Error> {
+        self.acknowledge_inner(peer, response, None, now_ms)
+    }
+    /// Count only the exact offered image receipt as a durable peer match.
+    pub fn acknowledge_snapshot(
+        &mut self,
+        peer: u32,
+        response: SnapshotResponse,
+        now_ms: u64,
+    ) -> Result<u64, Error> {
+        let commit =
+            self.acknowledge_inner(peer, response.response, Some(response.descriptor), now_ms)?;
+        if self.outgoing_snapshot.is_some_and(|request| {
+            request.peer == peer && request.sequence == response.response.sequence
+        }) {
+            self.outgoing_snapshot = None;
+            self.log.store()?.cancel_read();
+        }
+        Ok(commit)
+    }
+    fn acknowledge_inner(
+        &mut self,
+        peer: u32,
+        response: Response,
+        image: Option<snapshot::Descriptor>,
+        now_ms: u64,
+    ) -> Result<u64, Error> {
         let term = self.leader(now_ms)?;
         let position = self.peer_position(peer)?;
         let outstanding = self.peers[position].outstanding.ok_or(Error::InvalidPeer)?;
@@ -1282,6 +2062,7 @@ impl Node {
             || outstanding.term != term
             || response.term < term
             || response.term > MAX_TERM
+            || outstanding.snapshot != image
         {
             return Err(Error::InvalidPeer);
         }
@@ -1367,6 +2148,13 @@ impl Node {
     pub fn reconfigure(&mut self, _voters: &[u32]) -> Result<(), Error> {
         Err(Error::MembershipChangeUnsupported)
     }
+    fn stop_snapshots(&mut self) -> Result<(), Error> {
+        self.outgoing_snapshot = None;
+        if let Some(store) = &mut self.log.snapshots {
+            store.cancel_read();
+        }
+        self.abort_snapshot()
+    }
 }
 
 enum Command {
@@ -1387,6 +2175,29 @@ enum Command {
         usize,
         oneshot::Sender<Result<Vec<Record>, Error>>,
     ),
+    Checkpoint(
+        [u8; 16],
+        oneshot::Sender<Result<snapshot::Descriptor, Error>>,
+    ),
+    Selected(oneshot::Sender<Result<Option<snapshot::Descriptor>, Error>>),
+    PrepareSnapshot(u32, oneshot::Sender<Result<SnapshotRequest, Error>>),
+    SnapshotChunk(
+        SnapshotRequest,
+        oneshot::Sender<Result<snapshot::Chunk, Error>>,
+    ),
+    BeginSnapshot(SnapshotRequest, oneshot::Sender<Result<(), Error>>),
+    ReceiveSnapshot(
+        SnapshotRequest,
+        u64,
+        Vec<u8>,
+        oneshot::Sender<Result<(), Error>>,
+    ),
+    FinishSnapshot(
+        SnapshotRequest,
+        oneshot::Sender<Result<SnapshotResponse, Error>>,
+    ),
+    AcknowledgeSnapshot(u32, SnapshotResponse, oneshot::Sender<Result<u64, Error>>),
+    AbortSnapshot(oneshot::Sender<Result<(), Error>>),
     Stop,
 }
 fn deliver<T>(reply: oneshot::Sender<Result<T, Error>>, work: impl FnOnce() -> Result<T, Error>) {
@@ -1399,7 +2210,7 @@ fn run_actor(
     mut receiver: mpsc::Receiver<Command>,
     stopping: Arc<AtomicBool>,
     start: Instant,
-) -> State {
+) -> Result<State, Error> {
     while let Some(command) = receiver.blocking_recv() {
         if stopping.load(Ordering::Acquire) {
             break;
@@ -1434,10 +2245,34 @@ fn run_actor(
             Command::Fetch(from, entries, bytes, reply) => {
                 deliver(reply, || node.fetch_committed(from, entries, bytes))
             }
+            Command::Checkpoint(generation, reply) => {
+                deliver(reply, || node.checkpoint(generation, now?))
+            }
+            Command::Selected(reply) => deliver(reply, || node.selected_snapshot()),
+            Command::PrepareSnapshot(peer, reply) => {
+                deliver(reply, || node.prepare_snapshot(peer, now?))
+            }
+            Command::SnapshotChunk(request, reply) => {
+                deliver(reply, || node.snapshot_chunk(request, now?))
+            }
+            Command::BeginSnapshot(request, reply) => {
+                deliver(reply, || node.begin_snapshot(request, now?))
+            }
+            Command::ReceiveSnapshot(request, offset, bytes, reply) => deliver(reply, || {
+                node.receive_snapshot_chunk(request, offset, &bytes, now?)
+            }),
+            Command::FinishSnapshot(request, reply) => {
+                deliver(reply, || node.finish_snapshot(request, now?))
+            }
+            Command::AcknowledgeSnapshot(peer, response, reply) => {
+                deliver(reply, || node.acknowledge_snapshot(peer, response, now?))
+            }
+            Command::AbortSnapshot(reply) => deliver(reply, || node.abort_snapshot()),
         }
     }
 
-    node.state()
+    node.stop_snapshots()?;
+    Ok(node.state())
 }
 /// One bounded blocking storage actor for controller RPCs and typed replication.
 ///
@@ -1452,9 +2287,10 @@ fn run_actor(
 pub struct ReplicationHandler {
     sender: mpsc::Sender<Command>,
     stopping: Arc<AtomicBool>,
-    join: Mutex<Option<JoinHandle<()>>>,
+    join: Mutex<Option<JoinHandle<Result<(), Error>>>>,
     config: Config,
     admission: Semaphore,
+    snapshot_limits: Option<snapshot::Limits>,
 }
 impl ReplicationHandler {
     /// Open and reconcile exclusively owned storage before accepting asynchronous work.
@@ -1470,20 +2306,56 @@ impl ReplicationHandler {
         let node = tokio::task::spawn_blocking(move || Node::open(wal, election, local, 0))
             .await
             .map_err(|_| Error::Stopped)??;
+        Ok(Self::start(node, config, None))
+    }
+    /// Open the image Store and both journals on the single blocking owner.
+    /// Incoming transfers and decoded/replacement state share the stricter512MiB
+    /// snapshot-mode envelope; no mutable persistence handles escape this actor.
+    pub async fn open_with_snapshots(
+        wal_path: impl AsRef<Path>,
+        election_path: impl AsRef<Path>,
+        config: Config,
+        image_path: impl AsRef<Path>,
+        image_limits: snapshot::Limits,
+    ) -> Result<Self, Error> {
+        config.validate()?;
+        let wal = wal_path.as_ref().to_owned();
+        let election = election_path.as_ref().to_owned();
+        let images = image_path.as_ref().to_owned();
+        let local = config.clone();
+        let node = tokio::task::spawn_blocking(move || {
+            let c = &local.controller;
+            let mut voters = c.voters.clone();
+            voters.sort_unstable();
+            let identity = snapshot::Identity::new(
+                c.cluster_id.clone(),
+                c.topic.clone(),
+                c.partition as u32,
+                voters,
+            )?;
+            let store = snapshot::Store::open(images, identity, image_limits)?;
+            Node::open_with_snapshots(wal, election, local, store, 0)
+        })
+        .await
+        .map_err(|_| Error::Stopped)??;
+        Ok(Self::start(node, config, Some(image_limits)))
+    }
+    fn start(node: Node, config: Config, snapshot_limits: Option<snapshot::Limits>) -> Self {
         let (sender, receiver) = mpsc::channel(config.max_queued_requests);
         let stopping = Arc::new(AtomicBool::new(false));
         let local_stop = stopping.clone();
         let start = Instant::now();
         let join = tokio::task::spawn_blocking(move || {
-            let _confirmed = run_actor(node, receiver, local_stop, start);
+            run_actor(node, receiver, local_stop, start).map(|_| ())
         });
-        Ok(Self {
+        Self {
             sender,
             stopping,
             join: Mutex::new(Some(join)),
             admission: Semaphore::new(config.max_queued_requests),
             config,
-        })
+            snapshot_limits,
+        }
     }
     fn admit(&self) -> Result<SemaphorePermit<'_>, Error> {
         if self.stopping.load(Ordering::Acquire) {
@@ -1618,16 +2490,100 @@ impl ReplicationHandler {
         self.enqueue(Command::Fetch(from, entries, bytes, sender))?;
         Self::receive_result(receiver).await
     }
+    /// Publish and durably select the current committed prefix on the owner thread.
+    pub async fn checkpoint(&self, generation: [u8; 16]) -> Result<snapshot::Descriptor, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::Checkpoint(generation, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Read the descriptor selected by an authoritative synchronized receipt.
+    pub async fn selected_snapshot(&self) -> Result<Option<snapshot::Descriptor>, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::Selected(sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Offer a committed image with bounded owner-local reading and peer correlation.
+    pub async fn prepare_snapshot(&self, peer: u32) -> Result<SnapshotRequest, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::PrepareSnapshot(peer, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Read one bounded sequential chunk from the correlated owner-local reader.
+    pub async fn snapshot_chunk(&self, request: SnapshotRequest) -> Result<snapshot::Chunk, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::SnapshotChunk(request, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Validate a leader offer and begin one bounded incoming owner-local transfer.
+    pub async fn begin_snapshot(&self, request: SnapshotRequest) -> Result<(), Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::BeginSnapshot(request, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Admit only a capacity-bounded exact-order image chunk; all semantic and
+    /// checksum validation stays on the single blocking storage owner.
+    pub async fn receive_snapshot_chunk(
+        &self,
+        request: SnapshotRequest,
+        offset: u64,
+        bytes: Vec<u8>,
+    ) -> Result<(), Error> {
+        let limits = self.snapshot_limits.ok_or(Error::SnapshotsDisabled)?;
+        if bytes.is_empty() || bytes.capacity() > limits.chunk_bytes() {
+            return Err(Error::Bounds);
+        }
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::ReceiveSnapshot(request, offset, bytes, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Publish and synchronize a correlated image receipt before exposing its prefix.
+    pub async fn finish_snapshot(
+        &self,
+        request: SnapshotRequest,
+    ) -> Result<SnapshotResponse, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::FinishSnapshot(request, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Confirm the exact outstanding image receipt before advancing peer progress.
+    pub async fn acknowledge_snapshot(
+        &self,
+        peer: u32,
+        response: SnapshotResponse,
+    ) -> Result<u64, Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::AcknowledgeSnapshot(peer, response, sender))?;
+        Self::receive_result(receiver).await
+    }
+    /// Discard one staged transfer without selecting its published generation.
+    pub async fn abort_snapshot(&self) -> Result<(), Error> {
+        let _admission = self.admit()?;
+        let (sender, receiver) = oneshot::channel();
+        self.enqueue(Command::AbortSnapshot(sender))?;
+        Self::receive_result(receiver).await
+    }
     /// Stop admission, discard pending work, and join the sole durable owner.
     pub async fn shutdown(&self) -> Result<(), Error> {
         self.stopping.store(true, Ordering::Release);
         drop(self.sender.try_send(Command::Stop));
         let mut join = self.join.lock().await;
-        if let Some(task) = join.as_mut() {
-            task.await.map_err(|_| Error::Stopped)?;
-        }
+        let outcome = if let Some(task) = join.as_mut() {
+            task.await
+                .map_err(|_| Error::Stopped)
+                .and_then(|result| result)
+        } else {
+            Ok(())
+        };
         *join = None;
-        Ok(())
+        outcome
     }
 }
 impl crate::transport::Handler for ReplicationHandler {
@@ -1652,6 +2608,193 @@ impl Drop for ReplicationHandler {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn snapshot_cut_open(root: &Path) -> Result<Node, Error> {
+        let mut c = protocol::Config::new(2, vec![1, 2, 3], "snapshot-cut".into())?;
+        c.election_timeouts = election::Timeouts::new(5, 5).map_err(protocol::Error::from)?;
+        let mut config = Config::new(c);
+        config.max_queued_requests = 2;
+        let identity = snapshot::Identity::new(
+            "snapshot-cut".into(),
+            "__cluster_metadata".into(),
+            0,
+            vec![1, 2, 3],
+        )?;
+        let store =
+            snapshot::Store::open(root.join("images"), identity, snapshot::Limits::default())?;
+        Node::open_with_snapshots(
+            root.join("metadata.wal"),
+            root.join("election.wal"),
+            config,
+            store,
+            0,
+        )
+    }
+    fn snapshot_cut_copy(source: &Path, target: &Path) -> std::io::Result<()> {
+        std::fs::create_dir_all(target)?;
+        for entry in std::fs::read_dir(source)? {
+            let entry = entry?;
+            let path = target.join(entry.file_name());
+            if entry.file_type()?.is_dir() {
+                snapshot_cut_copy(&entry.path(), &path)?;
+            } else {
+                std::fs::copy(entry.path(), &path)?;
+                std::fs::File::open(path)?.sync_all()?;
+            }
+        }
+        Ok(())
+    }
+    #[test]
+    fn snapshot_install_process_cut_helper() -> Result<(), Box<dyn std::error::Error>> {
+        let Some(root) = std::env::var_os("PL_SNAPSHOT_INSTALL_CUT_ROOT") else {
+            return Ok(());
+        };
+        let root = std::path::PathBuf::from(root);
+        let after_core = std::env::var("PL_SNAPSHOT_INSTALL_CUT_PHASE")? == "summary";
+        let mut node = snapshot_cut_open(&root)?;
+        node.campaign(5, 77)?;
+        assert_eq!(node.state().election.persistent.voted_for, Some(2));
+        node.receive(
+            &Request {
+                leader: 1,
+                peer: 2,
+                sequence: 1,
+                term: 2,
+                previous: LogPosition::default(),
+                leader_commit: 1,
+                entries: vec![Record::barrier(2, 1)?],
+            },
+            5,
+        )?;
+        let a = node.checkpoint([1; 16], 5)?;
+        let record = Record {
+            term: 2,
+            index: 2,
+            kind: RecordKind::Data,
+            payload: b"retained-prefix".to_vec(),
+        };
+        node.receive(
+            &Request {
+                leader: 1,
+                peer: 2,
+                sequence: 2,
+                term: 2,
+                previous: a.base,
+                leader_commit: 1,
+                entries: vec![record],
+            },
+            5,
+        )?;
+        let identity = snapshot::Identity::new(
+            "snapshot-cut".into(),
+            "__cluster_metadata".into(),
+            0,
+            vec![1, 2, 3],
+        )?;
+        let mut source = snapshot::Store::open(
+            root.join("source-images"),
+            identity,
+            snapshot::Limits::default(),
+        )?;
+        let entries = vec![
+            snapshot::Entry {
+                term: 2,
+                index: 1,
+                barrier: true,
+                payload: vec![],
+            },
+            snapshot::Entry {
+                term: 2,
+                index: 2,
+                barrier: false,
+                payload: b"retained-prefix".to_vec(),
+            },
+            snapshot::Entry {
+                term: 2,
+                index: 3,
+                barrier: false,
+                payload: b"snapshot-catchup".to_vec(),
+            },
+        ];
+        let image = source
+            .create([2; 16], LogPosition { term: 2, index: 3 }, &entries)?
+            .descriptor();
+        source.start_read([2; 16])?;
+        let request = SnapshotRequest {
+            leader: 1,
+            peer: 2,
+            sequence: 3,
+            term: 2,
+            leader_commit: 3,
+            descriptor: image,
+        };
+        node.begin_snapshot(request, 5)?;
+        loop {
+            let chunk = source.next_chunk()?;
+            node.receive_snapshot_chunk(request, chunk.offset, &chunk.bytes, 5)?;
+            if chunk.done {
+                break;
+            }
+        }
+        node.install_cut = Some(([2; 16], after_core));
+        node.finish_snapshot(request, 5)?;
+        Err("install phase did not terminate child".into())
+    }
+    #[test]
+    fn snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for phase in ["receipt", "summary"] {
+            let root = std::env::temp_dir().join(format!(
+                "partitionline-install-cut-{}-{phase}",
+                std::process::id()
+            ));
+            std::fs::create_dir(&root)?;
+            let child = std::process::Command::new(std::env::current_exe()?)
+                .args([
+                    "--exact",
+                    "raft::replication::tests::snapshot_install_process_cut_helper",
+                    "--nocapture",
+                ])
+                .env("PL_SNAPSHOT_INSTALL_CUT_ROOT", &root)
+                .env("PL_SNAPSHOT_INSTALL_CUT_PHASE", phase)
+                .output()?;
+            assert_eq!(child.status.code(), Some(87));
+            let output = std::env::var_os("PL_SNAPSHOT_RESPONSE_DIR")
+                .map(std::path::PathBuf::from)
+                .map(|root| root.join(format!("install-cut-{phase}")));
+            if let Some(output) = &output {
+                snapshot_cut_copy(&root, &output.join("before-reopen"))?;
+                std::fs::write(
+                    output.join("child.log"),
+                    [child.stdout, child.stderr].concat(),
+                )?;
+                std::fs::write(output.join("cut.json"),format!("{{\"schema_version\":1,\"profile\":\"actual-owner-install-process-cut\",\"phase\":\"{phase}\",\"exit_code\":87,\"source_sha\":\"{}\",\"group\":{{\"cluster_id\":\"snapshot-cut\",\"topic\":\"__cluster_metadata\",\"partition\":0,\"voters\":[1,2,3]}},\"local_id\":2,\"prior_committed_end\":1,\"prior_tail\":{{\"term\":2,\"index\":2}},\"expected_selected_generation\":\"02020202020202020202020202020202\",\"expected_committed_end\":3,\"expected_local_term\":2,\"expected_local_vote\":2}}\n",std::env::var("PL_SNAPSHOT_SOURCE_SHA").unwrap_or_else(|_|"development-WORK".into())))?;
+            }
+            let node = snapshot_cut_open(&root)?;
+            assert!(node.state().ready);
+            assert_eq!(node.state().committed_end, 3);
+            assert_eq!(
+                node.state().base_position,
+                LogPosition { term: 2, index: 3 }
+            );
+            assert_eq!(
+                node.selected_snapshot()?
+                    .ok_or("missing selected image")?
+                    .generation,
+                [2; 16]
+            );
+            assert_eq!(node.state().election.persistent.term, 2);
+            assert_eq!(node.state().election.persistent.voted_for, Some(2));
+            let records = node.fetch_committed(1, 3, 1024)?;
+            assert_eq!(records[1].payload, b"retained-prefix");
+            assert_eq!(records[2].payload, b"snapshot-catchup");
+            if let Some(output) = &output {
+                snapshot_cut_copy(&root, &output.join("after-reopen"))?;
+            }
+            drop(node);
+            std::fs::remove_dir_all(root)?;
+        }
+        Ok(())
+    }
     #[test]
     fn full_queue_canceled_work_and_owner_completion_have_distinct_outcomes(
     ) -> Result<(), Box<dyn std::error::Error>> {
@@ -1681,6 +2824,7 @@ mod tests {
             join: Mutex::new(None),
             admission: Semaphore::new(config.max_queued_requests),
             config,
+            snapshot_limits: None,
         };
         let (canceled, canceled_receiver) = oneshot::channel();
         handler.enqueue(Command::Propose(b"canceled".to_vec(), canceled))?;
@@ -1698,7 +2842,7 @@ mod tests {
         let worker = std::thread::spawn(move || run_actor(node, receiver, stopping, start));
         assert_eq!(valid_receiver.blocking_recv()??, 2);
         handler.enqueue(Command::Stop)?;
-        let final_state = worker.join().map_err(|_| "owner panicked")?;
+        let final_state = worker.join().map_err(|_| "owner panicked")??;
         assert_eq!(final_state.committed_end, 2);
         assert_eq!(final_state.wal_durable_ops, 5);
         drop(handler);
@@ -1742,7 +2886,9 @@ mod tests {
             .ok_or("clock underflow")?;
         let task = tokio::task::spawn_blocking(move || {
             if parked.blocking_recv().is_ok() {
-                let _confirmed = run_actor(node, receiver, owner_stop, start);
+                run_actor(node, receiver, owner_stop, start).map(|_| ())
+            } else {
+                Ok(())
             }
         });
         let handler = ReplicationHandler {
@@ -1751,6 +2897,7 @@ mod tests {
             join: Mutex::new(Some(task)),
             config,
             admission: Semaphore::new(1),
+            snapshot_limits: None,
         };
         let mut pending = Box::pin(handler.fetch_committed(1, 2, 1024));
         std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {

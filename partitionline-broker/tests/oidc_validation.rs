@@ -1,8 +1,7 @@
-#![cfg(feature = "oidc")]
-
 //! Public bounded signed-JWT foundation policy and lifecycle checks.
 //! Independent signed fixtures are verified with a controlled epoch by the
 //! private JWT unit gate; these public checks do not claim independent crypto.
+#![cfg(feature = "oidc")]
 
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use partitionline_broker::security::{

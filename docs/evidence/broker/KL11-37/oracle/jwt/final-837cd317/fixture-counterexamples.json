@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "baseline_passed": true,
+  "checker_sha256": "25fb77d22d5914c362c58de8d8b4ebf74ff031930c292bfd3180a59643295cb8",
+  "controlled_rejections": 9,
+  "controls": [
+    {
+      "name": "missing-case",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Incomplete fixture matrix"
+      ]
+    },
+    {
+      "name": "duplicate-case",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Duplicate fixture identity"
+      ]
+    },
+    {
+      "name": "unsafe-path",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Unsafe fixture filename"
+      ]
+    },
+    {
+      "name": "duplicate-manifest-key",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Duplicate manifest/JWKS key"
+      ]
+    },
+    {
+      "name": "private-jwk",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Private material in public fixture authority"
+      ]
+    },
+    {
+      "name": "forged-signature-and-hash",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Independent signature verdict mismatch:valid-rsa2048"
+      ]
+    },
+    {
+      "name": "forged-signature-verdict",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Independent signature verdict mismatch:valid-rsa2048"
+      ]
+    },
+    {
+      "name": "rewritten-header-sidecar",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: Compact/header/payload mismatch"
+      ]
+    },
+    {
+      "name": "forged-spki",
+      "exit_code": 1,
+      "rejected": true,
+      "stderr_tail": [
+        "ValueError: PEM/SPKI key mismatch"
+      ]
+    }
+  ]
+}

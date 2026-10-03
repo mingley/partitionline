@@ -1,0 +1,12 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error[E0502]: cannot borrow `self.ids` as immutable because it is also borrowed as mutable
+    --> tests/raft_replication.rs:1164:59
+     |
+1164 |         let request = self.node(leader)?.prepare_snapshot(self.ids[follower], now)?;
+     |                       ----               ---------------- ^^^^^^^^ immutable borrow occurs here
+     |                       |                  |
+     |                       |                  mutable borrow later used by call
+     |                       mutable borrow occurs here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `partitionline-broker` (test "raft_replication") due to 1 previous error

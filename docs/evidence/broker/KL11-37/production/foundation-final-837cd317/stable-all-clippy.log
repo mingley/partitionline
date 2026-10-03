@@ -1,0 +1,11 @@
+    Checking adler2 v2.0.1
+    Checking simd-adler32 v0.3.10
+    Checking miniz_oxide v0.9.1
+    Checking crc32fast v1.5.2
+    Checking twox-hash v2.1.4
+    Checking lz4_flex v0.14.0
+    Checking flate2 v1.1.10
+    Checking snap v1.1.2
+    Checking zstd-rs v0.1.0
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-oidc/foundation-final-837cd317/partitionline-broker)
+    Finished `dev` profile [unoptimized] target(s) in 7.68s

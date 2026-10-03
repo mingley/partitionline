@@ -1,0 +1,1 @@
+{"passed": true, "cases": 70, "actual_signature_verifications": 70, "signature_valid": 65, "policy_decisions_scope": "Declared independent strict-policy test inputs; this checker does not implement or certify JWT claims policy."}

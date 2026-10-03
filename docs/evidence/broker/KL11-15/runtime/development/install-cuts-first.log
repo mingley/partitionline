@@ -1,0 +1,10 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.97s
+     Running unittests src/lib.rs (/workspace/work/target-snapshot-runtime/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 2 tests
+test raft::replication::tests::snapshot_install_process_cut_helper ... ok
+test raft::replication::tests::snapshot_install_receipt_and_summary_process_cuts_recover_prefix_and_local_vote ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.02s
+

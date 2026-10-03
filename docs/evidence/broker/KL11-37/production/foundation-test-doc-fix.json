@@ -1,0 +1,9 @@
+{
+  "source_sha": "837cd3178eb8f86f7a73117483c9f7c1580e8187",
+  "correction": "Only oidc_validation crate docs move before inactive-feature cfg, preserving all actual tests and production source",
+  "sha256": "d88d413e0189775cd3ae98a8f2eecaf90b3429d16372d16a35df3b3312cb2920",
+  "retained_matrix": "foundation-final-837cd317/commands.json",
+  "inactive_feature_outcome": "rejected test-crate documentation lint",
+  "msrv_attempt": "all eight test/lint commands ENOSPC, not product failure",
+  "production_qualification": false
+}

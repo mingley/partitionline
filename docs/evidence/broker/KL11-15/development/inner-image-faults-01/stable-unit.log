@@ -1,0 +1,16 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running unittests src/lib.rs (/workspace/work/target-broker-snapshot/debug/deps/partitionline_broker-8fe39f77418bc643)
+
+running 3 tests
+test raft::snapshot::tests::inner_publication_process_helper ... ok
+
+running 1 test
+test raft::snapshot::tests::inner_publication_io_failures_preserve_previous_complete_image ... ok
+
+running 1 test
+
+running 1 test
+test raft::snapshot::tests::inner_publication_process_exits_preserve_previous_complete_image ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.01s
+

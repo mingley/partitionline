@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized] target(s) in 0.02s
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c)
+
+running 1 test
+
+thread 'live_current_v2_share_delivery_renew_release_expiry_accept' (786273) panicked at tests/share_semantics.rs:724:188:
+called `Result::unwrap()` on an `Err` value: QueueFull
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test live_current_v2_share_delivery_renew_release_expiry_accept ... FAILED
+
+failures:
+
+failures:
+    live_current_v2_share_delivery_renew_release_expiry_accept
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.11s
+
+error: test failed, to rerun pass `--test share_semantics`

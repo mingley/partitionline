@@ -1,0 +1,36 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/snapshot-runtime/dev-source/partitionline-broker)
+error[E0596]: cannot borrow `reopened` as mutable, as it is not declared as mutable
+   --> tests/raft_snapshot.rs:359:16
+    |
+359 |     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
+    |                ^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+357 |     let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+    |         +++
+
+error[E0596]: cannot borrow `reopened` as mutable, as it is not declared as mutable
+   --> tests/raft_snapshot.rs:404:16
+    |
+404 |     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
+    |                ^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+402 |     let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+    |         +++
+
+error[E0596]: cannot borrow `restarted` as mutable, as it is not declared as mutable
+   --> tests/raft_snapshot.rs:479:17
+    |
+479 |     let image = restarted.load([1; 16]).unwrap();
+    |                 ^^^^^^^^^ cannot borrow as mutable
+    |
+help: consider changing this to be mutable
+    |
+478 |     let mut restarted = directory.store("destination").unwrap();
+    |         +++
+
+For more information about this error, try `rustc --explain E0596`.
+error: could not compile `partitionline-broker` (test "raft_snapshot") due to 3 previous errors

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "kind": "incorrect new test expectation",
+  "expected_normalized_term": 1,
+  "actual_normalized_term": 2,
+  "reason": "Controller initializes normalized term1; an actual campaign advances it to2 before checkpointA. Test failed before the configured publication cut; no snapshot or runtime durability failure is inferred.",
+  "correction": "Use normalized term2 in Node expectations and causal receipts; standalone image-only fixtures remain term1."
+}

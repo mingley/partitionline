@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "stage": "development Node-backed inner publication cuts",
+  "passed": false,
+  "source_inputs": {
+    "schema_version": 1,
+    "basis_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+    "stage": "development Node-backed inner publication cuts",
+    "overlay_files_sha256": {
+      "partitionline-broker/src/raft/replication.rs": "23595c8b8a057d34846a0349695e2a75443276bb385bd6a5818f9e48632d5c29",
+      "partitionline-broker/tests/raft_replication.rs": "bc77270932bb7d4fec71f8dd3942bac807c70af8d86381294f26d04b00b80334",
+      "partitionline-broker/src/raft/snapshot.rs": "b239599d874c7a7e1c9679cd7e2bef2a93baef1cc16a2dbb5378733932338f38",
+      "partitionline-broker/tests/raft_snapshot.rs": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f"
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j2",
+        "--lib",
+        "raft::snapshot::tests::node_inner",
+        "--",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-inner-draft-45582234/source",
+      "exit_code": 101,
+      "elapsed_seconds": 7.757,
+      "log": "stable-test.log",
+      "log_sha256": "67cbb1d8885b1f31b921e0d4190cdbbaf6ac61346be6466a3f2055b70c200cf0",
+      "source_before": {
+        "passed": true,
+        "files_checked": 4404
+      },
+      "source_after": {
+        "passed": true,
+        "files_checked": 4404
+      },
+      "proof_directory_env": "/workspace/partitionline/docs/evidence/broker/KL11-15/development/node-inner-cuts-01/stable/histories"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "stage": "Image ownership/mutable decode and private publication hooks plus Node-backed inner fault regressions",
+  "frozen": true,
+  "foundation_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/snapshot.rs": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+    "partitionline-broker/tests/raft_snapshot.rs": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f"
+  },
+  "initial_foundation_receipt": {
+    "path": "docs/evidence/broker/KL11-15/foundation-final/45582234/validation.json",
+    "sha256": "843c14b817b7b282d39ef57411eec60c1a7c2171ed630446b495947e8f02ff6a"
+  },
+  "development_node_cut_receipt": {
+    "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/validation.json",
+    "sha256": "a2f9b96329ba9372425d1422777878384dca1dec48199cd55190dee9649db12f",
+    "actual_histories": 12,
+    "toolchains": [
+      "stable",
+      "1.85.0"
+    ],
+    "per_toolchain": {
+      "io_faults": 3,
+      "actual_process_exits": 3
+    },
+    "snapshot_selection": "A at index2/term2 remains authoritative, committed WAL suffix index3 retained; unreceipted B at index3 remains inactive; receiving/local term2 and vote0 unchanged"
+  },
+  "wrong_term_assumption_failure_retained": "docs/evidence/broker/KL11-15/development/node-inner-cuts-01/",
+  "runtime_owner": "rpc_reuse; replication.rs and raft_replication.rs remain outside this owned freeze",
+  "limits": [
+    "This image source and development cut proof do not replace final pushed integrated Node/actor/source qualification or the independent raw history checker.",
+    "Full prefix remains bounded and resident; no physical compaction/application-state fold or native Kafka snapshot wire advertisement."
+  ]
+}

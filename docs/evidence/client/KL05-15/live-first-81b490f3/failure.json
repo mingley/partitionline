@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "immutable_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "disposition": "failed before share operations",
+  "cause": "Nonblocking Producer::try_send returns documented QueueFull while leader connection becomes ready; partitions_for only establishes metadata.",
+  "required_correction": "Use send_all to wait for readiness and queue all4before awaiting acknowledgements, preserving onebatch premise.",
+  "source_sha256": {
+    "src/share.rs": "53982130bda0622517bfc4abba8b12f7a3a9f1d5de4aeb0b6137550d123be8be",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "0a555600e527ae846277c6e55128045fae6e72d0e2a6b89df7f8bdd9f910de32",
+    "tests/share_semantics.rs": "8705d3e93ab1c00c936c0bc87bc798b12a26f2e7893011b103b8f97502715cd2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "failed_binary_sha256": "79afcfa3d23b558b7db4976ffad4bcfa993b11f7d6aaeffea722c4555a352613",
+  "failed_binary_retained_scratch": "/workspace/work/client-share-assessment/failed-first-share-81b490f3.elf",
+  "runtime_log": "runtime.log",
+  "exit_receipt": "exit.json",
+  "owned_container": "removed; cleanup.log retained",
+  "production_source_changes": false
+}

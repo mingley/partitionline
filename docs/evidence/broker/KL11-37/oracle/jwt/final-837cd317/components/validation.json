@@ -1,0 +1,1747 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Actual public configured BrokerJwtValidator and DefaultJwtValidator using the official VerificationKeyResolverFactory/file resolver; no adapted validator or private clock, no live IdP/socket claim.",
+  "source_files_sha256": {
+    "ApacheJwtProbe.java": "158d3d9d81e1a41d9678943e88e5e8c144fd58e5f10dd2537fe802c497690863",
+    "prepare-and-run.py": "2be517cad1b7a7a3ccc7ff1f26e4c30127910ee5aac8be77fe2df780d059afdf",
+    "generate-fixtures.py": "b0d34349a3da231970818b09bdc4da74617a2c1f33c5b7750faf76987e4de343",
+    "pins.json": "f06b369402642ecf0fe0f82c73bbc0db769c7af70e38e289aec77774a1f81f7f",
+    "selected-source-files.json": "bc8449b25813240d0c728117ac0db233aeb368ee5fa14aff41f457499434acb6"
+  },
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.064,
+      "stdout": "java-version.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "java-version.stderr",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/jwt-oracle/final-837cd317/source/docs/evidence/broker/KL11-37/oracle/jwt/generate-fixtures.py",
+        "--work",
+        "/workspace/work/jwt-oracle/private",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "--epoch",
+        "1791000513"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.768,
+      "stdout": "generate-fresh-real-clock-fixtures.stdout",
+      "stdout_sha256": "aeb0e35661378fa1c8056f7a0e1b413477531ce587e5babc5fd7e440d52c8441",
+      "stderr": "generate-fresh-real-clock-fixtures.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.1.2",
+        "/workspace/work/jwt-oracle/final-837cd317/source/docs/evidence/broker/KL11-37/oracle/jwt/ApacheJwtProbe.java"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.619,
+      "stdout": "4.1.2-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.1.2-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.1.2:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheJwtProbe",
+        "4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.1.2-actual-outcomes.json"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.52,
+      "stdout": "4.1.2-actual-validator-matrix.stdout",
+      "stdout_sha256": "36c748ddd83989f54582d43ebf92439aa41062270ac28666d9ab4319ec14fc49",
+      "stderr": "4.1.2-actual-validator-matrix.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.1.2:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheJwtProbe",
+        "4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.1.2-actual-outcomes.json",
+        "wrong-valid"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 1,
+      "expected": "deliberate named assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.367,
+      "stdout": "4.1.2-controlled-wrong-valid-verdict.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.1.2-controlled-wrong-valid-verdict.stderr",
+      "stderr_sha256": "1b0092185f0887ac23d2b95671362057139e5be2d2c2c7583360f2e4238f61ef"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.2.1",
+        "/workspace/work/jwt-oracle/final-837cd317/source/docs/evidence/broker/KL11-37/oracle/jwt/ApacheJwtProbe.java"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.671,
+      "stdout": "4.2.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.2.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.2.1:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar",
+        "ApacheJwtProbe",
+        "4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.2.1-actual-outcomes.json"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.571,
+      "stdout": "4.2.1-actual-validator-matrix.stdout",
+      "stdout_sha256": "9f8e907efdc5f75a073770322cb2877459b8e29111e741a4f0ba8c7fbc8b8827",
+      "stderr": "4.2.1-actual-validator-matrix.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.2.1:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar",
+        "ApacheJwtProbe",
+        "4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.2.1-actual-outcomes.json",
+        "wrong-valid"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 1,
+      "expected": "deliberate named assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.367,
+      "stdout": "4.2.1-controlled-wrong-valid-verdict.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.2.1-controlled-wrong-valid-verdict.stderr",
+      "stderr_sha256": "1b0092185f0887ac23d2b95671362057139e5be2d2c2c7583360f2e4238f61ef"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.3.1",
+        "/workspace/work/jwt-oracle/final-837cd317/source/docs/evidence/broker/KL11-37/oracle/jwt/ApacheJwtProbe.java"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.618,
+      "stdout": "4.3.1-compile.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.3.1-compile.stderr",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.3.1:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar",
+        "ApacheJwtProbe",
+        "4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.3.1-actual-outcomes.json"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.522,
+      "stdout": "4.3.1-actual-validator-matrix.stdout",
+      "stdout_sha256": "56aa3cc36780a43bfa0771f03a1701d845c144edc1bb1193a21d78825814e25c",
+      "stderr": "4.3.1-actual-validator-matrix.stderr",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/classes/4.3.1:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar",
+        "ApacheJwtProbe",
+        "4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/fresh-real-clock-fixtures",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/jwt/final-837cd317/components/4.3.1-actual-outcomes.json",
+        "wrong-valid"
+      ],
+      "cwd": "/workspace/work/jwt-oracle/final-837cd317/sdk",
+      "exit_code": 1,
+      "expected": "deliberate named assertion failure",
+      "accepted": true,
+      "elapsed_seconds": 0.369,
+      "stdout": "4.3.1-controlled-wrong-valid-verdict.stdout",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr": "4.3.1-controlled-wrong-valid-verdict.stderr",
+      "stderr_sha256": "1b0092185f0887ac23d2b95671362057139e5be2d2c2c7583360f2e4238f61ef"
+    }
+  ],
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "retained_archive": "apache-jwt-source-4.1.2.tar.gz",
+      "retained_archive_sha256": "ff22431e84c72dd7ff786af25d6e3063dcea9463e12c2091e3f32d93eac8c6e4",
+      "retained_source_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java": "47f0cb0fc28f90efd1af59c190e191e1f824f1e5f3e98f256ff13987cfd83099",
+        "clients/src/main/java/org/apache/kafka/common/config/internals/BrokerSecurityConfigs.java": "66980b1276cdc0b206e850dccef71a23e4a02f3c1549d9a16c1cc00be05aebeb",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator.java": "304265326620e862220957f083c144527f8203b62dc90cc1d279edfab1daad9c",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientJwtValidator.java": "970040fc32491dd41878cf39335a08957219d87a5212da2f73e9af189db84da4",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidator.java": "0a50d2dedff28c385e092c3a00659dec0ed592fdca528cafdfe4877e32c74057",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidatorException.java": "b111ba90e21da62183b5a2045a0cf60493b95fe8401ef251132213f266beef55",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CachedFile.java": "c35ccfae6b17ac1b29cdce918a2bad90efd01eacbf6e7921a112b8aeee2f0d43",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClaimValidationUtils.java": "aee9958a0a1ac24484ebbfcc33c10a32e536d99907c12fffc478dcfe84c775dc",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver.java": "df50401fa8ec4fa0eeabbdab884eb6a51f19a70a5707791770a1c61ce05bd387",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils.java": "2a6fc535f01f014e7a103cb8c30df943425ed65c8e634dcd86af506ca9a51e26",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JwksFileVerificationKeyResolver.java": "699cfdcb90810474578133dd0f3565657796810f450eb76666ad25a6fd04e672",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/OAuthBearerConfigurable.java": "7bab7bbbea1fbbaf9e7b5e067391d5a50c30488e561e7832229dc72ada027628",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/SerializedJwt.java": "ebbafb825a349dfcee671d2bd93581ed6e200acc8effae4f0c5b8bc4535f11ef",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/VerificationKeyResolverFactory.java": "8b68842b2d51c84b6f3376a2b1d7784133aeb7e8f8244bfd2ff762bd09ab0650",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidatorTest.java": "9747edc1fef3dc7ebb7457e6c5339bb5403820371ca4b8d0ae42030d347fab49",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidatorTest.java": "04ac76520535873bbe3510fd003acce01e86966c1888b49030392004205791cf"
+      },
+      "jars": [
+        {
+          "file": "kafka-clients-4.1.2.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "file": "jackson-annotations-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-annotations-2.19.4.jar",
+          "bytes": 79311,
+          "sha256": "ab26383fa3c10c0df1ffd1bb035d81161c059b1af71927d73c24473c058baa16"
+        },
+        {
+          "file": "jackson-core-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-core-2.19.4.jar",
+          "bytes": 591409,
+          "sha256": "466ae4dc4f7054f51525f4211df411d9a64d65cc169995d32bf49e20e6f586e5"
+        },
+        {
+          "file": "jackson-databind-2.19.4.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jackson-databind-2.19.4.jar",
+          "bytes": 1679441,
+          "sha256": "b781c431be870deb0bf84421e99e774c256a701f4ba678df80248f55cd16ff74"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "api_adaptations": [],
+      "compiled_classes_sha256": {
+        "ApacheJwtProbe.class": "7071566646427e29e33314c95e4684541219b06044434407f79ffdf40e06939b"
+      },
+      "observations_file": "4.1.2-actual-outcomes.json",
+      "observations_sha256": "209e8b1173d64b5b9304e79275288782bc1bc439e44b326bafc817ad33bc2a8c",
+      "actual_validator_executions": 140,
+      "required_component_assertions": 58,
+      "policy_differences": [
+        {
+          "id": "audience-too-many",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "expired",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "audience-too-many",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "expired",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000516,
+          "local_controlled_epoch": 1791000513
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "embedded_client_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "retained_archive": "apache-jwt-source-4.2.1.tar.gz",
+      "retained_archive_sha256": "3f3ce6db45434dad98ab609c73436fec2b8893a4ce2d4c102c48ea9c354ffe6f",
+      "retained_source_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java": "fb09c0d01c65451ae78992329c2cad7d658d3783d3534d10e550849007096eca",
+        "clients/src/main/java/org/apache/kafka/common/config/internals/BrokerSecurityConfigs.java": "1345b8b8cf230759287a9719f57bb5e722e93bade782eda1defc679687da280e",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator.java": "63fdb08bfc789c1c6a9cbfcaca3f481863e8bc04c15d3c00640f43038274e308",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientJwtValidator.java": "970040fc32491dd41878cf39335a08957219d87a5212da2f73e9af189db84da4",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidator.java": "0a50d2dedff28c385e092c3a00659dec0ed592fdca528cafdfe4877e32c74057",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidatorException.java": "b111ba90e21da62183b5a2045a0cf60493b95fe8401ef251132213f266beef55",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CachedFile.java": "c35ccfae6b17ac1b29cdce918a2bad90efd01eacbf6e7921a112b8aeee2f0d43",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClaimValidationUtils.java": "aee9958a0a1ac24484ebbfcc33c10a32e536d99907c12fffc478dcfe84c775dc",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver.java": "df50401fa8ec4fa0eeabbdab884eb6a51f19a70a5707791770a1c61ce05bd387",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils.java": "2a6fc535f01f014e7a103cb8c30df943425ed65c8e634dcd86af506ca9a51e26",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JwksFileVerificationKeyResolver.java": "699cfdcb90810474578133dd0f3565657796810f450eb76666ad25a6fd04e672",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/OAuthBearerConfigurable.java": "7bab7bbbea1fbbaf9e7b5e067391d5a50c30488e561e7832229dc72ada027628",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/SerializedJwt.java": "ebbafb825a349dfcee671d2bd93581ed6e200acc8effae4f0c5b8bc4535f11ef",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/VerificationKeyResolverFactory.java": "8b68842b2d51c84b6f3376a2b1d7784133aeb7e8f8244bfd2ff762bd09ab0650",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidatorTest.java": "9747edc1fef3dc7ebb7457e6c5339bb5403820371ca4b8d0ae42030d347fab49",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidatorTest.java": "04ac76520535873bbe3510fd003acce01e86966c1888b49030392004205791cf"
+      },
+      "jars": [
+        {
+          "file": "kafka-clients-4.2.1.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.2.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b"
+        }
+      ],
+      "api_adaptations": [],
+      "compiled_classes_sha256": {
+        "ApacheJwtProbe.class": "7071566646427e29e33314c95e4684541219b06044434407f79ffdf40e06939b"
+      },
+      "observations_file": "4.2.1-actual-outcomes.json",
+      "observations_sha256": "0a20c6bc8f1cd6b5406310471744d09926460dab17641e8aa0b3bc0a2720f53c",
+      "actual_validator_executions": 140,
+      "required_component_assertions": 58,
+      "policy_differences": [
+        {
+          "id": "audience-too-many",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "audience-too-many",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000519,
+          "local_controlled_epoch": 1791000513
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "embedded_client_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "retained_archive": "apache-jwt-source-4.3.1.tar.gz",
+      "retained_archive_sha256": "61d0674941028179e1150ae71db3f28f45046aeef7dc1aff9d024f0c4db1ab2c",
+      "retained_source_files_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/config/SaslConfigs.java": "9a3da1c3f3811191586c8d7bec1d316c4f623cdb419595924fa6434182cdbf5b",
+        "clients/src/main/java/org/apache/kafka/common/config/internals/BrokerSecurityConfigs.java": "998a4d64738814475da52ae5fd37c349efd830513dad6c8bbd71ccdfb693faa6",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator.java": "2283810da80e9b43200bb801a16cd086087ef7d45da1bf5ab373d030ece34c6d",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/ClientJwtValidator.java": "970040fc32491dd41878cf39335a08957219d87a5212da2f73e9af189db84da4",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidator.java": "0a50d2dedff28c385e092c3a00659dec0ed592fdca528cafdfe4877e32c74057",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidator.java": "b0c03cab4672e61c2c74a13202227c04eed5f2f4ee6abee9440f7e086492f41b",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/JwtValidatorException.java": "b111ba90e21da62183b5a2045a0cf60493b95fe8401ef251132213f266beef55",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CachedFile.java": "c35ccfae6b17ac1b29cdce918a2bad90efd01eacbf6e7921a112b8aeee2f0d43",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ClaimValidationUtils.java": "aee9958a0a1ac24484ebbfcc33c10a32e536d99907c12fffc478dcfe84c775dc",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver.java": "df50401fa8ec4fa0eeabbdab884eb6a51f19a70a5707791770a1c61ce05bd387",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils.java": "2a6fc535f01f014e7a103cb8c30df943425ed65c8e634dcd86af506ca9a51e26",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JaasOptionsUtils.java": "f1c479fc7364f460d728ff00bae58eb250528054b0e5f997c65dab58842cabb6",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/JwksFileVerificationKeyResolver.java": "699cfdcb90810474578133dd0f3565657796810f450eb76666ad25a6fd04e672",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/OAuthBearerConfigurable.java": "7bab7bbbea1fbbaf9e7b5e067391d5a50c30488e561e7832229dc72ada027628",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/SerializedJwt.java": "ebbafb825a349dfcee671d2bd93581ed6e200acc8effae4f0c5b8bc4535f11ef",
+        "clients/src/main/java/org/apache/kafka/common/security/oauthbearer/internals/secured/VerificationKeyResolverFactory.java": "8b68842b2d51c84b6f3376a2b1d7784133aeb7e8f8244bfd2ff762bd09ab0650",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/BrokerJwtValidatorTest.java": "44947111a23d6c0c8f8acafbb90b6290a06b410a1056f34319232df61c77f36b",
+        "clients/src/test/java/org/apache/kafka/common/security/oauthbearer/DefaultJwtValidatorTest.java": "b97cb60205f7830fe950cb076882a56ead14489a041ddfdb829f8a99359f0652"
+      },
+      "jars": [
+        {
+          "file": "kafka-clients-4.3.1.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "file": "jackson-core-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-core-2.21.2.jar",
+          "bytes": 595531,
+          "sha256": "12e8655b100267b44d0f14d01b1f5082a5105e616174dc4307be1a761e92407b"
+        },
+        {
+          "file": "jackson-databind-2.21.2.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-databind-2.21.2.jar",
+          "bytes": 1701926,
+          "sha256": "8c982f01f148d805f0aaac2339011244757e0df7c6ff8951f2fa3f433b8ed849"
+        },
+        {
+          "file": "jose4j-0.9.6.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jose4j-0.9.6.jar",
+          "bytes": 299502,
+          "sha256": "7314af50cde9c99e8eaf43eee617a23edcc6bb43036221064355094999d837ef"
+        },
+        {
+          "file": "slf4j-api-1.7.36.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "file": "jackson-annotations-2.21.jar",
+          "distribution_member": "kafka_2.13-4.3.1/libs/jackson-annotations-2.21.jar",
+          "bytes": 82104,
+          "sha256": "53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b"
+        }
+      ],
+      "api_adaptations": [],
+      "compiled_classes_sha256": {
+        "ApacheJwtProbe.class": "7071566646427e29e33314c95e4684541219b06044434407f79ffdf40e06939b"
+      },
+      "observations_file": "4.3.1-actual-outcomes.json",
+      "observations_sha256": "7c4d1f58d8564ba58d45065b55ab10accb311a8163e11877eaa99a64772e4a92",
+      "actual_validator_executions": 140,
+      "required_component_assertions": 58,
+      "policy_differences": [
+        {
+          "id": "audience-too-many",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "BrokerJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "audience-too-many",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-control",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "subject-oversized",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "jti-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-future",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000521,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "iat-equals-exp",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "lifetime-too-long",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "exp-fractional",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "at-expiry",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000813
+        },
+        {
+          "id": "wrong-type-JWT",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-id+jwt",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-empty",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "wrong-type-7",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "missing-type",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-id-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "alternative-missing-discriminator",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-crit",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jku",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-jwk",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-x5u",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "forbidden-header-b64",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "nested-payload",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-header",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "oversized-token",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        },
+        {
+          "id": "padded-proof",
+          "validator": "DefaultJwtValidator",
+          "actual_accepted": true,
+          "strict_local_expected": "reject",
+          "actual_epoch": 1791000522,
+          "local_controlled_epoch": 1791000513
+        }
+      ]
+    }
+  ],
+  "actual_epoch_anchor": 1791000513,
+  "fresh_manifest_sha256": "290efd2a745b3210e743ddc34e8ba4707d945f8c81379bcdf4df740822736cb3",
+  "actual_validator_executions": 420,
+  "required_component_assertions": 174,
+  "controlled_named_failures": 3,
+  "limitations": [
+    "Strict local default access type, duplicate JSON, size/lifetime and NumericDate policies exceed these Apache component validators; every actual difference is retained, not counted as equivalence.",
+    "Real JVM clock is used. Fixture-controlled validation epochs do not move the official validators clock; near-boundary verdicts depend on recorded real execution epoch.",
+    "Explicitly allowlisted local file JWKS validates the factory/component path; HTTPS discovery, refresh/revocation, socket sessions and authorization remain separate37evidence.",
+    "Only synthetic public test tokens and public keys are retained. No production credential or private signing key is in the artifacts."
+  ]
+}

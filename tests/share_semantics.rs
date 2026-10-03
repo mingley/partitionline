@@ -716,13 +716,12 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
             AlterConfig::set("share.record.lock.duration.ms", lock_ms.to_string()),
         ])];
         for result in admin.incremental_alter_configs_for(&changes, false).await.unwrap() { assert_eq!(result.error_code, 0); }
-        let producer = Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::from_millis(250))).await.unwrap();
+        let producer = Producer::new(ProducerConfig::bootstrap([bootstrap.clone()]).linger(Duration::from_secs(2))).await.unwrap();
         producer.partitions_for(&topic).await.unwrap();
-        // Enqueue before flush so all four records share one batch. RecordLimit
-        // must acquire one record even when its returned batch contains four.
-        for index in 0..4 {
-            producer.try_send(ProduceRecord::to(topic.clone()).partition(0).timestamp(1000 + index).key(format!("key-{index}").into_bytes()).value(format!("value-{index}").into_bytes())).unwrap();
-        }
+        // Wait for connection readiness, queue all four, then await their batch
+        // acknowledgement. RecordLimit must acquire one record from this batch.
+        let produced = producer.send_all((0..4).map(|index| ProduceRecord::to(topic.clone()).partition(0).timestamp(1000 + index).key(format!("key-{index}").into_bytes()).value(format!("value-{index}").into_bytes()))).await.unwrap();
+        assert_eq!(produced.iter().map(|record| (record.partition, record.offset)).collect::<Vec<_>>(), vec![(0, 0), (0, 1), (0, 2), (0, 3)]);
         producer.flush().await.unwrap();
         producer.close().await.unwrap();
         let cfg = ConsumerConfig::bootstrap([bootstrap.clone()]).max_wait_ms(100).max_poll_records(1).request_timeout(Duration::from_secs(3));

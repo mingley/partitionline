@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "phase": "test-only candidate frozen for root review/push; not final immutable qualification",
+  "previous_pushed_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "source_sha256": {
+    "src/share.rs": "53982130bda0622517bfc4abba8b12f7a3a9f1d5de4aeb0b6137550d123be8be",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "0a555600e527ae846277c6e55128045fae6e72d0e2a6b89df7f8bdd9f910de32",
+    "tests/share_semantics.rs": "642252a07152c592702dedd9844241c6dd14b65e307df2ca8b7663f34b7d7c41",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "changed_source_paths": [
+    "tests/share_semantics.rs"
+  ],
+  "production_source_changes": false,
+  "reason": "Actual pinned Docker case failed at documented Producer::try_send QueueFull warmup before share operations. send_all awaits readiness and queues four records before waiting for batch ack;2slinger protects batch grouping. Returned metadata must exactly match partition0/offsets0..3.",
+  "focused_preparation": {
+    "all_features_strict_clippy": "passed",
+    "socket_semantics": {
+      "passed": 17,
+      "failed": 0,
+      "live_ignored": 1
+    }
+  },
+  "runner_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+  "runner_extra_proof": "Pinned Kafka kafka-dump-log.sh must independently show exactly one persisted batch with baseOffset0/lastOffset3/count4.",
+  "required_final": "Fresh pinned Docker run and four immutable stable/MSRV default/all-feature lanes on next pushed SHA. Prior81 stabledefault1833+4doctests is scoped constituent only."
+}

@@ -354,7 +354,7 @@ fn ambiguous_rename_error_poison_preserves_previous_image() {
     assert!(matches!(store.load([1; 16]), Err(Error::Poisoned)));
     drop(store);
     fs::remove_dir(blocker).unwrap();
-    let reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+    let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
     assert_eq!(reopened.generation_count(), 1);
     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
 }
@@ -399,7 +399,7 @@ fn actual_process_exit_during_transfer_keeps_old_image_recoverable() {
         .status()
         .unwrap();
     assert_eq!(result.code(), Some(44));
-    let reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+    let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
     assert_eq!(reopened.generation_count(), 1);
     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
     assert_eq!(fs::read_dir(&target).unwrap().count(), 1);
@@ -475,7 +475,7 @@ fn actual_apache_opaque_observation_preserves_order_and_boundary_mapping() {
     let mut destination = directory.store("destination").unwrap();
     receive(&mut destination, descriptor, &bytes).unwrap();
     drop(destination);
-    let restarted = directory.store("destination").unwrap();
+    let mut restarted = directory.store("destination").unwrap();
     let image = restarted.load([1; 16]).unwrap();
     assert_eq!(image.descriptor.base, LogPosition { index, term });
     assert_eq!(image.entries, prefix);

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "basis_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "stage": "development Node-backed inner publication cuts",
+  "overlay_files_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "23595c8b8a057d34846a0349695e2a75443276bb385bd6a5818f9e48632d5c29",
+    "partitionline-broker/tests/raft_replication.rs": "bc77270932bb7d4fec71f8dd3942bac807c70af8d86381294f26d04b00b80334",
+    "partitionline-broker/src/raft/snapshot.rs": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+    "partitionline-broker/tests/raft_snapshot.rs": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f"
+  }
+}

@@ -1,0 +1,4 @@
+error: failed to create directory `/workspace/work/broker-oidc/target/debug/.fingerprint/partitionline-broker-d8ab26ec19c1cfa0`
+
+Caused by:
+  No space left on device (os error 28)

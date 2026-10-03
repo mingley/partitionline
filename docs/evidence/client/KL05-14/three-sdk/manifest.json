@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "qualified_product_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "purpose": "Independent three-release SDK wire serialization; no broker runtime qualification",
+  "generator_sha256": "5ca0c71cb1647e59eed61d9f011d59549c4d6b8902270be381de5f97c7ed6523",
+  "notes": [
+    "Initial probe logs used SUPPORTED to mean serialization returned bytes; final classification also requires the SDK advertised version range. Initial logs are retained transparently.",
+    "4.1.2 top-level generated serializers accept some manually forced out-of-range2 empty bodies. These legacy-layout raw bytes are quarantined and do not qualify v2support.",
+    "All supported4.2.1/4.3.1 bodies match the committed Java4.3.1 fixtures byte-for-byte; all supported4.1.2 v1 bodies also match. Reflection adapts release package/collection layouts while serialization is performed only by official Kafka Message implementations."
+  ],
+  "sdk_releases": {
+    "4.1.2": {
+      "official_jar_url": "https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/4.1.2/kafka-clients-4.1.2.jar",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "ranges": [
+        "RANGE ShareFetchRequestData 1 1",
+        "RANGE ShareFetchResponseData 1 1",
+        "RANGE ShareAcknowledgeRequestData 1 1",
+        "RANGE ShareAcknowledgeResponseData 1 1"
+      ],
+      "supported": {
+        "fetch_v1_defaults_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_defaults_request.bin": {
+          "sha256": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+          "bytes": 35,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v1_acquired_subset_response.bin": {
+          "sha256": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+          "bytes": 178,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_partial_response.bin": {
+          "sha256": "88ee5bfc0e5cebf5973b392930355e0c53fddbb23411a18c9b5764f2a7d638aa",
+          "bytes": 89,
+          "matches_committed_current_fixture": true
+        }
+      },
+      "raw_outside_advertised_range": {
+        "fetch_v2_defaults_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": false
+        },
+        "ack_v2_defaults_request.bin": {
+          "sha256": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+          "bytes": 35,
+          "matches_committed_current_fixture": false
+        },
+        "fetch_v2_session_error_response.bin": {
+          "sha256": "0b2ea6a7c82b6b0d53ccd0b833fdbbe2476a417b0da867f8b4e8c0b68e5e566c",
+          "bytes": 26,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_session_error_response.bin": {
+          "sha256": "17cc7b2429232b60b7df4472e08c6f670e86f65483e6d431ebfa06f75a9ab9db",
+          "bytes": 10,
+          "matches_committed_current_fixture": false
+        }
+      },
+      "unsupported": [
+        "ABSENT_FIELD ShareAcknowledgeResponseData AcquisitionLockTimeoutMs",
+        "UNSUPPORTED_VERSION fetch_v2_acquired_subset_response Can't size version 2 of ShareFetchableTopicResponse",
+        "ABSENT_FIELD ShareAcknowledgeResponseData AcquisitionLockTimeoutMs",
+        "UNSUPPORTED_VERSION ack_v2_partial_response Can't size version 2 of ShareAcknowledgeTopicResponse",
+        "UNSUPPORTED_FIELD fetch_v2_record_limit_request ShareAcquireMode",
+        "UNSUPPORTED_FIELD fetch_v2_renew_request IsRenewAck",
+        "UNSUPPORTED_FIELD ack_v2_renew_request IsRenewAck",
+        "UNSUPPORTED_FIELD fetch_v1_ignorable_record_limit_request ShareAcquireMode",
+        "UNSUPPORTED_FIELD fetch_v1_renew_rejection IsRenewAck",
+        "UNSUPPORTED_FIELD ack_v1_renew_rejection IsRenewAck"
+      ]
+    },
+    "4.2.1": {
+      "official_jar_url": "https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/4.2.1/kafka-clients-4.2.1.jar",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "ranges": [
+        "RANGE ShareFetchRequestData 1 2",
+        "RANGE ShareFetchResponseData 1 2",
+        "RANGE ShareAcknowledgeRequestData 1 2",
+        "RANGE ShareAcknowledgeResponseData 1 2"
+      ],
+      "supported": {
+        "fetch_v1_defaults_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_defaults_request.bin": {
+          "sha256": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+          "bytes": 35,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v1_acquired_subset_response.bin": {
+          "sha256": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+          "bytes": 178,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_partial_response.bin": {
+          "sha256": "88ee5bfc0e5cebf5973b392930355e0c53fddbb23411a18c9b5764f2a7d638aa",
+          "bytes": 89,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_defaults_request.bin": {
+          "sha256": "c1533de98185b995b20bd605b5b20ceac4448c2f6828951638f7fa848bed0959",
+          "bytes": 58,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_defaults_request.bin": {
+          "sha256": "c4f78bbaa5aeb40514cab66d75b22b2c4be4396ab60d96890adeadbf108e516e",
+          "bytes": 36,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_acquired_subset_response.bin": {
+          "sha256": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+          "bytes": 178,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_partial_response.bin": {
+          "sha256": "1e84e63c5ce6e420c1cb6e5453f7bb89d8797a998b79ff76ce402b40d262b7e2",
+          "bytes": 93,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_record_limit_request.bin": {
+          "sha256": "e6df4f21a632ad88eafe4b13de4e4900b504b94b5f9cc5a070b887a06e1feee6",
+          "bytes": 58,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_renew_request.bin": {
+          "sha256": "9d0b97dce5c581a8c65a6104ebaf73d63fe2144c32af3f43a806289c8b7208f1",
+          "bytes": 101,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_renew_request.bin": {
+          "sha256": "142ea0cca14badf93a775b167e6172b9f7828007453ec40bdacb867227e51299",
+          "bytes": 79,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_session_error_response.bin": {
+          "sha256": "0b2ea6a7c82b6b0d53ccd0b833fdbbe2476a417b0da867f8b4e8c0b68e5e566c",
+          "bytes": 26,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_session_error_response.bin": {
+          "sha256": "6c143357c9a4e18ac2ed9bcbe95944abc3133ee600d3835a196842df3764ce98",
+          "bytes": 14,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v1_ignorable_record_limit_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": true
+        }
+      },
+      "raw_outside_advertised_range": {},
+      "unsupported": [
+        "UNSUPPORTED_VERSION fetch_v1_renew_rejection Attempted to write a non-default isRenewAck at version 1",
+        "UNSUPPORTED_VERSION ack_v1_renew_rejection Attempted to write a non-default isRenewAck at version 1"
+      ]
+    },
+    "4.3.1": {
+      "official_jar_url": "https://repo.maven.apache.org/maven2/org/apache/kafka/kafka-clients/4.3.1/kafka-clients-4.3.1.jar",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "ranges": [
+        "RANGE ShareFetchRequestData 1 2",
+        "RANGE ShareFetchResponseData 1 2",
+        "RANGE ShareAcknowledgeRequestData 1 2",
+        "RANGE ShareAcknowledgeResponseData 1 2"
+      ],
+      "supported": {
+        "fetch_v1_defaults_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_defaults_request.bin": {
+          "sha256": "b460c157f56ba32dccbee164cdc2d200817c5d7fd7f07dfb9a8215d51267c261",
+          "bytes": 35,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v1_acquired_subset_response.bin": {
+          "sha256": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+          "bytes": 178,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v1_partial_response.bin": {
+          "sha256": "88ee5bfc0e5cebf5973b392930355e0c53fddbb23411a18c9b5764f2a7d638aa",
+          "bytes": 89,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_defaults_request.bin": {
+          "sha256": "c1533de98185b995b20bd605b5b20ceac4448c2f6828951638f7fa848bed0959",
+          "bytes": 58,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_defaults_request.bin": {
+          "sha256": "c4f78bbaa5aeb40514cab66d75b22b2c4be4396ab60d96890adeadbf108e516e",
+          "bytes": 36,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_acquired_subset_response.bin": {
+          "sha256": "b2f1087af9b9de43bda372cb1b3c1958f127c5bd6699b94f97f83f7fbfcd9227",
+          "bytes": 178,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_partial_response.bin": {
+          "sha256": "1e84e63c5ce6e420c1cb6e5453f7bb89d8797a998b79ff76ce402b40d262b7e2",
+          "bytes": 93,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_record_limit_request.bin": {
+          "sha256": "e6df4f21a632ad88eafe4b13de4e4900b504b94b5f9cc5a070b887a06e1feee6",
+          "bytes": 58,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_renew_request.bin": {
+          "sha256": "9d0b97dce5c581a8c65a6104ebaf73d63fe2144c32af3f43a806289c8b7208f1",
+          "bytes": 101,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_renew_request.bin": {
+          "sha256": "142ea0cca14badf93a775b167e6172b9f7828007453ec40bdacb867227e51299",
+          "bytes": 79,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v2_session_error_response.bin": {
+          "sha256": "0b2ea6a7c82b6b0d53ccd0b833fdbbe2476a417b0da867f8b4e8c0b68e5e566c",
+          "bytes": 26,
+          "matches_committed_current_fixture": true
+        },
+        "ack_v2_session_error_response.bin": {
+          "sha256": "6c143357c9a4e18ac2ed9bcbe95944abc3133ee600d3835a196842df3764ce98",
+          "bytes": 14,
+          "matches_committed_current_fixture": true
+        },
+        "fetch_v1_ignorable_record_limit_request.bin": {
+          "sha256": "9c656bb46256d8437cf9a5495be76c1e7340786c73512ebfbf1ea33f071b672b",
+          "bytes": 56,
+          "matches_committed_current_fixture": true
+        }
+      },
+      "raw_outside_advertised_range": {},
+      "unsupported": [
+        "UNSUPPORTED_VERSION fetch_v1_renew_rejection Attempted to write a non-default isRenewAck at version 1",
+        "UNSUPPORTED_VERSION ack_v1_renew_rejection Attempted to write a non-default isRenewAck at version 1"
+      ]
+    }
+  },
+  "commands": {
+    "compile": "taskset -c0-2,4 java -m jdk.compiler/com.sun.tools.javac.Main -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar -d /workspace/work/client-share-assessment/release-classes /workspace/work/client-share-assessment/ShareReleaseFixtures.java",
+    "per_release": "taskset -c0-2,4 java -cp /workspace/work/client-share-assessment/release-classes:/workspace/work/broker-wire/jars/kafka-clients-${version}.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar ShareReleaseFixtures /workspace/work/client-share-assessment/sdk-release-${version}"
+  }
+}
