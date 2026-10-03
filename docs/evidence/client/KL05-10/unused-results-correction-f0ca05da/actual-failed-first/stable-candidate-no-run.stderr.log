@@ -1,0 +1,28 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-capabilities-source-f0ca05da)
+error: unused result of type `Option<StickyTopic>`
+   --> src/partitioner.rs:498:17
+    |
+498 | /                 self.topics.insert(
+499 | |                     Arc::clone(topic),
+500 | |                     StickyTopic {
+501 | |                         identity: plan.identity,
+...   |
+505 | |                     },
+506 | |                 );
+    | |__________________^
+    |
+    = note: requested on the command line with `-D unused-results`
+
+error: unused result of type `Option<StickyCohort>`
+   --> src/partitioner.rs:572:17
+    |
+572 | /                 self.cohorts.insert(
+573 | |                     plan.tag.id,
+574 | |                     StickyCohort {
+575 | |                         topic: canonical,
+...   |
+584 | |                     },
+585 | |                 );
+    | |__________________^
+
+error: could not compile `partitionline` (lib) due to 2 previous errors

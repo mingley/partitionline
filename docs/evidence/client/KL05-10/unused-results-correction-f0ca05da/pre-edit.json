@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "actual_pushed_pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+  "prior_source_sha256": "89dd6ee18b26b5e8590bc919b9ce176b28fc093cce4cb82dbeb58e7dadb3c3f5",
+  "prior_bytes": 43758,
+  "prior_mode": "0o600",
+  "held_before": {
+    "src/producer.rs": {
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "bytes": 218265,
+      "mode": "0o600"
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "bytes": 37620,
+      "mode": "0o600"
+    },
+    "src/protocol/records.rs": {
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "bytes": 171836,
+      "mode": "0o600"
+    },
+    "src/protocol/buf.rs": {
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "mode": "0o600"
+    }
+  },
+  "failed_first_validation_sha256": "d1090d25a0a4cf2c5304b4af36b25b6ceb1fae8ccb63a9e35b05f29167d6d459",
+  "actual_compile_exit": 101,
+  "runtime_tests_executed": false
+}

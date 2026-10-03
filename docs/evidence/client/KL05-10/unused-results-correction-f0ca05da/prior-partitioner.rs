@@ -495,7 +495,7 @@ impl StickyState {
             if !self.topics.contains_key(topic) {
                 let lifetime = self.allocate_id();
                 self.topic_bytes = self.topic_bytes.saturating_add(topic.len());
-                let previous_topic = self.topics.insert(
+                self.topics.insert(
                     Arc::clone(topic),
                     StickyTopic {
                         identity: plan.identity,
@@ -504,7 +504,6 @@ impl StickyState {
                         touched: self.clock,
                     },
                 );
-                debug_assert!(previous_topic.is_none(), "new sticky topic must be absent");
             }
             if let Some((name, _)) = self.topics.get_key_value(topic) {
                 canonical = Arc::clone(name);
@@ -570,7 +569,7 @@ impl StickyState {
                 while self.next_id <= plan.tag.id && !self.exhausted {
                     let _ = self.allocate_id();
                 }
-                let previous_cohort = self.cohorts.insert(
+                self.cohorts.insert(
                     plan.tag.id,
                     StickyCohort {
                         topic: canonical,
@@ -584,7 +583,6 @@ impl StickyState {
                         cancelled: false,
                     },
                 );
-                debug_assert!(previous_cohort.is_none(), "fresh cohort id must be vacant");
             }
         } else {
             self.pressure_admissions = self.pressure_admissions.saturating_add(1);

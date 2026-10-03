@@ -1,0 +1,36 @@
+--- a/src/partitioner.rs
++++ b/src/partitioner.rs
+@@ -495,7 +495,7 @@
+             if !self.topics.contains_key(topic) {
+                 let lifetime = self.allocate_id();
+                 self.topic_bytes = self.topic_bytes.saturating_add(topic.len());
+-                self.topics.insert(
++                let previous_topic = self.topics.insert(
+                     Arc::clone(topic),
+                     StickyTopic {
+                         identity: plan.identity,
+@@ -504,6 +504,7 @@
+                         touched: self.clock,
+                     },
+                 );
++                debug_assert!(previous_topic.is_none(), "new sticky topic must be absent");
+             }
+             if let Some((name, _)) = self.topics.get_key_value(topic) {
+                 canonical = Arc::clone(name);
+@@ -569,7 +570,7 @@
+                 while self.next_id <= plan.tag.id && !self.exhausted {
+                     let _ = self.allocate_id();
+                 }
+-                self.cohorts.insert(
++                let previous_cohort = self.cohorts.insert(
+                     plan.tag.id,
+                     StickyCohort {
+                         topic: canonical,
+@@ -583,6 +584,7 @@
+                         cancelled: false,
+                     },
+                 );
++                debug_assert!(previous_cohort.is_none(), "fresh cohort id must be vacant");
+             }
+         } else {
+             self.pressure_admissions = self.pressure_admissions.saturating_add(1);
