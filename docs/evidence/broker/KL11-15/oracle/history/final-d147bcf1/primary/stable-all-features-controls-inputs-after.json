@@ -1,0 +1,270 @@
+{
+  "child.log": {
+    "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+    "mode": 384
+  },
+  "events-progress.jsonl": {
+    "sha256": "0331a078ee0b92a5661914e1cf91e06a2a988d7f874ffef8a2fcc0c23c8ab031",
+    "mode": 384
+  },
+  "events.jsonl": {
+    "sha256": "0331a078ee0b92a5661914e1cf91e06a2a988d7f874ffef8a2fcc0c23c8ab031",
+    "mode": 384
+  },
+  "journal-receipts.jsonl": {
+    "sha256": "3f817ab1c2963780b2357c8fc034f5e1a418295fd674e1ffd1595d194ac3fb40",
+    "mode": 384
+  },
+  "journals/0-initial-1/election.wal": {
+    "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+    "mode": 384
+  },
+  "journals/0-initial-1/metadata.wal": {
+    "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+    "mode": 384
+  },
+  "journals/0-initial-2/election.wal": {
+    "sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+    "mode": 384
+  },
+  "journals/0-initial-2/metadata.wal": {
+    "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+    "mode": 384
+  },
+  "journals/0-initial-3/election.wal": {
+    "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+    "mode": 384
+  },
+  "journals/0-initial-3/metadata.wal": {
+    "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+    "mode": 384
+  },
+  "journals/13-after-checkpoint-1/election.wal": {
+    "sha256": "ed7d4f8323e6a8a96c6f0bebaeb35675f1d1bb588d57ff3b090c845bf6022bea",
+    "mode": 384
+  },
+  "journals/13-after-checkpoint-1/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/13-after-checkpoint-1/metadata.wal": {
+    "sha256": "2068e736b2863e8ad5ef33e032312b6d48a47071df96fa40d7cbe83c47040041",
+    "mode": 384
+  },
+  "journals/20-after-aborted-partial-3/election.wal": {
+    "sha256": "92d3b09acdae498437c3987b9f2cc6f481cb8af863ef40d52a3967f82a0e76ff",
+    "mode": 384
+  },
+  "journals/20-after-aborted-partial-3/metadata.wal": {
+    "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+    "mode": 384
+  },
+  "journals/25-after-install-3/election.wal": {
+    "sha256": "5c009e20b3b1e54e216ec2a182401bcef0af2e3a4e9b9381f685a8691de83753",
+    "mode": 384
+  },
+  "journals/25-after-install-3/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/25-after-install-3/metadata.wal": {
+    "sha256": "b448a5e3da31961b3cf167b4e3f24795aa126d1eb83adc033903be253d8a9bcf",
+    "mode": 384
+  },
+  "journals/33-after-checkpoint-1/election.wal": {
+    "sha256": "57e7fa13852fc0cf09d37b4c6064f85ae0230c3cb81c6ef03feb8b0fa603aeef",
+    "mode": 384
+  },
+  "journals/33-after-checkpoint-1/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/33-after-checkpoint-1/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/33-after-checkpoint-1/metadata.wal": {
+    "sha256": "2a28bb40c949f6153c3cb9baa769e98a225dabae618469ee82f651bf396d1659",
+    "mode": 384
+  },
+  "journals/38-after-install-3/election.wal": {
+    "sha256": "0ab6b80ada93a9c95137ecd9f9c2888ecedf6622befe26b1906fda50ffa4e881",
+    "mode": 384
+  },
+  "journals/38-after-install-3/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/38-after-install-3/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/38-after-install-3/metadata.wal": {
+    "sha256": "5fc5bcbc904308245ecd6c36aac3029cca966718adb4cdc2d66b53e0c8eb5608",
+    "mode": 384
+  },
+  "journals/53-after-checkpoint-2/election.wal": {
+    "sha256": "a64171c9040ec5503648596eda8c009815a0dbb15dd4dce8dde5dc4003c076de",
+    "mode": 384
+  },
+  "journals/53-after-checkpoint-2/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/53-after-checkpoint-2/metadata.wal": {
+    "sha256": "243040701b3463614e674b41c4d2aaa59a7e63f4188d023d662ce10d4f6d6846",
+    "mode": 384
+  },
+  "journals/58-after-install-1/election.wal": {
+    "sha256": "248275530c719eee5ef762a8cdc3f2507dc1fb40762b451c71472b59d45d8fc7",
+    "mode": 384
+  },
+  "journals/58-after-install-1/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/58-after-install-1/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/58-after-install-1/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/58-after-install-1/metadata.wal": {
+    "sha256": "e3897eb259d1829e42af25f6dd409331e859f156357814e54868fe0147ee739b",
+    "mode": 384
+  },
+  "journals/64-after-install-3/election.wal": {
+    "sha256": "561ef8f9cde8bb1e03db41dfd69e0ea9550ab019547e4db8608ef83bdf67c49a",
+    "mode": 384
+  },
+  "journals/64-after-install-3/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/64-after-install-3/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/64-after-install-3/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/64-after-install-3/metadata.wal": {
+    "sha256": "d223f919422da70192768c5d9bb6d17fdeb5bf4ce37d12c0eaedc8a7cf293c98",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-1/election.wal": {
+    "sha256": "248275530c719eee5ef762a8cdc3f2507dc1fb40762b451c71472b59d45d8fc7",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-1/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-1/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-1/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-1/metadata.wal": {
+    "sha256": "e3897eb259d1829e42af25f6dd409331e859f156357814e54868fe0147ee739b",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-2/election.wal": {
+    "sha256": "a64171c9040ec5503648596eda8c009815a0dbb15dd4dce8dde5dc4003c076de",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-2/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-2/metadata.wal": {
+    "sha256": "243040701b3463614e674b41c4d2aaa59a7e63f4188d023d662ce10d4f6d6846",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-3/election.wal": {
+    "sha256": "561ef8f9cde8bb1e03db41dfd69e0ea9550ab019547e4db8608ef83bdf67c49a",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-3/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-3/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-3/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/65-before-abrupt-exit-3/metadata.wal": {
+    "sha256": "d223f919422da70192768c5d9bb6d17fdeb5bf4ce37d12c0eaedc8a7cf293c98",
+    "mode": 384
+  },
+  "journals/66-parent-after-abrupt-exit-1/election.wal": {
+    "sha256": "248275530c719eee5ef762a8cdc3f2507dc1fb40762b451c71472b59d45d8fc7",
+    "mode": 384
+  },
+  "journals/66-parent-after-abrupt-exit-1/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/66-parent-after-abrupt-exit-1/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/66-parent-after-abrupt-exit-1/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/66-parent-after-abrupt-exit-1/metadata.wal": {
+    "sha256": "e3897eb259d1829e42af25f6dd409331e859f156357814e54868fe0147ee739b",
+    "mode": 384
+  },
+  "journals/67-parent-after-abrupt-exit-2/election.wal": {
+    "sha256": "a64171c9040ec5503648596eda8c009815a0dbb15dd4dce8dde5dc4003c076de",
+    "mode": 384
+  },
+  "journals/67-parent-after-abrupt-exit-2/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/67-parent-after-abrupt-exit-2/metadata.wal": {
+    "sha256": "243040701b3463614e674b41c4d2aaa59a7e63f4188d023d662ce10d4f6d6846",
+    "mode": 384
+  },
+  "journals/68-parent-after-abrupt-exit-3/election.wal": {
+    "sha256": "561ef8f9cde8bb1e03db41dfd69e0ea9550ab019547e4db8608ef83bdf67c49a",
+    "mode": 384
+  },
+  "journals/68-parent-after-abrupt-exit-3/images/snapshot-01010101010101010101010101010101.image": {
+    "sha256": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+    "mode": 384
+  },
+  "journals/68-parent-after-abrupt-exit-3/images/snapshot-02020202020202020202020202020202.image": {
+    "sha256": "86ba19f046cf7abdb26ac7fe91de0055837422ab526086702d12d45b317c384a",
+    "mode": 384
+  },
+  "journals/68-parent-after-abrupt-exit-3/images/snapshot-03030303030303030303030303030303.image": {
+    "sha256": "5c6a956c919282304448d4ccbb640fa9331da2d562fe7395a31ee529c240a847",
+    "mode": 384
+  },
+  "journals/68-parent-after-abrupt-exit-3/metadata.wal": {
+    "sha256": "d223f919422da70192768c5d9bb6d17fdeb5bf4ce37d12c0eaedc8a7cf293c98",
+    "mode": 384
+  },
+  "restart-now-ms.txt": {
+    "sha256": "3346f2bbf6c34bd2dbe28bd1bb657d0e9c37392a1d5ec9929e6a5df4763ddc2d",
+    "mode": 384
+  },
+  "trace.json": {
+    "sha256": "a1c78ddf3617ca0e6804661d65813e5ea2afadd0708083f12df6a31b206a6618",
+    "mode": 384
+  }
+}

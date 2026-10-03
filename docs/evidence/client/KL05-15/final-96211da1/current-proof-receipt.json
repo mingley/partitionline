@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "phase": "official current broker cell passed; full client and three-release gates pending",
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "source_archive": "/workspace/work/client-share-assessment/immutable-96211da1",
+  "official_runner_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+  "full_before_after_verified_files": 44092,
+  "official_runtime_disposition": "passed",
+  "independent_java_records": 4,
+  "independent_persisted_batches": 1,
+  "container_removed": true,
+  "files": {
+    "README.md": {
+      "sha256": "2d33618df1d0c2ded11f1ba3a4e2770be79399adcfb475ff03ded605080dce5e",
+      "bytes": 1852
+    },
+    "accepted-live-binary-retention.json": {
+      "sha256": "f270e0ef2c8471a5b623fcc66962cfc027a98b152e9fdfc8cf3535c0b1fd3627",
+      "bytes": 611
+    },
+    "archive-verification.log": {
+      "sha256": "4362250e7a730ca786fa53bd1d88e99ad64269a0cb619c44c5c764e3c2dd759b",
+      "bytes": 81
+    },
+    "cargo-live.log": {
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36
+    },
+    "current-docker/broker-version.log": {
+      "sha256": "8722a3e4c8ef0feb2e7a669f5f854c72d5d6390b25598f9745dc95e5ffe51dce",
+      "bytes": 6
+    },
+    "current-docker/broker.log": {
+      "sha256": "1a7d4a95e03535cf4d2c6e1fd64e8bb18f6615600a1a1e0ffca36fb2307343ac",
+      "bytes": 94478
+    },
+    "current-docker/cleanup.log": {
+      "sha256": "13f695a21cef725a957fe739aa36b5de47aacec81a0b7e52c72b24e2ad932f3f",
+      "bytes": 39
+    },
+    "current-docker/container-id.log": {
+      "sha256": "913e966632a14307fca6429cb95b96b7c12405b84dc95a8c5a5a3a6227e5bc91",
+      "bytes": 65
+    },
+    "current-docker/container-image-id.log": {
+      "sha256": "cdbb55d64f05e9a9586d4127d4a2b4058db8c24e417d9550c52aef8f155048cb",
+      "bytes": 72
+    },
+    "current-docker/cpuset.json": {
+      "sha256": "1fef21caae4c23487e05e8d68d1920a9dfcbc763017d708e0b8336edae3f5a03",
+      "bytes": 8
+    },
+    "current-docker/docker-version.log": {
+      "sha256": "065bcd920cb1f83e23a5a4e2bee05e331c9d92fbfa738d3475f134b831809633",
+      "bytes": 7
+    },
+    "current-docker/exit.json": {
+      "sha256": "85d509e5c73bfc2c0a366bd7d52ac2e9034e1bdbdc47deb2c0332408517ffcc5",
+      "bytes": 44
+    },
+    "current-docker/expected-image-id.log": {
+      "sha256": "cdbb55d64f05e9a9586d4127d4a2b4058db8c24e417d9550c52aef8f155048cb",
+      "bytes": 72
+    },
+    "current-docker/features-before.log": {
+      "sha256": "8b14ae1eaa28b99559f056f2f8dd5a46a10eaecd86009b5c1bb8b62aab044da9",
+      "bytes": 1239
+    },
+    "current-docker/features.log": {
+      "sha256": "c726c9d84d1d944651a3d2323429d2bf01b8ebb63f1ae53cc37432f8403d1e59",
+      "bytes": 1239
+    },
+    "current-docker/image-digests.json": {
+      "sha256": "bcdfe45df33bb8271386479d7418ed4dba101b31244fd893e3b1e05a745e46de",
+      "bytes": 89
+    },
+    "current-docker/java-batch.log": {
+      "sha256": "2f57160c089ffc1b626559ffdbcaad346f4715ded492364d8744b2a8413e7963",
+      "bytes": 845
+    },
+    "current-docker/java-batch.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "current-docker/java-records.log": {
+      "sha256": "26c297a81b341eda561c6000f1a8fef6a03d65778092db70250faa5eadb76241",
+      "bytes": 204
+    },
+    "current-docker/java-records.stderr.log": {
+      "sha256": "e28184d7421d59bb84b08ff60e142fdd198bb21088d42cbee0c8580ec7b42b0c",
+      "bytes": 210
+    },
+    "current-docker/readiness-1.log": {
+      "sha256": "81d6a43a62c674b7ce18ae96242895d61d8a940e3019310acdcb4b57d7bba8df",
+      "bytes": 1225
+    },
+    "current-docker/readiness-2.log": {
+      "sha256": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+      "bytes": 3290
+    },
+    "current-docker/readiness.log": {
+      "sha256": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+      "bytes": 3290
+    },
+    "current-docker/report.json": {
+      "sha256": "935d86fd2eec7276dd5c7e603ae0dddbf760c6e10326256c83102b77d6431206",
+      "bytes": 2964
+    },
+    "current-docker/runtime.log": {
+      "sha256": "07c4d667546c386de53b16bf1accce41c19d8473633830cb3d0b207dff057ec2",
+      "bytes": 1063
+    },
+    "current-docker/start.log": {
+      "sha256": "13f695a21cef725a957fe739aa36b5de47aacec81a0b7e52c72b24e2ad932f3f",
+      "bytes": 39
+    },
+    "current-docker-runner.log": {
+      "sha256": "95409749678d87daa8085a17a9cc4cd3749a93b57c4baa751aa2c3023b6191a9",
+      "bytes": 102
+    },
+    "git-after-archive.json": {
+      "sha256": "60a3961547a91a3bb87852999069398c5e78bee264817a59d3508ccee6269b91",
+      "bytes": 2416
+    },
+    "git-before-archive.json": {
+      "sha256": "098a323716d19f08ba8cd3e283c4de750733b01499bd9026bb2f557b9b32a777",
+      "bytes": 2258
+    },
+    "mode-and-ten-source-verification-before.json": {
+      "sha256": "d06d874e11414e280fbbbea01ab1a1b1926aa3567a9fb3e9bd484b154438a4b5",
+      "bytes": 1392
+    },
+    "run-qa-lane.sh": {
+      "sha256": "f2c45fef8fb7b0fd855c48f696e45dcd44ee0153c63fa2c8654ef133c509a30e",
+      "bytes": 1853
+    },
+    "rustc-live.log": {
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196
+    },
+    "source-after-official-docker.json": {
+      "sha256": "657cc7e881749d3daacf4e0564e2f7ab49f94fd703e74bd1246be35389f65429",
+      "bytes": 4016
+    },
+    "source-verification.json.gz": {
+      "sha256": "0a93191e63c57b0d48a92b6a9bbc4f86c5e8cd7d5bced41bb741832085a53701",
+      "bytes": 1812529
+    },
+    "verify-existing-source.py": {
+      "sha256": "a2acdc8ee869fceea859c13bb44aeba661b93f72c96dfbc839c93e674fc3268a",
+      "bytes": 2026
+    }
+  },
+  "qualification_limits": [
+    "Full stable/MSRV default/all-feature clientQA pending",
+    "Separate three-release whole-broker qualification pending",
+    "Single real broker cell; controlled socket tests provide movement/partialAck failure proof"
+  ]
+}

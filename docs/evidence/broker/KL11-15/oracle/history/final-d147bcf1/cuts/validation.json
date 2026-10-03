@@ -1,0 +1,316 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "source_files_sha256": {
+    "docs/evidence/broker/KL11-15/oracle/history/README.md": "f2778a75e248bd8e5fd5871c692a89e748d30cf789472c9486857a9be730ed7b",
+    "docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py": "12073138521afa6ba5b0a6a2e20239a81f8a188b8db3647519535f19fa2bb797",
+    "docs/evidence/broker/KL11-15/oracle/history/election_oracle.py": "f3debf56bcc6b9859e140dc0e740b83e4f478b4c237e81770d1050fcb198820a",
+    "docs/evidence/broker/KL11-15/oracle/history/history_oracle.py": "f2d7a7aba35041963532161b3ce380babad383f8b94bc0a193651c7e0cc8dba4",
+    "docs/evidence/broker/KL11-15/oracle/history/run-final.py": "c791b381ac96734dc97346354de160e80799cccd69915bf4f783239f6bce71d6",
+    "docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py": "8785e6e3840ab4b46c373b46a093e6a236a8c0b586f25312e444461c16768e8b",
+    "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+    "docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py": "772637bb97a4ab7abbadcbef78f93c4ae63906e1170ba8ef7131b20e0ac8af47",
+    "docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py": "e83d117a99e53ae7bee0e1d185f9e2ac73e9c28bc1b9d6d8b5a176bdf7d969e4"
+  },
+  "source_modes": {
+    "docs/evidence/broker/KL11-15/oracle/history/README.md": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/election_oracle.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/history_oracle.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/run-final.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py": 420,
+    "docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py": 420
+  },
+  "counts": {
+    "node_publication_cuts": 24,
+    "node_publication_states": 48,
+    "authoritative_install_cuts": 8,
+    "authoritative_install_states": 16
+  },
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    }
+  ],
+  "full_replay_receipt_sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa",
+  "runner": {
+    "path": "/workspace/work/integration/run-snapshot-cuts-final.py",
+    "sha256": "4c9cb2a8d9277fa9834d08d859defd66b651f1e6acff802aa1573a9c7561abbb",
+    "scope": "Root orchestration; nine independent validator files pinned to exact Git blobs"
+  },
+  "artifacts": {
+    "1.85.0-all-features-install-inputs-after.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "1.85.0-all-features-install-inputs-before.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "1.85.0-all-features-install.json": {
+      "sha256": "00ac070dbbf951a81ae2c1df1ec73cc8b07c9c20069c735661dc514f4d26a89e",
+      "mode": 384
+    },
+    "1.85.0-all-features-install.log": {
+      "sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "mode": 384
+    },
+    "1.85.0-all-features-node-inputs-after.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "1.85.0-all-features-node-inputs-before.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "1.85.0-all-features-node.json": {
+      "sha256": "e1692a98261a6f3188b44b0910ce08dbaa6087bb6161d844661a13684d3b585a",
+      "mode": 384
+    },
+    "1.85.0-all-features-node.log": {
+      "sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "mode": 384
+    },
+    "1.85.0-default-install-inputs-after.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "1.85.0-default-install-inputs-before.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "1.85.0-default-install.json": {
+      "sha256": "52ad2fba50a44f6eaad6bdfe57faa37afbd42e165f4d7ec8946ac5e69dbbd8ae",
+      "mode": 384
+    },
+    "1.85.0-default-install.log": {
+      "sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "mode": 384
+    },
+    "1.85.0-default-node-inputs-after.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "1.85.0-default-node-inputs-before.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "1.85.0-default-node.json": {
+      "sha256": "e1692a98261a6f3188b44b0910ce08dbaa6087bb6161d844661a13684d3b585a",
+      "mode": 384
+    },
+    "1.85.0-default-node.log": {
+      "sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "mode": 384
+    },
+    "commands.json": {
+      "sha256": "c304e0c7232477f0c0bc762f72aaecba0cd9029b318d810000417943129cae36",
+      "mode": 384
+    },
+    "stable-all-features-install-inputs-after.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "stable-all-features-install-inputs-before.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "stable-all-features-install.json": {
+      "sha256": "1e36e5ac97dd7342e73e115d0c49f01beec06b1b77cae8e001047734381cdd84",
+      "mode": 384
+    },
+    "stable-all-features-install.log": {
+      "sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "mode": 384
+    },
+    "stable-all-features-node-inputs-after.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "stable-all-features-node-inputs-before.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "stable-all-features-node.json": {
+      "sha256": "e1692a98261a6f3188b44b0910ce08dbaa6087bb6161d844661a13684d3b585a",
+      "mode": 384
+    },
+    "stable-all-features-node.log": {
+      "sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "mode": 384
+    },
+    "stable-default-install-inputs-after.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "stable-default-install-inputs-before.json": {
+      "sha256": "91058fd3fa57c18e89110e6f413d040595c0a2c47c60c5d861695bc6f825e896",
+      "mode": 384
+    },
+    "stable-default-install.json": {
+      "sha256": "374584f7f49c18ce7e1602d42688f1447c644c28f2e2467e570667c7d840ffa1",
+      "mode": 384
+    },
+    "stable-default-install.log": {
+      "sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "mode": 384
+    },
+    "stable-default-node-inputs-after.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "stable-default-node-inputs-before.json": {
+      "sha256": "0098a515b23cb5a871d8045ad21928c7d3b23e82a8e9dea5c83b92539a36ff8a",
+      "mode": 384
+    },
+    "stable-default-node.json": {
+      "sha256": "e1692a98261a6f3188b44b0910ce08dbaa6087bb6161d844661a13684d3b585a",
+      "mode": 384
+    },
+    "stable-default-node.log": {
+      "sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "mode": 384
+    }
+  },
+  "scope": "Finite actual process/IO cuts; independent receiver authority and selected image checks",
+  "limitations": [
+    "Typed leader/fixed voter fixture; no autonomous network or voter-transition qualification.",
+    "Process-visible durability only; physical powerloss and hardware failures remain separate."
+  ]
+}

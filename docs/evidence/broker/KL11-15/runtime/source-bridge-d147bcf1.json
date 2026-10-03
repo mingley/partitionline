@@ -1,0 +1,1198 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "qualification": "Source bridge only; final combined matrix and independent capture validation are separate pending receipts.",
+  "commands": [
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-z",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "docs/evidence/broker/KL11-15/oracle/apache",
+        "partitionline-broker/tests/fixtures/raft-snapshot"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-z",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "docs/evidence/broker/KL11-15/oracle/apache",
+        "partitionline-broker/tests/fixtures/raft-snapshot"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "45582234de9a40620f038ba6b68ab57d2616beb2:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "45582234de9a40620f038ba6b68ab57d2616beb2:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--unified=2",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "all_four_owned_runtime_and_image_source_blobs_identical_070_to_d147": true,
+    "foundation_apache_oracle_and_fixture_git_entries_identical": 153,
+    "compiled_guard_pairs_reused": 3,
+    "foundation_apache_component_assertions_referenced": 120,
+    "foundation_deliberate_controls_referenced": 3
+  },
+  "runtime_source_bridge": [
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "previous": {
+        "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "git_blob": "9c7c7f512eb676267c82fd0762bce76d5a686236",
+        "mode": "100644",
+        "sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+        "bytes": 114209
+      },
+      "current": {
+        "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "git_blob": "9c7c7f512eb676267c82fd0762bce76d5a686236",
+        "mode": "100644",
+        "sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+        "bytes": 114209
+      },
+      "identical": true
+    },
+    {
+      "path": "partitionline-broker/src/raft/snapshot.rs",
+      "previous": {
+        "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "git_blob": "41bd00a5d8192fdc122282c6166d03d8ad969602",
+        "mode": "100644",
+        "sha256": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+        "bytes": 48063
+      },
+      "current": {
+        "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "git_blob": "41bd00a5d8192fdc122282c6166d03d8ad969602",
+        "mode": "100644",
+        "sha256": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+        "bytes": 48063
+      },
+      "identical": true
+    },
+    {
+      "path": "partitionline-broker/tests/raft_replication.rs",
+      "previous": {
+        "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "git_blob": "53e5fc623321fc31a731e0c005390392a0da2131",
+        "mode": "100644",
+        "sha256": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
+        "bytes": 77591
+      },
+      "current": {
+        "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "git_blob": "53e5fc623321fc31a731e0c005390392a0da2131",
+        "mode": "100644",
+        "sha256": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
+        "bytes": 77591
+      },
+      "identical": true
+    },
+    {
+      "path": "partitionline-broker/tests/raft_snapshot.rs",
+      "previous": {
+        "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "git_blob": "06150400373c8928dcf525bade3fd5c95ed4b674",
+        "mode": "100644",
+        "sha256": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f",
+        "bytes": 18068
+      },
+      "current": {
+        "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "git_blob": "06150400373c8928dcf525bade3fd5c95ed4b674",
+        "mode": "100644",
+        "sha256": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f",
+        "bytes": 18068
+      },
+      "identical": true
+    }
+  ],
+  "guard_receipt": {
+    "path": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+    "sha256": "1764e89be4ae8ebba889103c6f507f4aba7baf7aa3d56d41c2c2ef6608362f9a",
+    "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c"
+  },
+  "foundation_reference": {
+    "path": "docs/evidence/broker/KL11-15/foundation-final/45582234/validation.json",
+    "sha256": "843c14b817b7b282d39ef57411eec60c1a7c2171ed630446b495947e8f02ff6a",
+    "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+    "scope": "Immutable snapshot image/store foundation and independent Apache components; KL11-15 remains open for Node/WAL install and replay",
+    "current_independent_oracle_and_fixture_git_entries": [
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "7887e670b39749059e76aa98d33ecab0fa2389df"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/README.md",
+        "mode": "100644",
+        "git_blob": "f7b754c83cc86243cdd88c84c2b6f0e67e3f95b1"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/4.1.2-compile.stderr",
+        "mode": "100644",
+        "git_blob": "eebdbeaff5479c0ddbae9e53850a1056c869e2ba"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/4.1.2-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/ApacheSnapshotProbe-4.1.2.adapted.java",
+        "mode": "100644",
+        "git_blob": "2dca00d6945812a5b79041ba48dc32200ef0483d"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/apache-components-4.1.2.tar.gz",
+        "mode": "100644",
+        "git_blob": "982381ecf53f0b7a0a304c842e3c6fc5bc24d168"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/java-version.stderr",
+        "mode": "100644",
+        "git_blob": "cf2b1f18d2bc0987d122511dfda50619ebb5d2af"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/java-version.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-01/validation.json",
+        "mode": "100644",
+        "git_blob": "61895a742d0bd32cd402958ff117b4a6b16357a1"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.1.2-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.2.1-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/4.3.1-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/ApacheSnapshotProbe-4.1.2.adapted.java",
+        "mode": "100644",
+        "git_blob": "f14b9e35dc3093e391a5b99a79c7455757770897"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/ApacheSnapshotProbe-4.2.1.adapted.java",
+        "mode": "100644",
+        "git_blob": "c0e363df5f7e9a7d860191a761bb2d647ef625c2"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/ApacheSnapshotProbe-4.3.1.adapted.java",
+        "mode": "100644",
+        "git_blob": "7887e670b39749059e76aa98d33ecab0fa2389df"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/apache-components-4.1.2.tar.gz",
+        "mode": "100644",
+        "git_blob": "0fc284d4f16e10ca82fa3ce9f0a4ad0cad396999"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/apache-components-4.2.1.tar.gz",
+        "mode": "100644",
+        "git_blob": "c371d964e896f5748008ed8a6048a9df9e5e9073"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/apache-components-4.3.1.tar.gz",
+        "mode": "100644",
+        "git_blob": "2e0de55a30ff6daf0646975874fe86fbbe9268b6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/java-version.stderr",
+        "mode": "100644",
+        "git_blob": "cf2b1f18d2bc0987d122511dfda50619ebb5d2af"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/java-version.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-02/validation.json",
+        "mode": "100644",
+        "git_blob": "4be88a2cc344666494ec325102be18be59854ec3"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.1.2-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.2.1-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-deliberate-wrong-offset.stderr",
+        "mode": "100644",
+        "git_blob": "528b57e1412adf4d729771af3be388daeed7b243"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-deliberate-wrong-offset.stdout",
+        "mode": "100644",
+        "git_blob": "271fa4349ddf6371799447a1ebc0cfb93216d432"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-1.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-1.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-1.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-2.snapshot.bin",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-2.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/4.3.1-replay-2.stdout",
+        "mode": "100644",
+        "git_blob": "3138eb08c6d4ce70e782983a0b59309adbb443c6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/ApacheSnapshotProbe-4.1.2.adapted.java",
+        "mode": "100644",
+        "git_blob": "f14b9e35dc3093e391a5b99a79c7455757770897"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/ApacheSnapshotProbe-4.2.1.adapted.java",
+        "mode": "100644",
+        "git_blob": "c0e363df5f7e9a7d860191a761bb2d647ef625c2"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/ApacheSnapshotProbe-4.3.1.adapted.java",
+        "mode": "100644",
+        "git_blob": "7887e670b39749059e76aa98d33ecab0fa2389df"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/apache-components-4.1.2.tar.gz",
+        "mode": "100644",
+        "git_blob": "0fc284d4f16e10ca82fa3ce9f0a4ad0cad396999"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/apache-components-4.2.1.tar.gz",
+        "mode": "100644",
+        "git_blob": "c371d964e896f5748008ed8a6048a9df9e5e9073"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/apache-components-4.3.1.tar.gz",
+        "mode": "100644",
+        "git_blob": "2e0de55a30ff6daf0646975874fe86fbbe9268b6"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/java-version.stderr",
+        "mode": "100644",
+        "git_blob": "cf2b1f18d2bc0987d122511dfda50619ebb5d2af"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/java-version.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/opaque-state.tsv",
+        "mode": "100644",
+        "git_blob": "6cc29ed3350c4e2db339f90e822cfb018724ae11"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/development/attempt-03/validation.json",
+        "mode": "100644",
+        "git_blob": "d09a373f5beaebfbb717b84cd66cb27cde1c4baf"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/pins.json",
+        "mode": "100644",
+        "git_blob": "0ca915694f85b56e740a78a909c9382367717e50"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "3dad9fb1c793b90a6efad6586e40b63b76e3bdd8"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "15bdcb4ba9859999c3d26a2ff659c7a5beaa468f"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.1.2/probe.stdout",
+        "mode": "100644",
+        "git_blob": "93c568dd8ffe8161b1e6e8cf303cc8828374c53b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "d54a47d563de50ee5c90b832980b92ce6a570c22"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "1e6c7f9e28a17e50255ce65d696d117d0cf15565"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.2.1/probe.stdout",
+        "mode": "100644",
+        "git_blob": "93c568dd8ffe8161b1e6e8cf303cc8828374c53b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "14cab1b9a7f0d1090e8a2255125701abd109200e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "c35db86b8724e66c930e063438e74ff19e5e68bd"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/4.3.1/probe.stdout",
+        "mode": "100644",
+        "git_blob": "93c568dd8ffe8161b1e6e8cf303cc8828374c53b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-02/commands.json",
+        "mode": "100644",
+        "git_blob": "db1d846e938d132cfdb005e421771ec257e22742"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "5a762da03e0fcce9478cb737d1af0197682d1572"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "291ec07691257b7080ad4a7e753a5ec429ebebfd"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/fresh-log-01/corrupt/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "06b900d2dd8aa48634d6463937ae5e89c1b73c3e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/fresh-log-01/footerless/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "8a3960fd00a68da5bd10f3f538e5b99f7c480d55"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.1.2/probe.stdout",
+        "mode": "100644",
+        "git_blob": "9665942a5c9c80b5c2e83733ae2b901f04a9484e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "ede9bc4e1e0a262e0a42f9eec4d0327685b79c91"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "5140ce6c522d0af8f0e9328e664d49ebfaa1692b"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/fresh-log-01/corrupt/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "06b900d2dd8aa48634d6463937ae5e89c1b73c3e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/fresh-log-01/footerless/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "8a3960fd00a68da5bd10f3f538e5b99f7c480d55"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.2.1/probe.stdout",
+        "mode": "100644",
+        "git_blob": "9665942a5c9c80b5c2e83733ae2b901f04a9484e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "8398d3dbd1ef511d756191f583400b0a08dc1374"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/classes/ApacheSnapshotProbe$FixedTime.class",
+        "mode": "100644",
+        "git_blob": "66094cec14a0c15c1f67373f7cfae63fbfc62b71"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/classes/ApacheSnapshotProbe.class",
+        "mode": "100644",
+        "git_blob": "156c82a684d92eb5839ecb6c515c00b58f13d392"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/compile.stderr",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/fresh-log-01/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "330d09c0a7b066dec4789ac012ec97b2003f3975"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/fresh-log-01/corrupt/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "06b900d2dd8aa48634d6463937ae5e89c1b73c3e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/fresh-log-01/footerless/00000000000000000003-0000000005.checkpoint",
+        "mode": "100644",
+        "git_blob": "8a3960fd00a68da5bd10f3f538e5b99f7c480d55"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/probe.stderr",
+        "mode": "100644",
+        "git_blob": "16fe39932aaeac0592dbd6b686f9089bec9c28ac"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/4.3.1/probe.stdout",
+        "mode": "100644",
+        "git_blob": "9665942a5c9c80b5c2e83733ae2b901f04a9484e"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development-03/commands.json",
+        "mode": "100644",
+        "git_blob": "fd57b6c26ae8aa0a0e84cb7af5df32ada977af21"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development/4.1.2/ApacheSnapshotProbe.java",
+        "mode": "100644",
+        "git_blob": "6bda20899bfe11e8f79268d0321fcc575508402c"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development/4.1.2/compile.stderr",
+        "mode": "100644",
+        "git_blob": "50eaf68cfea88d6fcc751b5063516981d936e847"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development/4.1.2/compile.stdout",
+        "mode": "100644",
+        "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/preparation/development/commands.json",
+        "mode": "100644",
+        "git_blob": "5148cfa4a929e4cbebb7bace3b889c036a036003"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/prepare-and-run.py",
+        "mode": "100644",
+        "git_blob": "1c398ca81df35e97ba1b289a81cfe07818123e17"
+      },
+      {
+        "path": "docs/evidence/broker/KL11-15/oracle/apache/selected-source-files.json",
+        "mode": "100644",
+        "git_blob": "ad51e5f440775c3c5f5a38ba5478d427a09d8c09"
+      },
+      {
+        "path": "partitionline-broker/tests/fixtures/raft-snapshot/README.md",
+        "mode": "100644",
+        "git_blob": "0683b7c7e7a72fb1a11280b0d938815dd2324821"
+      },
+      {
+        "path": "partitionline-broker/tests/fixtures/raft-snapshot/apache-opaque-state.tsv",
+        "mode": "100644",
+        "git_blob": "6cc29ed3350c4e2db339f90e822cfb018724ae11"
+      }
+    ],
+    "changed_rust_sources": [
+      {
+        "path": "partitionline-broker/src/raft/snapshot.rs",
+        "foundation": {
+          "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+          "git_blob": "3310bb2aaf5c2be5509a62a5d1da0248f604436e",
+          "mode": "100644",
+          "sha256": "573ce4c1eb21a9c6001db71d0ce7f7a62a5a7711231b50d682a736b879b88b24",
+          "bytes": 34476
+        },
+        "current": {
+          "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "git_blob": "41bd00a5d8192fdc122282c6166d03d8ad969602",
+          "mode": "100644",
+          "sha256": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+          "bytes": 48063
+        },
+        "identical": false
+      },
+      {
+        "path": "partitionline-broker/tests/raft_snapshot.rs",
+        "foundation": {
+          "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+          "git_blob": "34dd0d8e8a56b2f9de82dd8dfde2f45a74a6abe9",
+          "mode": "100644",
+          "sha256": "e2420986f2c10d5926f5037f6b3d7310300c56abea60bcbf65a56169823c2ba8",
+          "bytes": 18056
+        },
+        "current": {
+          "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "git_blob": "06150400373c8928dcf525bade3fd5c95ed4b674",
+          "mode": "100644",
+          "sha256": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f",
+          "bytes": 18068
+        },
+        "identical": false
+      }
+    ],
+    "source_patch": {
+      "path": "docs/evidence/broker/KL11-15/runtime/foundation-source-to-d147bcf1.patch",
+      "sha256": "5ccbd2dc08d33e6fd33eacd7649600dcbad080e6b7f18b374d901894b02a65e9"
+    },
+    "change_classification": [
+      "Store::load takes &mut self rather than &self, enforcing the documented exclusive owner at the type boundary.",
+      "Store::idle exposes whether incoming/outgoing sessions are absent.",
+      "Generation-targeted cfg(test) publication hooks and actual I/O/process-cut tests were added.",
+      "Three test variables became mutable to call the tightened load method."
+    ],
+    "not_inferred": "Foundation455 Rust source is not byte-identical to current snapshot source; its original10-case outcome remains pinned455. Current10-case and addedcut outcomes require fresh d147 execution. Apache component inputs are byte-identical; custom image format is not Kafka snapshot wire interoperability."
+  }
+}

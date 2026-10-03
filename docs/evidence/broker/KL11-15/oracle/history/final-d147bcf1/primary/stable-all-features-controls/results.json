@@ -1,0 +1,298 @@
+{
+  "scope": "Finite checker controls, separately identified deliberate mutations",
+  "positive_control_wal_sha256": "2068e736b2863e8ad5ef33e032312b6d48a47071df96fa40d7cbe83c47040041",
+  "results": [
+    {
+      "name": "authority",
+      "changed_offset": 16,
+      "expected_guard": "Install authority/term/peer",
+      "actual_rejection": "Install authority/term/peer",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "b50e3051c5461aecc2453d8392171fb8787300e989b310ba2e83a667ed27cbfc"
+      }
+    },
+    {
+      "name": "stale-term",
+      "changed_offset": 24,
+      "expected_guard": "Install authority/term/peer",
+      "actual_rejection": "Install authority/term/peer",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "308c0ce92fa560822addab37fbe28b246eaf25a9f78990673be9158488a093bd"
+      }
+    },
+    {
+      "name": "foreign-leader",
+      "changed_offset": 32,
+      "expected_guard": "Install authority/term/peer",
+      "actual_rejection": "Install authority/term/peer",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "a4292d430905cb6a7d6f1046bf544892e140e4fbcdc1d1df2478068409d7faa0"
+      }
+    },
+    {
+      "name": "foreign-peer",
+      "changed_offset": 36,
+      "expected_guard": "Install authority/term/peer",
+      "actual_rejection": "Install authority/term/peer",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "6d42e701fbc982b20acc4381fecf4283d142986253cfd2f6f45677546226ce75"
+      }
+    },
+    {
+      "name": "local-sequence",
+      "changed_offset": 40,
+      "expected_guard": "local Install authority",
+      "actual_rejection": "local Install authority",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "11b85736665172ebc6d5a79e87d3276718a0cc8e5fb685cc58fd3aa751725fcb"
+      }
+    },
+    {
+      "name": "leader-commit",
+      "changed_offset": 48,
+      "expected_guard": "local Install authority",
+      "actual_rejection": "local Install authority",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "731614ae83b9770166298766a2f0843c7e153980ff066d756675824b33638f13"
+      }
+    },
+    {
+      "name": "prior-tail",
+      "changed_offset": 128,
+      "expected_guard": "Install prior tail/commit mismatch",
+      "actual_rejection": "Install prior tail/commit mismatch",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "d75b5ec6b889515faab3ae5a403d4d58774886d1f4c29803e8cca7a124da8a79"
+      }
+    },
+    {
+      "name": "prior-commit",
+      "changed_offset": 136,
+      "expected_guard": "Install prior tail/commit mismatch",
+      "actual_rejection": "Install prior tail/commit mismatch",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "e9425f2510ba7acddd427563f4e34fbd59cd6f73a7913e855cd9970fef874df0"
+      }
+    },
+    {
+      "name": "retained-tail",
+      "changed_offset": 152,
+      "expected_guard": "Install retained suffix/tail mismatch",
+      "actual_rejection": "Install retained suffix/tail mismatch",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "a58abff072519b570a235cbacb0a19600aec9ff2dc21fc7b57e489945e21cb19"
+      }
+    },
+    {
+      "name": "result-commit",
+      "changed_offset": 160,
+      "expected_guard": "local Install authority",
+      "actual_rejection": "local Install authority",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "8d2db5443a3248118ebeccdbde2e3a7fc86ed952588b6e1f63d41ac7b6b0b790"
+      }
+    },
+    {
+      "name": "prior-present",
+      "changed_offset": 168,
+      "expected_guard": "Install prior selection flag",
+      "actual_rejection": "Install prior selection flag",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "677befe93b0bc68213604c4f93bca639981d0a8a8c6dd892a5a8b763b83d7d82"
+      }
+    },
+    {
+      "name": "record-count",
+      "changed_offset": 88,
+      "expected_guard": "Install descriptor/image binding",
+      "actual_rejection": "Install descriptor/image binding",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "1f0bc4a7370e97eeaf80b7db6d9e4750205f70f23e4c079b6b9a7b714f6234a4"
+      }
+    },
+    {
+      "name": "payload-size",
+      "changed_offset": 96,
+      "expected_guard": "Install descriptor/image binding",
+      "actual_rejection": "Install descriptor/image binding",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "5ff2c1be5b77db27a2257f44426a42aa1df205e6d7654c9a167c3351412125ab"
+      }
+    },
+    {
+      "name": "image-size",
+      "changed_offset": 104,
+      "expected_guard": "Install descriptor/image binding",
+      "actual_rejection": "Install descriptor/image binding",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "d8471a3fe3971136bab37b7e89a59c7a0877634b0968de485658ec563e35089b"
+      }
+    },
+    {
+      "name": "image-crc",
+      "changed_offset": 112,
+      "expected_guard": "Install descriptor/image binding",
+      "actual_rejection": "Install descriptor/image binding",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "338560a8d01c8ac822f6b86be35d7d32dfc03ab3ee5f88014debd73c13f77b59"
+      }
+    },
+    {
+      "name": "reserved",
+      "changed_offset": 116,
+      "expected_guard": "nonzero reserved field",
+      "actual_rejection": "nonzero reserved field",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "204847254416168c058546ee6f348332832abd14750645306466a379ddb3f666"
+      }
+    },
+    {
+      "name": "foreign-group",
+      "changed_offset": 216,
+      "expected_guard": "Install foreign group",
+      "actual_rejection": "Install foreign group",
+      "all_outer_journal_crcs_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "d0ef1bea0c430b9949bda6a0e5b0bd8c0775944cfe3c9402999cf36abdb9a36e"
+      }
+    },
+    {
+      "name": "missing-install",
+      "disposition": "accepted WAL; image remains inert",
+      "selected_snapshot": null,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "54494a32d809b956ea2c15cab9783c3332f2262518cc5ff83f4fc2237b71d1d0",
+        "metadata.wal": "da96d73f96fc97348a024a4b1dee21081fc1cedeabc03f74a127deb280d53c21"
+      }
+    },
+    {
+      "name": "changed-committed-image",
+      "expected_guard": "snapshot changed committed overlap",
+      "actual_rejection": "snapshot changed committed overlap",
+      "outer_journal_crcs_repaired": true,
+      "image_seals_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "4c658548e7a387ed28c195fd7f2a1c1a0fa0de73de5ec471cdb33a72728f9871",
+        "metadata.wal": "4f509df97e240e25b99500f25337224998194af37029b0dea17d115f52b7e8db"
+      }
+    },
+    {
+      "name": "image-record-index",
+      "expected_guard": "image record index/term continuity",
+      "actual_rejection": "image record index/term continuity",
+      "outer_journal_crcs_repaired": true,
+      "image_seals_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "32249877fa9b9c8e7b4530b788d675a619776b66a9e50ee38aefd4fb98123b5b",
+        "metadata.wal": "8dc11cab4e36cb0bdaaa38d217113c441c6216622f640601b6c49d5146254f2e"
+      }
+    },
+    {
+      "name": "image-base-term",
+      "expected_guard": "image aggregate/base term",
+      "actual_rejection": "image aggregate/base term",
+      "outer_journal_crcs_repaired": true,
+      "image_seals_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "0f9be764ee0fa1c13bb7a307256fc61c6f3f3dbe66ff07882cc2a19266d9feaf",
+        "metadata.wal": "d874b7a451817b27cbab6f3e5d8fe4b60fb816190adc15e5cf6879bdbdd18ac1"
+      }
+    },
+    {
+      "name": "image-foreign-group",
+      "expected_guard": "foreign image group",
+      "actual_rejection": "foreign image group",
+      "outer_journal_crcs_repaired": true,
+      "image_seals_repaired": true,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "c8b4cf0d4c8ced3a54dcabba9735b35fe2f88b77390f3ac602fcc412c10bdf1b",
+        "metadata.wal": "becde96a3a988c82ca2e9381d2bf88e935cd8c3aecd2ea8885c4a23dd4d6198e"
+      }
+    },
+    {
+      "name": "image-truncated-seal",
+      "expected_guard": "image exact encoded length",
+      "actual_rejection": "image exact encoded length",
+      "outer_journal_crcs_repaired": true,
+      "image_seals_repaired": false,
+      "artifacts_sha256": {
+        "images/snapshot-01010101010101010101010101010101.image": "6888abd15c288aa0a50c3babc244404c3f000c6f30b2d67711fc2b8518d6757c",
+        "metadata.wal": "2068e736b2863e8ad5ef33e032312b6d48a47071df96fa40d7cbe83c47040041"
+      }
+    },
+    {
+      "name": "forged-ack-accepted",
+      "event_ordinal": 38,
+      "actual_rejection": "event 38 ack_snapshot: snapshot ack fabricated/stale/descriptor mismatch"
+    },
+    {
+      "name": "expired-ack-accepted",
+      "event_ordinal": 27,
+      "actual_rejection": "event 27 ack_snapshot: snapshot ack fabricated/stale/descriptor mismatch"
+    },
+    {
+      "name": "wrong-emitted-done",
+      "event_ordinal": 15,
+      "actual_rejection": "event 15 snapshot_chunk: emitted chunk differs from selected durable image"
+    },
+    {
+      "name": "wrong-emitted-image-byte",
+      "event_ordinal": 15,
+      "actual_rejection": "event 15 snapshot_chunk: emitted chunk differs from selected durable image"
+    },
+    {
+      "name": "invented-partial-origin",
+      "event_ordinal": 16,
+      "actual_rejection": "event 16 partial_snapshot_chunk: partial chunk emitted origin missing"
+    },
+    {
+      "name": "incomplete-finish-accepted",
+      "event_ordinal": 17,
+      "actual_rejection": "event 17 finish_incomplete_snapshot: incomplete image installation accepted"
+    },
+    {
+      "name": "changed-offer-descriptor",
+      "event_ordinal": 13,
+      "actual_rejection": "event 13 prepare_snapshot: snapshot offer selected commit binding"
+    },
+    {
+      "name": "unreceipted-selection",
+      "event_ordinal": 12,
+      "actual_rejection": "event 12 checkpoint: checkpoint selecting operation count"
+    }
+  ],
+  "passed": true
+}

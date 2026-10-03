@@ -1,0 +1,151 @@
+{
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "actual_cuts": 2,
+  "raw_states": [
+    {
+      "phase": "receipt",
+      "stage": "before-reopen",
+      "wal_sha256": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+      "election_sha256": "e7a42bc05f9f7e63df6af39e3439f59cf299bfa0a4ed104a6bcbdbfb57293672",
+      "receiver_term": 2,
+      "receiver_vote": 2,
+      "election_tail": [
+        2,
+        2
+      ],
+      "prior_commit": 1,
+      "prior_tail": [
+        2,
+        2
+      ],
+      "committed_end": 3,
+      "selected": {
+        "generation": "02020202020202020202020202020202",
+        "base": {
+          "term": 2,
+          "index": 3
+        },
+        "records": 3,
+        "payload_bytes": 31,
+        "bytes": 277,
+        "checksum": 1820535300
+      }
+    },
+    {
+      "phase": "receipt",
+      "stage": "after-reopen",
+      "wal_sha256": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+      "election_sha256": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+      "receiver_term": 2,
+      "receiver_vote": 2,
+      "election_tail": [
+        2,
+        3
+      ],
+      "prior_commit": 1,
+      "prior_tail": [
+        2,
+        2
+      ],
+      "committed_end": 3,
+      "selected": {
+        "generation": "02020202020202020202020202020202",
+        "base": {
+          "term": 2,
+          "index": 3
+        },
+        "records": 3,
+        "payload_bytes": 31,
+        "bytes": 277,
+        "checksum": 1820535300
+      }
+    },
+    {
+      "phase": "summary",
+      "stage": "before-reopen",
+      "wal_sha256": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+      "election_sha256": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+      "receiver_term": 2,
+      "receiver_vote": 2,
+      "election_tail": [
+        2,
+        3
+      ],
+      "prior_commit": 1,
+      "prior_tail": [
+        2,
+        2
+      ],
+      "committed_end": 3,
+      "selected": {
+        "generation": "02020202020202020202020202020202",
+        "base": {
+          "term": 2,
+          "index": 3
+        },
+        "records": 3,
+        "payload_bytes": 31,
+        "bytes": 277,
+        "checksum": 1820535300
+      }
+    },
+    {
+      "phase": "summary",
+      "stage": "after-reopen",
+      "wal_sha256": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+      "election_sha256": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+      "receiver_term": 2,
+      "receiver_vote": 2,
+      "election_tail": [
+        2,
+        3
+      ],
+      "prior_commit": 1,
+      "prior_tail": [
+        2,
+        2
+      ],
+      "committed_end": 3,
+      "selected": {
+        "generation": "02020202020202020202020202020202",
+        "base": {
+          "term": 2,
+          "index": 3
+        },
+        "records": 3,
+        "payload_bytes": 31,
+        "bytes": 277,
+        "checksum": 1820535300
+      }
+    }
+  ],
+  "scope": "Two actual local owner process cuts; configured typed leader input, no election-majority or physical powerloss inference",
+  "raw_input_files_sha256": {
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/cut.json": "38eedce602652cea8ef2b79bed9151f7b1912a55e785597a6d594e01ccaaa595",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/child.log": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/after-reopen/metadata.wal": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/after-reopen/election.wal": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/before-reopen/metadata.wal": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/before-reopen/election.wal": "e7a42bc05f9f7e63df6af39e3439f59cf299bfa0a4ed104a6bcbdbfb57293672",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/after-reopen/images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/after-reopen/images/snapshot-01010101010101010101010101010101.image": "2fed7b609147594e3ac67e4a76d2c01cf862e1efb6c2aca99a038c6a56cb8689",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/after-reopen/source-images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/before-reopen/images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/before-reopen/images/snapshot-01010101010101010101010101010101.image": "2fed7b609147594e3ac67e4a76d2c01cf862e1efb6c2aca99a038c6a56cb8689",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-receipt/before-reopen/source-images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/cut.json": "0908c83d9665cb0be6a2e73b1779abe0ea58a30e57ae7fbb30ffae69e4f90748",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/child.log": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/after-reopen/metadata.wal": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/after-reopen/election.wal": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/before-reopen/metadata.wal": "a5e37f2d8f4822ed67fbaf1530f6a00e0b315348f4160dfcdf786364d1cf4549",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/before-reopen/election.wal": "e20fdd95f0da258a1e8f41395d8f6660c8dc006b25957f13a6c23f7ff8eb5d84",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/after-reopen/images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/after-reopen/images/snapshot-01010101010101010101010101010101.image": "2fed7b609147594e3ac67e4a76d2c01cf862e1efb6c2aca99a038c6a56cb8689",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/after-reopen/source-images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/before-reopen/images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/before-reopen/images/snapshot-01010101010101010101010101010101.image": "2fed7b609147594e3ac67e4a76d2c01cf862e1efb6c2aca99a038c6a56cb8689",
+    "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/install-cut-summary/before-reopen/source-images/snapshot-02020202020202020202020202020202.image": "80496fe430244850f6c4e0baa62eaa35dc88366061e2742710381b2023696cfb"
+  },
+  "inputs_unchanged": true
+}

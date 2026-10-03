@@ -1,0 +1,10 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/immutable-96211da1)
+    Finished `test` profile [unoptimized] target(s) in 4.40s
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c)
+
+running 1 test
+SHARE_V2_LIVE_REPORT {"schema_version":1,"source_sha":"96211da1cc63a5ef7c289e0135b74c00562403d6","reference":"apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837","finalized_features":{"eligible.leader.replicas.version": [1, 1], "group.version": [1, 1], "metadata.version": [30, 30], "share.version": [1, 1], "streams.version": [1, 1], "transaction.version": [2, 2]},"runtime_version":2,"acquire_mode":"record_limit","lock_ms":15000,"accepted_offsets":[0,1,2,3],"release_delivery_count":3,"expiry_delivery_count":2,"renew":"successful","disposition":"supported"}
+test live_current_v2_share_delivery_renew_release_expiry_accept ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 19 filtered out; finished in 21.03s
+

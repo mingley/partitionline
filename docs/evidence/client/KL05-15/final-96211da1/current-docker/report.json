@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+  "container": "pl-client-share-v2-96211da1cc63-867773",
+  "host_os": "Linux",
+  "host_arch": "x86_64",
+  "runtime": {
+    "schema_version": 1,
+    "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+    "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+    "finalized_features": {
+      "eligible.leader.replicas.version": [
+        1,
+        1
+      ],
+      "group.version": [
+        1,
+        1
+      ],
+      "metadata.version": [
+        30,
+        30
+      ],
+      "share.version": [
+        1,
+        1
+      ],
+      "streams.version": [
+        1,
+        1
+      ],
+      "transaction.version": [
+        2,
+        2
+      ]
+    },
+    "runtime_version": 2,
+    "acquire_mode": "record_limit",
+    "lock_ms": 15000,
+    "accepted_offsets": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "release_delivery_count": 3,
+    "expiry_delivery_count": 2,
+    "renew": "successful",
+    "disposition": "supported"
+  },
+  "independent_java_records": 4,
+  "independent_persisted_batches": 1,
+  "disposition": "passed",
+  "sha256": {
+    "docker-version.log": "065bcd920cb1f83e23a5a4e2bee05e331c9d92fbfa738d3475f134b831809633",
+    "container-id.log": "913e966632a14307fca6429cb95b96b7c12405b84dc95a8c5a5a3a6227e5bc91",
+    "runtime.log": "07c4d667546c386de53b16bf1accce41c19d8473633830cb3d0b207dff057ec2",
+    "features-before.log": "8b14ae1eaa28b99559f056f2f8dd5a46a10eaecd86009b5c1bb8b62aab044da9",
+    "readiness.log": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+    "broker-version.log": "8722a3e4c8ef0feb2e7a669f5f854c72d5d6390b25598f9745dc95e5ffe51dce",
+    "image-digests.json": "bcdfe45df33bb8271386479d7418ed4dba101b31244fd893e3b1e05a745e46de",
+    "java-batch.log": "2f57160c089ffc1b626559ffdbcaad346f4715ded492364d8744b2a8413e7963",
+    "java-records.log": "26c297a81b341eda561c6000f1a8fef6a03d65778092db70250faa5eadb76241",
+    "start.log": "13f695a21cef725a957fe739aa36b5de47aacec81a0b7e52c72b24e2ad932f3f",
+    "java-batch.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "expected-image-id.log": "cdbb55d64f05e9a9586d4127d4a2b4058db8c24e417d9550c52aef8f155048cb",
+    "readiness-2.log": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+    "cpuset.json": "1fef21caae4c23487e05e8d68d1920a9dfcbc763017d708e0b8336edae3f5a03",
+    "readiness-1.log": "81d6a43a62c674b7ce18ae96242895d61d8a940e3019310acdcb4b57d7bba8df",
+    "java-records.stderr.log": "e28184d7421d59bb84b08ff60e142fdd198bb21088d42cbee0c8580ec7b42b0c",
+    "container-image-id.log": "cdbb55d64f05e9a9586d4127d4a2b4058db8c24e417d9550c52aef8f155048cb",
+    "features.log": "c726c9d84d1d944651a3d2323429d2bf01b8ebb63f1ae53cc37432f8403d1e59"
+  }
+}

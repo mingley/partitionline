@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "scope": "Exact committed storage hashes bind the narrow static committed-floor getter correction review; no independently executed local runtime or fault claim.",
+  "followup_review_sha256": "cbc88467f8a6567d961207e81d1847b810d6a6005c0b2550aef7c29dcddec290",
+  "foundation_review_sha256": "b3d164e4422e6b6e309f3956160a7ee45bfe05bd5a35954b8fd3fbd73bd3aa46",
+  "reviewed_files": {
+    "partitionline-broker/src/segments.rs": {
+      "sha256": "85b44d6a6ccd4bb57f01b5f9c15c316168901a77f1f520686b12dfa2c32776a8",
+      "git_blob": "4fc2d43da38f8b613ca6b297c7b76a6a4f5ce033"
+    },
+    "partitionline-broker/src/partition.rs": {
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "git_blob": "0bc345c66535113193ed7c99eee1d6b05aa46d84"
+    },
+    "partitionline-broker/tests/segments.rs": {
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "git_blob": "2bba4cea9cfaa0bc9f0c273a3fa7693b305c53ea"
+    },
+    "partitionline-broker/tests/partition.rs": {
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "git_blob": "938d336e4560023e240a1867713f9de45d578db8"
+    }
+  },
+  "static_blockers": [],
+  "separate_execution_scope": "Open_loop retains its failing-first scalar regression and 23 getter/reopen fault scenarios on both toolchains. This receipt does not relabel those executions as independently run."
+}

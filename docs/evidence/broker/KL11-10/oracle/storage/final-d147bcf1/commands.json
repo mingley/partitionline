@@ -1,0 +1,170 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-retention-history.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/1.85.0-all-features-positive.json"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-all-features-positive.log",
+    "log_sha256": "c7a5e81c47158876e3fa3c2db4d4b968752f98916e18fe65dae11a746a3bc116",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-counterexamples.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/1.85.0-all-features-controls"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-all-features-controls.log",
+    "log_sha256": "ae979612a853d033a63e1ea639d0a1a533e6d83b790078b8ec2d2745147c00cf",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-retention-history.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/1.85.0-default-positive.json"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-default-positive.log",
+    "log_sha256": "c7a5e81c47158876e3fa3c2db4d4b968752f98916e18fe65dae11a746a3bc116",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-counterexamples.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/1.85.0-default-controls"
+    ],
+    "exit_code": 0,
+    "log": "1.85.0-default-controls.log",
+    "log_sha256": "ae979612a853d033a63e1ea639d0a1a533e6d83b790078b8ec2d2745147c00cf",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-retention-history.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/stable-all-features-positive.json"
+    ],
+    "exit_code": 0,
+    "log": "stable-all-features-positive.log",
+    "log_sha256": "c7a5e81c47158876e3fa3c2db4d4b968752f98916e18fe65dae11a746a3bc116",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-counterexamples.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/stable-all-features-controls"
+    ],
+    "exit_code": 0,
+    "log": "stable-all-features-controls.log",
+    "log_sha256": "ae979612a853d033a63e1ea639d0a1a533e6d83b790078b8ec2d2745147c00cf",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-retention-history.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/stable-default/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/stable-default-positive.json"
+    ],
+    "exit_code": 0,
+    "log": "stable-default-positive.log",
+    "log_sha256": "c7a5e81c47158876e3fa3c2db4d4b968752f98916e18fe65dae11a746a3bc116",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/oracle/storage/check-counterexamples.py",
+      "--histories",
+      "/workspace/work/retention-final-d147bcf1/stable-default/retention-fault-histories",
+      "--fixture",
+      "/workspace/work/retention-final-d147bcf1/source/partitionline-broker/tests/fixtures/records/valid-basic.bin",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/stable-default-controls"
+    ],
+    "exit_code": 0,
+    "log": "stable-default-controls.log",
+    "log_sha256": "ae979612a853d033a63e1ea639d0a1a533e6d83b790078b8ec2d2745147c00cf",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 566,
+    "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e"
+  }
+]

@@ -1,0 +1,421 @@
+diff --git a/partitionline-broker/src/raft/snapshot.rs b/partitionline-broker/src/raft/snapshot.rs
+index 3310bb2a..41bd00a5 100644
+--- a/partitionline-broker/src/raft/snapshot.rs
++++ b/partitionline-broker/src/raft/snapshot.rs
+@@ -606,4 +606,20 @@ pub struct Store {
+     outgoing: Option<Outgoing>,
+     poisoned: bool,
++    #[cfg(test)]
++    publication_fault: Option<PublicationFault>,
++}
++
++#[cfg(test)]
++#[derive(Clone, Copy, Debug, PartialEq, Eq)]
++pub(crate) enum PublicationPhase {
++    CandidateSynced,
++    ImageRenamed,
++    DirectorySynced,
++}
++#[cfg(test)]
++struct PublicationFault {
++    generation: [u8; 16],
++    phase: PublicationPhase,
++    exit_process: bool,
+ }
+ impl Store {
+@@ -674,4 +690,6 @@ impl Store {
+             outgoing: None,
+             poisoned: false,
++            #[cfg(test)]
++            publication_fault: None,
+         })
+     }
+@@ -693,4 +711,43 @@ impl Store {
+         self.poisoned
+     }
++    /// Whether there is no staged incoming image or outgoing reader to inherit.
++    pub fn idle(&self) -> bool {
++        self.incoming.is_none() && self.outgoing.is_none()
++    }
++    #[cfg(test)]
++    pub(crate) fn fault_publication(
++        &mut self,
++        generation: [u8; 16],
++        phase: PublicationPhase,
++        exit_process: bool,
++    ) {
++        self.publication_fault = Some(PublicationFault {
++            generation,
++            phase,
++            exit_process,
++        });
++    }
++    #[cfg(test)]
++    fn publication_stage(
++        &mut self,
++        generation: [u8; 16],
++        phase: PublicationPhase,
++    ) -> Result<(), Error> {
++        if self
++            .publication_fault
++            .as_ref()
++            .is_some_and(|fault| fault.generation == generation && fault.phase == phase)
++        {
++            let fault = self.publication_fault.take().ok_or(Error::Corrupt)?;
++            self.poisoned = true;
++            if fault.exit_process {
++                std::process::exit(44);
++            }
++            return Err(Error::Storage(io::Error::other(
++                "injected snapshot publication failure",
++            )));
++        }
++        Ok(())
++    }
+     /// Immutable fixed identity for coordinated replication install validation.
+     pub fn identity(&self) -> &Identity {
+@@ -790,4 +847,6 @@ impl Store {
+         let result = incoming.file.sync_all();
+         self.mutation(result)?;
++        #[cfg(test)]
++        self.publication_stage(generation, PublicationPhase::CandidateSynced)?;
+         let incoming = self.incoming.take().ok_or(Error::InvalidChunk)?;
+         drop(incoming.file);
+@@ -797,6 +856,10 @@ impl Store {
+         );
+         self.mutation(result)?;
++        #[cfg(test)]
++        self.publication_stage(generation, PublicationPhase::ImageRenamed)?;
+         let result = self.directory_file.sync_all();
+         self.mutation(result)?;
++        #[cfg(test)]
++        self.publication_stage(generation, PublicationPhase::DirectorySynced)?;
+         self.generations.push(generation);
+         Ok(Published {
+@@ -903,5 +966,5 @@ impl Store {
+     }
+     /// Decode one complete image within the explicit record/payload allocation budget.
+-    pub fn load(&self, generation: [u8; 16]) -> Result<Image, Error> {
++    pub fn load(&mut self, generation: [u8; 16]) -> Result<Image, Error> {
+         let mut file = self.open_image(generation)?;
+         let image = decode(&mut file, &self.identity, self.limits, true)?;
+@@ -972,2 +1035,294 @@ impl Drop for Store {
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::{
++        process::Command,
++        sync::atomic::{AtomicU64, Ordering},
++    };
++
++    type Result<T = ()> = std::result::Result<T, Box<dyn std::error::Error>>;
++    struct Temp(PathBuf);
++    impl Temp {
++        fn new() -> io::Result<Self> {
++            static NEXT: AtomicU64 = AtomicU64::new(0);
++            let path = std::env::temp_dir().join(format!(
++                "partitionline-snapshot-inner-{}-{}",
++                std::process::id(),
++                NEXT.fetch_add(1, Ordering::Relaxed)
++            ));
++            fs::create_dir(&path)?;
++            Ok(Self(path))
++        }
++    }
++    impl Drop for Temp {
++        fn drop(&mut self) {
++            let _ = fs::remove_dir_all(&self.0);
++        }
++    }
++    fn open(path: &Path) -> Result<Store> {
++        Ok(Store::open(
++            path,
++            Identity::new(
++                "snapshot-inner".into(),
++                "__cluster_metadata".into(),
++                0,
++                vec![0],
++            )?,
++            Limits::new(8192, 8, 4096, 2048, 17, 4, 16)?,
++        )?)
++    }
++    fn prefix() -> Vec<Entry> {
++        vec![
++            Entry {
++                term: 1,
++                index: 1,
++                barrier: false,
++                payload: b"alpha=a".to_vec(),
++            },
++            Entry {
++                term: 1,
++                index: 2,
++                barrier: false,
++                payload: b"beta=b".to_vec(),
++            },
++        ]
++    }
++    fn phase(index: usize) -> Result<PublicationPhase> {
++        match index {
++            0 => Ok(PublicationPhase::CandidateSynced),
++            1 => Ok(PublicationPhase::ImageRenamed),
++            2 => Ok(PublicationPhase::DirectorySynced),
++            _ => Err("unreviewed snapshot cut phase".into()),
++        }
++    }
++
++    #[test]
++    fn inner_publication_io_failures_preserve_previous_complete_image() -> Result {
++        for index in 0..3 {
++            let temp = Temp::new()?;
++            let mut store = open(&temp.0)?;
++            let entries = prefix();
++            store.fault_publication([2; 16], phase(index)?, false);
++            store.create([1; 16], LogPosition { term: 1, index: 1 }, &entries[..1])?;
++            assert!(matches!(
++                store.create([2; 16], LogPosition { term: 1, index: 2 }, &entries),
++                Err(Error::Storage(_))
++            ));
++            assert!(store.poisoned());
++            assert!(matches!(store.load([1; 16]), Err(Error::Poisoned)));
++            drop(store);
++            let mut recovered = open(&temp.0)?;
++            assert_eq!(recovered.load([1; 16])?.entries, entries[..1]);
++            assert_eq!(recovered.generation_count(), if index == 0 { 1 } else { 2 });
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn inner_publication_process_helper() -> Result {
++        let Some(directory) = std::env::var_os("PL_SNAPSHOT_INNER_CUT_DIR") else {
++            return Ok(());
++        };
++        let index = std::env::var("PL_SNAPSHOT_INNER_CUT_PHASE")?.parse()?;
++        let mut store = open(Path::new(&directory))?;
++        store.fault_publication([2; 16], phase(index)?, true);
++        store.create([2; 16], LogPosition { term: 1, index: 2 }, &prefix())?;
++        Err("configured publication process cut did not execute".into())
++    }
++
++    #[test]
++    fn inner_publication_process_exits_preserve_previous_complete_image() -> Result {
++        for index in 0..3 {
++            let temp = Temp::new()?;
++            let entries = prefix();
++            let mut store = open(&temp.0)?;
++            store.create([1; 16], LogPosition { term: 1, index: 1 }, &entries[..1])?;
++            drop(store);
++            let status = Command::new(std::env::current_exe()?)
++                .args([
++                    "--exact",
++                    "raft::snapshot::tests::inner_publication_process_helper",
++                    "--nocapture",
++                ])
++                .env("PL_SNAPSHOT_INNER_CUT_DIR", &temp.0)
++                .env("PL_SNAPSHOT_INNER_CUT_PHASE", index.to_string())
++                .status()?;
++            assert_eq!(status.code(), Some(44));
++            let mut recovered = open(&temp.0)?;
++            assert_eq!(recovered.load([1; 16])?.entries, entries[..1]);
++            assert_eq!(recovered.generation_count(), if index == 0 { 1 } else { 2 });
++        }
++        Ok(())
++    }
++
++    fn node_config() -> Result<crate::raft::replication::Config> {
++        let mut controller =
++            crate::raft::protocol::Config::new(0, vec![0], "snapshot-inner".into())?;
++        controller.election_timeouts = crate::raft::election::Timeouts::new(5, 5)?;
++        let mut config = crate::raft::replication::Config::new(controller);
++        config.max_queued_requests = 2;
++        Ok(config)
++    }
++
++    fn node_open(
++        root: &Path,
++        fault: Option<(usize, bool)>,
++    ) -> Result<crate::raft::replication::Node> {
++        let mut store = open(&root.join("images"))?;
++        if let Some((index, exit)) = fault {
++            store.fault_publication([2; 16], phase(index)?, exit);
++        }
++        Ok(crate::raft::replication::Node::open_with_snapshots(
++            root.join("node.wal"),
++            root.join("node.election"),
++            node_config()?,
++            store,
++            0,
++        )?)
++    }
++
++    fn prepare_node(root: &Path, fault: (usize, bool)) -> Result<crate::raft::replication::Node> {
++        let mut node = node_open(root, Some(fault))?;
++        let _ = node.campaign(5, 7)?;
++        assert_eq!(
++            node.state().election.role,
++            crate::raft::election::Role::Leader
++        );
++        assert_eq!(node.activate_leader(5)?, 1);
++        assert_eq!(node.propose(b"alpha=a", 5)?, 2);
++        let image = node.checkpoint([1; 16], 6)?;
++        assert_eq!(image.base, LogPosition { term: 2, index: 2 });
++        assert_eq!(node.selected_snapshot()?, Some(image));
++        assert_eq!(node.propose(b"beta=b", 7)?, 3);
++        assert_eq!(node.state().committed_end, 3);
++        assert_eq!(node.state().election.persistent.term, 2);
++        assert_eq!(node.state().election.persistent.voted_for, Some(0));
++        Ok(node)
++    }
++
++    fn copy_raw(source: &Path, destination: &Path, copied: &mut usize) -> Result {
++        fs::create_dir(destination)?;
++        for item in fs::read_dir(source)? {
++            let item = item?;
++            *copied += 1;
++            if *copied > 64 {
++                return Err("snapshot cut artifact file bound exceeded".into());
++            }
++            let target = destination.join(item.file_name());
++            let kind = item.file_type()?;
++            if kind.is_dir() {
++                copy_raw(&item.path(), &target, copied)?;
++            } else if kind.is_file() {
++                if item.metadata()?.len() > 1024 * 1024 {
++                    return Err("snapshot cut artifact byte bound exceeded".into());
++                }
++                fs::copy(item.path(), target)?;
++            } else {
++                return Err("unexpected snapshot cut artifact type".into());
++            }
++        }
++        Ok(())
++    }
++
++    fn retain_node_cut(root: &Path, mode: &str, index: usize, stage: &str) -> Result {
++        if let Some(destination) = std::env::var_os("PL_SNAPSHOT_NODE_INNER_PROOF_DIR") {
++            let parent = PathBuf::from(destination).join(format!("{mode}-{index}"));
++            fs::create_dir_all(&parent)?;
++            copy_raw(root, &parent.join(stage), &mut 0)?;
++            let mut file = File::create(parent.join("history.json"))?;
++            writeln!(file, "{{\"schema_version\":1,\"mode\":\"{mode}\",\"publication_phase\":{index},\"local_voter\":0,\"term\":2,\"vote\":0,\"selected_generation\":\"01010101010101010101010101010101\",\"selected_base_index\":2,\"committed_end\":3,\"durable_tail\":3,\"unreceipted_candidate_generation\":\"02020202020202020202020202020202\",\"unreceipted_candidate_base_index\":3,\"committed_payloads\":[\"\",\"alpha=a\",\"beta=b\"],\"scope\":\"actual one-voter Node checkpoint publication cut; local durable replay only, no multi-node catchup claim\"}}")?;
++            file.sync_all()?;
++        }
++        Ok(())
++    }
++
++    fn verify_node_replay(root: &Path, index: usize) -> Result {
++        let node = node_open(root, None)?;
++        let state = node.state();
++        assert!(state.ready);
++        assert!(!state.poisoned);
++        assert_eq!(state.base_position, LogPosition { term: 2, index: 2 });
++        assert_eq!(state.last_position, LogPosition { term: 2, index: 3 });
++        assert_eq!(state.committed_end, 3);
++        assert_eq!(state.election.persistent.term, 2);
++        assert_eq!(state.election.persistent.voted_for, Some(0));
++        let image = node
++            .selected_snapshot()?
++            .ok_or("previous checkpoint was not selected")?;
++        assert_eq!(image.generation, [1; 16]);
++        let records = node.fetch_committed(1, 8, 4096)?;
++        assert_eq!(records.len(), 3);
++        assert_eq!(
++            records[0].kind,
++            crate::raft::replication::RecordKind::Barrier
++        );
++        assert!(records[0].payload.is_empty());
++        assert_eq!(records[1].payload, b"alpha=a");
++        assert_eq!(records[2].payload, b"beta=b");
++        assert_eq!(node.term_at(2)?, Some(2));
++        assert_eq!(node.term_at(3)?, Some(2));
++        drop(node);
++        let mut store = open(&root.join("images"))?;
++        assert_eq!(store.generation_count(), if index == 0 { 1 } else { 2 });
++        assert_eq!(store.load([1; 16])?.descriptor, image);
++        if index != 0 {
++            assert_eq!(store.load([2; 16])?.descriptor.base.index, 3);
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn node_inner_publication_io_failures_replay_previous_receipt_and_committed_suffix() -> Result {
++        for index in 0..3 {
++            let temp = Temp::new()?;
++            let mut node = prepare_node(&temp.0, (index, false))?;
++            assert!(matches!(
++                node.checkpoint([2; 16], 8),
++                Err(crate::raft::replication::Error::Snapshot(Error::Storage(_)))
++            ));
++            assert!(node.state().poisoned);
++            assert!(node.selected_snapshot().is_err());
++            drop(node);
++            retain_node_cut(&temp.0, "io", index, "interrupted")?;
++            verify_node_replay(&temp.0, index)?;
++            retain_node_cut(&temp.0, "io", index, "recovered")?;
++        }
++        Ok(())
++    }
++
++    #[test]
++    fn node_inner_publication_process_helper() -> Result {
++        let Some(directory) = std::env::var_os("PL_SNAPSHOT_NODE_INNER_CUT_DIR") else {
++            return Ok(());
++        };
++        let index = std::env::var("PL_SNAPSHOT_NODE_INNER_CUT_PHASE")?.parse()?;
++        let mut node = prepare_node(Path::new(&directory), (index, true))?;
++        node.checkpoint([2; 16], 8)?;
++        Err("configured Node publication process cut did not execute".into())
++    }
++
++    #[test]
++    fn node_inner_publication_process_exits_replay_previous_receipt_and_committed_suffix() -> Result
++    {
++        for index in 0..3 {
++            let temp = Temp::new()?;
++            let status = Command::new(std::env::current_exe()?)
++                .args([
++                    "--exact",
++                    "raft::snapshot::tests::node_inner_publication_process_helper",
++                    "--nocapture",
++                ])
++                .env("PL_SNAPSHOT_NODE_INNER_CUT_DIR", &temp.0)
++                .env("PL_SNAPSHOT_NODE_INNER_CUT_PHASE", index.to_string())
++                .status()?;
++            assert_eq!(status.code(), Some(44));
++            retain_node_cut(&temp.0, "exit", index, "interrupted")?;
++            verify_node_replay(&temp.0, index)?;
++            retain_node_cut(&temp.0, "exit", index, "recovered")?;
++        }
++        Ok(())
++    }
++}
+diff --git a/partitionline-broker/tests/raft_snapshot.rs b/partitionline-broker/tests/raft_snapshot.rs
+index 34dd0d8e..06150400 100644
+--- a/partitionline-broker/tests/raft_snapshot.rs
++++ b/partitionline-broker/tests/raft_snapshot.rs
+@@ -355,5 +355,5 @@ fn ambiguous_rename_error_poison_preserves_previous_image() {
+     drop(store);
+     fs::remove_dir(blocker).unwrap();
+-    let reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
++    let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+     assert_eq!(reopened.generation_count(), 1);
+     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
+@@ -400,5 +400,5 @@ fn actual_process_exit_during_transfer_keeps_old_image_recoverable() {
+         .unwrap();
+     assert_eq!(result.code(), Some(44));
+-    let reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
++    let mut reopened = Store::open(&target, identity().unwrap(), limits().unwrap()).unwrap();
+     assert_eq!(reopened.generation_count(), 1);
+     assert_eq!(reopened.load([1; 16]).unwrap().entries, entries());
+@@ -476,5 +476,5 @@ fn actual_apache_opaque_observation_preserves_order_and_boundary_mapping() {
+     receive(&mut destination, descriptor, &bytes).unwrap();
+     drop(destination);
+-    let restarted = directory.store("destination").unwrap();
++    let mut restarted = directory.store("destination").unwrap();
+     let image = restarted.load([1; 16]).unwrap();
+     assert_eq!(image.descriptor.base, LogPosition { index, term });

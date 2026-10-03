@@ -1,0 +1,138 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-node.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 51
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot",
+      "--source-sha",
+      "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-install.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 238
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-node.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 51
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot",
+      "--source-sha",
+      "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-install.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 238
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-node.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 51
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot",
+      "--source-sha",
+      "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-install.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 238
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-node.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 51
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+      "/workspace/work/retention-final-d147bcf1/stable-default/snapshot",
+      "--source-sha",
+      "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-install.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 238
+  }
+]

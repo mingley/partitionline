@@ -1,0 +1,174 @@
+{
+  "node_id": 0,
+  "group": {
+    "cluster_id": "snapshot-inner",
+    "topic": "__cluster_metadata",
+    "partition": 0,
+    "voters": [
+      0
+    ]
+  },
+  "operation_count": 8,
+  "last_index": 3,
+  "last_term": 2,
+  "max_observed_term": 2,
+  "committed_end": 3,
+  "live_payload_bytes": 13,
+  "committed_records": [
+    {
+      "index": 1,
+      "term": 2,
+      "kind": 1,
+      "payload_hex": "",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "index": 2,
+      "term": 2,
+      "kind": 0,
+      "payload_hex": "616c7068613d61",
+      "sha256": "1c84187d50bf4127b830e2a77ac5d6989aff5c051d2583e8f269894d7bff80b6"
+    },
+    {
+      "index": 3,
+      "term": 2,
+      "kind": 0,
+      "payload_hex": "626574613d62",
+      "sha256": "c134fe9d9e5f5daab1e32164066903df5f206aacd198b835b4c723a2c2b4e34b"
+    }
+  ],
+  "operations": [
+    {
+      "opcode": "init",
+      "node_id": 0,
+      "group": {
+        "cluster_id": "snapshot-inner",
+        "topic": "__cluster_metadata",
+        "partition": 0,
+        "voters": [
+          0
+        ]
+      },
+      "operation_number": 0
+    },
+    {
+      "opcode": "append",
+      "start_index": 1,
+      "records": [
+        {
+          "index": 1,
+          "term": 2,
+          "kind": 1,
+          "payload_bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "operation_number": 1
+    },
+    {
+      "opcode": "commit",
+      "committed_end": 1,
+      "leader_term": 2,
+      "authorizer_id": 0,
+      "authority": 0,
+      "request_sequence": 0,
+      "operation_number": 2
+    },
+    {
+      "opcode": "append",
+      "start_index": 2,
+      "records": [
+        {
+          "index": 2,
+          "term": 2,
+          "kind": 0,
+          "payload_bytes": 7,
+          "sha256": "1c84187d50bf4127b830e2a77ac5d6989aff5c051d2583e8f269894d7bff80b6"
+        }
+      ],
+      "operation_number": 3
+    },
+    {
+      "opcode": "commit",
+      "committed_end": 2,
+      "leader_term": 2,
+      "authorizer_id": 0,
+      "authority": 0,
+      "request_sequence": 0,
+      "operation_number": 4
+    },
+    {
+      "opcode": "install",
+      "operation_number": 5,
+      "authority": 0,
+      "leader": 0,
+      "peer": 0,
+      "term": 2,
+      "sequence": 0,
+      "descriptor": {
+        "generation": "01010101010101010101010101010101",
+        "base": {
+          "term": 2,
+          "index": 2
+        },
+        "records": 2,
+        "payload_bytes": 7,
+        "bytes": 215,
+        "checksum": 3714187908
+      },
+      "committed_end": 2
+    },
+    {
+      "opcode": "append",
+      "start_index": 3,
+      "records": [
+        {
+          "index": 3,
+          "term": 2,
+          "kind": 0,
+          "payload_bytes": 6,
+          "sha256": "c134fe9d9e5f5daab1e32164066903df5f206aacd198b835b4c723a2c2b4e34b"
+        }
+      ],
+      "operation_number": 6
+    },
+    {
+      "opcode": "commit",
+      "committed_end": 3,
+      "leader_term": 2,
+      "authorizer_id": 0,
+      "authority": 0,
+      "request_sequence": 0,
+      "operation_number": 7
+    }
+  ],
+  "selected_snapshot": {
+    "generation": "01010101010101010101010101010101",
+    "base": {
+      "term": 2,
+      "index": 2
+    },
+    "records": 2,
+    "payload_bytes": 7,
+    "bytes": 215,
+    "checksum": 3714187908
+  },
+  "selected_images": [
+    {
+      "descriptor": {
+        "generation": "01010101010101010101010101010101",
+        "base": {
+          "term": 2,
+          "index": 2
+        },
+        "records": 2,
+        "payload_bytes": 7,
+        "bytes": 215,
+        "checksum": 3714187908
+      },
+      "sha256": "4da34e146c6e2b49ad48c8085a50161de78f2fa65ae86e0ef4ae6d5e70722d2d"
+    }
+  ],
+  "journal_sha256": "7e87c556157fae0bec17025b61ae970784a61840d8e9a42fed376b8e393dd47d",
+  "journal_bytes": 937
+}

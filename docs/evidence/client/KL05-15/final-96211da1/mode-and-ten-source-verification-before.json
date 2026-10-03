@@ -1,0 +1,25 @@
+{
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "verified_files": 44092,
+  "git_modes": {
+    "100644": 44005,
+    "100755": 87
+  },
+  "source_sha256": {
+    "src/share.rs": "cbc06e955dabc901c354d34c98f0f275d8c8c113019360bdb0f228963e7518d9",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "952516a79bc55b6980a27893f5d106cf0a1625538ef782c0a8a3f91f575cdb65",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "official_runner": {
+    "path": "docs/evidence/client/KL05-15/live-test-correction/run-current-docker.sh",
+    "sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51"
+  },
+  "archive_receipt_sha256": "9b3f18a4ca370a20628b0a54dde90de67ee952b6127f100b274fe1ffd201de21"
+}

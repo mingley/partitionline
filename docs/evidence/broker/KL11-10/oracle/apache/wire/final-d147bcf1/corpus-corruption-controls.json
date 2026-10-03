@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "positive_baseline_passed": true,
+  "scope": "Corruption rejection of retained SDK wire corpus; no local broker or claims-policy implementation test.",
+  "counterexamples_rejected": 9,
+  "controls": [
+    {
+      "name": "missing-case",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Wrong case identities"
+    },
+    {
+      "name": "duplicate-case",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Wrong case identities"
+    },
+    {
+      "name": "path-traversal",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "TSV/manifest mismatch"
+    },
+    {
+      "name": "wrong-api-key",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Unsafe or mismatched case identity"
+    },
+    {
+      "name": "forged-header-version",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Incorrect request header layout"
+    },
+    {
+      "name": "forged-trailing-consumption",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Missing retained Apache trailing remainder"
+    },
+    {
+      "name": "rewritten-response-file",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Raw frame mismatch or budget"
+    },
+    {
+      "name": "response-for-reject",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "Unexpected rejection response"
+    },
+    {
+      "name": "missing-tsv-row",
+      "rejected": true,
+      "exception_class": "ValueError",
+      "reason": "TSV/manifest mismatch"
+    }
+  ]
+}

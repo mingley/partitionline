@@ -1,0 +1,11 @@
+{
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "toolchain": "stable",
+  "feature_profile": "default",
+  "test": "live_current_v2_share_delivery_renew_release_expiry_accept",
+  "original_path": "/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c",
+  "retained_path": "/workspace/work/client-share-assessment/retained-default-96211da1/share_semantics.elf",
+  "sha256": "bd06c83c00cc31d00560447603d1fc64a504932afc0e239d0f5f381daca62b88",
+  "bytes": 20602584,
+  "disposition": "official frozen live test passed; retained before cache cleanup; broad clientQA pending"
+}
