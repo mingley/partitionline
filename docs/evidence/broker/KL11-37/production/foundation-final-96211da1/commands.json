@@ -1,0 +1,293 @@
+{
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "rustc",
+        "+stable",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.012275353001314215,
+      "log": "stable-rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.338525038001535,
+      "log": "stable-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 41.46937693400105,
+      "log": "stable-sasl-test.log",
+      "sha256": "a228882a1b073b29e912bf90502affcc2f6882173b8e5ae105b7a2e9834f27e4",
+      "test_totals": {
+        "passed": 304,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 6.63496694299829,
+      "log": "stable-sasl-clippy.log",
+      "sha256": "a9d38b1440c009d4fcdc44bbe715381ca796ecd8f173528b24e58bb09c118dd7",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 44.74244034499861,
+      "log": "stable-oidc-test.log",
+      "sha256": "52022889921db82a472a4abbaadb1c650bb9453f250688f376a634d1ab3fe38e",
+      "test_totals": {
+        "passed": 340,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 7.375965045001067,
+      "log": "stable-oidc-clippy.log",
+      "sha256": "d6d54a1ae4af3097dfb99fba7a871ca6eaa7fa82066b9a344be309c6217f60a0",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "rustc",
+        "+1.85.0",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.011704974000167567,
+      "log": "1.85.0-rustc.log",
+      "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.379175148998911,
+      "log": "1.85.0-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 50.519900268998754,
+      "log": "1.85.0-sasl-test.log",
+      "sha256": "65b6930bdb47796822426fe6817e5cae02da4c5b289755d6146f42498dae352c",
+      "test_totals": {
+        "passed": 304,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 11.776359456998762,
+      "log": "1.85.0-sasl-clippy.log",
+      "sha256": "1f2326463e36544d14ea5c214324ee400b6201cb0bc09c173335886224e778ae",
+      "test_totals": null
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 59.02288456399401,
+      "log": "1.85.0-oidc-test.log",
+      "sha256": "48b5fc7224b6f445890958abb188e2a6ae9cc19bea5c34421ce382cb857c0d0f",
+      "test_totals": {
+        "passed": 340,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 12.094240995000291,
+      "log": "1.85.0-oidc-clippy.log",
+      "sha256": "62ef927773e979c404bd4691b8cb8471d39f3641a1ab914afd558b6ecff26f58",
+      "test_totals": null
+    }
+  ]
+}

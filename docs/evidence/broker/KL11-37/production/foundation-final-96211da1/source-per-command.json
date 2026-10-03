@@ -1,0 +1,173 @@
+{
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "checks": [
+    {
+      "command": 0,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 0,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 1,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 1,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 2,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 2,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 3,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 3,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 4,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 4,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 5,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 5,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 6,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 6,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 7,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 7,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 8,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 8,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 9,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 9,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 10,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 10,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 11,
+      "phase": "before",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    },
+    {
+      "command": 11,
+      "phase": "after",
+      "checked_Git_blobs": 44092,
+      "all_bytes_and_modes_match": true,
+      "source_fingerprint": "7bf40abcd020c85ce4009dc0302b11f7ce210fb48d497b695b7a011086e72257"
+    }
+  ]
+}

@@ -1,0 +1,904 @@
+{
+  "schema": 1,
+  "disposition": "foundation-qualified; managed HTTPS/socket stages remain development and KL11-37 remains open",
+  "foundation_profile_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "reused_default_all_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "named_commands": 20,
+  "new_commands": 12,
+  "reused_commands": 8,
+  "all_exit_codes_zero": true,
+  "behavior_totals": {
+    "passed": 2504,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered": 0
+  },
+  "source_verification": {
+    "complete_Git_blobs": 44092,
+    "before_after_each_new_command": 24,
+    "broker_root_config_bridge_paths": 5330,
+    "new_source_sha256": "e47d4ed91a4b97319607fe14194535312deff9ffcecb1cf4fbc4ce4b0715a710",
+    "bridge_sha256": "83c774f28d642c8d7516dd1e587b922bc55cc8df2a42964853e45a3519495689",
+    "reused_validation_sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa"
+  },
+  "commands": [
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "rustc",
+        "+stable",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.012275353001314215,
+      "log": "stable-rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.338525038001535,
+      "log": "stable-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 41.46937693400105,
+      "log": "stable-sasl-test.log",
+      "sha256": "a228882a1b073b29e912bf90502affcc2f6882173b8e5ae105b7a2e9834f27e4",
+      "test_totals": {
+        "passed": 304,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 6.63496694299829,
+      "log": "stable-sasl-clippy.log",
+      "sha256": "a9d38b1440c009d4fcdc44bbe715381ca796ecd8f173528b24e58bb09c118dd7",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 44.74244034499861,
+      "log": "stable-oidc-test.log",
+      "sha256": "52022889921db82a472a4abbaadb1c650bb9453f250688f376a634d1ab3fe38e",
+      "test_totals": {
+        "passed": 340,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 7.375965045001067,
+      "log": "stable-oidc-clippy.log",
+      "sha256": "d6d54a1ae4af3097dfb99fba7a871ca6eaa7fa82066b9a344be309c6217f60a0",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "rustc",
+        "+1.85.0",
+        "-vV"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.011704974000167567,
+      "log": "1.85.0-rustc.log",
+      "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "duration_s": 0.379175148998911,
+      "log": "1.85.0-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 50.519900268998754,
+      "log": "1.85.0-sasl-test.log",
+      "sha256": "65b6930bdb47796822426fe6817e5cae02da4c5b289755d6146f42498dae352c",
+      "test_totals": {
+        "passed": 304,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "sasl",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 11.776359456998762,
+      "log": "1.85.0-sasl-clippy.log",
+      "sha256": "1f2326463e36544d14ea5c214324ee400b6201cb0bc09c173335886224e778ae",
+      "test_totals": null
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "duration_s": 59.02288456399401,
+      "log": "1.85.0-oidc-test.log",
+      "sha256": "48b5fc7224b6f445890958abb188e2a6ae9cc19bea5c34421ce382cb857c0d0f",
+      "test_totals": {
+        "passed": 340,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "scope": "complete immutable96211 source, narrow foundation profiles",
+      "tested_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+      "argv": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/broker-oidc/foundation-final-96211da1/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--offline",
+        "--no-default-features",
+        "--features",
+        "oidc",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "duration_s": 12.094240995000291,
+      "log": "1.85.0-oidc-clippy.log",
+      "sha256": "62ef927773e979c404bd4691b8cb8471d39f3641a1ab914afd558b6ecff26f58",
+      "test_totals": null
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/stable-default-all-targets.log",
+      "sha256": "3bf83d678895c6178ac28b8e77c9b68b1653b4d34c9700acb52a11782232d9d3",
+      "test_totals": {
+        "passed": 256,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "original_receipt": {
+        "name": "stable-default-all-targets",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+stable",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-targets",
+          "--",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "environment_additions": {
+          "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/wire-report.json",
+          "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/metadata-report.json",
+          "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/produce-report.json",
+          "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/fetch-report.json",
+          "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/rolling-report.json",
+          "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/apache-router-report.json",
+          "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/responses",
+          "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/proof",
+          "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/rolling-fault-histories",
+          "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/retention-fault-histories",
+          "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/retention-report.json",
+          "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/fetch-responses",
+          "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/controller-report.json",
+          "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/controller-responses",
+          "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/snapshot",
+          "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner",
+          "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/replication",
+          "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 37.133,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "3bf83d678895c6178ac28b8e77c9b68b1653b4d34c9700acb52a11782232d9d3",
+        "capture_directory": "stable-default"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/stable-default-strict-clippy.log",
+      "sha256": "5922074b6c35fa650ccac55d3a3816e096e8185c8a3edb9f42b9503fff36cbad",
+      "test_totals": null,
+      "original_receipt": {
+        "name": "stable-default-strict-clippy",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "environment_additions": {},
+        "exit_code": 0,
+        "elapsed_seconds": 11.249,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "5922074b6c35fa650ccac55d3a3816e096e8185c8a3edb9f42b9503fff36cbad"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/stable-all-features-all-targets.log",
+      "sha256": "484bb2efe2e3b55c854e304545d8c87b57e73ed69dd55f2038421b6d6972f02e",
+      "test_totals": {
+        "passed": 352,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "original_receipt": {
+        "name": "stable-all-features-all-targets",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+stable",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-features",
+          "--all-targets",
+          "--",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "environment_additions": {
+          "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/wire-report.json",
+          "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/metadata-report.json",
+          "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/produce-report.json",
+          "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/fetch-report.json",
+          "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/rolling-report.json",
+          "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/apache-router-report.json",
+          "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/responses",
+          "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/proof",
+          "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/rolling-fault-histories",
+          "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-fault-histories",
+          "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-report.json",
+          "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/fetch-responses",
+          "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/controller-report.json",
+          "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/controller-responses",
+          "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot",
+          "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner",
+          "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/replication",
+          "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 77.576,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "484bb2efe2e3b55c854e304545d8c87b57e73ed69dd55f2038421b6d6972f02e",
+        "capture_directory": "stable-all-features"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/stable-all-features-strict-clippy.log",
+      "sha256": "178a64aad089b32ac6ea90d2784957e13447630d7ac288b9c70a173a3c9608dc",
+      "test_totals": null,
+      "original_receipt": {
+        "name": "stable-all-features-strict-clippy",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+stable",
+          "clippy",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-features",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "environment_additions": {},
+        "exit_code": 0,
+        "elapsed_seconds": 19.543,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "178a64aad089b32ac6ea90d2784957e13447630d7ac288b9c70a173a3c9608dc"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/1.85.0-default-all-targets.log",
+      "sha256": "07376f4e209be3e128d22fe53457e9fbecca9dd23726a427dae08cb9c6c35197",
+      "test_totals": {
+        "passed": 256,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "original_receipt": {
+        "name": "1.85.0-default-all-targets",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-targets",
+          "--",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "environment_additions": {
+          "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/wire-report.json",
+          "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/metadata-report.json",
+          "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/produce-report.json",
+          "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/fetch-report.json",
+          "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/rolling-report.json",
+          "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/apache-router-report.json",
+          "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/responses",
+          "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/proof",
+          "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/rolling-fault-histories",
+          "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-fault-histories",
+          "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-report.json",
+          "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/fetch-responses",
+          "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/controller-report.json",
+          "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/controller-responses",
+          "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot",
+          "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner",
+          "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/replication",
+          "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 44.487,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "07376f4e209be3e128d22fe53457e9fbecca9dd23726a427dae08cb9c6c35197",
+        "capture_directory": "1.85.0-default"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/1.85.0-default-strict-clippy.log",
+      "sha256": "f0febf8a32395e174ca515a0e9cddfe0ea4a9bab7e7eaac4c5d8944ddb28a2ca",
+      "test_totals": null,
+      "original_receipt": {
+        "name": "1.85.0-default-strict-clippy",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+1.85.0",
+          "clippy",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "environment_additions": {},
+        "exit_code": 0,
+        "elapsed_seconds": 15.156,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "f0febf8a32395e174ca515a0e9cddfe0ea4a9bab7e7eaac4c5d8944ddb28a2ca"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/1.85.0-all-features-all-targets.log",
+      "sha256": "a2c71aa5927a562a9c59b1f7b798ee7fe84c11621624a6aa95f1c3a1dbdc0128",
+      "test_totals": {
+        "passed": 352,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      },
+      "original_receipt": {
+        "name": "1.85.0-all-features-all-targets",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-features",
+          "--all-targets",
+          "--",
+          "--test-threads=1",
+          "--nocapture"
+        ],
+        "environment_additions": {
+          "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/wire-report.json",
+          "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/metadata-report.json",
+          "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/produce-report.json",
+          "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/fetch-report.json",
+          "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/rolling-report.json",
+          "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/apache-router-report.json",
+          "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/responses",
+          "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/proof",
+          "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/rolling-fault-histories",
+          "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-fault-histories",
+          "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-report.json",
+          "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/fetch-responses",
+          "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/controller-report.json",
+          "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/controller-responses",
+          "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot",
+          "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner",
+          "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/replication",
+          "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+          "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+        },
+        "exit_code": 0,
+        "elapsed_seconds": 94.955,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "a2c71aa5927a562a9c59b1f7b798ee7fe84c11621624a6aa95f1c3a1dbdc0128",
+        "capture_directory": "1.85.0-all-features"
+      }
+    },
+    {
+      "scope": "exact d147 full broker default/all receipt; broker inputs identical to96211 by source-bridge; whole96211 default/all was not tested",
+      "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "reused-d147/1.85.0-all-features-strict-clippy.log",
+      "sha256": "6dc48c705a73f4d990cc13d400a691408f9a6ab7263d53f3c0291e67789934d5",
+      "test_totals": null,
+      "original_receipt": {
+        "name": "1.85.0-all-features-strict-clippy",
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "cargo",
+          "+1.85.0",
+          "clippy",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--all-features",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "environment_additions": {},
+        "exit_code": 0,
+        "elapsed_seconds": 26.705,
+        "source_before": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "source_after": {
+          "file_count": 44019,
+          "all_git_blobs_match": true,
+          "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+        },
+        "log_sha256": "6dc48c705a73f4d990cc13d400a691408f9a6ab7263d53f3c0291e67789934d5"
+      }
+    }
+  ],
+  "retained_superseded_attempts": [
+    "837cd317: real inactive-feature test crate documentation failure; stableOIDC/all passed in that attempt; all MSRV behavior/lint blocked by ENOSPC",
+    "070598ee: upstream shared broker full matrix behavior passed, MSRV all-target Clippy exposed private JWT fixture format_collect; previous narrower library checks did not lint the cfg(test) harness. d147 contains exact private helper correction only."
+  ],
+  "limits": [
+    "This checkpoint is a strict signed-JWT foundation, not completed OIDC/discovery/revocation/session qualification.",
+    "Default/all raw commands are accurately pinned to d147, not relabeled as testing the complete96211 tree.",
+    "Independent fixed-clock OpenSSL fixtures and real-clock officialSDK component policy differences remain separately scoped."
+  ]
+}

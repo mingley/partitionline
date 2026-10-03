@@ -1,0 +1,7 @@
+{
+  "tested_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "scope": "independent read-only full mode check AFTER coordinator qualification; not a claimed per-command mode check",
+  "complete_source_files_checked": 44019,
+  "mismatches": [],
+  "mode_fingerprint_sha256": "cfebb3d7f080e0a5a149a736b0c11dd53ff007e49a3394194221e7e66fd0b1d0"
+}

@@ -1,0 +1,25 @@
+start stable-rustc.log
+end stable-rustc.log exit=0
+start stable-format.log
+end stable-format.log exit=0
+start stable-sasl-test.log
+end stable-sasl-test.log exit=0
+start stable-sasl-clippy.log
+end stable-sasl-clippy.log exit=0
+start stable-oidc-test.log
+end stable-oidc-test.log exit=0
+start stable-oidc-clippy.log
+end stable-oidc-clippy.log exit=0
+start 1.85.0-rustc.log
+end 1.85.0-rustc.log exit=0
+start 1.85.0-format.log
+end 1.85.0-format.log exit=0
+start 1.85.0-sasl-test.log
+end 1.85.0-sasl-test.log exit=0
+start 1.85.0-sasl-clippy.log
+end 1.85.0-sasl-clippy.log exit=0
+start 1.85.0-oidc-test.log
+end 1.85.0-oidc-test.log exit=0
+start 1.85.0-oidc-clippy.log
+end 1.85.0-oidc-clippy.log exit=0
+{"commands": 12, "failures": 0}
