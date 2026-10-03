@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "scope": "Additive independent verifier schema correction; one actual cohort and 16 synthetic controls, no new live executions",
+  "source_files": {
+    "docs/evidence/broker/KL11-75/oracle/peers/verify-live-v3.py": {
+      "sha256": "38a51db2009b0387b7453928fed2e9c0881290db74cbc010dde44a71edf328cd",
+      "bytes": 16882,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-digest-v3-root/run-controls.py": {
+      "sha256": "72b8a101a3b228ed3dc2403b3331df4618a57e8fa54af947ceef5e41baa7ae44",
+      "bytes": 4313,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-digest-v3-root/controls-and-actual-replay.json": {
+      "sha256": "9f5f0c8b1f25eb84dd40cf085d98f828358c4a4141cd27e87fac6fa3902480d7",
+      "bytes": 3438,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-digest-v3-root/first-v2-replay-failure.json": {
+      "sha256": "aae8cb66fd71526317b450793b771597d69eafd7293f14adf8d3a59bb6e05a64",
+      "bytes": 7837,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-digest-v3-root/verifier-v2-to-v3.patch": {
+      "sha256": "6cf3eaa6d2ddccbe5da99a3054fade97ec15fe3d6cd10ff7c9d37374976b4ec3",
+      "bytes": 1377,
+      "full_mode": 384
+    },
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-digest-v3-root/README.md": {
+      "sha256": "10bc87d4cb0b32b6b0b1187322b3b5eb71e360b4d6fceb0bbecfff28e8e94ef0",
+      "bytes": 1258,
+      "full_mode": 384
+    }
+  },
+  "v2_unchanged_sha256": "51c797c3972bd8cb385c01a2f8f0a5f5a14aefb6c5b0d070b038744b2996c57a",
+  "runtime_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "peer_source_sha": "f0ca05da9c04942b211e2f56ddc615b9860cdea2"
+}

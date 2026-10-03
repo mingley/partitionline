@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Independent one-cohort actual replay and synthetic malformed-history controls; remaining three cohorts unrun",
+  "actual_new_SDK_or_broker_or_Cargo_executions": 0,
+  "actual_affinity": [
+    2,
+    4
+  ],
+  "verifier_sha256": "38a51db2009b0387b7453928fed2e9c0881290db74cbc010dde44a71edf328cd",
+  "checker_inputs": {
+    "/workspace/work/integration/compaction-rust-digest-v3/source/verify-live-v3.py": {
+      "sha256": "38a51db2009b0387b7453928fed2e9c0881290db74cbc010dde44a71edf328cd",
+      "bytes": 16882,
+      "mode": 384
+    },
+    "/workspace/work/integration/compaction-rust-digest-v3/run-controls.py": {
+      "sha256": "72b8a101a3b228ed3dc2403b3331df4618a57e8fa54af947ceef5e41baa7ae44",
+      "bytes": 4313,
+      "mode": 384
+    }
+  },
+  "actual_lane": {
+    "path": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/live/stable-default/attempt-1/validation.json",
+    "sha256": "a09dedb95cfe06d5ed17c3f5a3a26e40186ae2cf42229eea1e41f6d27d55ee69",
+    "toolchain": "stable",
+    "features": "default",
+    "actual_peer_jobs": 160,
+    "actual_record_events": 2345,
+    "actual_assertions": 25455,
+    "public_topics": 15,
+    "operator_calls": 45,
+    "state_snapshots": 5
+  },
+  "positive_actual_read_jobs": 150,
+  "negative_controls": [
+    {
+      "name": "rust-missing-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-wrong-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-boolean-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-null-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-truncated-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-extra-field",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "rust-boolean-offset",
+      "rejected": true,
+      "reason": "exact records and SDK consumed-position contract"
+    },
+    {
+      "name": "rust-changed-header",
+      "rejected": true,
+      "reason": "exact records and SDK consumed-position contract"
+    },
+    {
+      "name": "rust-frontier-before-records",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "j412-unreviewed-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "j421-unreviewed-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "j431-unreviewed-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "native-unreviewed-digest",
+      "rejected": true,
+      "reason": "ordered delivered records"
+    },
+    {
+      "name": "native-missing-eof",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "native-wrong-eof",
+      "rejected": true,
+      "reason": "native EOF and public watermark independently bind LEO"
+    },
+    {
+      "name": "native-boolean-count",
+      "rejected": true,
+      "reason": "actual consumed cardinality"
+    }
+  ],
+  "actual_cohort_files_verified_before_after": 1206,
+  "all_cohort_file_bytes_and_full_modes_unchanged": true
+}

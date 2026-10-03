@@ -1,0 +1,20 @@
+--- verify-live-v2.py
++++ verify-live-v3.py
+@@ -104,8 +104,15 @@
+     for position in positions:
+         selected = [record for seek, record in wanted if seek == position["seek"] and record["topic"] == position["topic"]]
+         for record in selected:
+-            require(exact_typed(peer["history"][cursor], {"label": "public-consumer-record",
+-                    "seek": position["seek"], "stage": stage, "record": record}), "ordered delivered records")
++            expected_event = {"label": "public-consumer-record", "seek": position["seek"],
++                              "stage": stage, "record": record}
++            if reader == "rust":
++                # The frozen Rust adopter hashes this finite literal receipt's
++                # compact UTF-8 JSON, in the independently prescribed field order.
++                # Hash expected values, never trust a self-reported actual digest.
++                encoded = json.dumps(record, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
++                expected_event["record_sha256"] = hashlib.sha256(encoded).hexdigest()
++            require(exact_typed(peer["history"][cursor], expected_event), "ordered delivered records")
+             cursor += 1
+         if reader == "native":
+             require(exact_typed(peer["history"][cursor], expected_native_eofs([position])[0]), "EOF after actual records")

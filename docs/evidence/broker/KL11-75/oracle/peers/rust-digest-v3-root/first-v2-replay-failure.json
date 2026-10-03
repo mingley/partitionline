@@ -1,0 +1,298 @@
+{
+  "scope": "root actual independent one-lane replay failure; no new SDK/broker/Cargo",
+  "checker_sha256": "51c797c3972bd8cb385c01a2f8f0a5f5a14aefb6c5b0d070b038744b2996c57a",
+  "inner_receipt_sha256": "a09dedb95cfe06d5ed17c3f5a3a26e40186ae2cf42229eea1e41f6d27d55ee69",
+  "row": {
+    "reader": "rust",
+    "producer": "j412",
+    "operation": "read",
+    "stage": "initial",
+    "command": [
+      "taskset",
+      "-c",
+      "2,4",
+      "/workspace/work/compaction-public-403be1e3/bin/stable-default/compaction-rust",
+      "127.0.0.1:19165",
+      "cp-j412",
+      "read",
+      "initial",
+      "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/live/stable-default/attempt-1/initial-read-rust-j412.json"
+    ],
+    "exit_code": 0,
+    "log": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/live/stable-default/attempt-1/initial-read-rust-j412.log",
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "report": "/workspace/work/compaction-public-403be1e3/mixed-f0ca05da/live/stable-default/attempt-1/initial-read-rust-j412.json",
+    "report_sha256": "0f9fd93d35c341cae603271fdadd0dc5b61bf5493a2c60e89e2bfefa9d001a83",
+    "independently_checked_read_history": {
+      "record_events": 27,
+      "position_events": 9,
+      "native_eof_events": 0
+    },
+    "assertions": 143,
+    "records": 27
+  },
+  "exception": "ordered delivered records",
+  "traceback": "Traceback (most recent call last):\n  File \"<stdin>\", line 8, in <module>\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-live-v2.py\", line 107, in check_read\n    require(exact_typed(peer[\"history\"][cursor], {\"label\": \"public-consumer-record\",\n  File \"/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/verify-live-v2.py\", line 32, in require\n    raise ValueError(label)\nValueError: ordered delivered records\n",
+  "first_history": [
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "a3cf2e09e5e248edc37dbd0479d5f4fd265f10818500054011cae83e842c2f56",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 0,
+        "timestamp": 1000,
+        "key_hex": "61",
+        "value_hex": "6f",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "d67892474968b5a7684cad64fc4765d5c3a3f9331a212a6473d77e628a1f6cef",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 1,
+        "timestamp": 1007,
+        "key_hex": null,
+        "value_hex": "76",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "9fab1fcea51a393f17e328e6a0e4a062f9d1a45f6d4143ec62fcd54f8dcbfbcb",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 2,
+        "timestamp": 1003,
+        "key_hex": "61",
+        "value_hex": "6e",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "6f1b1d39d0e6d4a7036d864b68a3a7aaf41f9af8a4d0135a66458eaa571e8c58",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 3,
+        "timestamp": 1007,
+        "key_hex": "62",
+        "value_hex": "6f",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "8893cd2293981ccfdfd53409002ea6159e842a05373715e21dc28164bfe12fff",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 4,
+        "timestamp": 1010,
+        "key_hex": "62",
+        "value_hex": null,
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "72e4d54a83f0553363f8bc03de522266856bed15864aeba9de5e26da5ac07bb2",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 5,
+        "timestamp": 1011,
+        "key_hex": "",
+        "value_hex": "",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "30e8b88df65cc2930608e9b23a0384e1ceb5b95c5ff86596dec443e2aabefad1",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 6,
+        "timestamp": 1012,
+        "key_hex": null,
+        "value_hex": null,
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "798978141c0a48b7c8ba94b39e67a5b0e6bc0ba26840239fdc2dca0f869d8b9a",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 7,
+        "timestamp": 1013,
+        "key_hex": "63",
+        "value_hex": null,
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-record",
+      "seek": 0,
+      "stage": "initial",
+      "record_sha256": "9e5a1f8d4e3449bc2b542ae2fb7dac9e171e54a25bcab9419b7e6d1043e831b6",
+      "record": {
+        "topic": "cp-j412-mixed",
+        "partition": 0,
+        "offset": 8,
+        "timestamp": 1014,
+        "key_hex": "61",
+        "value_hex": "70",
+        "headers": [
+          {
+            "key": "d",
+            "value_hex": "61"
+          },
+          {
+            "key": "d",
+            "value_hex": null
+          },
+          {
+            "key": "e",
+            "value_hex": ""
+          }
+        ]
+      }
+    },
+    {
+      "label": "public-consumer-position",
+      "topic": "cp-j412-mixed",
+      "seek": 0,
+      "position": 9,
+      "beginning_offset": 0,
+      "end_offset": 9
+    }
+  ]
+}
