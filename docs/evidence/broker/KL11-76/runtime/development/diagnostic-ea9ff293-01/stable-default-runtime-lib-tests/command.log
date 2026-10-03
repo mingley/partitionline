@@ -1,0 +1,17 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-merged-source-ea9ff293/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 6.32s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 9 tests
+test raft::runtime::ownership_tests::abandoned_vote_vector_and_full_route_release_every_exact_correlation ... ok
+test raft::runtime::ownership_tests::configured_route_does_not_authorize_unknown_configuration_leader_over_tcp ... ok
+test raft::runtime::ownership_tests::expired_outer_budget_cannot_admit_a_genuine_leader_write ... ok
+test raft::runtime::ownership_tests::reliable_stop_waits_for_saturated_owner_even_after_command_deadline ... ok
+test raft::runtime::tests::actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test raft::runtime::tests::actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test raft::runtime::tests::canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+test raft::runtime::tests::incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+test raft::runtime::tests::runtime_child_process ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 56 filtered out; finished in 10.17s
+

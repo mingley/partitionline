@@ -1,0 +1,15 @@
+{
+  "scope": "read-only current target references; no cache removal",
+  "target": "/workspace/work/broker-oidc/live-peers-target",
+  "references": [],
+  "categories_checked": [
+    "argv prefix",
+    "cwd",
+    "exe",
+    "fd",
+    "maps",
+    "CARGO_TARGET_DIR only, no other environment fields"
+  ],
+  "producer_sha256": "7c9efdc8816b42f468d80ecfa0cf4067f86275fd8a816f65be63709f87f527ac",
+  "self_excluded_pid": 1191167
+}

@@ -1,0 +1,345 @@
+{
+  "schema": 1,
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "exit_code": 0,
+  "artifact_kind": "normal-example-executable",
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "cargo",
+    "+stable",
+    "build",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--example",
+    "oidc_live_probe",
+    "--no-default-features",
+    "--features",
+    "oidc",
+    "--message-format=json-render-diagnostics"
+  ],
+  "executable": "/workspace/work/normal-oidc-example-fcac9d1d/bin/stable/oidc_live_probe",
+  "executable_sha256": "99394810a872ed0c326d0643a568ac2afa75a644225b45801c707a391019691b",
+  "executable_bytes": 14446680,
+  "executable_full_mode": 448,
+  "copied_bytes_and_mode_verified": true,
+  "toolchain": "stable",
+  "toolchain_version": {
+    "argv": [
+      "/workspace/work/cargo/bin/rustc",
+      "+stable",
+      "-Vv"
+    ],
+    "version": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+  },
+  "full_validation": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/validation.json",
+    "sha256": "a6b56a4c0a1ef6402ac75373e4211bc9bc93103afa95921af115696c1059024d",
+    "bytes": 891879,
+    "full_mode": 384
+  },
+  "actual_build_command_log": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/stable-normal-oidc-example-build/command.log",
+    "sha256": "47ef09f33cace1671e73ba0407199105f527997ae754ad73c58f280f9577f2ee",
+    "bytes": 62559,
+    "full_mode": 384
+  },
+  "actual_disk_monitor_log": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/stable-normal-oidc-example-build/disk-monitor.jsonl",
+    "sha256": "536bdf6a81b4a24150afb074d8737a5436d46c14617f4338a17d4f792983d522",
+    "bytes": 1799,
+    "full_mode": 384
+  },
+  "actual_Cargo_artifact": {
+    "reason": "compiler-artifact",
+    "package_id": "path+file:///workspace/work/broker-merged-source-fcac9d1d/partitionline-broker#0.1.0",
+    "manifest_path": "/workspace/work/broker-merged-source-fcac9d1d/partitionline-broker/Cargo.toml",
+    "target": {
+      "kind": [
+        "example"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "oidc_live_probe",
+      "src_path": "/workspace/work/broker-merged-source-fcac9d1d/partitionline-broker/examples/oidc_live_probe.rs",
+      "edition": "2021",
+      "doc": false,
+      "doctest": false,
+      "test": false
+    },
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    },
+    "features": [
+      "oidc",
+      "sasl",
+      "tls"
+    ],
+    "filenames": [
+      "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe"
+    ],
+    "executable": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe",
+    "fresh": false
+  },
+  "source_origin_receipt": {
+    "path": "/workspace/work/compaction-final-preparation/normal-source-origin-fcac9d1d.json",
+    "sha256": "10003b289f8bff8d3db5014177f99ecf103e5eef699c1e8abd006419184bb275",
+    "bytes": 2339,
+    "full_mode": 384
+  },
+  "source_manifest": {
+    "path": "source-integrity.json.gz",
+    "sha256": "0dfe37fb7a97537f4dcf6ee2381013e556e131028ca1c10db9902f4ed1254801",
+    "uncompressed_sha256": "686530fb469924de42e2e34eb50f9dc01eb56aba4b5b5155491bb7e402354ac1",
+    "uncompressed_bytes": 27328044,
+    "original_mode": 384,
+    "restore_path": "source-integrity.json",
+    "compression": "gzip",
+    "decompression_verified": true,
+    "compressed_mode": 384,
+    "absolute_path": "/workspace/work/normal-oidc-example-fcac9d1d/source-integrity.json.gz"
+  },
+  "source_before": {
+    "file_count": 73196,
+    "all_git_blobs_match": true,
+    "all_baseline_permission_modes_match": true,
+    "set_and_blob_sha256": "01e18767fe890d5d70192b83c1c9bfbce7bbfb0a00381f80e96a3bf660777803"
+  },
+  "source_after": {
+    "file_count": 73196,
+    "all_git_blobs_match": true,
+    "all_baseline_permission_modes_match": true,
+    "set_and_blob_sha256": "01e18767fe890d5d70192b83c1c9bfbce7bbfb0a00381f80e96a3bf660777803"
+  },
+  "final_source": {
+    "file_count": 73196,
+    "all_git_blobs_match": true,
+    "all_baseline_permission_modes_match": true,
+    "set_and_blob_sha256": "01e18767fe890d5d70192b83c1c9bfbce7bbfb0a00381f80e96a3bf660777803"
+  },
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "cpu_affinity": {
+    "requested": "2,4",
+    "actual_cpu_ids": [
+      2,
+      4
+    ]
+  },
+  "disk_monitor": {
+    "threshold_bytes": 367001600,
+    "poll_interval_seconds": 0.5,
+    "minimum_free_bytes": 1959157760,
+    "samples": 15,
+    "triggered": false,
+    "trigger": null,
+    "actual_process_exit_code": 0,
+    "sample_log_sha256": "536bdf6a81b4a24150afb074d8737a5436d46c14617f4338a17d4f792983d522"
+  },
+  "accepted_full61_normalization": {
+    "path": "/workspace/work/integration/broker-403-normalization/normalized.json",
+    "sha256": "248b83d10489c4210d7a378f64f0ec2db7662e13a077737adf4d3abae30a0916",
+    "bytes": 2928429,
+    "full_mode": 384,
+    "scope": "Historical403 normalized qualification only; current compiled-input deltas are separately enumerated and actually rebuilt."
+  },
+  "compiler_input_equivalence": {
+    "current_source": "fcac9d1d783b63890b3316601de72a4075973e10",
+    "current_input_count": 5920,
+    "all_current_plan_inputs_match_complete_current_source": true,
+    "standalone_broker_lock": {
+      "git_mode": "100644",
+      "git_blob_sha1": "726255a6aaa7abaa1663c536149fb185fea0ad44",
+      "sha256": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146",
+      "bytes": 19487,
+      "full_mode": 384
+    },
+    "historical_qualified_source": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+    "historical_input_count": 5916,
+    "unchanged_path_count": 5911,
+    "changed_paths": [
+      {
+        "path": "partitionline-broker/examples/oidc_live_probe.rs",
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "013ec1fdae417ff843001761966faca021f0ecda",
+          "sha256": "92d4f88154fbbfe13e6e806e66000dff22783131a5a8132c20e0a998567a6cc9",
+          "bytes": 17699,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "fe9bb86593739c3f640de48ddcc30cc234a36af5",
+          "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6",
+          "bytes": 17699,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/src/raft/mod.rs",
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "41a278e40bc2ea4653809db909ba11012bbd20ef",
+          "sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
+          "bytes": 443,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "b45b16c315811b96bdb16364ae22bab8b1275bfa",
+          "sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+          "bytes": 611,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/src/raft/replication.rs",
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "c7d5c6ad62426e5572e436e781f26a65f0db8a3f",
+          "sha256": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+          "bytes": 174543,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "bceffc03cff762a29566552041dc454056a80e30",
+          "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+          "bytes": 175742,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/tests/raft_membership.rs",
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "0cc6511de846b492fab74060f14dcf0f947048f1",
+          "sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+          "bytes": 69001,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "874677ed274c1ca699f6e484be41b768977eab13",
+          "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+          "bytes": 72376,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "tests/conformance/broker/implemented-api-versions.json",
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "c073fc12d6a95387ae56389b17b91ab544dcf196",
+          "sha256": "46e1fd9d6af5df26763e1ca9a58ae471cc1fda7631d14625bd99ceedb8918802",
+          "bytes": 592268,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "a409d9ee1393c8511019c04daa9ef3b1821de8fb",
+          "sha256": "9ada336ff4d8afe0b9e021f09f19181cb55374ad6615486864a95d4964a21b3f",
+          "bytes": 592268,
+          "full_mode": 384
+        }
+      }
+    ],
+    "added_paths": [
+      {
+        "path": "partitionline-broker/src/raft/peer_codec.rs",
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "d1fb1a209e1f2faf8a6d2529dd925328ba0eda1f",
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "bytes": 27638,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/src/raft/runtime.rs",
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "8f2b0afdf43f33cd11b0d96b7a22c7b538a2dc05",
+          "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+          "bytes": 96127,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/tests/common/raft_runtime.rs",
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "c5b18055c09e4573571b095ec0b94b34707277b0",
+          "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+          "bytes": 31258,
+          "full_mode": 384
+        }
+      },
+      {
+        "path": "partitionline-broker/tests/raft_runtime.rs",
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "53e893e274d7f2066c464c9097d0a78f0b305b44",
+          "sha256": "53308755744ab1d075a31a97928bcc6a990f536087eb2d600be576370bbb2dd6",
+          "bytes": 196,
+          "full_mode": 384
+        }
+      }
+    ],
+    "removed_paths": [],
+    "supplemental_configuration_inputs": {
+      "clippy.toml": {
+        "baseline": {
+          "git_mode": "100644",
+          "git_blob_sha1": "b328f709a75fd86c47e7029e8aa66e24247bdab2",
+          "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+          "bytes": 1522,
+          "full_mode": 384
+        },
+        "current": {
+          "git_mode": "100644",
+          "git_blob_sha1": "b328f709a75fd86c47e7029e8aa66e24247bdab2",
+          "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+          "bytes": 1522,
+          "full_mode": 384
+        }
+      }
+    },
+    "qualification_limit": "Historical full61 applies only to403. This current-source pair qualifies two actual normal example builds, not a new full broker matrix or live peer execution."
+  },
+  "compiler_input_equivalence_receipt": {
+    "path": "/workspace/work/integration/broker-current-inputs-fcac9d1d.json",
+    "sha256": "99072b2bdba19fa92cbbc5f5c142481e35664c89cd7911c16c8f01f918416726",
+    "bytes": 1167,
+    "full_mode": 384
+  },
+  "build_plan": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/plan.json",
+    "sha256": "cf60ddc08af747223d312683fe291765aaa63eee4f290d5fbfe3effb56234658",
+    "bytes": 2030538,
+    "full_mode": 384
+  },
+  "driver": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/driver.py",
+    "sha256": "47924613060682672e6986243530854b8d0d2f6de1698c52294a3198aa649a15",
+    "bytes": 26615,
+    "full_mode": 384
+  },
+  "scope": "Additive binding to actual completed normal build on this source/toolchain only. No new build, test or live peer execution; no relabeling."
+}

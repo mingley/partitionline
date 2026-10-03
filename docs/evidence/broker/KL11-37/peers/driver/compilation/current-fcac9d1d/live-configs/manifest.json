@@ -1,0 +1,902 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "status": "actual immutable compiler inputs bound and statically checked; ROOT live GO still required; no live invocation",
+  "config_count": 32,
+  "recipe_manifest": {
+    "path": "/workspace/work/broker-oidc/live-config-preparation-f500/manifest.json",
+    "sha256": "5a4ab9d3e4c0a43bb74d1a6a136abb77bebece95031f44e3d902c79b02c780fd"
+  },
+  "peer_build_validation": {
+    "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/validation.json",
+    "sha256": "a611744e785cfb9485b946b1821c2214f1c3ff39691abdc35b6435b88e957ad4"
+  },
+  "normal_build_validation": {
+    "path": "/workspace/work/normal-oidc-example-fcac9d1d/validation.json",
+    "sha256": "a6b56a4c0a1ef6402ac75373e4211bc9bc93103afa95921af115696c1059024d"
+  },
+  "source_guard": {
+    "files": 73196,
+    "before_equals_after": true,
+    "scope": "complete actual regular/symlink pathset, all Git blobs, full07777"
+  },
+  "run_count": 32,
+  "maximum_steps": 84,
+  "maximum_config_bytes": 62355,
+  "execution": "sequential cohorts; actual outer inclusive300s deadline and driver240s, no concurrent broker/SDK groups across cohorts",
+  "private_mode_requirement": "actual issuer/config/state directories0700, files0600 under driver umask077; validate path/mode only at future runtime; private bytes never included in evidence",
+  "denial_limits": "typed client/local/transport/native-unproved errors remain separate from server protocol responses; no operation-synchronized no-dispatch claim",
+  "cohorts": [
+    {
+      "name": "ordinary-stable",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-stable.json",
+      "config_sha256": "1df065769d6ee4a10c23d053666d8bf38aa444b149b81aa6778c2662681d354f",
+      "config_bytes": 62355,
+      "server_toolchain": "stable",
+      "profile": "read-write",
+      "steps": 45,
+      "peer_ids": [
+        "java-4-1-2",
+        "java-4-2-1",
+        "java-4-3-1",
+        "native-2-15",
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/ordinary-stable.recipe.json",
+      "recipe_sha256": "5cf00e215ff11c2efa7c2b0c0d5828c3f42a1a45bdf748c0dc65bb77e8024ee6",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-stable.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/ordinary-stable",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/ordinary-stable"
+      ]
+    },
+    {
+      "name": "authority-stable-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-1-2.json",
+      "config_sha256": "19ca865cdb3e4490798c60f61746b2425ad409b331c26404ab088eeb0f6f365e",
+      "config_bytes": 20745,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-stable-java-4-1-2.recipe.json",
+      "recipe_sha256": "3b3018b66b9260ec8095549cccc6431cb791776e1d4cd0f70466e157aea269ba",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-stable-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-stable-java-4-1-2"
+      ]
+    },
+    {
+      "name": "acquisition-stable-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-1-2.json",
+      "config_sha256": "849a39b83878aff84f7a47f58b3cea1ce4d2b3f3f626cf28a811279a01bf91f1",
+      "config_bytes": 17715,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-stable-java-4-1-2.recipe.json",
+      "recipe_sha256": "33b685277dc897b0793a947dfe00b00010e3320448cbcad97430c62be779880f",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-stable-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-stable-java-4-1-2"
+      ]
+    },
+    {
+      "name": "signed-stable-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-1-2.json",
+      "config_sha256": "28e7b70d0816687bf6d9136d968a55766d60a8cf7dbdaea1a021ed2ab82bd8d6",
+      "config_bytes": 22831,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-java-4-1-2.recipe.json",
+      "recipe_sha256": "2e95e05c68e9927d6e17a9117202db731b791cfabb9f566fabcd30942c405561",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-stable-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-stable-java-4-1-2"
+      ]
+    },
+    {
+      "name": "authority-stable-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-2-1.json",
+      "config_sha256": "bc2b5515482a3d04d1c1b791217ef4d5ad122831631f3c0100a2d8d28c2003f0",
+      "config_bytes": 20742,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-stable-java-4-2-1.recipe.json",
+      "recipe_sha256": "7aef70cae1f7be70cc934db8d4720af47c18ce34d37c812526ed2af5199746ca",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-stable-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-stable-java-4-2-1"
+      ]
+    },
+    {
+      "name": "acquisition-stable-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-2-1.json",
+      "config_sha256": "d1af4c278562cf32cb687f9ced3d1066c85f17ada2b1faa93115feaf941904e9",
+      "config_bytes": 17712,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-stable-java-4-2-1.recipe.json",
+      "recipe_sha256": "6fbb894f169a9855f1391229cd9e07078eb3469168ff0da26dc4dad88be07a24",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-stable-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-stable-java-4-2-1"
+      ]
+    },
+    {
+      "name": "signed-stable-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-2-1.json",
+      "config_sha256": "cebdfe4f91a7a698f9802aa72b60ca13b7afd9a548d5d8d576c2c06f71fdc394",
+      "config_bytes": 22828,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-java-4-2-1.recipe.json",
+      "recipe_sha256": "b182098301db4c5eb0b2b693b9620969866b7f856cdf782a1a742f7928886358",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-stable-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-stable-java-4-2-1"
+      ]
+    },
+    {
+      "name": "authority-stable-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-3-1.json",
+      "config_sha256": "31434dfe3331e14aecd6700a74d9e8e41e2d3fff40f1651ce8e1eeea26b65242",
+      "config_bytes": 20742,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-stable-java-4-3-1.recipe.json",
+      "recipe_sha256": "e2e013c5fdf90f7d0f99f4f48d941b505bc2bca00ea78a2570d0e59ce671bee8",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-stable-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-stable-java-4-3-1"
+      ]
+    },
+    {
+      "name": "acquisition-stable-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-3-1.json",
+      "config_sha256": "f5a4d568d1acca02a2ab6943b4bd1805047e0e15d51d28b5fdb642598c428480",
+      "config_bytes": 17712,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-stable-java-4-3-1.recipe.json",
+      "recipe_sha256": "4328cb40696a4e7cd9d655804853f6ab378cd9e4219b2f8f50234503ab1a641d",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-stable-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-stable-java-4-3-1"
+      ]
+    },
+    {
+      "name": "signed-stable-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-3-1.json",
+      "config_sha256": "91cd964e6997cde1ba0e4ac48ce26ff8f5e053b20b186dc32959bdf6597cfe32",
+      "config_bytes": 22828,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-java-4-3-1.recipe.json",
+      "recipe_sha256": "bd4e8aa3551bd9f38a7f65587a646b8eca88ef6995e23d197653ea5f375970ec",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-stable-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-stable-java-4-3-1"
+      ]
+    },
+    {
+      "name": "authority-stable-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-native-2-15.json",
+      "config_sha256": "65d77a01c82340245257d9e95c4e279380f7b0ec4a99cf46651412d3006fdd34",
+      "config_bytes": 12981,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-stable-native-2-15.recipe.json",
+      "recipe_sha256": "a6177850a2448f91ccbb4118111a3ffaece6dd1c1f277de09b953da53650b47d",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-stable-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-stable-native-2-15"
+      ]
+    },
+    {
+      "name": "acquisition-stable-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-native-2-15.json",
+      "config_sha256": "7685a327dda97cf6906935eb653d74761d75707245b1d9f5b7d98d2ccc16d949",
+      "config_bytes": 10084,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 11,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-stable-native-2-15.recipe.json",
+      "recipe_sha256": "ba6390e257f0561b3f1659f17e265c0f535d6d475866a4886f7168985066bbcd",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-stable-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-stable-native-2-15"
+      ]
+    },
+    {
+      "name": "signed-stable-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-native-2-15.json",
+      "config_sha256": "185371cb6952f28299ff46fdf225d9fdc2c465b0bc8fd6140c5fb71c90e8411a",
+      "config_bytes": 15540,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 84,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-native-2-15.recipe.json",
+      "recipe_sha256": "cfbe49ae16c9695c9b140884c6c6153e902c310ca012b91bd383e580ba9b9543",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-stable-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-stable-native-2-15"
+      ]
+    },
+    {
+      "name": "authority-stable-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-rust-public.json",
+      "config_sha256": "286b3c421b5e8f1c5209da2392c6dea2329ff4f718a32e5f082378224b57390f",
+      "config_bytes": 6987,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-stable-rust-public.recipe.json",
+      "recipe_sha256": "b2291354a8bbd2eef5576598db1fdf8901db3f0c715e7d4531adbd84f97a026f",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-stable-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-stable-rust-public"
+      ]
+    },
+    {
+      "name": "acquisition-stable-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-rust-public.json",
+      "config_sha256": "95088ceb3d168a5cbebfb6ba9e37f98e133e0611a8b560adb8c7cc99c84e3d16",
+      "config_bytes": 4090,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 11,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-stable-rust-public.recipe.json",
+      "recipe_sha256": "151c18b1a75ef7ca1540611bc4ca00387370eb117bf28cb14b5b715fb92ff49e",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-stable-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-stable-rust-public"
+      ]
+    },
+    {
+      "name": "signed-stable-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-rust-public.json",
+      "config_sha256": "2a352fb8a2271f7859248ce52890600174a7e6e19cfff9f82525d1b70e951913",
+      "config_bytes": 9546,
+      "server_toolchain": "stable",
+      "profile": "metadata",
+      "steps": 84,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-stable-rust-public.recipe.json",
+      "recipe_sha256": "b3c7425dcf5acf745743a1dbf0a6e2070fdc1ba474e1f1ee9b464f6a9feab63e",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-stable-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-stable-rust-public"
+      ]
+    },
+    {
+      "name": "ordinary-1.85.0",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-1.85.0.json",
+      "config_sha256": "c4f6aba27adfd49be08890f0f84fa9f270c7b4ef4fbe864596aa17ae51dd16c6",
+      "config_bytes": 62355,
+      "server_toolchain": "1.85.0",
+      "profile": "read-write",
+      "steps": 45,
+      "peer_ids": [
+        "java-4-1-2",
+        "java-4-2-1",
+        "java-4-3-1",
+        "native-2-15",
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/ordinary-1.85.0.recipe.json",
+      "recipe_sha256": "fb31d34e76709672209a07a15ce54e387e9dd5578a178afcce9b5ce839138d32",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-1.85.0.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/ordinary-1.85.0",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/ordinary-1.85.0"
+      ]
+    },
+    {
+      "name": "authority-1.85.0-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-1-2.json",
+      "config_sha256": "e8a9de330004d7683c80f244c9ffe0c968f2f444bf41816aa79a6fd899745f0d",
+      "config_bytes": 20745,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-1.85.0-java-4-1-2.recipe.json",
+      "recipe_sha256": "d2970cd619a973482928f03efbe6c8d50a5d4dee27b4ff61b1e058e7b9c8f4b6",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-1.85.0-java-4-1-2"
+      ]
+    },
+    {
+      "name": "acquisition-1.85.0-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-1-2.json",
+      "config_sha256": "22af7c6b709fe5976cefa50038535b568bfd5b7d2082bfdac2c774f363bdbc61",
+      "config_bytes": 17715,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-1.85.0-java-4-1-2.recipe.json",
+      "recipe_sha256": "cbaf61bf17d854cacc009ff8dd805a8cdb52d5791bd4fd90e41abf5500df5282",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-1.85.0-java-4-1-2"
+      ]
+    },
+    {
+      "name": "signed-1.85.0-java-4-1-2",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-1-2.json",
+      "config_sha256": "25a88a86c9ce31fc9aaffbf458f71476f9eb95ece4339595f01788c81a950b71",
+      "config_bytes": 22831,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-1-2"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-1.85.0-java-4-1-2.recipe.json",
+      "recipe_sha256": "0900d2054b60fe4b927a029befe026499831631ce383150b915528e53cc45a9e",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-1-2.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-1-2",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-1.85.0-java-4-1-2"
+      ]
+    },
+    {
+      "name": "authority-1.85.0-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-2-1.json",
+      "config_sha256": "a5c72283d76fdf615c2ce509d1634cab51b7885d52d85d828b2e19412b30dcc2",
+      "config_bytes": 20742,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-1.85.0-java-4-2-1.recipe.json",
+      "recipe_sha256": "58656f71b6f0e7c46ba56748224f7125ab441562a9a57e785f43ee486fffad85",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-1.85.0-java-4-2-1"
+      ]
+    },
+    {
+      "name": "acquisition-1.85.0-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-2-1.json",
+      "config_sha256": "783415749ff8b3334ed0fd7efc2c408f211c1e28f5073300fad847282d2a8f07",
+      "config_bytes": 17712,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-1.85.0-java-4-2-1.recipe.json",
+      "recipe_sha256": "4c47f32717d8a1df0196465beee11a4d05537781e3fd30761725d669a44134c5",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-1.85.0-java-4-2-1"
+      ]
+    },
+    {
+      "name": "signed-1.85.0-java-4-2-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-2-1.json",
+      "config_sha256": "c474b03051d87acfff91d5f5f9532745c0a287009999b57b7a6b11d8be383467",
+      "config_bytes": 22828,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-2-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-1.85.0-java-4-2-1.recipe.json",
+      "recipe_sha256": "d1c00ca950fad1b80a5d89f3cd5d9d8fa1a2a9e42009e414ca2e5a3626f3ff0a",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-2-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-2-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-1.85.0-java-4-2-1"
+      ]
+    },
+    {
+      "name": "authority-1.85.0-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-3-1.json",
+      "config_sha256": "8582a3e65746a4fd1451f40bc301be3766bb2d2d13a708e4beb1b1d06dc50ea5",
+      "config_bytes": 20742,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-1.85.0-java-4-3-1.recipe.json",
+      "recipe_sha256": "88ff25adc3fe07c2bc8eae663ddc3f1fd461b93f74c0c2759b2e7b67b267a80b",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-1.85.0-java-4-3-1"
+      ]
+    },
+    {
+      "name": "acquisition-1.85.0-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-3-1.json",
+      "config_sha256": "b1b5b7e840f21d38f64b5796d6e90ff1e287b20108cab7a7fb1d8c777682f2b2",
+      "config_bytes": 17712,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 9,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-1.85.0-java-4-3-1.recipe.json",
+      "recipe_sha256": "373eaac5dd636f253a1457736ef8a00438b3032e3c88a96aae5d4243f3912174",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-1.85.0-java-4-3-1"
+      ]
+    },
+    {
+      "name": "signed-1.85.0-java-4-3-1",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-3-1.json",
+      "config_sha256": "2597448108daf389ec7661e21c1e6712cd24a0af4873a05c73a6471d26591a53",
+      "config_bytes": 22828,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 78,
+      "peer_ids": [
+        "java-4-3-1"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-1.85.0-java-4-3-1.recipe.json",
+      "recipe_sha256": "e9eefed456f8d3dbc61b09663f933f1fbc91b6b1aaa12860de26003ed8fea781",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-3-1.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-3-1",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-1.85.0-java-4-3-1"
+      ]
+    },
+    {
+      "name": "authority-1.85.0-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-native-2-15.json",
+      "config_sha256": "f48d12714a7e38446c041282fcaff6dd15e8f0abf9ea00d5800d743270a324dd",
+      "config_bytes": 12981,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-1.85.0-native-2-15.recipe.json",
+      "recipe_sha256": "8aa808bf430daa292ea7911b7cb651ec120b5b0ef7a7450850103e79b6a3f73a",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-1.85.0-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-1.85.0-native-2-15"
+      ]
+    },
+    {
+      "name": "acquisition-1.85.0-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-native-2-15.json",
+      "config_sha256": "59ae5a0e12227cfba5983ffa71b9af1d9d702a40dc2d5d058f156a25767150e5",
+      "config_bytes": 10084,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 11,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-1.85.0-native-2-15.recipe.json",
+      "recipe_sha256": "cab25e8faa96fea0a38463365c3a9b9e3d68ddb85b1404afc7b28dcf7272b330",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-1.85.0-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-1.85.0-native-2-15"
+      ]
+    },
+    {
+      "name": "signed-1.85.0-native-2-15",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-native-2-15.json",
+      "config_sha256": "27d4af782ecd93f93c6680ccc516ddc1b601c658dc60e52486069ba9b8f43954",
+      "config_bytes": 15540,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 84,
+      "peer_ids": [
+        "native-2-15"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-1.85.0-native-2-15.recipe.json",
+      "recipe_sha256": "67f1402a83bcddb2e1f81b2f1d87ff60c95d27bec76f4603566f60174685ae2f",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-native-2-15.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-1.85.0-native-2-15",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-1.85.0-native-2-15"
+      ]
+    },
+    {
+      "name": "authority-1.85.0-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-rust-public.json",
+      "config_sha256": "cac1346b3d38f3e61b7a42f3fe9e03d3dac80d14d0492d4e6799ac43575d4a23",
+      "config_bytes": 6987,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 53,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/authority-1.85.0-rust-public.recipe.json",
+      "recipe_sha256": "184383ab826d6af145c333b9468d78938e0cc020c03d5b3c720300638bb4e294",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/authority-1.85.0-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/authority-1.85.0-rust-public"
+      ]
+    },
+    {
+      "name": "acquisition-1.85.0-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-rust-public.json",
+      "config_sha256": "96b8fbd00eec920bab567ea4a59986ff7483648a56ac977d9e0d6a5d52534d72",
+      "config_bytes": 4090,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 11,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/acquisition-1.85.0-rust-public.recipe.json",
+      "recipe_sha256": "8bef148ded1efb814e1c389e7c2ed3b53d7b2066061027adfd1c5241fb6b1181",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/acquisition-1.85.0-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/acquisition-1.85.0-rust-public"
+      ]
+    },
+    {
+      "name": "signed-1.85.0-rust-public",
+      "config": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-rust-public.json",
+      "config_sha256": "e18768fc904d892ac3e28da815f924e1fff6d136b52ae792e4d51583dc00aead",
+      "config_bytes": 9546,
+      "server_toolchain": "1.85.0",
+      "profile": "metadata",
+      "steps": 84,
+      "peer_ids": [
+        "rust-public"
+      ],
+      "recipe_path": "/workspace/work/broker-oidc/live-config-preparation-f500/signed-1.85.0-rust-public.recipe.json",
+      "recipe_sha256": "9a623bf291cece98bcbf7cbf235687e294d25442d0836766abd70f029b312e6e",
+      "outer_command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+        "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+        "--config",
+        "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-rust-public.json",
+        "--output",
+        "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/signed-1.85.0-rust-public",
+        "--private-scratch",
+        "/workspace/work/broker-oidc/private-live-fcac9d1d/signed-1.85.0-rust-public"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,584 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "scope": "read-only proposed safe evidence file set; no repo copy or peer live execution",
+  "files": [
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-build/command.log",
+      "sha256": "9d534d4c56bec22a0aa7735e27e46e471808f5f5993ea833b949bb0a515bd449",
+      "bytes": 69255,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-strict/command.log",
+      "sha256": "0ec6f9beb5b6a8f7bd9828e91d4ef273501383dacc459c224b6eb55a0d99401d",
+      "bytes": 1874,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-build/command.log",
+      "sha256": "972dea27f409e4663ff79b899db4d48504fe016ed2ff54f34be7d1c7323c57b9",
+      "bytes": 69215,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-strict/command.log",
+      "sha256": "5c1d214fb3dc03b89e76c265026aae928e87f50f9c0f4167d807a16f592915d3",
+      "bytes": 1874,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-cjson-object/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-strict-link/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.1.2-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.2.1-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.3.1-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual compiler raw log"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/validation.json",
+      "sha256": "24da059fd62b554f889a6cada3c9f955fe81004909d16866e081fe7535bb6c11",
+      "bytes": 64855,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/source-before.json.gz",
+      "sha256": "5394ac22ba87bc0013282be7b683c102d03102b5a22b4e10eb2f6846f4054b8d",
+      "bytes": 2590343,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/source-before.restore.json",
+      "sha256": "afc4739212ac376f0b4872ca8252c09aa4de102ae523b026fa936a827b168961",
+      "bytes": 312,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-build-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-build-before.elf-retention.json",
+      "sha256": "32038f7c9276a01d01228ed22d6662eb8d8b068672083156f126bdd7057a2ac0",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-strict-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-strict-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.1.2-strict-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.1.2-strict-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.2.1-strict-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.2.1-strict-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.3.1-strict-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/java-4.3.1-strict-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-cjson-object-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-cjson-object-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-strict-link-after.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native-strict-link-before.elf-retention.json",
+      "sha256": "1b33abed4602211b22d9f852c91407df1604d76746ed29236b55e31858520147",
+      "bytes": 85102,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-build-after.elf-retention.json",
+      "sha256": "32038f7c9276a01d01228ed22d6662eb8d8b068672083156f126bdd7057a2ac0",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-build-before.elf-retention.json",
+      "sha256": "bba6a3dd479b7ec946d8a2707887d573962a3fa753874189a5dd658b60959ae8",
+      "bytes": 47,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-strict-after.elf-retention.json",
+      "sha256": "32038f7c9276a01d01228ed22d6662eb8d8b068672083156f126bdd7057a2ac0",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/stable-rust-strict-before.elf-retention.json",
+      "sha256": "32038f7c9276a01d01228ed22d6662eb8d8b068672083156f126bdd7057a2ac0",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/1.85.0-rust-public.json",
+      "sha256": "a168d86e1f514c4db9db22d6719f4553af497f892f7120971b065d861dbe1ae2",
+      "bytes": 9746,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-1-2.json",
+      "sha256": "d33faac7cef0df74e9ba809ff676b340200000888e448c04e6bc13f8a3687b0d",
+      "bytes": 20561,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-2-1.json",
+      "sha256": "8c6a9a1914667066605c907eb5aeaa7e04980122ec6bc2dbeadc0361c2e5570d",
+      "bytes": 20558,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-3-1.json",
+      "sha256": "82df14096d69c1094f2a619599551f2530e38faa2e10ba8fabda20273d1374d1",
+      "bytes": 20558,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/native-2-15.json",
+      "sha256": "3ad4d399e45a1aa53811bdba70ed61d64af420e3255ed73e2bbb5467c89d4b14",
+      "bytes": 13919,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/peers.json",
+      "sha256": "fb48d4153619b525c6d51c75d094ef951b222c9d81d412258fa9fafd375b08d5",
+      "bytes": 77606,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/stable-rust-public.json",
+      "sha256": "73d42ac99ba1ed627bf7b7d8ada459d47711ebfd66e262d5500e1f40d1cf81cd",
+      "bytes": 9460,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/validation.json",
+      "sha256": "a611744e785cfb9485b946b1821c2214f1c3ff39691abdc35b6435b88e957ad4",
+      "bytes": 2694,
+      "full_mode": "0o600",
+      "role": "actual fresh compiler/source/binding receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-1-2.json",
+      "sha256": "22af7c6b709fe5976cefa50038535b568bfd5b7d2082bfdac2c774f363bdbc61",
+      "bytes": 17715,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-2-1.json",
+      "sha256": "783415749ff8b3334ed0fd7efc2c408f211c1e28f5073300fad847282d2a8f07",
+      "bytes": 17712,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-java-4-3-1.json",
+      "sha256": "b1b5b7e840f21d38f64b5796d6e90ff1e287b20108cab7a7fb1d8c777682f2b2",
+      "bytes": 17712,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-native-2-15.json",
+      "sha256": "59ae5a0e12227cfba5983ffa71b9af1d9d702a40dc2d5d058f156a25767150e5",
+      "bytes": 10084,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-1.85.0-rust-public.json",
+      "sha256": "96b8fbd00eec920bab567ea4a59986ff7483648a56ac977d9e0d6a5d52534d72",
+      "bytes": 4090,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-1-2.json",
+      "sha256": "849a39b83878aff84f7a47f58b3cea1ce4d2b3f3f626cf28a811279a01bf91f1",
+      "bytes": 17715,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-2-1.json",
+      "sha256": "d1af4c278562cf32cb687f9ced3d1066c85f17ada2b1faa93115feaf941904e9",
+      "bytes": 17712,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-java-4-3-1.json",
+      "sha256": "f5a4d568d1acca02a2ab6943b4bd1805047e0e15d51d28b5fdb642598c428480",
+      "bytes": 17712,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-native-2-15.json",
+      "sha256": "7685a327dda97cf6906935eb653d74761d75707245b1d9f5b7d98d2ccc16d949",
+      "bytes": 10084,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/acquisition-stable-rust-public.json",
+      "sha256": "95088ceb3d168a5cbebfb6ba9e37f98e133e0611a8b560adb8c7cc99c84e3d16",
+      "bytes": 4090,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-1-2.json",
+      "sha256": "e8a9de330004d7683c80f244c9ffe0c968f2f444bf41816aa79a6fd899745f0d",
+      "bytes": 20745,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-2-1.json",
+      "sha256": "a5c72283d76fdf615c2ce509d1634cab51b7885d52d85d828b2e19412b30dcc2",
+      "bytes": 20742,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-java-4-3-1.json",
+      "sha256": "8582a3e65746a4fd1451f40bc301be3766bb2d2d13a708e4beb1b1d06dc50ea5",
+      "bytes": 20742,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-native-2-15.json",
+      "sha256": "f48d12714a7e38446c041282fcaff6dd15e8f0abf9ea00d5800d743270a324dd",
+      "bytes": 12981,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-1.85.0-rust-public.json",
+      "sha256": "cac1346b3d38f3e61b7a42f3fe9e03d3dac80d14d0492d4e6799ac43575d4a23",
+      "bytes": 6987,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-1-2.json",
+      "sha256": "19ca865cdb3e4490798c60f61746b2425ad409b331c26404ab088eeb0f6f365e",
+      "bytes": 20745,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-2-1.json",
+      "sha256": "bc2b5515482a3d04d1c1b791217ef4d5ad122831631f3c0100a2d8d28c2003f0",
+      "bytes": 20742,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-java-4-3-1.json",
+      "sha256": "31434dfe3331e14aecd6700a74d9e8e41e2d3fff40f1651ce8e1eeea26b65242",
+      "bytes": 20742,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-native-2-15.json",
+      "sha256": "65d77a01c82340245257d9e95c4e279380f7b0ec4a99cf46651412d3006fdd34",
+      "bytes": 12981,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/authority-stable-rust-public.json",
+      "sha256": "286b3c421b5e8f1c5209da2392c6dea2329ff4f718a32e5f082378224b57390f",
+      "bytes": 6987,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/manifest.json",
+      "sha256": "0639fc4f66058a657d14f45db113347e451efc62a60f0e1d47953d75d8e45515",
+      "bytes": 42745,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-1.85.0.json",
+      "sha256": "c4f6aba27adfd49be08890f0f84fa9f270c7b4ef4fbe864596aa17ae51dd16c6",
+      "bytes": 62355,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-stable.json",
+      "sha256": "1df065769d6ee4a10c23d053666d8bf38aa444b149b81aa6778c2662681d354f",
+      "bytes": 62355,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-1-2.json",
+      "sha256": "25a88a86c9ce31fc9aaffbf458f71476f9eb95ece4339595f01788c81a950b71",
+      "bytes": 22831,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-2-1.json",
+      "sha256": "c474b03051d87acfff91d5f5f9532745c0a287009999b57b7a6b11d8be383467",
+      "bytes": 22828,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-java-4-3-1.json",
+      "sha256": "2597448108daf389ec7661e21c1e6712cd24a0af4873a05c73a6471d26591a53",
+      "bytes": 22828,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-native-2-15.json",
+      "sha256": "27d4af782ecd93f93c6680ccc516ddc1b601c658dc60e52486069ba9b8f43954",
+      "bytes": 15540,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-1.85.0-rust-public.json",
+      "sha256": "e18768fc904d892ac3e28da815f924e1fff6d136b52ae792e4d51583dc00aead",
+      "bytes": 9546,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-1-2.json",
+      "sha256": "28e7b70d0816687bf6d9136d968a55766d60a8cf7dbdaea1a021ed2ab82bd8d6",
+      "bytes": 22831,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-2-1.json",
+      "sha256": "cebdfe4f91a7a698f9802aa72b60ca13b7afd9a548d5d8d576c2c06f71fdc394",
+      "bytes": 22828,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-java-4-3-1.json",
+      "sha256": "91cd964e6997cde1ba0e4ac48ce26ff8f5e053b20b186dc32959bdf6597cfe32",
+      "bytes": 22828,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-native-2-15.json",
+      "sha256": "185371cb6952f28299ff46fdf225d9fdc2c465b0bc8fd6140c5fb71c90e8411a",
+      "bytes": 15540,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/signed-stable-rust-public.json",
+      "sha256": "2a352fb8a2271f7859248ce52890600174a7e6e19cfff9f82525d1b70e951913",
+      "bytes": 9546,
+      "full_mode": "0o600",
+      "role": "same predeclared recipe with actual fcac normal/peer inputs"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/build-live-peers-7097.py",
+      "sha256": "11c1c9d95b26d2c8b2d909193ee7fc9c70f8cb8d0a426fd7e36891917fed5215",
+      "bytes": 13461,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/finalize-peer-bindings-fcac.py",
+      "sha256": "2a849c1de9cd751f439f7dc3fec14a9eb8f82c6ce3a065382d56d9aafab0f58c",
+      "bytes": 7731,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/materialize-live-configs-fcac.py",
+      "sha256": "cfeef5e9ebe60925104e2dc56d4c534056903df855dfcd64f348a5fc0eaca922",
+      "bytes": 5863,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/clean-peer-cache-fcac.py",
+      "sha256": "7c9efdc8816b42f468d80ecfa0cf4067f86275fd8a816f65be63709f87f527ac",
+      "bytes": 8203,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-fcac-launch-forecast.json",
+      "sha256": "2aa5a1e1ed000840dc764c565a4ecd7b07328a8ef62d417582c6b4f2774d8ea5",
+      "bytes": 813,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/fcac-cache-readonly-forecast.json",
+      "sha256": "14c78d9f4a2dd21956a438ac4ecc8dbcdfaec080cbf3575d08d1b66f94c3296d",
+      "bytes": 155574,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/fcac-cache-readonly-process-guard.json",
+      "sha256": "d8372c06f440ce09111bc1047ba2a1dc03897b0e61ea18eb99334895036a05a4",
+      "bytes": 424,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-fcac-compile-outer.log",
+      "sha256": "8318804714bc508a9bf2c2da2ac89af53dd702b3317b09c86d9e6392c700584f",
+      "bytes": 599,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-fcac-binding-derivation.log",
+      "sha256": "8c9f0125e148591909b5b3885fcab227f38c7d360405196ffbf6ed738a967917",
+      "bytes": 352,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-fcac-config-materialization.log",
+      "sha256": "8366a25b845c04cf1fee99380350ce82786871dedf9455b92b985821655e42a8",
+      "bytes": 232,
+      "full_mode": "0o600",
+      "role": "actual frozen producer or safe preparation raw receipt"
+    }
+  ],
+  "count": 81,
+  "bytes": 5097776,
+  "native_sdk_object_identity": {
+    "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/native/cJSON.o",
+    "sha256": "255dd9788857ef0e718fa174c3c7b1bbf1eaadac006c5d520aec7851c2d703a3",
+    "bytes": 37112,
+    "full_mode": "0o600",
+    "retained_outside_generated_cache": true,
+    "publication_policy": "object bytes stay WORK; text identity only"
+  },
+  "exclude": "ELF/AR/rmeta/o/class/JAR/private bytes are not proposed for repository publication; original files remain WORK"
+}

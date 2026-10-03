@@ -1,0 +1,330 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "exit_code": 0,
+  "scope": "actual peer compiler binding; no live invocation",
+  "immutable_origin": {
+    "path": "/workspace/work/integration/broker-merged-source-fcac9d1d/normalized-origin.json",
+    "sha256": "dbc16f9c8a4dfe09f5c169e3f1a0b6dee8233fc41dc31015e52e3a57026e96d2",
+    "bytes": 1094,
+    "full_mode": "0o600",
+    "role": "normalized complete immutable origin"
+  },
+  "full_build_validation": {
+    "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/validation.json",
+    "sha256": "24da059fd62b554f889a6cada3c9f955fe81004909d16866e081fe7535bb6c11"
+  },
+  "source_unchanged": true,
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "cargo",
+    "+1.85.0",
+    "build",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+    "--message-format=json-render-diagnostics"
+  ],
+  "command_log": {
+    "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-build/command.log",
+    "sha256": "972dea27f409e4663ff79b899db4d48504fe016ed2ff54f34be7d1c7323c57b9"
+  },
+  "strict_command": {
+    "name": "1.85.0-rust-strict",
+    "command": [
+      "taskset",
+      "-c",
+      "0,1",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+      "--bins",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/broker-merged-source-fcac9d1d",
+    "exit_code": 0,
+    "elapsed_seconds": 20.014848954000627,
+    "stopped": null,
+    "disk_samples": [
+      {
+        "elapsed_seconds": 0.0004897230101050809,
+        "free_bytes": 1385947136
+      },
+      {
+        "elapsed_seconds": 0.5026546879962552,
+        "free_bytes": 1385684992
+      },
+      {
+        "elapsed_seconds": 1.002804666000884,
+        "free_bytes": 1381416960
+      },
+      {
+        "elapsed_seconds": 1.5029618709959323,
+        "free_bytes": 1378062336
+      },
+      {
+        "elapsed_seconds": 2.003132646001177,
+        "free_bytes": 1375584256
+      },
+      {
+        "elapsed_seconds": 2.5033701790089253,
+        "free_bytes": 1375019008
+      },
+      {
+        "elapsed_seconds": 3.0066531880002003,
+        "free_bytes": 1374568448
+      },
+      {
+        "elapsed_seconds": 3.50679184900946,
+        "free_bytes": 1372700672
+      },
+      {
+        "elapsed_seconds": 4.006929174007382,
+        "free_bytes": 1371348992
+      },
+      {
+        "elapsed_seconds": 4.507075828005327,
+        "free_bytes": 1369858048
+      },
+      {
+        "elapsed_seconds": 5.007226832007291,
+        "free_bytes": 1369366528
+      },
+      {
+        "elapsed_seconds": 5.507380941999145,
+        "free_bytes": 1369366528
+      },
+      {
+        "elapsed_seconds": 6.007531408002251,
+        "free_bytes": 1369366528
+      },
+      {
+        "elapsed_seconds": 6.50767148900195,
+        "free_bytes": 1365745664
+      },
+      {
+        "elapsed_seconds": 7.007830639005988,
+        "free_bytes": 1365655552
+      },
+      {
+        "elapsed_seconds": 7.507994326995686,
+        "free_bytes": 1365655552
+      },
+      {
+        "elapsed_seconds": 8.0081749180099,
+        "free_bytes": 1365655552
+      },
+      {
+        "elapsed_seconds": 8.508326327006216,
+        "free_bytes": 1365655552
+      },
+      {
+        "elapsed_seconds": 9.008468632004224,
+        "free_bytes": 1358295040
+      },
+      {
+        "elapsed_seconds": 9.50880681000126,
+        "free_bytes": 1358041088
+      },
+      {
+        "elapsed_seconds": 10.008956582008977,
+        "free_bytes": 1356595200
+      },
+      {
+        "elapsed_seconds": 10.50919714399788,
+        "free_bytes": 1355837440
+      },
+      {
+        "elapsed_seconds": 11.009354352005175,
+        "free_bytes": 1355837440
+      },
+      {
+        "elapsed_seconds": 11.50950808300695,
+        "free_bytes": 1353060352
+      },
+      {
+        "elapsed_seconds": 12.009661175005022,
+        "free_bytes": 1351610368
+      },
+      {
+        "elapsed_seconds": 12.509817170008318,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 13.009979405003833,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 13.51016249100212,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 14.010324119997676,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 14.510488044004887,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 15.010644056004821,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 15.510798706003698,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 16.010957632999634,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 16.51113935399917,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 17.011292310999124,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 17.51145252000424,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 18.011633329006145,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 18.511786247006967,
+        "free_bytes": 1350995968
+      },
+      {
+        "elapsed_seconds": 19.01194403700356,
+        "free_bytes": 1347108864
+      },
+      {
+        "elapsed_seconds": 19.514657888998045,
+        "free_bytes": 1339224064
+      }
+    ],
+    "minimum_free_bytes": 1339224064,
+    "log_path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/1.85.0-rust-strict/command.log",
+    "log_sha256": "5c1d214fb3dc03b89e76c265026aae928e87f50f9c0f4167d807a16f592915d3",
+    "source_before": {
+      "file_count": 73196,
+      "raw_sha256": "058a7a4b48b19237ec977d3ada2338f4096604624ce4eb9a083194f7552f5ea5",
+      "identical_to_before": true,
+      "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+    },
+    "source_after": {
+      "file_count": 73196,
+      "raw_sha256": "058a7a4b48b19237ec977d3ada2338f4096604624ce4eb9a083194f7552f5ea5",
+      "identical_to_before": true,
+      "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+    }
+  },
+  "artifact_kind": "normal-peer-executable",
+  "cargo_artifact": {
+    "reason": "compiler-artifact",
+    "package_id": "path+file:///workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/rust#partitionline-oidc-live-peer@0.0.0",
+    "manifest_path": "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+    "target": {
+      "kind": [
+        "bin"
+      ],
+      "crate_types": [
+        "bin"
+      ],
+      "name": "partitionline-oidc-live-peer",
+      "src_path": "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/rust/src/main.rs",
+      "edition": "2021",
+      "doc": true,
+      "doctest": false,
+      "test": true
+    },
+    "profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    },
+    "features": [],
+    "filenames": [
+      "/workspace/work/broker-oidc/live-peers-target/debug/partitionline-oidc-live-peer"
+    ],
+    "executable": "/workspace/work/broker-oidc/live-peers-target/debug/partitionline-oidc-live-peer",
+    "fresh": false
+  },
+  "runtime_inputs": [
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "sha256": "438c546d8e8cc48496bf3a95f753051afd9db66a629a74e31a9ded71586b56e0",
+      "bytes": 225672,
+      "full_mode": "0o755",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "sha256": "fa430b8f298f817a266046af84a77533185ad6fc4406c7d3787b5a0a0c207826",
+      "bytes": 1995216,
+      "full_mode": "0o755",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libgcc_s.so.1",
+      "sha256": "30c61ab012a4241bed033725a09b61f5fdd3bb7df95ee852d0b096520524c7af",
+      "bytes": 182856,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "sha256": "6d567d53e895273ca14a1f9dc164fc6c8d39aed2f60aa46a733c2784228915f3",
+      "bytes": 977112,
+      "full_mode": "0o644",
+      "role": "ELF linked runtime dependency"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/bin/1.85.0/rust-peer",
+      "sha256": "a22778ac765ea3fdc86bc05498a2f86f1cc829f19f2294ce02c4b0e0083ad837",
+      "bytes": 13075448,
+      "full_mode": "0o700",
+      "role": "normal Rust peer executable"
+    }
+  ],
+  "source_inputs": [
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/src/main.rs",
+      "sha256": "d90d36b21633dd65dbdf040023c96e5bcf3935d4f9e655624e6fec9abecf6d03"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+      "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.lock",
+      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "b07fc38a514ab0e14954ff1261701b6a878e35ae7d9b91b081a19e14704d3c13"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9"
+    },
+    {
+      "path": "clippy.toml",
+      "sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+    }
+  ]
+}

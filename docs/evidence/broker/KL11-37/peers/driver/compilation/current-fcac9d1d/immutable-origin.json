@@ -1,0 +1,25 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "source_root": "/workspace/work/broker-merged-source-fcac9d1d",
+  "complete_git_tree_verified": true,
+  "mutable_worktree_inodes_disjoint": true,
+  "original_receipt": {
+    "path": "/workspace/work/integration/broker-merged-source-fcac9d1d/receipt.json",
+    "sha256": "b2064b8549ffd93889f8c98493b86d702e0e29111c9eda07188e4543ff460778"
+  },
+  "file_count": 73196,
+  "bytes": 678636755,
+  "complete_source_manifest": {
+    "path": "/workspace/work/integration/broker-merged-source-fcac9d1d/complete-source.json.gz",
+    "compressed_sha256": "09922ca8aeba5c7c45ab79d8ac57e46086b1d73fa902339223ba72a498d6c813",
+    "uncompressed_sha256": "3476908d1e99349825bbe03e7559db5b9a1de79e2c4089e1d49c24e0ca6bb2c3",
+    "uncompressed_bytes": 23155767,
+    "compression": "gzip",
+    "decompression_verified": true,
+    "restore_path": "complete-source.json",
+    "original_full_mode": 384,
+    "compressed_full_mode": 384
+  },
+  "original_full_mode_proof_retained": true,
+  "qualification": "materialization only; no compiler/live outcome"
+}

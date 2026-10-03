@@ -1,0 +1,28 @@
+{
+  "source_commit": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "source_directory": "/workspace/work/broker-merged-source-ea9ff293",
+  "verified_files": 73171,
+  "verified_bytes": 675769376,
+  "source_origin": "exact Git tree; unchanged verified12f4 blobs hardlinked, changed/new blobs copied from Git",
+  "baseline_source": "12f4398662044947ae653f07923290127457f2ef",
+  "baseline_origin_receipt": "/workspace/work/client-share-assessment/final-12f43986/source-verification.json",
+  "baseline_origin_receipt_sha256": "afb3408c23640591767c3110112f993bdb5597401af99c8a75001fd30985c564",
+  "unchanged_files_hardlinked": 69124,
+  "changed_new_blob_bytes": 93037208,
+  "complete_path_set_and_git_blobs_verified": true,
+  "all_full_modes_verified": true,
+  "no_inode_shared_with_repository_worktree": true,
+  "baseline_before_after_verified": true,
+  "source_manifest": {
+    "path": "/workspace/work/integration/broker-merged-source-ea9ff293/complete-source.json.gz",
+    "compressed_sha256": "5c72bc19fccec2fe4afe2377e06b5991ec3723053a5a18d2f72d2efbc4ac8418",
+    "uncompressed_sha256": "8059edb434b97598d165054ccf9dfc6a7eee4794bd4a8d482b4d675a3ea8c0f1",
+    "uncompressed_bytes": 23148265,
+    "compression": "gzip",
+    "decompression_verified": true,
+    "restore_path": "complete-source.json",
+    "original_full_mode": 384,
+    "compressed_full_mode": 384
+  },
+  "driver_sha256": "7118f01a7d3f6222088a53be322942ad76738229bb2ab838a71289c2306046e6"
+}

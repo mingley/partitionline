@@ -1,0 +1,9 @@
+{"command": "stable-rust-build", "exit_code": 0, "stopped": null}
+{"command": "stable-rust-strict", "exit_code": 0, "stopped": null}
+{"command": "1.85.0-rust-build", "exit_code": 0, "stopped": null}
+{"command": "1.85.0-rust-strict", "exit_code": 0, "stopped": null}
+{"command": "native-cjson-object", "exit_code": 0, "stopped": null}
+{"command": "native-strict-link", "exit_code": 0, "stopped": null}
+{"command": "java-4.1.2-strict", "exit_code": 0, "stopped": null}
+{"command": "java-4.2.1-strict", "exit_code": 0, "stopped": null}
+{"command": "java-4.3.1-strict", "exit_code": 0, "stopped": null}

@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "state": "prepared only; no Cargo launched; new immutable source GO required",
+  "source_sha": null,
+  "driver_sha256": "10fa0a06445a6725dcefa0b32f0e49c0806c620b892827e1b5f963255cc5b7fd",
+  "guard_source_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "argv": [
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_runtime",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--lib",
+      "raft::runtime::",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ]
+  ],
+  "expected_source_counts": {
+    "integration": {
+      "selected": 5,
+      "ordinary_tcp_or_lifecycle": 4,
+      "child_helper_noop_parent": 1,
+      "ignored": 0,
+      "filtered": 0
+    },
+    "lib_runtime_filter": {
+      "filter": "raft::runtime::",
+      "selected": 9,
+      "included_public_cases": 5,
+      "owner_controls": 4,
+      "ignored": 0,
+      "other_library_tests_filtered": "actual reported count pending compilation; excluded from focused claims"
+    }
+  },
+  "captures": {
+    "integration": "captures/stable-default-runtime-tests; actual proxy TCP frames; no cfg(test) owner hook in dependency library",
+    "lib": "captures/stable-default-runtime-lib-tests; actual proxy frames plus cfg(test) TestTrace typed bodies and WAL/election/image states"
+  },
+  "owner_capture_environment": [
+    "PL_PEER_RUNTIME_CAPTURE_DIR",
+    "PL_PEER_RUNTIME_SOURCE_SHA"
+  ],
+  "resource_policy": "reuse target-broker-segments; package-only clean after all-current-ELF forecast and retention; no new archive; complete Git path/full07777 source guards around every command;350MiB monitor; offline/locked/debug0/jobs1/CPU2,4",
+  "actual_counts_and_branch_receipts": "must come from run logs, not this source-derived expectation"
+}

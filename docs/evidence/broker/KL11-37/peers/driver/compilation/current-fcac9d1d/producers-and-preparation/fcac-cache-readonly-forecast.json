@@ -1,0 +1,3887 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "scope": "read-only generatedcache compiled inventory/forecast only; no removal",
+  "target": "/workspace/work/broker-oidc/live-peers-target",
+  "cache_regular_bytes": 558605105,
+  "compiled_paths": [
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32c-7666d58a3c7e8780/build-script-build",
+      "sha256": "c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1",
+      "bytes": 739200,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32c-7666d58a3c7e8780/build_script_build-7666d58a3c7e8780",
+      "sha256": "c47c5d7ee4e107c5061c1d978924ee3a37508b14ca2575bb06996123a89d9fb1",
+      "bytes": 739200,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "bytes": 756016,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+      "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "bytes": 756016,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32fast-0694fcb622573f45/build-script-build",
+      "sha256": "255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab",
+      "bytes": 558104,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32fast-0694fcb622573f45/build_script_build-0694fcb622573f45",
+      "sha256": "255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab",
+      "bytes": 558104,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32fast-d7ee31a45f541d40/build-script-build",
+      "sha256": "72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2",
+      "bytes": 549816,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/crc32fast-d7ee31a45f541d40/build_script_build-d7ee31a45f541d40",
+      "sha256": "72cf9c19b04210a48e2018d973c5eafee54465407f7115eeb5c1f5b6f6da34c2",
+      "bytes": 549816,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/getrandom-b56168953075a26e/build-script-build",
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "bytes": 478224,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+      "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "bytes": 478224,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/getrandom-c89645aaa469201d/build-script-build",
+      "sha256": "9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e",
+      "bytes": 467544,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/getrandom-c89645aaa469201d/build_script_build-c89645aaa469201d",
+      "sha256": "9c8628b22fd70101eb32cc5a4fd489b550e3394c6c95d5e936a0ba7593892c8e",
+      "bytes": 467544,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/libc-0078c6ac5bd6e9b4/build-script-build",
+      "sha256": "47ae19227abcf16cd33e1cc79af52c19483df5fe4bf23e1927a299815e2c1efc",
+      "bytes": 681664,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/libc-0078c6ac5bd6e9b4/build_script_build-0078c6ac5bd6e9b4",
+      "sha256": "47ae19227abcf16cd33e1cc79af52c19483df5fe4bf23e1927a299815e2c1efc",
+      "bytes": 681664,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/libc-88b32e32d995e3ed/build-script-build",
+      "sha256": "e984f925dca14ed187589a38bf674cfa471ca371c2b9f151d18c5be1a5d69acd",
+      "bytes": 671448,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/libc-88b32e32d995e3ed/build_script_build-88b32e32d995e3ed",
+      "sha256": "e984f925dca14ed187589a38bf674cfa471ca371c2b9f151d18c5be1a5d69acd",
+      "bytes": 671448,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/parking_lot_core-022088a544ca5061/build-script-build",
+      "sha256": "8f13332fa63c13b0c1e9c20a8aa6a3e1d66d8c52853a86f80d07733e7572f58f",
+      "bytes": 467544,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/parking_lot_core-022088a544ca5061/build_script_build-022088a544ca5061",
+      "sha256": "8f13332fa63c13b0c1e9c20a8aa6a3e1d66d8c52853a86f80d07733e7572f58f",
+      "bytes": 467544,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/parking_lot_core-a246dadcf9145965/build-script-build",
+      "sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "bytes": 478304,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/parking_lot_core-a246dadcf9145965/build_script_build-a246dadcf9145965",
+      "sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "bytes": 478304,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "bytes": 613824,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+      "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "bytes": 613824,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/proc-macro2-d8393a54897f3e81/build-script-build",
+      "sha256": "edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643",
+      "bytes": 611368,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/proc-macro2-d8393a54897f3e81/build_script_build-d8393a54897f3e81",
+      "sha256": "edbb8bed509d745467d78b619bdd69aabf0fba7dbd1d8cea83bd0fe49c79a643",
+      "bytes": 611368,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/quote-281b1bc39d16de7f/build-script-build",
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "bytes": 556632,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+      "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "bytes": 556632,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/quote-53475fe26c76c338/build-script-build",
+      "sha256": "29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82",
+      "bytes": 549248,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/quote-53475fe26c76c338/build_script_build-53475fe26c76c338",
+      "sha256": "29092fc9dc3b911ac07e0fa18c3f0b6feaa1e6e3297ac8556c9816c19cc56a82",
+      "bytes": 549248,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-010fb5496596defa/build-script-build",
+      "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "bytes": 2028648,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-010fb5496596defa/build_script_build-010fb5496596defa",
+      "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "bytes": 2028648,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/00c879ee3285a50d-montgomery.o",
+      "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "bytes": 85024,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/00c879ee3285a50d-montgomery_inv.o",
+      "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "bytes": 79792,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/0bbbd18bda93c05b-aes_nohw.o",
+      "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "bytes": 124880,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/25ac62e5b3c53843-curve25519.o",
+      "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "bytes": 232480,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "bytes": 557112,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-ecp_nistz.o",
+      "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "bytes": 79832,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-gfp_p256.o",
+      "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "bytes": 79392,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-gfp_p384.o",
+      "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "bytes": 121248,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-p256-nistz.o",
+      "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "bytes": 262240,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a0330e891e733f4e-p256.o",
+      "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "bytes": 79824,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-constant_time_test.o",
+      "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "bytes": 91208,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-cpu_intel.o",
+      "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "bytes": 81200,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-crypto.o",
+      "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "bytes": 72296,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/a4019cc0736b0423-mem.o",
+      "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "bytes": 78392,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/aaa1ba3e455ee2e1-limbs.o",
+      "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "bytes": 102792,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "bytes": 8904,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "bytes": 7728,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "bytes": 9176,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "bytes": 11760,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "bytes": 62048,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "bytes": 8976,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "bytes": 29824,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "bytes": 21160,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "bytes": 16328,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "bytes": 7952,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "bytes": 8632,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "bytes": 18816,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/d5a9841f3dc6e253-poly1305.o",
+      "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "bytes": 89096,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "bytes": 3680,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "bytes": 3472,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/libring_core_0_17_14_.a",
+      "sha256": "6148bff19d87d0f60491b63184bc4d57b020472e7b775d2cc7686ded53e2dc00",
+      "bytes": 2352394,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-540bfa03d7b275be/out/libring_core_0_17_14__test.a",
+      "sha256": "8ace83ca2969a64313673d94287846621bf11daba3b46343727fb9ef53a4dda7",
+      "bytes": 91624,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery.o",
+      "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "bytes": 85024,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery_inv.o",
+      "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "bytes": 79792,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/0bbbd18bda93c05b-aes_nohw.o",
+      "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "bytes": 124880,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519.o",
+      "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "bytes": 232480,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519_64_adx.o",
+      "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "bytes": 557112,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-ecp_nistz.o",
+      "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "bytes": 79832,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p256.o",
+      "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "bytes": 79392,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p384.o",
+      "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "bytes": 121248,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256-nistz.o",
+      "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "bytes": 262240,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256.o",
+      "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "bytes": 79824,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-constant_time_test.o",
+      "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "bytes": 91208,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-cpu_intel.o",
+      "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "bytes": 81200,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-crypto.o",
+      "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "bytes": 72296,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-mem.o",
+      "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "bytes": 78392,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/aaa1ba3e455ee2e1-limbs.o",
+      "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "bytes": 102792,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+      "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "bytes": 8904,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+      "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "bytes": 7728,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+      "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "bytes": 9176,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+      "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "bytes": 11760,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+      "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "bytes": 62048,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+      "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "bytes": 8976,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+      "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "bytes": 29824,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+      "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "bytes": 21160,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+      "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "bytes": 16328,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+      "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "bytes": 7952,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont-elf.o",
+      "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "bytes": 8632,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+      "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "bytes": 18816,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/d5a9841f3dc6e253-poly1305.o",
+      "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "bytes": 89096,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+      "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "bytes": 3680,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+      "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "bytes": 3472,
+      "full_mode": "0o600",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/libring_core_0_17_14_.a",
+      "sha256": "6148bff19d87d0f60491b63184bc4d57b020472e7b775d2cc7686ded53e2dc00",
+      "bytes": 2352394,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-58e867ca49159cdb/out/libring_core_0_17_14__test.a",
+      "sha256": "8ace83ca2969a64313673d94287846621bf11daba3b46343727fb9ef53a4dda7",
+      "bytes": 91624,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-7530bd4b15a3d744/build-script-build",
+      "sha256": "606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94",
+      "bytes": 1905008,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/ring-7530bd4b15a3d744/build_script_build-7530bd4b15a3d744",
+      "sha256": "606bb351a884eb3d9cd750bff7eab1257f39c5030d1b472684b55ec862f1be94",
+      "bytes": 1905008,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/rustls-925e9dfa6585fd8e/build-script-build",
+      "sha256": "23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6",
+      "bytes": 426408,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/rustls-925e9dfa6585fd8e/build_script_build-925e9dfa6585fd8e",
+      "sha256": "23d40b04484a8ab49996be4af538cebcd14230226e4a01580e29e8f58fa761f6",
+      "bytes": 426408,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "bytes": 438184,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+      "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "bytes": 438184,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_core-014b72808938b142/build-script-build",
+      "sha256": "3e50c20837d93bb522d6a31923bf41544a1ba49d227032ad9572f4d8610e41c6",
+      "bytes": 588408,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_core-014b72808938b142/build_script_build-014b72808938b142",
+      "sha256": "3e50c20837d93bb522d6a31923bf41544a1ba49d227032ad9572f4d8610e41c6",
+      "bytes": 588408,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_core-c91d50b1317a694d/build-script-build",
+      "sha256": "de6707d8e41bc3629bb6999cf25737635b831449a09a696c22749759fd81868e",
+      "bytes": 590864,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_core-c91d50b1317a694d/build_script_build-c91d50b1317a694d",
+      "sha256": "de6707d8e41bc3629bb6999cf25737635b831449a09a696c22749759fd81868e",
+      "bytes": 590864,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_json-2df4e160f567d3e9/build-script-build",
+      "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "bytes": 449968,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_json-2df4e160f567d3e9/build_script_build-2df4e160f567d3e9",
+      "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "bytes": 449968,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_json-cc09fb97eda35537/build-script-build",
+      "sha256": "87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277",
+      "bytes": 437392,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/serde_json-cc09fb97eda35537/build_script_build-cc09fb97eda35537",
+      "sha256": "87bda07db4b26c2a63d00cf2a85316ef594eb6c1a6d3032c34fb487660da1277",
+      "bytes": 437392,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+      "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "bytes": 500648,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+      "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "bytes": 500648,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/snap-9ac953883e3a3088/build-script-build",
+      "sha256": "eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2",
+      "bytes": 489168,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/snap-9ac953883e3a3088/build_script_build-9ac953883e3a3088",
+      "sha256": "eedaa77e6a935e897d169605b78058e0201626d232ce029f6098a79a3930e6e2",
+      "bytes": 489168,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/zmij-0f44023b05156c84/build-script-build",
+      "sha256": "7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64",
+      "bytes": 559392,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/zmij-0f44023b05156c84/build_script_build-0f44023b05156c84",
+      "sha256": "7d10beb5e7998e07f2955bea2080cd3c63676d5d3093f67c749d14a254a4cc64",
+      "bytes": 559392,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/zmij-9224f156551122bc/build-script-build",
+      "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "bytes": 561760,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/build/zmij-9224f156551122bc/build_script_build-9224f156551122bc",
+      "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "bytes": 561760,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-046d766c1dadac99.rlib",
+      "sha256": "31ddf5a627f1c2f8060f8310cc26b48fe02bd9b69b3340d4358fa780738de80b",
+      "bytes": 54720,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-046d766c1dadac99.rmeta",
+      "sha256": "62851ae5e4672e0c6027f76b370d24083f24d363aade44ee3e1ea8bac5cae109",
+      "bytes": 21531,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-1e865cc3bcdddac2.rlib",
+      "sha256": "daf4aaeeab5a69f1b10c00e21b3ef74ab0da175b9b23b6d48d91130e45882c58",
+      "bytes": 56726,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-1e865cc3bcdddac2.rmeta",
+      "sha256": "fdc4cd21157566c083cfbf3ea01446141aae71b094ce4aef1fafcfa5b796521c",
+      "bytes": 22291,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-300622e88e783ceb.rmeta",
+      "sha256": "41666ae93fa37dcf82e5e72f301864d39fb50caa203dc08e2c00fae65f9e16a0",
+      "bytes": 15841,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libadler2-e893ce9e22090f13.rmeta",
+      "sha256": "bc5bfe671296bfeafcc56fc9a1647dde78d6d921fe0cfe16af91f1bd02365235",
+      "bytes": 16388,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-20c6803edccffff5.rlib",
+      "sha256": "b387f425d8c8453953c3ccdd140df74ab7ff3626799cef39dc00e6c75abd4083",
+      "bytes": 1006242,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-20c6803edccffff5.rmeta",
+      "sha256": "5764bb5e4b678377c6cefdfb770f7d5ea2d6a89a2c6c9362cf44df5d2f2ca323",
+      "bytes": 681932,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-88a03ba1117f41bd.rlib",
+      "sha256": "f7ff13ced799603c7c031c25f061c7868e65e5ac5a61ac3773a0a5bac59ae317",
+      "bytes": 1016478,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-88a03ba1117f41bd.rmeta",
+      "sha256": "33d5a303833d633c70a78b65d9afb68b9a396a43ee7796e0d8218881cb323244",
+      "bytes": 701312,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-a589075950160e12.rmeta",
+      "sha256": "7532749030dd523e3268df9d52ab4c3d68e7d6c5524b2705f50418f7e272c70e",
+      "bytes": 588072,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbase64-b726cfa0c8465ef6.rmeta",
+      "sha256": "fc1af21d0185b2daca8e5949c55f8a668bdff8e0656e3e286424c165864f235c",
+      "bytes": 603997,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-208d708924e3acaa.rmeta",
+      "sha256": "d80c02e1799665003cbe05a3f11ff7d9166bbe1fe9954d88b4be0536b66a5c3b",
+      "bytes": 55252,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-495b96065a86e5c0.rmeta",
+      "sha256": "9fc58711730b648eb07cd3b1f84d05d2e7a4375ec72c4d3775e517212d289ae3",
+      "bytes": 53290,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-542c0cd4ac7d5263.rlib",
+      "sha256": "707c3f3cc859277dfa41e6bacfae5b990aafc387f4df16af5d3cfe41b306c4e0",
+      "bytes": 85906,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-542c0cd4ac7d5263.rmeta",
+      "sha256": "7bf3f27c5e5cc8bde95d50ac9232971955d8e5c6288a65425c3f81125ab1458a",
+      "bytes": 83512,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-8e8faee3f2fd7af6.rlib",
+      "sha256": "86c822b113d082683a8f29897e8dfe732d0938bc87f61c5e1c43a2c24d35a221",
+      "bytes": 90302,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libblock_buffer-8e8faee3f2fd7af6.rmeta",
+      "sha256": "c3e98207b0f5e66d820388dd9a6b756c81b7abcc52112e374392a656737ada5f",
+      "bytes": 87149,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-5c7552e459571a76.rlib",
+      "sha256": "18d1d95cbff214ede8f4c2e5237115f79d09d19f9e0166e1089e3c2581af9e6a",
+      "bytes": 1237532,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-5c7552e459571a76.rmeta",
+      "sha256": "b0873383cef0822560d0ed376152b2b758a8c263687d6d3bec82e12df71c9026",
+      "bytes": 885294,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-a1293ec3bf214867.rlib",
+      "sha256": "f1493db102c68705a591b3d57f5dfc8582fec6e55abb8124efaa155686ba2b2b",
+      "bytes": 1166318,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-a1293ec3bf214867.rmeta",
+      "sha256": "e83fb7a5463d6b6ac743bb30ff98c0481a14ce5625093380aff69d6df61adc29",
+      "bytes": 815978,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-b84befad5dc166a7.rmeta",
+      "sha256": "540aa5819b6f3d29c4489d8d7707576f04e9fbc335a7828e6126ef023111bcca",
+      "bytes": 599190,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libbytes-c5fdad1a4f76e3ac.rmeta",
+      "sha256": "12de7e6719f35f22635edf8e2380e2681555cba963b2c2e8c5baa617dab6c085",
+      "bytes": 553868,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcc-aab449a86a462bdd.rlib",
+      "sha256": "11cb8e779e8c32533bae15a2040a98a67202d303d00d7b6baa37a98e23565a2d",
+      "bytes": 3166606,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcc-aab449a86a462bdd.rmeta",
+      "sha256": "2405928582b7a0fecf278e966552e2a8d561db2f2d2516352e9ec31112df809c",
+      "bytes": 466707,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcc-e64bfaf24096aa27.rlib",
+      "sha256": "de023ead4c0e700ff916dc85a392d1c98aa4dc9190206b07fe1cae060147c639",
+      "bytes": 3473704,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcc-e64bfaf24096aa27.rmeta",
+      "sha256": "ffef3c4f9e1a390c2c0e487ba27c43b15b941cdd7746cd4b2a6eff12f4550fbc",
+      "bytes": 477320,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-49e943ec4d03d908.rmeta",
+      "sha256": "b3eaa4b4451f0f447f83e617862b1cadbdee297928f8889824fd1661f1de6750",
+      "bytes": 5840,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-c5749788b74aba21.rlib",
+      "sha256": "9b781f8cea13ea9b692adea17d5f19a47a85176110ccef68e6e2cc509a0bba05",
+      "bytes": 8106,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-c5749788b74aba21.rmeta",
+      "sha256": "df84681a6b55e718b56c03f6aa37ba10f1acaef65c711e6800cee9de63b62b94",
+      "bytes": 5889,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-d4fd841ce8570c28.rmeta",
+      "sha256": "a94e2ead43e517355f2d7fe50030fc05ca80e8760be7e55b651b66d724b6b05d",
+      "bytes": 5889,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-f3d6292429be74cf.rlib",
+      "sha256": "c3141640460ec6e27b78225e705e0fdd2ce52083a602170e9685e3516f4f6f46",
+      "bytes": 7342,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcfg_if-f3d6292429be74cf.rmeta",
+      "sha256": "1152df72974dfe24cd71913ff07a87d3a3695c9595337cd892a32cd7c440d72c",
+      "bytes": 5840,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-1220335903608a31.rlib",
+      "sha256": "2ca0c5e81edacc565f32df57ab4da1d834fb978635c5f36d2f9c00574cae004b",
+      "bytes": 279958,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-1220335903608a31.rmeta",
+      "sha256": "aa3cdd11e8a8217ed59b5556e421936a4869d05bbf77878c84bfcbe740b355ca",
+      "bytes": 277747,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-2807a3dfac88fa1a.rlib",
+      "sha256": "4e3ac3d25e22be290581625da38c508371fff890da06306b00d7b652016689ae",
+      "bytes": 288602,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-2807a3dfac88fa1a.rmeta",
+      "sha256": "d8bea72546779b3750b7e922fc6cb43c5a086a089e1174e6813b8f6b31af5531",
+      "bytes": 287101,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-ef320363138c97c4.rmeta",
+      "sha256": "52fd1edadcd5d2afc5999257cf40d29ab26261aafd850f29fcac6d88fb493832",
+      "bytes": 182733,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcmov-fda74ea12335cf87.rmeta",
+      "sha256": "540bcecdf77aff14c07029cf7f4e503bdda069b04db9b8f68d4ff7d209eed8a7",
+      "bytes": 193281,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-5d5207a3842070f9.rlib",
+      "sha256": "8549b8791912e045dd3a512d7b8675a1873c1bb29abeae26e9a1757bbefbe1b2",
+      "bytes": 242340,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-5d5207a3842070f9.rmeta",
+      "sha256": "5a69be617a73178db607130d262008d96482dd9ddd7f25221f48d23f052ee15e",
+      "bytes": 154445,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-85e3fbc28789990b.rmeta",
+      "sha256": "c40e61b5d16adc1b2644d6cc12d6dcdff0196aad9db790ba3a6bad012c266a20",
+      "bytes": 119448,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-8e3e75693f11d4a0.rlib",
+      "sha256": "cdf65e585c576843b09378cf44023d96aa3088ab4b9424af55d9877f5204de5e",
+      "bytes": 244674,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-8e3e75693f11d4a0.rmeta",
+      "sha256": "b9a6aecd40deebc4d30303c60cb94628362806568bd735e8bd5510857fa43d01",
+      "bytes": 159249,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libconst_oid-fab9d76384685647.rmeta",
+      "sha256": "ea3f2493406249048add15d18b0690580bdf8e2c206548d5f411a4cdc7d0d56d",
+      "bytes": 117266,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-29b9246791c8707c.rmeta",
+      "sha256": "93c6cc8138b1b14597d7a5ddb05d7de03b206ba1bf8c872af3cfd6bd969803a1",
+      "bytes": 43831,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-78a6a97858c06a0a.rlib",
+      "sha256": "4ca6f927a2552c58f1c21548895396914a6e882b8bc7d8c457544d48fb00d121",
+      "bytes": 49632,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-78a6a97858c06a0a.rmeta",
+      "sha256": "43a7a2a8c8b4229b7770199d4ca7941eb69da9c10e254539a283478a050756d8",
+      "bytes": 48110,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-ca644647bc9d1c77.rlib",
+      "sha256": "e7edd6f851a9fae3e6c82c09d89efcd28548395b650560fc62027c17f0003ec3",
+      "bytes": 46068,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-ca644647bc9d1c77.rmeta",
+      "sha256": "dc558748068ff0310438f9139b5ef40dc59732bd7d2921dd0fcfe102960e7065",
+      "bytes": 43831,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcpufeatures-fcf406c16b488bd8.rmeta",
+      "sha256": "025c64a8da9d1af232b9c3abbbec87b82fb7b126f80ada9503d985257603175f",
+      "bytes": 48110,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-1e7bfe0f928d6cde.rmeta",
+      "sha256": "58e0f110d920f2410684ba24d58d6a338d2555bb372fc3c048e6cb25e8d804fe",
+      "bytes": 100488,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-20564f119f46d05e.rmeta",
+      "sha256": "cc70ff949c41b16aa9ab5c5c5b0511f15a05ce7f9b3b31e5aad15e6651aa5481",
+      "bytes": 103155,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-51ef0ec97eaac666.rlib",
+      "sha256": "a1e1c300c3597abef084d994ad64d20a3e0af686fc75c9f4c7b82b78896e2b3e",
+      "bytes": 180970,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-51ef0ec97eaac666.rmeta",
+      "sha256": "1f8a627fc18168b247c6d7a8b312d8929e95176c21baee75eca5b680c11049aa",
+      "bytes": 108933,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-93d83e3e7eee48e6.rlib",
+      "sha256": "69f50394976cdb3282cc95b997261713c32ab1cc4f823df85204c136fbbaee94",
+      "bytes": 181378,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32c-93d83e3e7eee48e6.rmeta",
+      "sha256": "6af2358373aebad710a04e9bdc5eb01c30913c3720f7d1cbd47aedef536ecdc1",
+      "bytes": 106442,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-6f9e057f2923c244.rmeta",
+      "sha256": "c922cd7e9f0ea583ea57efacc7e794af44e037a63e0441f96eda602b54803a5b",
+      "bytes": 48273,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-709727a8845d3ae2.rmeta",
+      "sha256": "374de061152105e976228a6aad4826fa0f9a834ba8468d81654097a401621e6b",
+      "bytes": 52541,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-a5f37806154f059e.rlib",
+      "sha256": "341ba4d5a42144d0bc26ae52f2876fe90a827e6cfeaedd8558423292ccc9affc",
+      "bytes": 142836,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-a5f37806154f059e.rmeta",
+      "sha256": "e1a9e3dd6b96b88c66425d009fe549d2fe3699a80e3d29066693f4071ff0f1c4",
+      "bytes": 50793,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-a848c735fffc2fba.rlib",
+      "sha256": "524cca2a78fd4d3cbe4bbe8c720ba55173631e686f16719938696a96ea45a164",
+      "bytes": 176858,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrc32fast-a848c735fffc2fba.rmeta",
+      "sha256": "b10a8ce79d7142c37e058e36b1dba805b3aca48ac696ea0a36b7ed2f87122975",
+      "bytes": 55317,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-34088be7ca9cd6b8.rmeta",
+      "sha256": "be0d6f8f8bc1b8aecba1b7b01ecae6c0e5e7d90f70ad6450af96f084caabdb6b",
+      "bytes": 315821,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-4264273561602320.rmeta",
+      "sha256": "2cfdb121a550c5998085bff539904dffbcc71e229b855067c6cc755fa2659a1f",
+      "bytes": 302417,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-66cd52a614979156.rlib",
+      "sha256": "8db7a04f475b38281d64fc5013d6b7d48e238253d5d55803142ac100f81e5ff8",
+      "bytes": 1794590,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-66cd52a614979156.rmeta",
+      "sha256": "d10455a0427c6a6ba8023e85136f05e20142f78ee0644e9913f1932475e0eb66",
+      "bytes": 369357,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-b59c93307fac133f.rlib",
+      "sha256": "ceba166fc4ab0f44034d15065b6dc9fadb91c1fcedcb38e03861c3860af97361",
+      "bytes": 1586734,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libcrypto_common-b59c93307fac133f.rmeta",
+      "sha256": "75c36bff30ebf0175859a23b31b843cbf0421b4a1adac09940ce408b62744222",
+      "bytes": 352758,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-c5f446d88773028a.rlib",
+      "sha256": "c023345bb7e79a8a215e26f8379d0e00fdabf1f20abcc3c5636b87a3e9271068",
+      "bytes": 355730,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-c5f446d88773028a.rmeta",
+      "sha256": "a3418277bb13c869d68ab58474af4f9cdb35d0f3e74bb4f25cbe530e698f3447",
+      "bytes": 350573,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-e49afcf539073a1f.rmeta",
+      "sha256": "0bf5329c20783dc222f51171715dbaef0fb0509394e03be8381a84a5fc87291c",
+      "bytes": 259204,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-eea8c6f2d5127df6.rmeta",
+      "sha256": "61025121b3e41188ea1efef4ee83aa96bb185c713340a687bf0795b21dcbeccc",
+      "bytes": 263804,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-f7b405e5ec2a008d.rlib",
+      "sha256": "c01dce6dda0212b2d5bf093b8cfe14301a3856a86a22d0be3159cb68c976a3fc",
+      "bytes": 363044,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libctutils-f7b405e5ec2a008d.rmeta",
+      "sha256": "4ebe90a253c9f875563d5f2304a0a966010ed3e1ea861f7cefcb91598ebeb22b",
+      "bytes": 357270,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-4a8a198682be9c49.rlib",
+      "sha256": "8cd3ff683ac7924ae8c85ca9ae89c23ba7135782e48896db3eafb40b66d3e51c",
+      "bytes": 259490,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-4a8a198682be9c49.rmeta",
+      "sha256": "f645272f969b5bf9a2e757ddb99695bdd9064f0073af76bca51dedd2052cccb5",
+      "bytes": 255291,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-78bb77340578c9cd.rlib",
+      "sha256": "1cc0ba946f703780bb03acd9b8b8daeb344d819199e1bb588fee4df361e4463a",
+      "bytes": 267656,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-78bb77340578c9cd.rmeta",
+      "sha256": "ec2d33e4d72ccb4645c3f15e526e3d7e48a7ef8a88747ed82cf44f9d4439b3de",
+      "bytes": 262707,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-a185b97c967c09d3.rmeta",
+      "sha256": "746e079564a15e72f80cf8ad7b7116d4694c6b9a9fa710880b9b07772ef2e740",
+      "bytes": 228075,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libdigest-fef6ab071c3950ff.rmeta",
+      "sha256": "c29c61256e502c4d8db5ffd66f444f8406047bf3d4c1cd3adfa1d37dee60127e",
+      "bytes": 222413,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-1386b54a46a4b212.rlib",
+      "sha256": "4990be17bb6244fe795deb1b5fa7bea1e12d3d14e4db68feb6c934f4f782e1f2",
+      "bytes": 55810,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-1386b54a46a4b212.rmeta",
+      "sha256": "e0709eb687dc3a7f48997d0c16822ec2034df09a11b603d29ab6f18e606fd16f",
+      "bytes": 17450,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-6a25dfe4e6ec758a.rmeta",
+      "sha256": "e838361db20c1fb22f0494ed3efc12dda7c4476d22889bffc21c0dee9190a4d2",
+      "bytes": 14413,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-ae78a566dbaf03fd.rmeta",
+      "sha256": "76ccb02dd1a273ad7b018b4596ef429e74b8c4fcf49c5f2167c4aff0f588eaf2",
+      "bytes": 15487,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-c7d936f7572e5e3a.rlib",
+      "sha256": "d920e1bef274279c0f2413477874bad3f383e4d8d6e1f6d0d4f6296791eca5bf",
+      "bytes": 42106,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liberrno-c7d936f7572e5e3a.rmeta",
+      "sha256": "6235da0c2522f32def89556175f43fc719a8fe45340f20c372a2e2fba9d6aaaf",
+      "bytes": 15994,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libfind_msvc_tools-1612a9a7a6991e05.rlib",
+      "sha256": "6dc58c692f5b8763ae1c125e05820ff7824b606ad71343c61842bd08e9f9b315",
+      "bytes": 329060,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libfind_msvc_tools-1612a9a7a6991e05.rmeta",
+      "sha256": "37a2dcde969305e0cde8c74ba58f2e688c9eb295b59a48ff8df229f862ce563a",
+      "bytes": 52761,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libfind_msvc_tools-b02d447084f2d81f.rlib",
+      "sha256": "655b4d126da2f13b701678d8686eb07bbe0af604fc7a64ae493a76d170088a5b",
+      "bytes": 322160,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libfind_msvc_tools-b02d447084f2d81f.rmeta",
+      "sha256": "17e1f02803c7fa33f48a7d9ae5047d23c39a41b9ebbb2f03c090eca427da0c00",
+      "bytes": 51778,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-0401a049880a22c2.rmeta",
+      "sha256": "5fe54be39893987467c708440f4d635acb0536d7436cd5d1eb8ed86cdd2f17fd",
+      "bytes": 438610,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-6c53d1253fb2362b.rmeta",
+      "sha256": "30111d98edcb571bcb728cbdf26dbb067e464b4e98391272b43375bc8917a5fa",
+      "bytes": 404963,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-c031e8db2948dc9b.rlib",
+      "sha256": "d19472fec3777599d350c25723b1e430918edbd3be4e103619709fc5ba718e20",
+      "bytes": 808764,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-c031e8db2948dc9b.rmeta",
+      "sha256": "b5faf9120632718a4d9f226ab1d185bf770797a63394668455771409a1b7da4d",
+      "bytes": 619547,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-edc857807650f18e.rlib",
+      "sha256": "06364272c7cae3424365bd9920828001f69d505d64610d7e7250f367750589c5",
+      "bytes": 758258,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libflate2-edc857807650f18e.rmeta",
+      "sha256": "8fef535646e24f7d769b8a7e766bb1ab232cff5909492b7207f92af07229b078",
+      "bytes": 577377,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-1575172c9708739f.rmeta",
+      "sha256": "fc928d8d84fe4a533cb0720f073af1a3bf53bcb1a7d598c2ffe43fcc6b76cccb",
+      "bytes": 60674,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-66bc097c29765dbe.rmeta",
+      "sha256": "9b0a21730bb43058a8e7a17c4e7a28b8f360628dee64375f62b78fca0d45d3e7",
+      "bytes": 68274,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-7c736c171f42b943.rmeta",
+      "sha256": "067324c7557fd21546b89a1a472059aa589dbf6d2b2a9db9b5f9268d5a9c6018",
+      "bytes": 107237,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-81bcad59c2c4971b.rlib",
+      "sha256": "810a50f707a54b572ed68f2fb86e30ca19718ec9b0718a9d51fd549b33d55e47",
+      "bytes": 211222,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-81bcad59c2c4971b.rmeta",
+      "sha256": "ef7d40c7cb6824d2a62a5a0a0eef3899f0ae0a3335442b5c281afdd2c002a534",
+      "bytes": 155261,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-8f61805b1d7c9148.rmeta",
+      "sha256": "56c5e3fc800e4ec758f5490bf59f6ca3e767286a8548a97b8aa8b60b4df8a450",
+      "bytes": 141454,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-9ae5c89831507186.rlib",
+      "sha256": "049cf321ec80fd0840dbfc516b2cc9d780f0debcf81daa1574f25dabe2c40fe9",
+      "bytes": 133626,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-9ae5c89831507186.rmeta",
+      "sha256": "141de21ec8766103fdfb93548b09248df971f42ca4c9f7820d7017b673d33788",
+      "bytes": 65529,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-c446f0d4352e68be.rlib",
+      "sha256": "35b1ef52a3144411ba94afe13ead802a064747b353a29b341a669767c3e34da9",
+      "bytes": 181540,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-c446f0d4352e68be.rmeta",
+      "sha256": "3ea6ba17bc061647fb7e0ecc4fb82631b6c62f60fb7f7888cd386c7d3fe703ef",
+      "bytes": 112414,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-cc5b2a6792985dd4.rlib",
+      "sha256": "cabc89b32ae8d896bef26f971f0fd571bf71da8252c3db842f58a7b4e28f2859",
+      "bytes": 138920,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libgetrandom-cc5b2a6792985dd4.rmeta",
+      "sha256": "f87c1d543c7029fd17775562f3153b20357e51d42e00f14e9c9b580ec0c147a7",
+      "bytes": 81321,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-0b676546f8629e98.rlib",
+      "sha256": "55980e097c67e3a266c4390a931bc4d42fa5971a8bd3c46a567ed44d7b18e4c0",
+      "bytes": 100106,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-0b676546f8629e98.rmeta",
+      "sha256": "26c7640a6c7e2b4ee2389b106dd29f067be7c44d68df96d256bff1424510e0f2",
+      "bytes": 98603,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-1935a6e8f373e074.rlib",
+      "sha256": "c53e49647b66613ed7cfe2c4c24a1ca9b8cde96b127faac2b1de5f0d37514b18",
+      "bytes": 98542,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-1935a6e8f373e074.rmeta",
+      "sha256": "a27f74084b9405e093d07edb3fb0e27e4375b5d4efd12844e99facafecf927df",
+      "bytes": 96333,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-73fa8c0c3d429e99.rmeta",
+      "sha256": "a86631c4fc3c90e820f08304be970a7ed90bacd737d844818c489889f4116092",
+      "bytes": 72771,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhmac-dd74ba049b0df722.rmeta",
+      "sha256": "3bac1e6f87578710a795ffd32460d7566f7b5f061e1e37ea8beffdad7ba235af",
+      "bytes": 68414,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-40313d33848d19e0.rlib",
+      "sha256": "3b1d4f82faff65fc1d96f4e9845760c09d90782af4ed60d71af81e56ec231abc",
+      "bytes": 1247248,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-40313d33848d19e0.rmeta",
+      "sha256": "6a836e02e74faef69531b71c3b97acfea12c42148d49df717f77cd4a28a7411d",
+      "bytes": 1244763,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-5d18b8ad07c77ea3.rlib",
+      "sha256": "e16a5817d2a02ab1bbea1b64c90fef5415de0bac348a756fdac4e03cb8b06d3a",
+      "bytes": 1238714,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-5d18b8ad07c77ea3.rmeta",
+      "sha256": "4ae37545f589c4f8ec96b7eaa4edb9c4c393007b55e3961dca03171b0e183e1f",
+      "bytes": 1235476,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-a52d98c755403fb4.rmeta",
+      "sha256": "6cc058b8d7c21e2e93f93857c596b6fbbc6cad29ead91e097df8fc802ec3e583",
+      "bytes": 1168833,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libhybrid_array-da7b1ff1d0afd3b8.rmeta",
+      "sha256": "e44560c55060b8e7486d3e230974350f4d8c35e1faebb0fa38e945c5f30e3890",
+      "bytes": 1142848,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-728d7899ac7aa759.rlib",
+      "sha256": "7eb79c50507f582c39c4e55978ba24790cd66da6cf83ed4dcd416710bd6d9987",
+      "bytes": 139966,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-728d7899ac7aa759.rmeta",
+      "sha256": "101fde41b5c7faf4cd955553ed10533cae8010f8dc9669a9ef0fb075b5b5062d",
+      "bytes": 61634,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-89874b225fd8796f.rmeta",
+      "sha256": "e35d928c44b2fb36da54480e44d606fe823e920c19c020e77a527f4070502436",
+      "bytes": 51596,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-8b150344601cd037.rlib",
+      "sha256": "13267f41b93969fee5fcc5c62ee76332182d0c79d78aac3bca083d7792f5c2d3",
+      "bytes": 135360,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-8b150344601cd037.rmeta",
+      "sha256": "049f4fe862b84836f90b67054a7614d3b928094c7c936e6774d2070d6d1dfe4d",
+      "bytes": 62129,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libitoa-9459b33a6efa00ec.rmeta",
+      "sha256": "7012c84417178cb0b6df3fe8fe09e3edad415c508e7af4094f420a0f05bce4f5",
+      "bytes": 50345,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-56fa2de0d0f14e00.rmeta",
+      "sha256": "2fe06e5fd8c1b7b9e2fcec82930829f8653eb4adbd717c0ca6d489e38d0836f4",
+      "bytes": 3892160,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-7f0494efc7a97afd.rmeta",
+      "sha256": "a1cb37f3366d63c6853faa9aa8f62efecb9801220ce650d2895865f4ceec464f",
+      "bytes": 4213793,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-e3683aa881c1e51c.rlib",
+      "sha256": "920bc4d3a1aee47ed84c4e3352635f686fd63936c58101796fed0727cca0c4ff",
+      "bytes": 4416222,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-e3683aa881c1e51c.rmeta",
+      "sha256": "1060ccdd51a9563c4542b328e0694807e9180ce69aa91a1de91fb929559e2bf6",
+      "bytes": 4378261,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-f9eb06dbfb29d79e.rlib",
+      "sha256": "e2057095a6ad055a433504a28139c84757504d539ff0f49f813df1466912f5fb",
+      "bytes": 4724986,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblibc-f9eb06dbfb29d79e.rmeta",
+      "sha256": "c4c22084c38a8c18e6d32c8fa855dd402a820d64d692f5624b3872e67aedb2fe",
+      "bytes": 4688876,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-13667e6596a5dd58.rmeta",
+      "sha256": "1fac4bf2847d48f2d2908f0c21c0cd3e123ac40ca49838f3c5eed84996d01e21",
+      "bytes": 284828,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-4aca2e6899e51d4d.rlib",
+      "sha256": "88150bd6ca6683c7d4d3a0be322c7f76b08635ecabdecff51c117d57da66029e",
+      "bytes": 379660,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-4aca2e6899e51d4d.rmeta",
+      "sha256": "7fabce8067f826c314c28ecae41b5495f4f5c9b652a1a725f06f48fe0cc42574",
+      "bytes": 376445,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-83140dce300a3ee0.rmeta",
+      "sha256": "8f65bef1c762276d295571bef983f7ef77216ef26a7b9e197b213acd561055dd",
+      "bytes": 293423,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-b0fe6ccce4ace0ad.rlib",
+      "sha256": "151659d8827c36fc757cc77f851b6290bada0577ab14a15dd87d51de9870bccb",
+      "bytes": 392580,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblock_api-b0fe6ccce4ace0ad.rmeta",
+      "sha256": "5743311e3208a7a59c6bc2fc0f95e9df41687d9312c169bb92f44b2098729c25",
+      "bytes": 388767,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-03d985730e8919f9.rlib",
+      "sha256": "044647f5f7d47bef5b4482134bd897bc7f35c8ad7d428c2a022fcf390b6864df",
+      "bytes": 679410,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-03d985730e8919f9.rmeta",
+      "sha256": "03a19ea9619cefe0d771939bceb41e7c12aff03544c8fa1d6875fa3f19e3386f",
+      "bytes": 327194,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-0f7423584f421a88.rmeta",
+      "sha256": "46fa3e60c1b94ef260b634f886c60f4443db2fe2f2f927719a8f471fa4447f1c",
+      "bytes": 165825,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-3f7d272dcedc68aa.rlib",
+      "sha256": "29c697b1e600c08e0cf7f8c1c717b3932df31023de72d008677c53d6fe38fcda",
+      "bytes": 688112,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-3f7d272dcedc68aa.rmeta",
+      "sha256": "fa7cd1dcb5fb59ad51474dc3d0f7e5b7f1ef60a88f7f3a629329a58aa6d46fc0",
+      "bytes": 346956,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/liblz4_flex-79b050050b417a0c.rmeta",
+      "sha256": "b9cf99e1ef996decc500312c51928a29994d515954efe4063dc9cd68701f643b",
+      "bytes": 175170,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-46e1c7e51a153c48.rmeta",
+      "sha256": "85f9fa6b194ba94c952443c487e8e4af1aeacc4c67c9bde450c36915fe4e8ca0",
+      "bytes": 953909,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-5d7df9d853a2e978.rmeta",
+      "sha256": "792f6bdcb4ff05b7dcf46d4ee464d7c2517e1fa7e0436880ea8658aea4934378",
+      "bytes": 991135,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-ba59e7852c067dcd.rlib",
+      "sha256": "bb0fe91dc29105839a2bfb56c5a86d8f16ff408165d2845bcf2f936f17111966",
+      "bytes": 1836952,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-ba59e7852c067dcd.rmeta",
+      "sha256": "aa61c4c82ed0b45eb0db936d9bf0894622c5259601d2fa7b87b7d13430a98200",
+      "bytes": 1310054,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-d1905f1d761d158d.rlib",
+      "sha256": "82445f1068cfa0435155c914d4fb29b209ec940af1660c3a142e81b02f94fbf6",
+      "bytes": 1770034,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmemchr-d1905f1d761d158d.rmeta",
+      "sha256": "8e40ce0a5fb146cc1e52571991aaa23123547dd0e8b5a438a019011f9b2b3875",
+      "bytes": 1266853,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-a1803720cfd50657.rmeta",
+      "sha256": "3ee10154600b2ba7e06b8c23a959820aaf19a1a56241ac76a4a1c5063e6cbb9c",
+      "bytes": 363981,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-a8181ea8ff9838a7.rlib",
+      "sha256": "9df471e255835fc41c572bdae30e52de9aae85079f2908eee18af5913be93365",
+      "bytes": 1211332,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-a8181ea8ff9838a7.rmeta",
+      "sha256": "1ed67fcfddda1889d07d226933774a6cc064472d989c8c9b787fc84720ce2980",
+      "bytes": 397468,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-d369d4d9aab49966.rmeta",
+      "sha256": "2a35944b02ae81ba20e4560c79fd359f9d3fe9cf0670a5a847cc6d84dd4bd9ce",
+      "bytes": 351729,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-f93731e81aa15187.rlib",
+      "sha256": "992d5d8aae1c8d5d804291378dd67d3b34f5671356b2253b291d8ce192134fc9",
+      "bytes": 1221352,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libminiz_oxide-f93731e81aa15187.rmeta",
+      "sha256": "0fd565173f965c5935925f2499c1deae88e135101f4049ab821b69cf1add01d8",
+      "bytes": 409368,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-3384daefc3b45140.rlib",
+      "sha256": "0603002873e4408a7308acb71a1a01f3e1b846f55328212d500d2c96e68e2bbf",
+      "bytes": 989058,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-3384daefc3b45140.rmeta",
+      "sha256": "a41d0c9bb74d49361d837056dbe12324128733554a7a8d1114573dff45f8f902",
+      "bytes": 432796,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-38618979042897b4.rlib",
+      "sha256": "d6206a5c23ebe60da4119ccd7b09ea77e3a2ed0de9541a5a88e928ffa5775114",
+      "bytes": 1023908,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-38618979042897b4.rmeta",
+      "sha256": "7aaa34d62320247646dde46bba42b922afcefc951ac57617ac4e3745cda183b9",
+      "bytes": 445194,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-8c4aeabfa98af722.rmeta",
+      "sha256": "cb7f8c22fd1a0c7150c4e62aadeed87641887dd8859996ac0bee80d863ec0e9d",
+      "bytes": 399401,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libmio-9bfbe589ee1a9eab.rmeta",
+      "sha256": "586a8f9fb9fc44eadedb81edbb5a0c8a5685e8f0d5b2051bd0282990ef8913d7",
+      "bytes": 413417,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-37f0bba57512c0f3.rmeta",
+      "sha256": "de357b07902692c5ac2c2ac788ec42192324f9552c741ff459189c924acb0dbe",
+      "bytes": 140997,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-4d02c3b9b8d9697b.rlib",
+      "sha256": "846da482ff029f830589e0158d78b6add97698f64657e162b761389e6ddff382",
+      "bytes": 222150,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-4d02c3b9b8d9697b.rmeta",
+      "sha256": "3f15de4c8e0d03047e5d112d183eef1907b6c1814add51ed16ff06598788ee06",
+      "bytes": 186399,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-7d77ec4c8c4efc6c.rlib",
+      "sha256": "07924e805ee45bc00e5fde9fc7950a0e5e2ac3d1093147d8163ce1523414940e",
+      "bytes": 234230,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-7d77ec4c8c4efc6c.rmeta",
+      "sha256": "3ba6130dd0235f08f56548fde55ab36da17896bfc0ea06e8a0653d1c331fcc21",
+      "bytes": 196863,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libonce_cell-fc0fc9b51337c727.rmeta",
+      "sha256": "8169d675a300653a6daa1ee7776da5f31522449358a6c051a89bf9a543a6c543",
+      "bytes": 133724,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-04156cea8cee2623.rmeta",
+      "sha256": "c9e6accb6b3931ffdb670af6630f3e56a50754d6c1774ace68cf4e399f6bf84a",
+      "bytes": 144193,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-0a672c1563b7f0d1.rlib",
+      "sha256": "46292cc44a6fbcaeda4eb2d72198219a2eb573cb0a6e6e5ac4b28f4da12aebc3",
+      "bytes": 716020,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-0a672c1563b7f0d1.rmeta",
+      "sha256": "5d6fea3dc5e72004515529cb85122f0e10c6992ff9f754173dbd5bf495f94bb9",
+      "bytes": 207162,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-4b2d8671d2a35525.rlib",
+      "sha256": "5bc05511f1130cbed05790bfe534ce305aa7b76381475c1161d6c8e4823bcb1c",
+      "bytes": 579220,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-4b2d8671d2a35525.rmeta",
+      "sha256": "d1d29e6e5f64f96ab1b95684895db7365aa63af36d585c0a313a89709886df35",
+      "bytes": 193519,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot-7b11b34c10e88764.rmeta",
+      "sha256": "1b09b945d6492e82216cb396b5917aa0d5c3168e7d4785d6514f033142700078",
+      "bytes": 157677,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-0d83b95c21f31d0d.rmeta",
+      "sha256": "2e402b2fed5ebedcd18ba90028899dc67dfb852bfeddc483363d77c763e7e269",
+      "bytes": 89148,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-1517a452445dc30d.rmeta",
+      "sha256": "7a749c7d63bd6df24302b5890eba2ea3a7dc3caaaf938a185a6e90cb1e4429de",
+      "bytes": 86937,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-8c6b5c8082cdf764.rlib",
+      "sha256": "bdc2f4af36ba922a14c868be159aa2801d7fc6decac64ac157261bbe8183495f",
+      "bytes": 313888,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-8c6b5c8082cdf764.rmeta",
+      "sha256": "ae848ea73aa5b1e250cb1ea7202c8ae974335176c8959873636cc5967b1a8d50",
+      "bytes": 150006,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-ab7166408711c854.rlib",
+      "sha256": "2df1938051e3fff43b881790837a14c309ada377cb3758d62e3543c727ee10c4",
+      "bytes": 289180,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libparking_lot_core-ab7166408711c854.rmeta",
+      "sha256": "86166975ae96c2b8d2e4270a1c3e30fb0956f483e901f29c6db6ab8afa6fe444",
+      "bytes": 172911,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-2c6379fa06d04c06.rlib",
+      "sha256": "b0f084d57134fd5020385a04729f521c9d62b0882c646d9292865364b44b5706",
+      "bytes": 34965806,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-2c6379fa06d04c06.rmeta",
+      "sha256": "905e95d382981fe732b3c4067f203d05b85e1b0fc5575392cbfee313f8f9694f",
+      "bytes": 14536745,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-4bfd85c5f2dd41d8.rmeta",
+      "sha256": "c1bb4c3d49658d931df8c832cdb288f388f4dfcdfb4709be010898d8d442dd18",
+      "bytes": 11723698,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-5ef5c381dcb9ffd4.rlib",
+      "sha256": "683224ee8128092ab31b51447d98567defb8a24f3985a6b5c29e09d2f0aa78b7",
+      "bytes": 39675302,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-5ef5c381dcb9ffd4.rmeta",
+      "sha256": "cfe2af6b398737c7b5a549c0e4a79da86ba3f11d1f2522a5c0b027ed8594d61a",
+      "bytes": 14497338,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline-6b06bc886f5927c6.rmeta",
+      "sha256": "c792b64e865e42bef2c4ea401dc4ddb8b95066a45f5b1e6a98b4250936b0d2a2",
+      "bytes": 11751566,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline_oidc_live_peer-13df03281f7e7e13.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpartitionline_oidc_live_peer-2f0a3ece6665bdb1.rmeta",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-21a8a0be40b5594b.rlib",
+      "sha256": "e4b3b71e9f02b8f6fce0aef4815313deb92697f4dd429c5046cf0f89d7389163",
+      "bytes": 26474,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-21a8a0be40b5594b.rmeta",
+      "sha256": "a1c42ca364eef1abdf673721f339d683ff10dc1f0cd7a80b2578a4e32a6db0af",
+      "bytes": 24258,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-2ce2f098815e9ef7.rmeta",
+      "sha256": "112f690c75cf001e8673e2d56cf6665f376db3de8247bb2c2b5c953be008ea52",
+      "bytes": 16200,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-630cb0e6d63c1be4.rlib",
+      "sha256": "aa9067b00791d8a3143fc3a78b695873b9440d8e0816ffd0840d9ae94db4c1ea",
+      "bytes": 27766,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-630cb0e6d63c1be4.rmeta",
+      "sha256": "b9cd96d41c40e91795c62bb2430bbec1594c9e7864c615f383c754da70453846",
+      "bytes": 26257,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpbkdf2-7c02fbfff83ff5a9.rmeta",
+      "sha256": "d22139f876d7d8e7b2ee81c53ffa4320e2100ae1b72faa1474b641deaf6bb9c4",
+      "bytes": 18261,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-521e83babdce439a.rmeta",
+      "sha256": "c0b25eba2f8322419567f7aa0235c4b8241662b5eebf789f4446275e332e2a0e",
+      "bytes": 92402,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-60db0d7be62c1ed6.rlib",
+      "sha256": "1a9ddadc5fd639b93fd361f63a6cc4ff03b3e11d419ed64d7680dc131cb6ffac",
+      "bytes": 97014,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-60db0d7be62c1ed6.rmeta",
+      "sha256": "1da4af674ac74d9f9dc6cc762bff03b26206359ad1fe522713d4f4dcd2e000cb",
+      "bytes": 94747,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-a27e72e4158734e5.rlib",
+      "sha256": "e873e4fdeb5dc4ab585a869049f78fb1424f68a93f7992f42a331d1074a2da88",
+      "bytes": 95338,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-a27e72e4158734e5.rmeta",
+      "sha256": "46a063d02444b9b4747cb05f7c19f404e4a8e60348cc3a9d374852937709ef7d",
+      "bytes": 93806,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libpin_project_lite-ae702d1654ccd272.rmeta",
+      "sha256": "f9772f9ab35e6f07d9417b52a9ec96cd6cd284e7c01994119b5af86cc5ffe683",
+      "bytes": 93590,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libproc_macro2-25c5925b617698ac.rlib",
+      "sha256": "3dfc186b62b90889baa4c022228c86b5c56fd989fc2324bab894a4af3741202a",
+      "bytes": 1214312,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libproc_macro2-25c5925b617698ac.rmeta",
+      "sha256": "3c76719555d5c2cac36276b727bcec4da970fc4c0980ad4e4ddbd1fe220d8770",
+      "bytes": 335548,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libproc_macro2-2bd597a9082108c9.rlib",
+      "sha256": "096578cd69863ef41062c08afcf33b04f7a3b53cd622b276545a62186f379319",
+      "bytes": 1256420,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libproc_macro2-2bd597a9082108c9.rmeta",
+      "sha256": "e1a602f5a721bd35a877853cc9b395c1009c3615e5e4c54a9afa81f2c7db4eb9",
+      "bytes": 351281,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libquote-bd68107b2947e119.rlib",
+      "sha256": "4e647d9df0922647f5d9114df9389fab59c3c1813218072a4015dfee8af77fa9",
+      "bytes": 516296,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libquote-bd68107b2947e119.rmeta",
+      "sha256": "34ec772e3b00d96c8f85e8d6e082a02186a3d37b9a944c821a9f9a8cdcd4133f",
+      "bytes": 275652,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libquote-ee1a815c7b719a39.rlib",
+      "sha256": "214bc0fb5b81082349aae138caad5dfdb40246075912056c94aa854e28da2ada",
+      "bytes": 494830,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libquote-ee1a815c7b719a39.rmeta",
+      "sha256": "b047b859ea3a928c8e8cd2516e400266e0db5b353e626b607cf5e0c2e79d90b6",
+      "bytes": 269360,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-08a8d0f0f777c93a.rmeta",
+      "sha256": "84d92f68ca1415ea41ddd1dbacdf15384234915dfa2e420aa772cdbb5a88cb33",
+      "bytes": 1724659,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-4d0b3281310750f2.rmeta",
+      "sha256": "b57cd0949f9bb52cfe03985e1e4e134e78d2fa161566936eb9508857b7528836",
+      "bytes": 1818391,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-682230ff78879260.rlib",
+      "sha256": "bde245088125a8a01a7a52f793e9b39e219d3f41a9414108a33b0688d161a5a4",
+      "bytes": 6951164,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-682230ff78879260.rmeta",
+      "sha256": "800a59e608e46f764941e4223715d39c1901bcbc5850fad6a96ffcbd6084e574",
+      "bytes": 1985304,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-6dcfb2166a0915b7.rlib",
+      "sha256": "c8f7159e55e3b952be7e569a1c30b9a634c357670388dd2ebba31a71eb1e7a6e",
+      "bytes": 6719308,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libring-6dcfb2166a0915b7.rmeta",
+      "sha256": "7ee9822f0b5ebd933625eb268a0ae61600eb52ba50cc1e05b97d1bef403b9bc4",
+      "bytes": 1901627,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustc_version-512166224fdf5ea3.rlib",
+      "sha256": "a3029e0a27d7c894bf33f8d6e84c48a3d3ac13e7541af95b6e3d09bf4f1e8127",
+      "bytes": 411798,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustc_version-512166224fdf5ea3.rmeta",
+      "sha256": "caaa3da5dacb28e75646117949262eb61c49e1a7ce7e3682d015692fdb684155",
+      "bytes": 65489,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustc_version-f2f09324750bf455.rlib",
+      "sha256": "f6434678749c61e7ed78cd18aad50d87944dbce4c9b1c786f226d15f75d717c5",
+      "bytes": 438784,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustc_version-f2f09324750bf455.rmeta",
+      "sha256": "b6c5893cdf3e17a6999bce1792235f51f8f7e57fa87a57acee20c46811ee5484",
+      "bytes": 66639,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-60b66ca336a616d6.rmeta",
+      "sha256": "1cf9c32d9695857ae7c7a7d4c4aad660cccdc0761d77de135ed70af519f8996a",
+      "bytes": 3491908,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-c0df62a0da524dc4.rlib",
+      "sha256": "ee5f5f8b5995b211c5609f09ecde1e547efc18a34ed035a96450635aeaea316b",
+      "bytes": 12852048,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-c0df62a0da524dc4.rmeta",
+      "sha256": "5d685f7b2f48ed50510dcec20bbef2f51c9c887eec5f9101e78b74d2939cf63b",
+      "bytes": 4241464,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-ea1075335a40d897.rmeta",
+      "sha256": "00122912115e1db8136ff5f8f8f2ec2da72a07694b8e7f98b56d7ab997023de4",
+      "bytes": 3695699,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-fb5f904116185a8e.rlib",
+      "sha256": "d5b0e2cb8b823552888e0a059b6574a8bda08a543ea616570a97552db2ec942c",
+      "bytes": 11853572,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls-fb5f904116185a8e.rmeta",
+      "sha256": "4d81ea94ff7a77f3aa02bb97a3956f3a0aa70580a1df027f1ca646a5a8192b24",
+      "bytes": 4051427,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-02b5a68ee71a1413.rmeta",
+      "sha256": "9672dcf9e1cb3c4377fb11d92517c914cadd6a5e6492e4cb3ccf15d52d7d3e71",
+      "bytes": 324906,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-25ed56d3a8c84467.rmeta",
+      "sha256": "79c55ffefa0be50e783e51347ae15f3d8ffd39578cebc0df00e4642b7a304168",
+      "bytes": 336340,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-989ef1e78e5c4f54.rlib",
+      "sha256": "8e2ee965102e9059c5ef64e976f0a7c5304d2fc4474adc99abc6781932e7fe79",
+      "bytes": 806110,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-989ef1e78e5c4f54.rmeta",
+      "sha256": "c33fb2759a5a31897a6d4c710dce96893d528275ad06c02151d7c0c68f8835a4",
+      "bytes": 404440,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-b9a556d9fa3f299c.rlib",
+      "sha256": "dbc2dfe7157886c0a7074f94d7ebaa4ab5c85eab92001c1f46bb890b1f6f4da6",
+      "bytes": 798280,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/librustls_pki_types-b9a556d9fa3f299c.rmeta",
+      "sha256": "db32b5ed1659546cba6e060b116bc28c5b35acc5abcdce39d5d5507907922fd4",
+      "bytes": 392878,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-31a4ef735f3407f9.rmeta",
+      "sha256": "483cda4dede37f724a29b7194bfa976c80fdef7b27fcfbc4731d2d909a977006",
+      "bytes": 21815,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-6da9b19bbe6dc3bc.rlib",
+      "sha256": "7e508597251ec1581ea0b0cd9c9b39cab3c1dc1f3a87e2e4accad55b0d860700",
+      "bytes": 28338,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-6da9b19bbe6dc3bc.rmeta",
+      "sha256": "8f840adafd857d25acc8acb8ecf3e20afc88adc53f1efd283294e97ae7c30a05",
+      "bytes": 26099,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-77c39e41890d8ebf.rmeta",
+      "sha256": "9d1b6c690a7d1c68af2fa2bbe1eed54b337ce02aad15aee97f3d5380b9643715",
+      "bytes": 22127,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-d641ca1aa6890b0f.rlib",
+      "sha256": "981a72c1006f0a04ffd5aa5c2433ddfd2714878dd940f5609083a0f51c5813a4",
+      "bytes": 27102,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libscopeguard-d641ca1aa6890b0f.rmeta",
+      "sha256": "7b1752053dbffabaafae202603b4d976cd23364232cb11c279f6ada00d74f68c",
+      "bytes": 25584,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsemver-ab6907c039cf7c76.rlib",
+      "sha256": "b9989bd118bf027ee356ca326702cce48e70ef7bce4b89a6ff4f283649d5be47",
+      "bytes": 390808,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsemver-ab6907c039cf7c76.rmeta",
+      "sha256": "523f9b11fe9a10eaaaaf82ed34f43d14b2442ac69ea629f6dfdcdc984e98d43e",
+      "bytes": 139499,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsemver-c53b2411f36564f9.rlib",
+      "sha256": "9a388d7d30e0802cc88b6781a0dc90ab4bdb5b92c2887edff0131448d426bdb0",
+      "bytes": 396122,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsemver-c53b2411f36564f9.rmeta",
+      "sha256": "e1c15af0408bda593d88cbb4924894738deb03686f701e493d508ba1db3b7fdf",
+      "bytes": 128456,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-0c6d7f9c403e047a.rlib",
+      "sha256": "c195bbbc8e8560558c9b51edc95c663afae045383474af5fcb195ec26a261d3f",
+      "bytes": 4774452,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-0c6d7f9c403e047a.rmeta",
+      "sha256": "2289982a9e921c72b69a8d681fd0a27eb2119d9257f2b9a255b494b9e4c72994",
+      "bytes": 4590682,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-51a16120a234b8a1.rmeta",
+      "sha256": "f7f75c92378c6c9add658cb5530cd299e69171eef5b22828b6d950adbb82b56e",
+      "bytes": 2712474,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-671aac8c75a6f3b1.rlib",
+      "sha256": "3eef4f909835af1d5d764a28841632f01e5272a0b056b5ada0d3a70af2366513",
+      "bytes": 5010204,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-671aac8c75a6f3b1.rmeta",
+      "sha256": "3d8dc873e147fe33f9b56e9cf780a46aa4528a9024a587153155a8d6b85aa019",
+      "bytes": 4829835,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_core-9c105c5390ba6c9f.rmeta",
+      "sha256": "3607e6a57e22840dc76e4dca5b4ad5d3bc711bf479ff3af79ad5ea6aaf417a41",
+      "bytes": 2587123,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-045039a9784bc9f0.rmeta",
+      "sha256": "cdaacc746e097ffc8fa65d442143fa6a346c039490ba4913c077a268f64a07b0",
+      "bytes": 928213,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-6fa4455ef4d2774f.rlib",
+      "sha256": "2bedc3c44d77e0fd9dbac579ceefbb5b50c6bb7178fde9cf4e217a13db9c0338",
+      "bytes": 2364776,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-6fa4455ef4d2774f.rmeta",
+      "sha256": "45d415cb0b1c7e31c71c6eee00cfb96d071dfd9a9980d359ddee8bcda193d0a4",
+      "bytes": 1398584,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-d5083be55fd2fb34.rlib",
+      "sha256": "978083bbc791b3913734d9fe589c51cbb377f4d5bf75f958769cee9eb83bbe51",
+      "bytes": 2459684,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-d5083be55fd2fb34.rmeta",
+      "sha256": "b8646f2bb28ba3d7b21c3420c97f9c5c73bb92348c8b565ca8f732796b4d79d5",
+      "bytes": 1452739,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libserde_json-eab4154f346e35bb.rmeta",
+      "sha256": "14edb2ed19f5936a7cc56a221a676de8d0e7496a577e2979124eeea0ff7116b5",
+      "bytes": 965160,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-191cda4f586cec4b.rlib",
+      "sha256": "36d2e9d9cb7c946a95746f71539c7d5b08b44e6eca0186a269b8f34f4104fe84",
+      "bytes": 1013710,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-191cda4f586cec4b.rmeta",
+      "sha256": "eee4cfd16d356c3d76c1871f96542d3366bf64711b230bea89157acd6475f64f",
+      "bytes": 684440,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-37589ebd4efa2593.rmeta",
+      "sha256": "a12dc38863227e821c686c6d515fbba00231b1cf655964f3e4d234f54b4daedb",
+      "bytes": 638863,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-6ffca926ed4946f6.rlib",
+      "sha256": "307b07e9bc7d5cc19f6f0fb9dead2116371a609f1e12a5d9543be6eb836f22bb",
+      "bytes": 985794,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-6ffca926ed4946f6.rmeta",
+      "sha256": "290ca03e28c25a0abcaa65bfc66c01aa29c557f253f5fdabf4823038297d01a5",
+      "bytes": 692518,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsha2-8e524a6b425c7ce5.rmeta",
+      "sha256": "bdba3f528381ac65d9a7ba1f5a0c401d166efb6527da8b151f2648a0a40bd2cb",
+      "bytes": 642056,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libshlex-38c44e2d30f69498.rlib",
+      "sha256": "827eaa878782d0fbdf47db47076800cd8e29d5b6d6e991d61a0b2635845bf441",
+      "bytes": 137984,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libshlex-38c44e2d30f69498.rmeta",
+      "sha256": "68133b03409366677b494f990f2b548ee80dac6f0bebbd53f9d629cee0f8fa12",
+      "bytes": 49768,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libshlex-a7825ac6457e899c.rlib",
+      "sha256": "16e944f1dd2582e089809cc761bc865b2607132468ab02e0d5a9a83dac3014a5",
+      "bytes": 135272,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libshlex-a7825ac6457e899c.rmeta",
+      "sha256": "2cc3a2c5c321162492d01146bf5e35918be828a5c4a8c3ec148c7e019128b055",
+      "bytes": 48665,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-a16aff868d1532e9.rlib",
+      "sha256": "33c4f17d0f065cd922bd5c5b4bf56f42d3542539c628a230e10ba59da98f0ad7",
+      "bytes": 305564,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-a16aff868d1532e9.rmeta",
+      "sha256": "e972b7898be1769cd0668b87df354b0a2c98509c15fe5c9770c916ec57201b26",
+      "bytes": 79089,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-b38ae5f5f8a826a5.rlib",
+      "sha256": "62210f863a19a2fe41a00dfdbddb837f7a0c6236e3e30f1a15a932c9e0ffaee6",
+      "bytes": 291668,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-b38ae5f5f8a826a5.rmeta",
+      "sha256": "b3654502ad6a2b891f98ff0c5ac2c54121ec809ddd8e565b0c6e16aec9499e5f",
+      "bytes": 78011,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-e1408240df0ff64b.rmeta",
+      "sha256": "e8ba0173cde684e910d10e6c259a1a8ac2f114a193daf794838cc5b4b8e12824",
+      "bytes": 64720,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsignal_hook_registry-fdae895a5d8ac020.rmeta",
+      "sha256": "b4bba703b6b31dfc0ee978a972b0e8e3bf96981c101f75f8ece686a8256281e6",
+      "bytes": 66387,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-0d80420f20f1c442.rmeta",
+      "sha256": "06bc22b2dd1134ebe81a38be60628ab2d59928bfb8f836a417c63cdee80ebc81",
+      "bytes": 394033,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-1d3ff7238f3eda8e.rmeta",
+      "sha256": "c8ab40cda29d71163f2578f23458fe3177fd4dccc11dc61d2ad92ac99b6fc3ff",
+      "bytes": 397778,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-3f636efcc38e3000.rlib",
+      "sha256": "f72d2c09a543ea2a87a73629787fe6b34be8dae1b00b1489a21a8643b87461fb",
+      "bytes": 532672,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-3f636efcc38e3000.rmeta",
+      "sha256": "55c6c3c7a107c14a089aea0a8220c74de0e56057e3bd14415f7cc6f50ccef0b3",
+      "bytes": 402285,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-66dc7741befabab3.rlib",
+      "sha256": "8ff847fae3e88b121f3d7956a0dc7dae39dd97d828f491bba5a1e9d335602a6b",
+      "bytes": 512816,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsimd_adler32-66dc7741befabab3.rmeta",
+      "sha256": "d2311f2544fd5c64de293ee950685b50bbdb1c444dd394802647ec27d1021fbd",
+      "bytes": 398712,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-404c6f3040ae6115.rmeta",
+      "sha256": "533675d706c964cc82a724cc8998716951d2776431a1a252fe41ff03c713c93a",
+      "bytes": 159723,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-5841994d107f580c.rlib",
+      "sha256": "ab24290c95b94e27b5d6408b65b37641802f92ef0257313ca0aad26117c62b1f",
+      "bytes": 262092,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-5841994d107f580c.rmeta",
+      "sha256": "3d54c7c711903b6774b4f45b49173f06d5bb36f6fe0e2d2498b371f089c50d82",
+      "bytes": 250580,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-d2e3b5c9bccb2b7d.rlib",
+      "sha256": "41b0488e41600bb9c78c80b3ae9e6573d933d3745fe81125a1161a0aa2741cf3",
+      "bytes": 276554,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-d2e3b5c9bccb2b7d.rmeta",
+      "sha256": "8c7fcbb7d748210dc86a99a2d015f503b9e2c1ff4252910f0e02715d8a698eeb",
+      "bytes": 261311,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsmallvec-e04a14284431e9bc.rmeta",
+      "sha256": "5cad51950ea9bff6493ac6e39998936f432bd47425e172861ab6846ed013b5d3",
+      "bytes": 161884,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-1a5a7c603ad942e7.rlib",
+      "sha256": "42fdd99015284d7dcb18d03b9ab2934fafe1dc186b0eeea21e7137354d1da0bd",
+      "bytes": 581248,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-1a5a7c603ad942e7.rmeta",
+      "sha256": "ff9d1881e56c802970138fa1d973c8dc6a89c9946b225a1cc4d929ba6683e0c8",
+      "bytes": 264669,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-1e0b8611f42a9d0d.rmeta",
+      "sha256": "82d5d28d6ae20d23ef2fcfe16aa0b2df18428ea1ec4687c6fd42d43d71f879ca",
+      "bytes": 214490,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-89ceff79f29c3cf8.rmeta",
+      "sha256": "f4690915378661cc9eca8a43ca3e6261ef28c1980e2bf272a2b2fa42cc389573",
+      "bytes": 206378,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-bc3f56ede6fea636.rlib",
+      "sha256": "78039b5f44e705f8e2cad8184353034baff537dc03d012f185c701380e0035db",
+      "bytes": 594146,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsnap-bc3f56ede6fea636.rmeta",
+      "sha256": "1824e3ef5a1a0a1c3e4b4d1325e8bcc26a7b9304aff3901016a935bb52d8501a",
+      "bytes": 274730,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-2a0ca8fdecefade9.rmeta",
+      "sha256": "be56570ea984a26059671d054992f2147b6e9cbfa10e65aed2fd1d5f5cb838c2",
+      "bytes": 425529,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-72a51299a2a9c04e.rlib",
+      "sha256": "215ecbc880b553eef02e042fcdd3a03bba008f036627b400f91e7cfebb93bb00",
+      "bytes": 980868,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-72a51299a2a9c04e.rmeta",
+      "sha256": "1d71a82b56904f737b40206ae14364649b6a108bb1a9d7dc5d73aad6e79bf837",
+      "bytes": 417624,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-d2b30639570c78b4.rmeta",
+      "sha256": "731ad211ab9d4ef3828f88663cca0d7861128cf621f222868faba79aed98c6eb",
+      "bytes": 395424,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-e1f26c54cc855cd5.rlib",
+      "sha256": "0d25b0b76a542d14fbafb9d3bd45d080ba79fdc9de00e76cbd2ec62a86651d78",
+      "bytes": 991534,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsocket2-e1f26c54cc855cd5.rmeta",
+      "sha256": "d2aab43d8f14f570e29061552da4fba194fb3203c5d7dcc7338426c34a3fde96",
+      "bytes": 451392,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-04fa08034bc6754c.rmeta",
+      "sha256": "151412a38f199ae32f3bbcaf52647c646da45390875547dae2dada13a5edbe08",
+      "bytes": 70338,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-597837035b860e53.rlib",
+      "sha256": "4978c2e5443eac19c714f218ad2c2b538c024b070309c506087ad54798d7bdb2",
+      "bytes": 119900,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-597837035b860e53.rmeta",
+      "sha256": "f22d8154166a52788b89b3b117e2d7fd29442efd1fc7cfdb64fd9054838c039a",
+      "bytes": 115747,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-aaf1f990cb8b675c.rmeta",
+      "sha256": "0d95eaba003a41461ec3d34c473874819acc089df3d8410fc5a89f19db5b0634",
+      "bytes": 72475,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-b24e64197ced0dc3.rlib",
+      "sha256": "d3c92098aff657cf86c03777a565be0d6023cc9a034d91deb989c436b31d9188",
+      "bytes": 124454,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsubtle-b24e64197ced0dc3.rmeta",
+      "sha256": "c743274708d16ad9c483f352874b4362af215e428f82de855df961e0a81c6e06",
+      "bytes": 119617,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsyn-86d7e5cec18ce080.rlib",
+      "sha256": "ebdc0d76a2f6a791fe41a06a713f098fbace3071713acfbfe301a316a89d3ede",
+      "bytes": 8732748,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsyn-86d7e5cec18ce080.rmeta",
+      "sha256": "6cef25bac19fc7d17f8a77925b881dc0b2bc1a8d8b16f197c75b015064da74c3",
+      "bytes": 2807885,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsyn-f73ca732da467fe5.rlib",
+      "sha256": "39509396ed9e1b5a537cf5914bf5c308e65e14e6e43366b8ceb9d098dbaa3fbc",
+      "bytes": 9286040,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libsyn-f73ca732da467fe5.rmeta",
+      "sha256": "fee06a18c284ba4d25fcf5122b863c6d7328c7ad10ca56ae12aa4f48174c678c",
+      "bytes": 2822852,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-6852227e8a29169d.rmeta",
+      "sha256": "2d9c01da5189118d83c633c6f0c3f160e8d0220a3a52544643aaac66e073750d",
+      "bytes": 6915025,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-8dc6d41a0c96bf02.rlib",
+      "sha256": "d12ec2e03826216942045b04a2f994fecc6505a9f8684721dac1ca930cc9ce79",
+      "bytes": 15333336,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-8dc6d41a0c96bf02.rmeta",
+      "sha256": "5f0146e874f81a1defe0f9d3df471292dc56b14da2773f51e40703f840fc59b6",
+      "bytes": 8451936,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-ca3351162c9cb204.rlib",
+      "sha256": "7a1ecbf8449b36c97346ca063493bc5778495c986bbe8d18b65e9e908c48e452",
+      "bytes": 13723928,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-ca3351162c9cb204.rmeta",
+      "sha256": "117a51d425901fc9c4007252e99fabcab193ae6451adbd29e757cc0e9d4fb264",
+      "bytes": 8143020,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio-d5f08128bd148e66.rmeta",
+      "sha256": "163271e6ba587ae6812ef8fb1ec5dd97b31e27e6ca3a2e8effed3f0cce2f00eb",
+      "bytes": 7216593,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+      "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "bytes": 3482104,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_macros-e99031ed9ca5c58a.so",
+      "sha256": "6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337",
+      "bytes": 3218784,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-4fb7cb914e187e20.rmeta",
+      "sha256": "2159fff17f9bb1d4a98f81ff580ce7a211cb424768dc477608163466d317e11c",
+      "bytes": 131037,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-501ae6b95304338b.rlib",
+      "sha256": "70de31eea1b006c9e18c9f8e8dcbc3408ba44eb4e363b33303a83cc0e2f26e58",
+      "bytes": 245532,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-501ae6b95304338b.rmeta",
+      "sha256": "bf641bd241860fa85e38cea1e723eab7ff90ca036d55069fb29c0ce20b92eaa7",
+      "bytes": 241000,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-a00a8c1b05469f37.rmeta",
+      "sha256": "8aa923752e3ded848adb99ffbe2cdf3d98660b80ab9106eacb6dc60cbdcaeff0",
+      "bytes": 124703,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-da6859fecebd7786.rlib",
+      "sha256": "630bb68153914dbb3de1a410b5d2ddb9fff56e54e8495bb67bd0fc698a329a22",
+      "bytes": 234336,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtokio_rustls-da6859fecebd7786.rmeta",
+      "sha256": "59775d763d34fea291ac2e5119529f7ae74041e5b637cc01e91e5b4d97315f5f",
+      "bytes": 230612,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-204dc1adcf28fc8c.rmeta",
+      "sha256": "5b73c2a18bdb2fc2b1c5cd37d6b02b51f3802f81ab7933901e8631c82ad2d267",
+      "bytes": 41713,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-932d7c87b4807588.rmeta",
+      "sha256": "9a55aa0dc99b5c0b64ac7e28a84064e201e9edd19a88db10f787680a27f69bd5",
+      "bytes": 46339,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-b70aa58af454f7c2.rlib",
+      "sha256": "a8369d16383887860f8b3a6c3e77283ccb516ea63e0e7e92f0c15180f2017eea",
+      "bytes": 76840,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-b70aa58af454f7c2.rmeta",
+      "sha256": "4236f130a44f29e4dd8b58f586def10660190e9fd7ce93ec8d44095ab608ea85",
+      "bytes": 59046,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-ffffdab175a89247.rlib",
+      "sha256": "9bfa9613e7a09ad804e2117196dffcceef59ae54c490875eecc3a9191107368d",
+      "bytes": 81330,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtwox_hash-ffffdab175a89247.rmeta",
+      "sha256": "f05363a1a9a58b7161607382cdbe6a7bb27a19a133486e3614ef3fb811cd9e4b",
+      "bytes": 63157,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-47814ccbeb7ec2f5.rlib",
+      "sha256": "5dc9d215a47383dd60a896bda9bc1a1d38c84b3d80bed7fac65d86d147b4a958",
+      "bytes": 3588448,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-47814ccbeb7ec2f5.rmeta",
+      "sha256": "1246a2cc16ebe89490110626d0cc21f40f1205692d40aaed900379a23cfe5035",
+      "bytes": 3581336,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-9d335c01eea33eea.rmeta",
+      "sha256": "0bb9f97a337bcd29a64957f3b2322004b725c590510bb8420ce2c2c7c772a387",
+      "bytes": 3424568,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-ae975a31f28ad839.rlib",
+      "sha256": "3ae62058fa2b409d04fa14de4e79b520ab290bfebfe47b48fa5c639a2094b11d",
+      "bytes": 3692686,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-ae975a31f28ad839.rmeta",
+      "sha256": "3714f4ecf73c93c2dc5ed55aef99dba2e7d1629233026096e6c91c2e69078651",
+      "bytes": 3681582,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libtypenum-b1537ee68cdffd1f.rmeta",
+      "sha256": "0682c4391a047a92dcc68e90d5232a49d9818f5eb5391fb908c53d3515e68291",
+      "bytes": 3333702,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libunicode_ident-1c3ab445d59154f4.rlib",
+      "sha256": "63ec92a5415ea5b81a858a132c896b0da15f100713b0e17d49740db1fb8e2f5f",
+      "bytes": 56710,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libunicode_ident-1c3ab445d59154f4.rmeta",
+      "sha256": "f01a49ebe06d9251e225b85bea2a76ef2b751e1398a54188c18f9817fd9bc473",
+      "bytes": 34658,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libunicode_ident-d84a70c666eedd85.rlib",
+      "sha256": "bb8e4a4eba3a2165a84a5133ebe16b324a50c8ca9d4e8e4a72571dc76d40e690",
+      "bytes": 54076,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libunicode_ident-d84a70c666eedd85.rmeta",
+      "sha256": "26d7a014c71929fa9736cb4534a056dd626f803b67f10318e9b263d1b8b65734",
+      "bytes": 34134,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-a91bc39aedf17b15.rmeta",
+      "sha256": "0be6b692d32e2b87e114ef8fd1f8630bee8fdb08befb5b13937bc2c735c2843e",
+      "bytes": 29307,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-b8f19b70994fd704.rmeta",
+      "sha256": "7e79031d94ef399262562643ba085e28edfe85c10fd069c1d4d29c957bc0d8e2",
+      "bytes": 30906,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-c4249a76c523c668.rlib",
+      "sha256": "94be874871dd5e00e03261f3a795e9edb0a9b5207c6aa0762f57500690a888b1",
+      "bytes": 47994,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-c4249a76c523c668.rmeta",
+      "sha256": "c32e12201b1a1971bd1b802e2e2fbddc7b0455c7e551c7acf7ef7cd881396503",
+      "bytes": 43149,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-e7ca0e44c78639e9.rlib",
+      "sha256": "5c0aa3b3df967932a85ded3d9d06e4207c3cabf48ced355d6d5c922d3af94d9d",
+      "bytes": 44932,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libuntrusted-e7ca0e44c78639e9.rmeta",
+      "sha256": "c7fe59a612cd032af5765091d5d103cc422633c4ba0c2b019362ebb19c8e6a41",
+      "bytes": 40865,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-38c2c988bf00638e.rmeta",
+      "sha256": "19ffa826be92fa6ff599a82f33f3ba3dd86ff30ff233e7b8c71a5953d42474df",
+      "bytes": 495508,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-6389a5dd88cd7f64.rlib",
+      "sha256": "709463d207f1f1e4050b24d9137e003b8a6942a9248d5f143e01d51565173ec7",
+      "bytes": 2027754,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-6389a5dd88cd7f64.rmeta",
+      "sha256": "0f6e4cd9c106c410a4c968215d845d2d07051144fc541d089ca06a602b2592a2",
+      "bytes": 595987,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-6a3901f86efdd411.rmeta",
+      "sha256": "5ef7e506669a338bd743c4d93f47c80a13d87797d58820e52aeeab71bb2d9d96",
+      "bytes": 464382,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-cd6f3d1492f70e36.rlib",
+      "sha256": "323862f8c472e501423aa0acd9a9e1294ad195e3d562c3a0ea3f19a2c76b2f15",
+      "bytes": 1869922,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki-cd6f3d1492f70e36.rmeta",
+      "sha256": "0aa4072bf4b95d961cd761725afa41a5d3a50b9d5aa0679c1265fffb65dfe638",
+      "bytes": 566299,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-30a86c8c7e646e62.rlib",
+      "sha256": "00373f73579680d45ad57a418aec1a0ed3c76e19c6d965b246d04034287d4ca4",
+      "bytes": 136818,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-30a86c8c7e646e62.rmeta",
+      "sha256": "117e12cd6bbb021313af0d3776bb456676ab64cd25c44e8b6d12b6b30bd9dc57",
+      "bytes": 135289,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-dc71518038f78af3.rmeta",
+      "sha256": "5f863dbd83d5d36cbec716497d6a2d8e23ad9508416a9f39bb6adbd31fbb1573",
+      "bytes": 140348,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-f4b25b9f563c77f0.rmeta",
+      "sha256": "06abc77c3db56e2e8308d38db00bed3f42c797d886f86f32bce3390721c19b18",
+      "bytes": 135289,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-fcdde6e8a5b59dd2.rlib",
+      "sha256": "fde1101986f6513943d553409819d111bf967c87affa6e3b3aefb6a88beff392",
+      "bytes": 142598,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libwebpki_roots-fcdde6e8a5b59dd2.rmeta",
+      "sha256": "67b8897c52e9d1c12ff3365df80bdeeb5dfcd804d3cd0fb6dd8a1bd61b9dc8e5",
+      "bytes": 140348,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-00bbc710a28fa17e.rlib",
+      "sha256": "cccb53597588ae4d63fe9c8051628f24806e39acb6ec8ff701d3cfb6d8fc17e4",
+      "bytes": 464290,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-00bbc710a28fa17e.rmeta",
+      "sha256": "d6d3106521894868e0c6ae992857dcb073a911f3af9924c1a3a7d90bfc4da7c2",
+      "bytes": 422951,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-067438de769d3f3d.rmeta",
+      "sha256": "e8a72c5583d3f6452e3be1cd178830e1b006c896b19458efcc8328e97cb295a6",
+      "bytes": 402160,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-37eb1230eb06a0d6.rmeta",
+      "sha256": "1a949f8076efcbc7502f7539ae68766943139e2cd41f3b04af807cb01021f31e",
+      "bytes": 408623,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-c3c139a5607039cb.rlib",
+      "sha256": "157db2135f2bcdced29c93708a2c97d7009be03bf8d43b92514c76b97405d657",
+      "bytes": 468274,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzeroize-c3c139a5607039cb.rmeta",
+      "sha256": "0facc75fcf6e101b2458a43bea3e06cf409272ab872422642975a6b51ddc47c4",
+      "bytes": 429869,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-1471f7e754272b58.rlib",
+      "sha256": "8dc4d78b0bd5990c34a348a51f362c01477d4a1bbde0a1fa66d452a0e3b64ed9",
+      "bytes": 546530,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-1471f7e754272b58.rmeta",
+      "sha256": "a6a95cb4555340c4fec5e849a86e7c08981fda6ee91b73dcc2aa869e62de61b6",
+      "bytes": 421628,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-44fe50890e83a0d9.rlib",
+      "sha256": "2524935c7d52e292daeca22bf012882eaee8448a904e0c675ad85ce1d63cd45c",
+      "bytes": 540212,
+      "full_mode": "0o600",
+      "kind": "AR",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-44fe50890e83a0d9.rmeta",
+      "sha256": "d37bf9c0ce1d26db1a93a8fe43580030962e2749a95452ed65a7cebc69ff1305",
+      "bytes": 424541,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-8513d830f94196ec.rmeta",
+      "sha256": "1a44280bd1ce37b54d6008ef755911f6e29cec48b74e06d92f777afad506e40a",
+      "bytes": 412266,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/libzmij-8e0e044282f20527.rmeta",
+      "sha256": "7bcb8f0f5e6f94e46e440628744d4ebd94eedecd9b8d15de8c31ff916e0d664a",
+      "bytes": 413530,
+      "full_mode": "0o600",
+      "kind": ".rmeta",
+      "already_retained_elf": false
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/partitionline_oidc_live_peer-1d105eeaafd632fc",
+      "sha256": "db7c2a2518ed5caf18f402cb9167563fb15bfc416e72f611348d29171372299f",
+      "bytes": 15541816,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/deps/partitionline_oidc_live_peer-21b4876057055d8c",
+      "sha256": "a22778ac765ea3fdc86bc05498a2f86f1cc829f19f2294ce02c4b0e0083ad837",
+      "bytes": 13075448,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/live-peers-target/debug/partitionline-oidc-live-peer",
+      "sha256": "a22778ac765ea3fdc86bc05498a2f86f1cc829f19f2294ce02c4b0e0083ad837",
+      "bytes": 13075448,
+      "full_mode": "0o700",
+      "kind": "ELF",
+      "already_retained_elf": true
+    }
+  ],
+  "unique_compiled_outputs": 423,
+  "kind_counts": {
+    ".rmeta": 236,
+    "AR": 130,
+    "ELF": 117
+  },
+  "unknown_preserved_outputs": 363,
+  "worst_case_new_retention_bytes": 468326161,
+  "free_before_retention": 1335889920,
+  "projected_minimum_free": 867563759,
+  "required_floor": 367001600,
+  "passes_worst_case_floor": true,
+  "target_outside_source_and_old_proofs": true,
+  "current_all32_bound_configs_outside_cache": "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/manifest.json",
+  "future_cleanup_producer_sha256": "7c9efdc8816b42f468d80ecfa0cf4067f86275fd8a816f65be63709f87f527ac"
+}

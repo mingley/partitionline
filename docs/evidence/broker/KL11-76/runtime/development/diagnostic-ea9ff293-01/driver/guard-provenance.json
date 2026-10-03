@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "origin_source": "4e13fa8211fe98fbcdfbaddea5362dcef6b892d1",
+  "origin_path": "/workspace/work/broker-merged-source-4e13fa82/docs/evidence/broker/KL11-75/storage/merged-qualification/source-preparation/final/run-merged-final.py",
+  "origin_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "extraction": "exact AST function source segments; no semantic edits",
+  "functions": [
+    "sha256_file",
+    "verify",
+    "cache_owners",
+    "elf_identity",
+    "retain_elf",
+    "retention_forecast",
+    "retain_cache",
+    "executed_elfs",
+    "stop_command_group",
+    "monitored_command"
+  ],
+  "extracted_sha256": "4c7f8396a9ae51f326cf643268f77584fa723d7cbad918bcc126525dd326f55b"
+}

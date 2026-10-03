@@ -1,0 +1,13 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/broker-merged-source-ea9ff293/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.17s
+     Running tests/raft_runtime.rs (/workspace/work/target-broker-segments/debug/deps/raft_runtime-10d4014cbed1908f)
+
+running 5 tests
+test actual_five_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test actual_three_node_tcp_minority_partition_late_ack_image_restart_and_removal ... ok
+test canceled_ready_and_shutdown_keep_owner_until_successful_join_and_port_reuse ... ok
+test incomplete_oversized_hello_saturation_closes_all_tasks_on_join ... ok
+test runtime_child_process ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.94s
+

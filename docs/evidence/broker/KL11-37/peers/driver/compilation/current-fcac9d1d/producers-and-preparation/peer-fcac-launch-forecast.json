@@ -1,0 +1,21 @@
+{
+  "actual_source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "created_epoch": 1791039920.3278642,
+  "free_before": 1927634944,
+  "planned_compile_reserves": {
+    "new_peer_cache_peak": 838860800,
+    "new_peer_retention": 262144000,
+    "copied_runtime_outputs": 62914560,
+    "publication_headroom": 67108864
+  },
+  "projected_compile_peak_free": 696606720,
+  "disk_floor": 367001600,
+  "normal_pair_complete_no_concurrent_normal_cache_growth": true,
+  "target_initially_absent": true,
+  "old_sources_proofs_failure_private_and_docker_untouched": true,
+  "live_reserve": {
+    "public32_at16MiB": 536870912,
+    "private32MiB": 33554432
+  },
+  "limitations": "Operational reserves, not hard output-byte limits; actual monitor at0.5s and per-cohort closed growth checks. No live in compiler cohort."
+}

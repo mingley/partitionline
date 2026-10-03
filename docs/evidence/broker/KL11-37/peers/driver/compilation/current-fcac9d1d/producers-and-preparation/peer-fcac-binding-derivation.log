@@ -1,0 +1,1 @@
+{"path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/validation.json", "sha256": "a611744e785cfb9485b946b1821c2214f1c3ff39691abdc35b6435b88e957ad4", "runtime_counts": {"stable-rust-public": 5, "1.85.0-rust-public": 5, "native-2-15": 36, "java-4-1-2": 68, "java-4-2-1": 68, "java-4-3-1": 68}, "peer_binding_count": 6}

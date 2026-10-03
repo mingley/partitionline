@@ -1,0 +1,62 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "peer_binding_count": 6,
+  "original_build_validation": {
+    "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/validation.json",
+    "sha256": "24da059fd62b554f889a6cada3c9f955fe81004909d16866e081fe7535bb6c11"
+  },
+  "bindings": [
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/1.85.0-rust-public.json",
+      "sha256": "a168d86e1f514c4db9db22d6719f4553af497f892f7120971b065d861dbe1ae2",
+      "bytes": 9746,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-1-2.json",
+      "sha256": "d33faac7cef0df74e9ba809ff676b340200000888e448c04e6bc13f8a3687b0d",
+      "bytes": 20561,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-2-1.json",
+      "sha256": "8c6a9a1914667066605c907eb5aeaa7e04980122ec6bc2dbeadc0361c2e5570d",
+      "bytes": 20558,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/java-4-3-1.json",
+      "sha256": "82df14096d69c1094f2a619599551f2530e38faa2e10ba8fabda20273d1374d1",
+      "bytes": 20558,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/native-2-15.json",
+      "sha256": "3ad4d399e45a1aa53811bdba70ed61d64af420e3255ed73e2bbb5467c89d4b14",
+      "bytes": 13919,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/peers.json",
+      "sha256": "fb48d4153619b525c6d51c75d094ef951b222c9d81d412258fa9fafd375b08d5",
+      "bytes": 77606,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-fcac9d1d-attempt-03/build-bindings-01/stable-rust-public.json",
+      "sha256": "73d42ac99ba1ed627bf7b7d8ada459d47711ebfd66e262d5500e1f40d1cf81cd",
+      "bytes": 9460,
+      "full_mode": "0o600",
+      "role": "derived actual build binding"
+    }
+  ],
+  "no_live": true,
+  "runtime_dependency_limit": "direct ELF resolution including transitive ldd output and Java lib/modules/native .so inputs; dynamic system policy outside these hash bindings is not an immutable OS claim"
+}
