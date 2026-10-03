@@ -1,0 +1,77 @@
+{
+  "source_sha": "34a2e672408d64309b0c6cb3dca428f59bd30e0b",
+  "client_run": 37160016223,
+  "broker_run": 37160016210,
+  "jobs": {
+    "stable": 111311339756,
+    "all_features": 111311339845,
+    "macos_stable": 111311339705,
+    "windows_stable": 111311339744,
+    "broker_stable": 111311339772
+  },
+  "logs": [
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339705.decoded.log",
+      "bytes": 271442,
+      "sha256": "f257a2c7a117d62f6461f4c5331fba490bf050758a958b00a412c277f66ee652",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339705.tool-result.json",
+      "bytes": 275754,
+      "sha256": "e238cf8a66165ec4fd5ebef4c049847c82c903f1728eed6909c7cb50b7671ead",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339744.decoded.log",
+      "bytes": 25191,
+      "sha256": "fb39a3ab7b738b759fdf8617cba1576b61cefd7bda87ab7762860058b0372c46",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339744.tool-result.json",
+      "bytes": 26347,
+      "sha256": "d9d3186234158951aefe0181d635f8e443e448672976fd6827064dbf597e7aa2",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339756.decoded.log",
+      "bytes": 254530,
+      "sha256": "48c3e9f751e6c7d11ff303aee514ea6fca954c52bb30c3c7aadc4cb684c31977",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339756.tool-result.json",
+      "bytes": 260494,
+      "sha256": "d6d4a17ff48a2d886522d648738dacf879e23500f8d7e9f963ca4f2995f7634c",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339772.decoded.log",
+      "bytes": 54631,
+      "sha256": "d5469b2f1561aae89acf2ddf8e643d9a3107665fba44a355fec0031bbf82a480",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339772.tool-result.json",
+      "bytes": 56340,
+      "sha256": "7db1bb83e1dbf869914cc133f8fc7fa8e15d56d8035389340a1fbd048fb04b1f",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339845.decoded.log",
+      "bytes": 259834,
+      "sha256": "dee997c6693bdf0c5ad9246f7f620a3c19dee1b6b4ac92e24880e99a417cf1dd",
+      "full07777": 384
+    },
+    {
+      "path": "docs/evidence/ci/github-34a2-runtime/logs/111311339845.tool-result.json",
+      "bytes": 266784,
+      "sha256": "6eb2ae5b6b062d074b32d8acc2cc6ba275070aab61464a865638a4186ca5e5be",
+      "full07777": 384
+    }
+  ],
+  "source_correction": ".github/workflows/ci.yml: enable core.longpaths before Windows checkout",
+  "new_execution": false,
+  "qualification_complete": false
+}
