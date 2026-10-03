@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "schema_version": 1,
+    "disposition": "accepted captured fixed-member safety history",
+    "trace_sha256": "abcbf75e8c6de1b5da0277a85e90367bd7c5b742c1746ac328997fa75705ddbc",
+    "source_sha_reported": "development-WORK",
+    "source_binding_scope": "external immutable runner required",
+    "voters": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "events": 121,
+    "event_kinds": {
+      "initial": 1,
+      "campaign": 2,
+      "vote_request": 4,
+      "vote_response": 4,
+      "activate": 2,
+      "propose": 3,
+      "prepare": 30,
+      "receive": 30,
+      "ack": 30,
+      "drop": 3,
+      "timeout": 2,
+      "poll": 1,
+      "crash": 1,
+      "fault": 1,
+      "reopen": 6,
+      "process_exit": 1
+    },
+    "raw_journal_checkpoints": [
+      {
+        "ordinal": 0,
+        "node": 1,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "95a4850db2c2d541428ee009405ca5da6cd2365c06a7a8823528ba8a1c29d16d",
+        "election_sha256": "aaa657757243c89cf62319e7e6dfe431a0ab3ba5ea90f8bc1d916a82b3c1c46b",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 2,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "c82592532651c7741f07218f6dcb0b58dea7b146f6ebbcf72d254ddfb1393e74",
+        "election_sha256": "2a63463602329f5f514c2e281c6a6bd18f4f92d89e6a66ad6527e14eb7be47c1",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 3,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "750ecfe0ffd14f734627b38e1fabcf66698e3db1291c2e913b4539698b400da0",
+        "election_sha256": "40f3a84c531f37b635643683b0f0eafc561608997a7ad9f33cb70dc4314c9d59",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 4,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "9bed28ba959733cffcef2f92392e7e2789370fb5921a015aa005ded6f0984bae",
+        "election_sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 5,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "f124ca8c27b25eeb12f2df64647d0c1e2cb6575dfe01231b27d8147a5716bfd4",
+        "election_sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 112,
+        "node": 1,
+        "operations": 8,
+        "committed_end": 4,
+        "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+        "election_sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+        "election_states": 9,
+        "election_reconciliations": 1
+      },
+      {
+        "ordinal": 115,
+        "node": 1,
+        "operations": 8,
+        "committed_end": 4,
+        "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+        "election_sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+        "election_states": 9,
+        "election_reconciliations": 1
+      },
+      {
+        "ordinal": 115,
+        "node": 2,
+        "operations": 6,
+        "committed_end": 4,
+        "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+        "election_sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+        "election_states": 7,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 115,
+        "node": 3,
+        "operations": 5,
+        "committed_end": 4,
+        "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+        "election_sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 115,
+        "node": 4,
+        "operations": 5,
+        "committed_end": 4,
+        "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+        "election_sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 115,
+        "node": 5,
+        "operations": 7,
+        "committed_end": 4,
+        "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+        "election_sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+        "election_states": 8,
+        "election_reconciliations": 1
+      },
+      {
+        "ordinal": 116,
+        "node": 1,
+        "operations": 8,
+        "committed_end": 4,
+        "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+        "election_sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+        "election_states": 9,
+        "election_reconciliations": 1
+      },
+      {
+        "ordinal": 117,
+        "node": 2,
+        "operations": 6,
+        "committed_end": 4,
+        "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+        "election_sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+        "election_states": 7,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 118,
+        "node": 3,
+        "operations": 5,
+        "committed_end": 4,
+        "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+        "election_sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 119,
+        "node": 4,
+        "operations": 5,
+        "committed_end": 4,
+        "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+        "election_sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 120,
+        "node": 5,
+        "operations": 7,
+        "committed_end": 4,
+        "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+        "election_sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+        "election_states": 8,
+        "election_reconciliations": 1
+      }
+    ],
+    "leader_commit_advances": 2,
+    "follower_commit_advances": 8,
+    "agreed_committed_positions": 4,
+    "limitations": [
+      "Captured histories only; no exhaustive model or production/wire qualification.",
+      "Apache election/component checks and immutable source binding are separate proofs."
+    ]
+  },
+  "all_counterexamples_rejected": true,
+  "cases": [
+    {
+      "name": "stale-ack-sequence",
+      "disposition": "rejected",
+      "expected_reason": "ack fabricated/stale response",
+      "observed_reason": "event 13 ack: ack fabricated/stale response",
+      "input_sha256": "1c8f183471ca3dafcc8cc67156693a929f4df8f3e468bd2d3d6ab574b3e83357",
+      "artifact": "stale-ack-sequence.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "forged-ack-position",
+      "disposition": "rejected",
+      "expected_reason": "ack fabricated/stale response",
+      "observed_reason": "event 13 ack: ack fabricated/stale response",
+      "input_sha256": "02bc776d7c801cead7ba3f26e047da691f369c8a7910e834aa6e42fff0d60372",
+      "artifact": "forged-ack-position.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "fabricated-follower-match",
+      "disposition": "rejected",
+      "expected_reason": "response exact durable target",
+      "observed_reason": "event 12 receive: response exact durable target",
+      "input_sha256": "04c17e577a6b60a2248e3489312add0bff345d3b5edaba259f1bb12033fab72e",
+      "artifact": "fabricated-follower-match.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "false-leader-commit-announcement",
+      "disposition": "rejected",
+      "expected_reason": "advertised commit",
+      "observed_reason": "event 8 prepare: advertised commit",
+      "input_sha256": "bd276fbf9928059e8974d1daff9baec77d5bf1c049e307ae4c0cb0c7f5ea6e18",
+      "artifact": "false-leader-commit-announcement.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "duplicate-voter-state",
+      "disposition": "rejected",
+      "expected_reason": "complete unique node states",
+      "observed_reason": "event 7 propose: complete unique node states",
+      "input_sha256": "eb6de5cf108a1ebfc0df8fc458ef1e0e1640368e7f84526e4696ce5e3f56fd04",
+      "artifact": "duplicate-voter-state.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "unacknowledged-local-commit",
+      "disposition": "rejected",
+      "expected_reason": "commit without causal receive/majority",
+      "observed_reason": "event 7 propose: commit without causal receive/majority",
+      "input_sha256": "e38d693238347de8650dd41e03dcf2237e3b7e69a78ea8bb8861d34cd7cf5d4d",
+      "artifact": "unacknowledged-local-commit.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "foreign-replica-identity",
+      "disposition": "rejected",
+      "expected_reason": "foreign local ID",
+      "observed_reason": "foreign local ID",
+      "input_sha256": "0b2d048255fab5bf5c309467a02ff8e6477a41669acd7cbe7750816f6300f15e",
+      "artifact": "foreign-replica-identity.wal",
+      "checksum_valid_semantic_mutation": true
+    },
+    {
+      "name": "old-term-follower-commit",
+      "disposition": "rejected",
+      "expected_reason": "commit position/authority",
+      "observed_reason": "commit position/authority",
+      "input_sha256": "856a5cadea977cc693aeed79bc7b0516d362925ca91124abfea8057b92442a0f",
+      "artifact": "old-term-follower-commit.wal",
+      "checksum_valid_semantic_mutation": true
+    },
+    {
+      "name": "partial-final-operation",
+      "disposition": "rejected",
+      "expected_reason": "partial journal entry header",
+      "observed_reason": "partial journal entry header",
+      "input_sha256": "3dca4df906cab4c66bf812d944ed26a202e9015132944f2394a9707605dce45d",
+      "artifact": "partial-final-operation.wal",
+      "checksum_valid_semantic_mutation": true
+    },
+    {
+      "name": "truncate-committed-prefix",
+      "disposition": "rejected",
+      "expected_reason": "committed or stale truncation",
+      "observed_reason": "committed or stale truncation",
+      "input_sha256": "2a96692e77a476b4eb2cbf8c5bded94f102b941c503b75c11714dc4a8fca38c9",
+      "artifact": "truncate-committed-prefix.wal",
+      "checksum_valid_semantic_mutation": true
+    }
+  ]
+}

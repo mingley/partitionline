@@ -17,15 +17,21 @@ def sha(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for name in ["snapshot", "server", "peer", "preload", "original-state", "state", "output"]:
+    for name in ["snapshot", "server", "peer", "preload", "state", "output"]:
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--original-state", type=Path)
+    parser.add_argument("--profile-mode", choices=["initial", "restart", "default-admin"], default="restart")
+    parser.add_argument("--peer-phase", default="admin")
     parser.add_argument("--production-source-sha", required=True)
     args = parser.parse_args()
     args.output.mkdir()
-    shutil.copytree(args.original_state, args.state)
+    if args.original_state:
+        shutil.copytree(args.original_state, args.state)
+    else:
+        args.state.mkdir(mode=0o700)
     fixtures = args.snapshot / "partitionline-broker/tests/fixtures/tls"
     argv = ["taskset", "-c", "0-2,4", str(args.server), str(args.state), str(fixtures), "29372", "29373",
-            str(args.snapshot / "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv"), "restart"]
+            str(args.snapshot / "partitionline-broker/tests/fixtures/sasl-wire/apache-bootstrap.tsv"), args.profile_mode]
     events, ready = [], queue.Queue()
     with (args.output / "server.stderr.log").open("xb") as stderr:
         server = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr, text=True)
@@ -46,7 +52,7 @@ def main():
         try:
             assert ready.get(timeout=10), "owned diagnostic server exited"
             peer_argv = ["taskset", "-c", "0-2,4", str(args.peer), "localhost:29372", "localhost:29373",
-                         str(fixtures / "ca1.cert.pem"), "admin"]
+                         str(fixtures / "ca1.cert.pem"), args.peer_phase]
             env = os.environ.copy()
             env["LD_PRELOAD"] = str(args.preload)
             with (args.output / "peer.stdout.log").open("xb") as out, (args.output / "peer.stderr.log").open("xb") as err:

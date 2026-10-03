@@ -73,6 +73,9 @@ def main():
               "production_qualification": False, "commands": [], "server_lifecycles": [],
               "native_library_sha256": sha(args.native_library), "ports": [args.tls_port, args.plain_port],
               "peer_compilation_receipt_sha256": sha(args.peer_receipt),
+              "provenance": {"original_peer_oracle_worker": "zstd_decision",
+                             "followup_orchestration_worker": "consumer_lookups (production implementer)",
+                             "independent_expectations": "Pinned Apache generated parsers/SASL clients and unmodified native SDK; follow-up orchestration is explicitly attributed."},
               "limits": {"connections_per_listener": 64, "handlers_per_listener": 8, "request_bytes": 16384,
                          "response_bytes": 1048576, "preauth_absolute_seconds": 3, "read_handler_write_seconds": 5}}
     result_path = args.output / "results.json"
@@ -80,7 +83,7 @@ def main():
     def retain():
         result_path.write_text(json.dumps(report, indent=2) + "\n")
 
-    def execute(argv, name, timeout, env=None):
+    def execute(argv, name, timeout, env=None, expected_exit=0):
         out, err = args.output / (name + ".stdout.log"), args.output / (name + ".stderr.log")
         timed_out = False
         with out.open("xb") as stdout, err.open("xb") as stderr:
@@ -89,10 +92,13 @@ def main():
                 code = result.returncode
             except subprocess.TimeoutExpired:
                 code, timed_out = None, True
-        report["commands"].append({"argv": argv, "exit_code": code, "timeout_seconds": timeout, "timed_out": timed_out,
+        report["commands"].append({"argv": argv, "exit_code": code, "expected_exit_code": expected_exit,
+                                  "completion_verdict": "passed" if code == 0 and not timed_out else "failed",
+                                  "expected_observation": code == expected_exit and not timed_out,
+                                  "timeout_seconds": timeout, "timed_out": timed_out,
                                   "stdout": out.name, "stderr": err.name, "stdout_sha256": sha(out), "stderr_sha256": sha(err)})
         retain()
-        assert code == 0 and not timed_out, name + " failed; logs retained"
+        assert code == expected_exit and not timed_out, name + " failed; logs retained"
 
     env = os.environ.copy()
     env.update(CARGO_HOME="/workspace/work/cargo", RUSTUP_HOME="/workspace/work/rustup",
@@ -207,6 +213,24 @@ def main():
                  "localhost:" + str(args.tls_port), "localhost:" + str(args.plain_port),
                  str(fixture_dir / "ca1.cert.pem"), phase], "native-" + phase, 120)
 
+    def native_describe_cleanup_failure(phase):
+        name = "native-" + phase
+        execute(["taskset", "-c", "0-2,4", str(args.peer_build / "sasl-native-peer"),
+                 "localhost:" + str(args.tls_port), "localhost:" + str(args.plain_port),
+                 str(fixture_dir / "ca1.cert.pem"), phase], name, 30, expected_exit=-6)
+        events = [json.loads(line) for line in (args.output / (name + ".stdout.log")).read_text().splitlines()]
+        assert any(event.get("operation") == "native-describe" and event.get("error") == 31 for event in events)
+        assert events[-1] == {"operation": "native-describe-cleanup", "top_level_error": 31, "action": "destroy-event"}
+        assert not any(event.get("status") == "pass" for event in events), "failed native completion mislabeled passing"
+        report["commands"][-1]["completion_verdict"] = "failed_external_sdk_completion"
+        report.setdefault("known_external_sdk_failures", []).append({
+            "phase": phase, "verdict": "failed_external_sdk_completion", "exit_code": -6,
+            "parsed_describe_error": 31,
+            "cause": "Pinned native Describe parser stores static/stack error text as owned admin_result.errstr; event cleanup frees it. Response validity is independently decoded; no production behavior workaround.",
+            "clean_native_completion": False, "pre_cleanup_marker_verified": True,
+            "stdout": name + ".stdout.log", "stderr": name + ".stderr.log"})
+        retain()
+
     def checkpoint(phase, expected_entries):
         original = args.state / "credentials.log"
         assert original.stat().st_mode & 0o777 == 0o600, "private credential journal permissions"
@@ -226,6 +250,7 @@ def main():
         java("4.3.1", "admin")
         native("sessions")
         native("admin")
+        native_describe_cleanup_failure("describe-user-denied")
         first = active.stop(expect_pending=True)
         active = None
         assert not any(event.get("correlation") == 727200 for event in first["events"]), "application dispatched before proof"
@@ -249,6 +274,7 @@ def main():
         active = Server("default-admin")
         java("4.3.1", "admin-denied")
         native("admin-denied")
+        native_describe_cleanup_failure("describe-admin-denied")
         active.stop(expect_pending=True)
         active = None
         assert sha(args.state / "credentials.log") == final_journal_sha, "denied default-admin requests modified durable state"
@@ -258,12 +284,26 @@ def main():
         for path in args.output.glob("*.log"):
             text = path.read_text()
             assert not any(password in text for password in forbidden), "password appeared in runtime log"
-        report.update(verdict="passed", preauth_application_dispatches=0,
+        schema_events = []
+        for name in ["4.3.1-admin", "4.3.1-admin-denied"]:
+            events = [json.loads(line) for line in (args.output / (name + ".stdout.log")).read_text().splitlines()]
+            matches = [event for event in events if event.get("operation") == "describe-schema" and event.get("error") == 31]
+            assert matches, "official Java whole-input Describe31 schema proof missing"
+            schema_events.append({"phase": name, "decoder": "Apache4.3.1 generated DescribeUserScramCredentialsResponseData",
+                                  "whole_input_consumed": True, "results_empty": True, "error_message_null": True,
+                                  "error": 31, "stdout": name + ".stdout.log"})
+        assert len(report.get("known_external_sdk_failures", [])) == 2
+        verdict = "scoped_server_gates_passed_with_sdk_completion_failures"
+        report.update(verdict=verdict, driver_completed=True, server_contract_gates="passed",
+                      positive_native_admin_restart_completion="passed", native_describe_error_completion="failed",
+                      unqualified_all_peer_pass=False, describe31_official_schema_proofs=schema_events,
+                      preauth_application_dispatches=0,
                       captured_rotation_generation=generations[727201], new_rotation_generation=generations[727202],
                       joined_owned_listener_lifecycles=3, passwords_absent_from_logs=True,
                       authenticated_java_releases=["4.1.2", "4.2.1", "4.3.1"], native_runtime_version="2.15.0")
         retain()
-        print(json.dumps({"verdict": "passed", "owned_listener_lifecycles": 3, "verifier_entries": 9}))
+        print(json.dumps({"verdict": verdict, "owned_listener_lifecycles": 3, "verifier_entries": 9,
+                          "failed_external_sdk_completions": 2}))
     except BaseException as failure:
         report.update(verdict="failed", failure_class=type(failure).__name__, failure_context=str(failure))
         retain()

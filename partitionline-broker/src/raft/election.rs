@@ -16,6 +16,8 @@ use crate::journal::{self, Journal};
 use std::path::Path;
 
 const MAGIC: &[u8; 8] = b"PLELECT1";
+const RECONCILE_MAGIC: &[u8; 8] = b"PLRECON1";
+const RECONCILE_BYTES: usize = 24;
 const HEADER: usize = 48;
 const MAX_MEMBERS: usize = 64;
 const MAX_STATES: usize = 65_536;
@@ -282,7 +284,7 @@ impl Election {
         if !(1..=MAX_STATES).contains(&max_states) {
             return Err(Error::InvalidStateBudget);
         }
-        let payload_bytes = HEADER + membership.voters.len() * 4;
+        let payload_bytes = HEADER + membership.voters.len() * 4 + RECONCILE_BYTES;
         let file_bytes = 24 + (32 + payload_bytes) as u64 * max_states as u64;
         let fetch_bytes = std::mem::size_of::<journal::Entry>() + payload_bytes;
         let limits = journal::Limits::new(payload_bytes, file_bytes, max_states, fetch_bytes)?;
@@ -294,11 +296,13 @@ impl Election {
             if entry.first_offset != offset || entry.record_count != 1 {
                 return Err(Error::CorruptState);
             }
-            let next = decode(&entry.payload, &membership)?;
+            let (next, reconciliation) = decode_record(&entry.payload, &membership)?;
             if offset == 0 {
-                if next != PersistentState::default() {
+                if next != PersistentState::default() || reconciliation.is_some() {
                     return Err(Error::CorruptState);
                 }
+            } else if let Some((expected, floor)) = reconciliation {
+                validate_reconciliation(persistent, next, expected, floor, &membership)?;
             } else {
                 validate_transition(persistent, next, &membership)?;
             }
@@ -380,6 +384,21 @@ impl Election {
     pub fn advance_log(&mut self, log: LogPosition) -> Result<(), Error> {
         self.machine.advance_log(log)
     }
+    /// Reconcile a caller-verified durable content suffix before exposing votes.
+    ///
+    /// Only the crate's replication/recovery owner may supply this transition.
+    /// Its operation WAL is authoritative for the committed floor and bytes;
+    /// this journal separately retains term/vote and the exact prior summary.
+    pub(crate) fn reconcile_durable_log(
+        &mut self,
+        expected: LogPosition,
+        replacement: LogPosition,
+        committed_end: u64,
+    ) -> Result<(), Error> {
+        self.machine
+            .reconcile_durable_log(expected, replacement, committed_end)
+    }
+
     /// Relinquish volatile authority on replication-owner quorum loss.
     ///
     /// The durable term/vote remain intact; this cannot permit a second vote.
@@ -390,6 +409,15 @@ impl Election {
 
 trait Store {
     fn persist(&mut self, state: PersistentState) -> Result<(), Error>;
+    fn persist_reconciled(
+        &mut self,
+        state: PersistentState,
+        expected: LogPosition,
+        floor: u64,
+    ) -> Result<(), Error> {
+        let _ = (expected, floor);
+        self.persist(state)
+    }
 }
 
 struct DurableStore {
@@ -399,6 +427,23 @@ struct DurableStore {
 impl Store for DurableStore {
     fn persist(&mut self, state: PersistentState) -> Result<(), Error> {
         let payload = encode(state, &self.membership)?;
+        self.journal.append(1, &payload)?;
+        Ok(())
+    }
+    fn persist_reconciled(
+        &mut self,
+        state: PersistentState,
+        expected: LogPosition,
+        floor: u64,
+    ) -> Result<(), Error> {
+        let mut payload = encode(state, &self.membership)?;
+        payload
+            .try_reserve_exact(RECONCILE_BYTES)
+            .map_err(|_| Error::AllocationFailed)?;
+        payload[..8].copy_from_slice(RECONCILE_MAGIC);
+        payload.extend_from_slice(&expected.term.to_be_bytes());
+        payload.extend_from_slice(&expected.index.to_be_bytes());
+        payload.extend_from_slice(&floor.to_be_bytes());
         self.journal.append(1, &payload)?;
         Ok(())
     }
@@ -419,6 +464,43 @@ struct Machine<S> {
 }
 
 impl<S: Store> Machine<S> {
+    fn reconcile_durable_log(
+        &mut self,
+        expected: LogPosition,
+        replacement: LogPosition,
+        floor: u64,
+    ) -> Result<(), Error> {
+        if self.poisoned {
+            return Err(Error::Poisoned);
+        }
+        if expected != self.persistent.log || replacement.index < floor || floor > expected.index {
+            return Err(Error::LogRegression);
+        }
+        if expected == replacement {
+            return Ok(());
+        }
+        if replacement.index > expected.index && replacement.term >= expected.term {
+            return self.advance_log(replacement);
+        }
+        if self.role != Role::Follower {
+            return Err(Error::NotElected);
+        }
+        let next = PersistentState {
+            log: replacement,
+            ..self.persistent
+        };
+        validate_reconciliation(self.persistent, next, expected, floor, &self.membership)?;
+        if let Err(error) = self.store.persist_reconciled(next, expected, floor) {
+            self.poisoned = true;
+            self.role = Role::Follower;
+            self.leader = None;
+            self.granted.fill(false);
+            return Err(error);
+        }
+        self.persistent = next;
+        Ok(())
+    }
+
     fn adopt_term(&mut self, term: u64, now_ms: u64) -> Result<bool, Error> {
         if self.poisoned {
             return Err(Error::Poisoned);
@@ -745,6 +827,62 @@ fn validate_transition(
     Ok(())
 }
 
+fn validate_reconciliation(
+    old: PersistentState,
+    next: PersistentState,
+    expected: LogPosition,
+    floor: u64,
+    membership: &Membership,
+) -> Result<(), Error> {
+    next.log.validate()?;
+    if old.log != expected
+        || next.term != old.term
+        || next.voted_for != old.voted_for
+        || next.log == old.log
+        || old.term <= old.log.term
+        || next.log.term > next.term
+        || floor > old.log.index
+        || next.log.index < floor
+    {
+        return Err(Error::LogRegression);
+    }
+    if let Some(voter) = next.voted_for {
+        membership.position(voter)?;
+    }
+    Ok(())
+}
+
+fn decode_record(
+    bytes: &[u8],
+    membership: &Membership,
+) -> Result<(PersistentState, Option<(LogPosition, u64)>), Error> {
+    if !bytes.starts_with(RECONCILE_MAGIC) {
+        return Ok((decode(bytes, membership)?, None));
+    }
+    let size = HEADER + membership.voters.len() * 4;
+    if bytes.len() != size + RECONCILE_BYTES {
+        return Err(Error::CorruptState);
+    }
+    let mut legacy = Vec::new();
+    legacy
+        .try_reserve_exact(size)
+        .map_err(|_| Error::AllocationFailed)?;
+    legacy.extend_from_slice(&bytes[..size]);
+    legacy[..8].copy_from_slice(MAGIC);
+    let number = |offset: usize| -> Result<u64, Error> {
+        Ok(u64::from_be_bytes(
+            bytes[offset..offset + 8]
+                .try_into()
+                .map_err(|_| Error::CorruptState)?,
+        ))
+    };
+    let expected = LogPosition::new(number(size)?, number(size + 8)?)?;
+    Ok((
+        decode(&legacy, membership)?,
+        Some((expected, number(size + 16)?)),
+    ))
+}
+
 fn encode(state: PersistentState, membership: &Membership) -> Result<Vec<u8>, Error> {
     let length = HEADER + membership.voters.len() * 4;
     let mut bytes = Vec::new();
@@ -846,6 +984,42 @@ mod tests {
             7,
             0,
         )
+    }
+    #[test]
+    fn owner_reconciliation_preserves_term_vote_and_checks_floor_and_role() {
+        let old = PersistentState {
+            term: 3,
+            voted_for: Some(2),
+            log: LogPosition { term: 2, index: 4 },
+        };
+        let mut machine = node(MemoryStore::default(), old).unwrap();
+        let replacement = LogPosition { term: 3, index: 4 };
+        machine
+            .reconcile_durable_log(old.log, replacement, 2)
+            .unwrap();
+        assert_eq!(machine.state().persistent.term, old.term);
+        assert_eq!(machine.state().persistent.voted_for, old.voted_for);
+        assert_eq!(machine.store.confirmed.log, replacement);
+        assert_eq!(machine.store.synchronizations, 1);
+        let mut machine = node(MemoryStore::default(), old).unwrap();
+        assert!(machine
+            .reconcile_durable_log(old.log, LogPosition { term: 2, index: 1 }, 2)
+            .is_err());
+        assert!(machine
+            .reconcile_durable_log(LogPosition { term: 2, index: 5 }, replacement, 2)
+            .is_err());
+        machine.role = Role::Leader;
+        assert!(machine
+            .reconcile_durable_log(old.log, replacement, 2)
+            .is_err());
+        machine.role = Role::Follower;
+        machine.store.failure = Some(Failure::CompleteUnconfirmed);
+        assert!(machine
+            .reconcile_durable_log(old.log, replacement, 2)
+            .is_err());
+        assert!(machine.state().poisoned);
+        assert_eq!(machine.state().persistent, old);
+        assert_eq!(machine.store.complete.unwrap().voted_for, old.voted_for);
     }
     #[test]
     fn synchronization_precedes_grant_and_ambiguous_failure_requires_recovery() {

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "independent checker source frozen for subsequent immutable captured-history qualification",
+  "source_sha256": {
+    "docs/evidence/broker/KL11-73/oracle/history/check-counterexamples.py": "de3c04e63d068bfd291ef37fd69da8af3cab8f70b5f556758783cce63ccebd77",
+    "docs/evidence/broker/KL11-73/oracle/history/election_oracle.py": "f3debf56bcc6b9859e140dc0e740b83e4f478b4c237e81770d1050fcb198820a",
+    "docs/evidence/broker/KL11-73/oracle/history/history_oracle.py": "a44aca113c880467995711960ad96752a02ced087498d7dd741d7a0c5a3f5b57",
+    "docs/evidence/broker/KL11-73/oracle/history/wal_oracle.py": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae"
+  },
+  "development_review_sha256": "c282b3a04eafeeb2dfb25b61e8255075d2eb41a72985c9a223b23989a4caffc3",
+  "commands": [
+    "python3 history_oracle.py <captured-three-voter-trace> --output <receipt>",
+    "python3 check-counterexamples.py <captured-three/five-voter-trace> --work <fresh-copy> --output <receipt>"
+  ],
+  "pending": "Re-run from full frozen Git source against newly executed stable/MSRV histories, with retained inputs and immutable source bindings."
+}

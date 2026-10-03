@@ -137,7 +137,7 @@ impl Config {
         config.validate()?;
         Ok(config)
     }
-    fn validate(&self) -> Result<Membership, Error> {
+    pub(crate) fn validate(&self) -> Result<Membership, Error> {
         if self.cluster_id.is_empty()
             || self.cluster_id.len() > 249
             || !(1..=64).contains(&self.voters.len())
@@ -242,6 +242,35 @@ impl Controller {
     pub fn adopt_epoch(&mut self, epoch: i32, now_ms: u64) -> Result<bool, Error> {
         Ok(self.election.adopt_term(core_term(epoch)?, now_ms)?)
     }
+    /// Replication-owner-only reconciliation after validating its durable WAL.
+    pub(crate) fn reconcile_durable_log(
+        &mut self,
+        expected: LogPosition,
+        replacement: LogPosition,
+        committed_end: u64,
+    ) -> Result<(), Error> {
+        self.election
+            .reconcile_durable_log(expected, replacement, committed_end)?;
+        Ok(())
+    }
+    /// Replication-owner fencing; a leader result is never a commit lease.
+    pub(crate) fn lose_quorum(&mut self, now_ms: u64) -> Result<(), Error> {
+        self.election.lose_quorum(now_ms)?;
+        Ok(())
+    }
+    /// Fence a typed trusted replication leader through the same durable epoch/vote core.
+    pub(crate) fn observe_replication_leader(
+        &mut self,
+        leader: u32,
+        term: u64,
+        now_ms: u64,
+    ) -> Result<bool, Error> {
+        if !(1..=MAX_TERM).contains(&term) {
+            return Err(Error::EpochOverflow);
+        }
+        Ok(self.election.observe_leader(leader, term, now_ms)?)
+    }
+
     /// Advance the summary of externally synchronized metadata log records.
     ///
     /// Kafka's end offset is the number of records, not a last-record index.

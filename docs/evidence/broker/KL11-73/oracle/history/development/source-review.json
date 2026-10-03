@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "independent development source review; immutable-source qualification pending",
+  "reviewed_source_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+    "partitionline-broker/src/raft/election.rs": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+    "partitionline-broker/tests/raft_replication.rs": "63c78a259811e276492fdd5a154aa31d1b98908b0f16c51c0eda6fa0df8ce84f",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+  },
+  "findings": [
+    {
+      "issue": "checksum-valid follower commit marker can authorize a newer-term entry with an older leader term",
+      "disposition": "reproduced then fixed in both commit/replay; regression retained by runtime worker"
+    },
+    {
+      "issue": "copied stale request changed peer without explicit emitted-request provenance",
+      "disposition": "origin explicitly recorded; checker permits only unsuccessful stale probe, never a majority receipt"
+    },
+    {
+      "issue": "unrelated core/data journal reconciliation on startup",
+      "disposition": "runtime now requires prior election log position among confirmed data WAL tails"
+    },
+    {
+      "issue": "channel capacity alone omits retained completed replies/canceled queued inputs",
+      "disposition": "independent16slot admission held through receipt consumption, conservative2slots+1 bound; controller defaults remain distinct"
+    }
+  ],
+  "checked_behavior": [
+    "WAL structural CRC/identity/operation continuity, bounds and committed floor",
+    "Independent election WAL legacy and PLRECON1 term/vote/prior/floor replay",
+    "Causal exact target/sequence response provenance and distinct majority/current-term commits",
+    "Follower announcements capped to this matched request, byte-prefix agreement through abrupt process exit/reopen"
+  ],
+  "development_results": {
+    "histories": 2,
+    "events": 194,
+    "raw_data_and_election_checkpoint_pairs": 26,
+    "counterexamples_rejected": 19
+  },
+  "limitations": [
+    "Development binaries are not yet immutable pushed-source qualification.",
+    "No exhaustive scheduler model, physical power-loss, dynamic membership, Kafka replica wire or autonomous controller claim."
+  ]
+}

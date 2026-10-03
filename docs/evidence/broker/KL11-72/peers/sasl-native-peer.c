@@ -82,7 +82,8 @@ static void describe(rd_kafka_t *runtime, rd_kafka_queue_t *queue, const char *u
     rd_kafka_event_t *event = rd_kafka_queue_poll(queue, 8000);
     require(event != NULL && rd_kafka_event_type(event) == RD_KAFKA_EVENT_DESCRIBEUSERSCRAMCREDENTIALS_RESULT,
             "native describe result event");
-    int error = (int)rd_kafka_event_error(event);
+    const int top_level_error = (int)rd_kafka_event_error(event);
+    int error = top_level_error;
     size_t count = 0, actual_algorithms = 0;
     if (error == 0) {
         const rd_kafka_UserScramCredentialsDescription_t **rows = rd_kafka_DescribeUserScramCredentials_result_descriptions(
@@ -100,6 +101,8 @@ static void describe(rd_kafka_t *runtime, rd_kafka_queue_t *queue, const char *u
     }
     printf("{\"operation\":\"native-describe\",\"user\":\"%s\",\"error\":%d,\"algorithms\":%zu}\n", user, error, actual_algorithms);
     require(error == expected, "native describe expected status");
+    if (top_level_error != 0)
+        printf("{\"operation\":\"native-describe-cleanup\",\"top_level_error\":%d,\"action\":\"destroy-event\"}\n", top_level_error);
     rd_kafka_event_destroy(event); rd_kafka_AdminOptions_destroy(opts);
 }
 static void alter(rd_kafka_t *runtime, rd_kafka_queue_t *queue, const char *user, const char *password, int deletion, int expected) {
@@ -128,7 +131,8 @@ static void alter(rd_kafka_t *runtime, rd_kafka_queue_t *queue, const char *user
     rd_kafka_event_destroy(event); rd_kafka_AdminOptions_destroy(opts); rd_kafka_UserScramCredentialAlteration_destroy(change);
 }
 int main(int argc, char **argv) {
-    require(argc == 5, "usage tlsBroker plainBroker caPem sessions|admin|restart");
+    require(setvbuf(stdout, NULL, _IOLBF, 0) == 0, "line-buffered public receipts");
+    require(argc == 5, "usage tlsBroker plainBroker caPem sessions|admin|restart|admin-denied|describe-user-denied|describe-admin-denied");
     require(strcmp(rd_kafka_version_str(), "2.15.0") == 0, "pinned native runtime version");
     printf("{\"peer\":\"librdkafka\",\"version\":\"%s\",\"phase\":\"%s\"}\n", rd_kafka_version_str(), argv[4]);
     if (strcmp(argv[4], "sessions") == 0) {
@@ -142,6 +146,13 @@ int main(int argc, char **argv) {
             }
         }
         connection(argv[2], argv[3], "PLAIN", "user", "pencil", 0, 0);
+    } else if (strcmp(argv[4], "describe-user-denied") == 0 || strcmp(argv[4], "describe-admin-denied") == 0) {
+        const char *user = strcmp(argv[4], "describe-user-denied") == 0 ? "user" : "admin";
+        rd_kafka_t *runtime = client(argv[1], argv[3], "SCRAM-SHA-256", user, "pencil", 1);
+        rd_kafka_queue_t *queue = rd_kafka_queue_new(runtime);
+        require(queue != NULL, "native isolated describe queue");
+        describe(runtime, queue, "user", 31, 0);
+        rd_kafka_queue_destroy(queue); rd_kafka_destroy(runtime);
     } else {
         int restart = strcmp(argv[4], "restart") == 0;
         int denied = strcmp(argv[4], "admin-denied") == 0;
@@ -150,7 +161,7 @@ int main(int argc, char **argv) {
         rd_kafka_queue_t *queue = rd_kafka_queue_new(runtime);
         require(queue != NULL, "native admin queue");
         if (denied) {
-            describe(runtime, queue, "user", 31, 0); alter(runtime, queue, "default-forbidden", "pencil", 0, 31);
+            alter(runtime, queue, "default-forbidden", "pencil", 0, 31);
             connection(argv[1], argv[3], "SCRAM-SHA-256", "native-created", "native-rotated-public-fixture", 1, 0);
         } else if (!restart) {
             describe(runtime, queue, "native-created", 91, 0);
@@ -167,7 +178,7 @@ int main(int argc, char **argv) {
         if (!restart && !denied) {
             runtime = client(argv[1], argv[3], "SCRAM-SHA-256", "user", "pencil", 1);
             queue = rd_kafka_queue_new(runtime);
-            describe(runtime, queue, "user", 31, 0); alter(runtime, queue, "native-forbidden", "pencil", 0, 31);
+            alter(runtime, queue, "native-forbidden", "pencil", 0, 31);
             rd_kafka_queue_destroy(queue); rd_kafka_destroy(runtime);
         }
     }

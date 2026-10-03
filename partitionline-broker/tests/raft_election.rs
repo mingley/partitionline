@@ -699,3 +699,73 @@ fn deterministic_seeded_losing_partition_and_restart_histories() -> Result {
     println!("seeded histories: seeds=16 campaigns={campaigns} elections={elections} denials={denials} restarts={restarts}");
     Ok(())
 }
+
+#[test]
+fn tagged_owner_reconciliation_replay_validates_complete_checksums_and_state_invariants() -> Result
+{
+    let temp = Temp::new()?;
+    let mut original = open(&temp, "reconcile-original", 1, 32)?;
+    original.adopt_term(2, 0)?;
+    original.advance_log(LogPosition { term: 1, index: 4 })?;
+    original.request_vote(request(2, 2, 1, 4), 0)?;
+    drop(original);
+    let mut initial = Vec::new();
+    File::open(temp.path("reconcile-original"))?.read_to_end(&mut initial)?;
+    for variant in 0..9 {
+        let name = format!("reconcile-{variant}");
+        let path = temp.path(&name);
+        File::create(&path)?.write_all(&initial)?;
+        let limits = Limits::new(84, 24 + 116 * 32, 32, std::mem::size_of::<Entry>() + 84)?;
+        let (mut journal, _) = Journal::open(&path, 0, limits)?;
+        let mut payload = journal.fetch(
+            journal.next_offset() - 1,
+            1,
+            std::mem::size_of::<Entry>() + 84,
+        )?[0]
+            .payload
+            .clone();
+        payload[..8].copy_from_slice(b"PLRECON1");
+        payload[40..48].copy_from_slice(&2u64.to_be_bytes());
+        for number in [1u64, 4, 1] {
+            payload.extend_from_slice(&number.to_be_bytes());
+        }
+        match variant {
+            0 => {}
+            1 => payload[68..76].copy_from_slice(&5u64.to_be_bytes()),
+            2 => payload[76..84].copy_from_slice(&3u64.to_be_bytes()),
+            3 => payload[24..28].copy_from_slice(&3u32.to_be_bytes()),
+            4 => payload[16..24].copy_from_slice(&3u64.to_be_bytes()),
+            5 => payload[32..40].copy_from_slice(&3u64.to_be_bytes()),
+            6 => {
+                payload.pop();
+            }
+            7 => {
+                payload.push(0);
+            }
+            8 => payload[29] = 1,
+            _ => return Err("unexpected mutant".into()),
+        }
+        // All corrupt variants have authentic outer CRCs; semantic validation is essential.
+        // Allow the deliberately overlong candidate entry without weakening Election's parser.
+        if variant == 7 {
+            drop(journal);
+            let limits = Limits::new(85, 24 + 117 * 32, 32, std::mem::size_of::<Entry>() + 85)?;
+            journal = Journal::open(&path, 0, limits)?.0;
+        }
+        journal.append(1, &payload)?;
+        drop(journal);
+        let outcome = open(&temp, &name, 1, 32);
+        if variant == 0 {
+            let node = outcome?;
+            assert_eq!(
+                node.state().persistent.log,
+                LogPosition { term: 1, index: 2 }
+            );
+            assert_eq!(node.state().persistent.term, 2);
+            assert_eq!(node.state().persistent.voted_for, Some(2));
+        } else {
+            assert!(outcome.is_err(), "tagged mutant {variant} admitted");
+        }
+    }
+    Ok(())
+}

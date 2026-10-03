@@ -323,6 +323,10 @@ public final class SaslSocketPeer {
             require(response.results().size() == 1 && response.results().get(0).user().equals(user), "describe exact user");
             error = response.results().get(0).errorCode();
             require(response.results().get(0).credentialInfos().size() == algorithms, "describe algorithm count");
+        } else {
+            require(response.results().isEmpty(), "describe top-level error has no user results");
+            if (error == 31) require(response.errorMessage() == null, "describe denied nullable error message");
+            receipt("describe-schema", "whole-generated-response-empty-results", error);
         }
         require(error == expected, "describe expected status");
         receipt("describe", user, error);
