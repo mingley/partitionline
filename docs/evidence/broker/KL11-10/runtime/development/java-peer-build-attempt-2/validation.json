@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "scope": "development strict peer-source compile only, no local broker runtime acceptance",
+  "passed": false,
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-peer/classes/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java"
+      ],
+      "exit_code": 1,
+      "source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "log": "docs/evidence/broker/KL11-10/runtime/development/java-peer-build-attempt-2/4.1.2.log",
+      "classes": []
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-peer/classes/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java"
+      ],
+      "exit_code": 1,
+      "source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "log": "docs/evidence/broker/KL11-10/runtime/development/java-peer-build-attempt-2/4.2.1.log",
+      "classes": []
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-peer/classes/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java"
+      ],
+      "exit_code": 0,
+      "source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "log": "docs/evidence/broker/KL11-10/runtime/development/java-peer-build-attempt-2/4.3.1.log",
+      "classes": [
+        {
+          "path": "/workspace/work/retention-peer/classes/4.3.1/RetentionPeer.class",
+          "sha256": "6230ff0c023466fbcc4bbcd6b1daa7364650b3a89efebb644cec754e5fc3fca0"
+        }
+      ]
+    }
+  ]
+}

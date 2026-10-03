@@ -1,0 +1,36 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling libc v0.2.189
+   Compiling unicode-ident v1.0.26
+   Compiling quote v1.0.47
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling cfg-if v1.0.5
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-runtime/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 10.00s
+     Running tests/retention.rs (/workspace/work/target-broker-segments/debug/deps/retention-ddb628fb8c2a0f99)
+
+running 12 tests
+test explicit_policy_work_and_thresholds_are_checked ... ok
+test age_sweep_uses_strict_max_timestamp_boundary_and_restarts ... ok
+test high_watermark_deletion_preserves_append_end_and_empty_partition ... ok
+test complete_parse_and_response_preflight_precede_every_mutation ... ok
+test hostile_counts_utf8_varints_and_tag_order_fail_before_deletion ... ok
+test invalid_offsets_unknown_internal_and_last_duplicate_are_partition_local ... ok
+test old_profiles_and_nonrolling_config_do_not_advertise_retention ... ok
+test serve_live_probe ... ok
+test size_sweep_counts_payload_bytes_and_keeps_a_segment_larger_than_excess ... ok
+test middle_of_batch_floor_is_durable_and_keeps_containing_bytes ... ok
+test floor_advance_wakes_waiting_fetch_without_new_append ... ok
+test independent_apache_delete_records_goldens ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.28s
+

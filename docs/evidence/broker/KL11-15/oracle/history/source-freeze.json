@@ -10,7 +10,8 @@
     "docs/evidence/broker/KL11-15/oracle/history/run-final.py": "c791b381ac96734dc97346354de160e80799cccd69915bf4f783239f6bce71d6",
     "docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py": "8785e6e3840ab4b46c373b46a093e6a236a8c0b586f25312e444461c16768e8b",
     "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
-    "docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py": "772637bb97a4ab7abbadcbef78f93c4ae63906e1170ba8ef7131b20e0ac8af47"
+    "docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py": "772637bb97a4ab7abbadcbef78f93c4ae63906e1170ba8ef7131b20e0ac8af47",
+    "docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py": "e83d117a99e53ae7bee0e1d185f9e2ac73e9c28bc1b9d6d8b5a176bdf7d969e4"
   },
   "unchanged_independent_dependencies": {
     "docs/evidence/broker/KL11-73/oracle/history/wal_oracle.py": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
@@ -36,5 +37,5 @@
     "Caller-driven typed exchange only; no Kafka snapshot replication wire or production qualification.",
     "Apache component mapping, actual owner cuts, full immutable Rust matrix and compiled guard mutants are separate evidence."
   ],
-  "supplement": "Separate fixture-specific raw election/image Node cut checker; earlier seven decoder files unchanged; final runner plus separate supplement execution required."
+  "supplement": "Separate Node publication/election and Install receipt/summary boundary checkers; primary final runner requires separate supplement executions."
 }

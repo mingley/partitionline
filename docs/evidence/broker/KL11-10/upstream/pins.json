@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "sha256": "d0803d9643a3d9e58a3e2c83c5e429ee3dd9d9bd6279f73a3d57f5d980198f56",
+      "bytes": 1887,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.1.2/clients/src/main/resources/common/message/DeleteRecordsRequest.json"
+    },
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "sha256": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+      "bytes": 2207,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.1.2/clients/src/main/resources/common/message/DeleteRecordsResponse.json"
+    },
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "sha256": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+      "bytes": 3396,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java"
+    },
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/core/src/main/scala/kafka/cluster/Partition.scala",
+      "sha256": "ffeb9bae9386191d82f9ebc7549b8bee17ca7d84098134b003523f647c46c9de",
+      "bytes": 91216,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.1.2/core/src/main/scala/kafka/cluster/Partition.scala"
+    },
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "path": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "sha256": "8046d72f5c1699dff3c5548a2e0f9581761a3ac608f245b92fa913736e56878d",
+      "bytes": 146323,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.1.2/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "sha256": "f674928482624112db4af9c114339918c42b0f74263aaa168b776d0677ca23f9",
+      "bytes": 1952,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.2.1/clients/src/main/resources/common/message/DeleteRecordsRequest.json"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "sha256": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+      "bytes": 2207,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.2.1/clients/src/main/resources/common/message/DeleteRecordsResponse.json"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "sha256": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+      "bytes": 3396,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/core/src/main/scala/kafka/cluster/Partition.scala",
+      "sha256": "fd6a8681c94d5cf7c43c8de6a7e554da41dc94814fdb5becb0d652831ff5d8dc",
+      "bytes": 87587,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.2.1/core/src/main/scala/kafka/cluster/Partition.scala"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "path": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/18d5ecd939c8d510fdd72d0abb1f7099659dcd58/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "sha256": "12a34c45a8cc30b0e25ef0cd1beb4d5a502bcfec01eb530eb60ada3165e69f16",
+      "bytes": 151202,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.2.1/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+      "sha256": "f674928482624112db4af9c114339918c42b0f74263aaa168b776d0677ca23f9",
+      "bytes": 1952,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.3.1/clients/src/main/resources/common/message/DeleteRecordsRequest.json"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+      "sha256": "10fef81bec382f3a17781b1c38a3ef2a564a3d090af315f6ef7171a3a35d1c1e",
+      "bytes": 2207,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.3.1/clients/src/main/resources/common/message/DeleteRecordsResponse.json"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+      "sha256": "ce2e7fcaefae801fb3ed6d2245b10b5341497756d571e4d30b73b7e0fe43ac45",
+      "bytes": 3396,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "core/src/main/scala/kafka/cluster/Partition.scala",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/core/src/main/scala/kafka/cluster/Partition.scala",
+      "sha256": "7953a613ae11a5d4e25d79400d7eb022d2921ed0d8418d3397600efe506bbe58",
+      "bytes": 88008,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.3.1/core/src/main/scala/kafka/cluster/Partition.scala"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "path": "storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "url": "https://raw.githubusercontent.com/apache/kafka/26b251a451ce941d3d7a55e6487bcb7f16b5ad48/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java",
+      "sha256": "264cc9ec5245a6c0b4dc12b345e93f6e2c1d224b863b443c871532d78966066e",
+      "bytes": 152893,
+      "status": "retained exact pinned Apache source; source evidence only, not runtime behavior",
+      "artifact": "docs/evidence/broker/KL11-10/upstream/4.3.1/storage/src/main/java/org/apache/kafka/storage/internals/log/UnifiedLog.java"
+    }
+  ],
+  "scope": "Three official Apache schema/handler/storage source pins. Actual executed component and local durable-fsync behavior are separate evidence."
+}

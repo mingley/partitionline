@@ -5,7 +5,8 @@
 //! Snapshot reads, catalog identity resolution and record work run on the same
 //! blocking actor as append/delete. Long polling waits outside that actor while
 //! retaining bounded data admission. No incremental sessions, replica reads,
-//! retention, transactions or replication are implemented. Ordinary-only writes
+//! transactions or replication are implemented. The explicit retention profile
+//! shares durable logical starts with these reads. Ordinary-only writes
 //! make last-stable-offset equal high-watermark; read-committed has no aborts.
 //!
 //! Whole batches are returned, including a containing batch for an interior
@@ -453,6 +454,7 @@ fn storage_code(error: i16, key: i16, version: i16) -> i16 {
 fn first_timestamp(
     batch: records::Batch<'_>,
     wanted: i64,
+    log_start: i64,
     active: &impl Fn() -> Result<(), Error>,
 ) -> Result<Option<(i64, i64)>, Error> {
     if batch.max_timestamp < wanted {
@@ -485,7 +487,7 @@ fn first_timestamp(
             .base_offset
             .checked_add(record.var(32)?)
             .ok_or(Error::StoredRecords)?;
-        if timestamp >= wanted {
+        if offset >= log_start && timestamp >= wanted {
             return Ok(Some((timestamp, offset)));
         }
     }
@@ -533,11 +535,16 @@ pub(crate) fn process(
         for (position, part) in topic.parts.iter().enumerate() {
             active()?;
             let target = selected(catalog, topic, position, part, &request, invalid);
-            let (id, watermark, mut error) = match target {
-                Err(error) => (None, -1, error),
-                Ok(target) => match store.watermark(target.id(), part.index) {
-                    Ok(watermark) => (Some(target.id()), watermark, 0),
-                    Err(error) => (None, -1, storage_code(error, key, version)),
+            let (id, log_start, watermark, mut error) = match target {
+                Err(error) => (None, -1, -1, error),
+                Ok(target) => match (
+                    store.log_start(target.id(), part.index),
+                    store.watermark(target.id(), part.index),
+                ) {
+                    (Ok(log_start), Ok(watermark)) => (Some(target.id()), log_start, watermark, 0),
+                    (Err(error), _) | (_, Err(error)) => {
+                        (None, -1, -1, storage_code(error, key, version))
+                    }
                 },
             };
             if key == 2 {
@@ -545,14 +552,14 @@ pub(crate) fn process(
                 let mut offset = -1;
                 if error == 0 {
                     if part.offset == -2 {
-                        offset = 0;
+                        offset = log_start;
                     } else if part.offset == -1 {
                         offset = watermark;
                     } else if part.offset < 0 {
                         error = 35;
                     } else if let Some(id) = id {
                         let mut cursor = match store.timestamp_start(id, part.index, part.offset) {
-                            Ok(offset) => offset,
+                            Ok(offset) => offset.max(log_start),
                             Err(_) => {
                                 error = 56;
                                 watermark
@@ -576,7 +583,9 @@ pub(crate) fn process(
                             for batch in checked.batches() {
                                 active()?;
                                 let batch = batch.map_err(|_| Error::StoredRecords)?;
-                                if let Some(found) = first_timestamp(batch, part.offset, &active)? {
+                                if let Some(found) =
+                                    first_timestamp(batch, part.offset, log_start, &active)?
+                                {
                                     (timestamp, offset) = found;
                                     break 'scan;
                                 }
@@ -594,7 +603,7 @@ pub(crate) fn process(
                 out.i64(offset)?;
                 continue;
             }
-            if error == 0 && (part.offset < 0 || part.offset > watermark) {
+            if error == 0 && (part.offset < log_start || part.offset > watermark) {
                 error = 1;
             }
             if error == 0 && part.maximum < 0 {
@@ -606,7 +615,7 @@ pub(crate) fn process(
             out.i64(if error == 0 { watermark } else { -1 })?;
             out.i64(if error == 0 { watermark } else { -1 })?;
             if version >= 5 {
-                out.i64(if error == 0 { 0 } else { -1 })?;
+                out.i64(if error == 0 { log_start } else { -1 })?;
             }
             out.i32(if error == 0 && request.isolation == 1 {
                 0

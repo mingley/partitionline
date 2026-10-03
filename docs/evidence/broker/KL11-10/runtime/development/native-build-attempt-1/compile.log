@@ -1,0 +1,5 @@
+In file included from /workspace/partitionline/docs/evidence/broker/KL11-10/peers/retention-native.c:8:
+/workspace/work/c-peer/source/src/rdkafka.h:9532:1: error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]
+ 9532 | const int rd_kafka_TopicPartitionInfo_partition(
+      | ^~~~~
+cc1: all warnings being treated as errors

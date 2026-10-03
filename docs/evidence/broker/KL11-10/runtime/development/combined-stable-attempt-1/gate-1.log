@@ -1,0 +1,103 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-runtime/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 4.32s
+     Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a)
+
+running 24 tests
+test global_first_batch_exception_and_request_order_preserve_capped_reads ... ok
+test explicit_read_profile_preserves_metadata_and_produce_advertisements ... ok
+test invalid_local_read_limits_are_rejected_before_io ... ok
+test lazy_empty_reads_and_delete_recreate_resolve_current_identity ... ok
+test malformed_counts_prefixes_duplicates_and_semantic_bounds_never_mutate ... ok
+test absolute_wait_cap_and_minimum_clamping ... ok
+test registered_handle_corruption_poison_wakes_waiters_and_maps_legacy_errors ... ok
+test restart_and_containing_multi_batch_entry_keep_exact_records ... ok
+test independent_apache_read_goldens ... ok
+test rolling_hidden_checkpoint_work_exhausts_request_budget_without_false_miss ... ok
+test rolling_lost_append_receipt_and_delete_wake_without_blocking_actor ... ok
+test real_tcp_supported_goldens_and_unsupported_version_eof ... ok
+test scan_and_hard_output_limits_fail_without_false_timestamp_miss ... ok
+test serve_live_probe ... ok
+test transactional_control_and_idempotent_writes_cannot_change_committed_visibility ... ok
+test rolling_real_router_replays_all_independent_read_goldens ... ok
+test transport_joined_shutdown_cancels_live_long_poll_without_stopping_store ... ok
+test unpolled_snapshot_holds_combined_admission_and_cancel_releases ... ok
+test wait_keeps_admission_cancel_releases_and_shutdown_wakes ... ok
+test waiting_read_does_not_block_append_and_delete_wakes ... ok
+test wake_between_snapshot_and_receipt_is_not_lost ... ok
+test transport_deadline_cancels_wait_and_releases_read_admission ... ok
+test rolling_actual_tcp_restart_keeps_whole_batch_offsets_and_oversized_rules ... ok
+test authentic_apache_rolled_records_match_real_tcp_timestamp_and_whole_batch_seeks ... ok
+
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.28s
+
+     Running tests/metadata.rs (/workspace/work/target-broker-segments/debug/deps/metadata-7d5b85f288b6d75b)
+
+running 8 tests
+test corrupt_complete_catalog_fails_startup_without_partial_metadata ... ok
+test native_null_array_compatibility_is_exact_and_read_only ... ok
+test persistent_create_validate_delete_and_fresh_identity ... ok
+test serve_live_probe ... ok
+test shutdown_is_joined_idempotent_and_stops_admission ... ok
+test resource_bounds_and_response_preflight_are_non_mutating ... ok
+test validation_errors_timeout_and_no_peer_paths ... ok
+test independent_apache_metadata_admin_goldens ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.15s
+
+     Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906)
+
+running 10 tests
+test configured_entry_index_output_and_disk_budgets_prevent_growth ... ok
+test assigned_batches_preserve_all_other_bytes_and_survive_restart ... ok
+test external_payload_change_poisoned_live_handle_returns_no_partial_output ... ok
+test invalid_later_batch_and_unsupported_features_never_append_a_prefix ... ok
+test outer_checksummed_forged_counts_offsets_crc_and_batch_gaps_fail_recovery ... ok
+test retention_requires_rolling_and_keeps_atomic_payload_below_logical_floor ... ok
+test rolling_backend_assigns_atomic_multi_batch_ranges_and_replacement_survives_restart ... ok
+test partition_retention_preserves_protected_records_and_synchronized_end ... ok
+test signed_offset_end_bound_is_checked_before_any_write ... ok
+test every_incomplete_final_entry_prefix_repairs_to_the_previous_whole_input ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-6082aa461197432c)
+
+running 9 tests
+test corrupt_or_unknown_store_fails_recovery_without_partial_router ... ok
+test historical_store_and_index_budgets_do_not_advance_offsets ... ok
+test offsets_replay_and_deleted_identity_never_reuses_data ... ok
+test response_and_normalized_budgets_fail_before_append ... ok
+test rolling_store_preserves_offsets_historical_budget_and_rejects_wrong_layout ... ok
+test serve_live_probe ... ok
+test malformed_entire_body_never_appends ... ok
+test acks_zero_sends_no_frame_keeps_channel_and_errors_close ... ok
+test independent_apache_produce_goldens ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+
+     Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c)
+
+running 20 tests
+test atomic_multi_batch_input_and_containing_offsets_are_not_split ... ok
+test count_and_seek_work_exhaustion_never_invent_a_successful_miss ... ok
+test age_is_strict_prefix_ordered_and_size_keeps_whole_segment_target ... ok
+test corrupt_or_missing_authoritative_data_fails_closed_without_tail_repair ... ok
+test deletion_guards_reject_unconfirmed_and_protected_ranges_before_mutation ... ok
+test end_floor_retires_dead_active_bytes_and_preserves_empty_successor_on_restart ... ok
+test hidden_scan_exhaustion_cannot_return_a_successful_partial_fetch ... ok
+test disk_and_staging_reservations_hold_before_mutation_and_after_restart ... ok
+test logical_floor_preserves_containing_input_and_only_explicitly_migrates_layout ... ok
+test missing_and_valid_crc_stale_indexes_are_rejected_and_rebuilt ... ok
+test only_active_incomplete_tail_is_repaired_and_ownership_is_exclusive ... ok
+test replacement_is_byte_preserving_and_old_generations_are_durably_removed ... ok
+test one_segment_limit_can_reclaim_active_and_continue_appending ... ok
+test rolls_and_physical_offset_timestamp_seeks_survive_restart ... ok
+test sparse_time_checkpoints_keep_first_equal_and_regressing_timestamp_offsets ... ok
+test sweep_limit_and_protected_boundary_bound_physical_prefix_progress ... ok
+test valid_crc_generation_overflow_is_rejected_before_any_publication ... ok
+test v2_corrupt_floor_or_victim_descriptors_fail_closed_with_valid_checksum ... ok
+test every_partial_index_and_valid_crc_stale_hint_is_rebuilt_from_checked_data ... ok
+test every_active_entry_prefix_recovers_prior_acks_and_complete_ambiguous_append ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+

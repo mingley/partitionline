@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Qualify a complete immutable Git snapshot; keep every gate/source receipt."""
 import argparse
+import gzip
 import hashlib
 import io
 import json
@@ -27,6 +28,9 @@ ENV = dict(os.environ, CARGO_HOME='/workspace/work/cargo', RUSTUP_HOME='/workspa
            PATH='/workspace/work/cargo/bin:' + os.environ['PATH'], CARGO_INCREMENTAL='0',
            CARGO_BUILD_JOBS='1', CARGO_PROFILE_DEV_DEBUG='0', CARGO_PROFILE_TEST_DEBUG='0',
            CARGO_TARGET_DIR='/workspace/work/target-broker-segments')
+for key in ('PARTITIONLINE_METADATA_LIVE_PORT', 'PARTITIONLINE_PRODUCE_LIVE_PORT',
+            'PARTITIONLINE_FETCH_LIVE_PORT', 'PARTITIONLINE_RETENTION_LIVE_PORT'):
+    ENV.pop(key, None)
 sha = subprocess.check_output(['git', 'rev-parse', A.source + '^{commit}'], cwd=REPO, text=True).strip()
 archive = subprocess.check_output(['git', 'archive', '--format=tar', sha], cwd=REPO)
 with tarfile.open(fileobj=io.BytesIO(archive)) as tar:
@@ -87,13 +91,23 @@ for name, argv, extra in commands:
     lane = OUT / name
     lane.mkdir()
     if extra.get('capture'):
+        cell = OUT / name.removesuffix('-all-targets')
+        cell.mkdir()
         mappings = {'PARTITIONLINE_WIRE_REPORT': 'wire-report.json', 'PARTITIONLINE_METADATA_REPORT': 'metadata-report.json',
                     'PARTITIONLINE_PRODUCE_REPORT': 'produce-report.json', 'PARTITIONLINE_FETCH_REPORT': 'fetch-report.json',
                     'PARTITIONLINE_SEGMENTS_REPORT': 'rolling-report.json', 'PARTITIONLINE_SEGMENTS_ORACLE_REPORT': 'apache-router-report.json',
                     'PARTITIONLINE_SEGMENTS_RESPONSE_DIR': 'responses', 'PARTITIONLINE_SEGMENTS_PROOF_DIR': 'proof',
                     'PARTITIONLINE_SEGMENTS_FAULT_DIR': 'rolling-fault-histories',
-                    'PARTITIONLINE_RETENTION_FAULT_DIR': 'retention-fault-histories'}
-        env.update({k: str(lane / v) for k, v in mappings.items()})
+                    'PARTITIONLINE_RETENTION_FAULT_DIR': 'retention-fault-histories',
+                    'PARTITIONLINE_RETENTION_REPORT': 'retention-report.json',
+                    'PARTITIONLINE_FETCH_RESPONSE_DIR': 'fetch-responses',
+                    'PL_BROKER_CONTROLLER_REPORT': 'controller-report.json',
+                    'PL_CONTROLLER_RESPONSE_DIR': 'controller-responses',
+                    'PL_SNAPSHOT_RESPONSE_DIR': 'snapshot',
+                    'PL_SNAPSHOT_NODE_INNER_PROOF_DIR': 'snapshot-inner',
+                    'PL_REPLICATION_RESPONSE_DIR': 'replication'}
+        env.update({k: str(cell / v) for k, v in mappings.items()})
+        env.update(PL_SNAPSHOT_SOURCE_SHA=sha, PL_REPLICATION_SOURCE_SHA=sha)
     started = time.time()
     with (lane / 'command.log').open('w') as log:
         code = subprocess.call(['taskset', '-c', '0-2,4', *argv], cwd=TREE, env=env, stdout=log, stderr=subprocess.STDOUT)
@@ -101,19 +115,45 @@ for name, argv, extra in commands:
     item = {'name': name, 'argv': ['taskset', '-c', '0-2,4', *argv], 'environment_additions': {k: v for k, v in env.items() if ENV.get(k) != v},
             'exit_code': code, 'elapsed_seconds': round(time.time() - started, 3), 'source_before': before,
             'source_after': after, 'log_sha256': hashlib.sha256((lane / 'command.log').read_bytes()).hexdigest()}
+    if extra.get('capture'):
+        item['capture_directory'] = str(cell.relative_to(OUT))
     receipt['commands'].append(item)
-    if code == 0 and name.endswith('default-all-targets'):
+    if code == 0 and extra.get('capture'):
         output = (lane / 'command.log').read_text()
-        for executable in ('fetch', 'retention'):
+        default = name.endswith('default-all-targets')
+        toolchain = name.split('-')[0]
+        for executable in (('fetch', 'retention') if default else ('retention',)):
             matches = re.findall(r'Running tests/' + executable + r'.rs \(([^)]+)\)', output)
             assert len(matches) == 1, (executable, matches)
             binary = Path(matches[0])
             if not binary.is_absolute():
                 binary = TREE / binary
-            destination = OUT / 'bin' / name.split('-default-')[0] / executable
+            label = executable if default else executable + '-all-features'
+            destination = OUT / 'bin' / toolchain / label
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(binary, destination)
             receipt['retained_binaries'].append({'lane': name, 'path': str(destination.relative_to(OUT)), 'sha256': hashlib.sha256(destination.read_bytes()).hexdigest(), 'source_commit': sha, 'build_command': item['argv']})
+        for label, pattern in (
+                ('lib-unit', r'Running unittests src/lib.rs \(([^)]+)\)'),
+                ('raft-replication', r'Running tests/raft_replication.rs \(([^)]+)\)'),
+                ('raft-snapshot', r'Running tests/raft_snapshot.rs \(([^)]+)\)')):
+            matches = re.findall(pattern, output)
+            assert len(matches) == 1, (label, matches)
+            binary = Path(matches[0])
+            if not binary.is_absolute():
+                binary = TREE / binary
+            raw_binary = binary.read_bytes()
+            destination = OUT / 'bin' / cell.name / 'proof' / (label + '.gz')
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(gzip.compress(raw_binary, compresslevel=6, mtime=0))
+            raw_hash = hashlib.sha256(raw_binary).hexdigest()
+            assert hashlib.sha256(gzip.decompress(destination.read_bytes())).hexdigest() == raw_hash
+            receipt['retained_binaries'].append({
+                'lane': name, 'path': str(destination.relative_to(OUT)), 'compression': 'gzip',
+                'sha256': hashlib.sha256(destination.read_bytes()).hexdigest(),
+                'uncompressed_sha256': raw_hash, 'uncompressed_bytes': len(raw_binary),
+                'original_mode': binary.stat().st_mode & 0o777, 'decompression_verified': True,
+                'source_commit': sha, 'build_command': item['argv']})
     (OUT / 'validation.json').write_text(json.dumps(receipt, indent=2) + '\n')
     print(name, code, flush=True)
     if code:

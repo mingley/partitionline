@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "label": "failing-first",
+  "base_commit": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "dirty_four_file_overlay": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "489b6de4e3e6f529980290f9f9edf4260019b7214349ab0e1eb3a0d7765ba603"
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90"
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048"
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
+    }
+  ],
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--manifest-path",
+    "partitionline-broker/Cargo.toml",
+    "--lib",
+    "segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "exit_code": 101,
+  "scope": "development getter regression, complete baseline archive plus owned overlays"
+}

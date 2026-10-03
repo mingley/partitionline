@@ -1,0 +1,781 @@
+{
+  "schema_version": 1,
+  "scope": "Every current cache ELF preserved before cache handoff. Cache mixes exact070 test artifacts and final compiled unsafe mutant; source/outcome attribution remains in original command and mutant receipts. No current-cache ELF is automatically claimed as unmutated final source.",
+  "immutable_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "files": [
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/catalog-63fcbd6a24aeda18",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-catalog-63fcbd6a24aeda18.gz",
+      "sha256": "d5fd86e1f6f89fa5343bafb372af89f7c36b4b226affea25cc39a7dcfb472451",
+      "compressed_sha256": "88cb051ea8147452055a64c12abfb9d86c510a5da89215199b7e564b4d23f303",
+      "bytes": 1805384,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/catalog-c9cad73163ebaed8",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-catalog-c9cad73163ebaed8.gz",
+      "sha256": "d7f6e38add2783fa83a70b0490ac533dabfefb380b583f851c952ac9d1fc4f5b",
+      "compressed_sha256": "a1357c0bc53e5f398b2ce0bbc804ee01b3d87aa2fe32ff719bfe2e397ffdb1de",
+      "bytes": 2039472,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/codecs-57c6b58bd2171dad",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-codecs-57c6b58bd2171dad.gz",
+      "sha256": "730751a0e469811948952b026dbcdaf194c01daebcdd08250fbf29e8e2182ace",
+      "compressed_sha256": "049d23a2ecd7c66d9a460ea83237e0792973e4790ece584892eced6a399b16df",
+      "bytes": 2330784,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/codecs-e5f83d2b356a999c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-codecs-e5f83d2b356a999c.gz",
+      "sha256": "17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb",
+      "compressed_sha256": "a43745fe8b0d52b4b4672f3a6f205cb930e7ed17564500c2c236626ef46878f7",
+      "bytes": 1074832,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/fetch-1e357d401d6ca825",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-fetch-1e357d401d6ca825.gz",
+      "sha256": "8cb1f676425e32a9ed65e3d3c1edc6ab37f233f1e2fd46d2752d7ba758f5c218",
+      "compressed_sha256": "f62d719fb2d9fad7e15d563766095b2fb6937beb43bd2bf83978db1d51381708",
+      "bytes": 12852904,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/fetch-dc28d9e99e19d99a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-fetch-dc28d9e99e19d99a.gz",
+      "sha256": "a386568f703dacee6eaf5e05d0738cd3e1b28e2c2a2c7edaf2a6e3599c17efd5",
+      "compressed_sha256": "7682862bb13405ffac6b15d09975b0c29296b2fd4c217777cd185bc9d6d2f031",
+      "bytes": 8968936,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/journal-650e5ce8344cdba6",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-journal-650e5ce8344cdba6.gz",
+      "sha256": "603886a8489c4f2a01169629618a5bb08eb3a46952b8bbbf8310401c0eb9ae5c",
+      "compressed_sha256": "6fee55c16cc3cd83b49a9c2f7120e18bae0cba8725be26eb538cc7ef28ff999c",
+      "bytes": 1928712,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/journal-e11c6628397343f0",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-journal-e11c6628397343f0.gz",
+      "sha256": "18940b45b7a8b41553f6a3c6b0f06d3d07e8146ebd870e588680c4a688dd66a1",
+      "compressed_sha256": "492b816e8ea633f279cca2f1e22431a294549f20660c3ad5ff5157410f6877da",
+      "bytes": 1706952,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-libtokio_macros-0f1e217bb1a990ca.so.gz",
+      "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "compressed_sha256": "2571cc08eafb14e2c12adc2e749c5227e6320f50c40276073ce7046b626def09",
+      "bytes": 3482104,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/metadata-7d5b85f288b6d75b",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-metadata-7d5b85f288b6d75b.gz",
+      "sha256": "2bdc05344059a6050108740e1d50ba3ef51f976e638e26eba099fea728604d00",
+      "compressed_sha256": "06adbe5053483c4c895f457cad7ca539bb2ce3544643b91b3915d80130ec8f24",
+      "bytes": 6373104,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/metadata-d4d10d9f9b5f94db",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-metadata-d4d10d9f9b5f94db.gz",
+      "sha256": "eea560171e781e4022d2be71e06187dc251586f32d04606c258ed28a43819c56",
+      "compressed_sha256": "0ddec1620d328fb664e12620ecd72315c38a77d1dec301e5d8246a0c12f5bbe9",
+      "bytes": 10246784,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/oidc_validation-15034c018747bc12",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-oidc_validation-15034c018747bc12.gz",
+      "sha256": "cd6aa07cdc8bc54610b36b30b3549809db9a49b17ef41900ca1bfd11b831228b",
+      "compressed_sha256": "c8ade428390ae1a0f2aa26751879cd774f5549663bb172ef0fcf7240ba8c6f67",
+      "bytes": 4216488,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/oidc_validation-bceae71c7cc60860",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-oidc_validation-bceae71c7cc60860.gz",
+      "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+      "compressed_sha256": "b2bbd28a4c606ce0154c1b731d4c0f6b4a3e980cfb4b8ba32a684727dbd27f95",
+      "bytes": 1074920,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/partition-59775e1ffb5b8906",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-partition-59775e1ffb5b8906.gz",
+      "sha256": "4e80edc2d1d6e801cbe16f656159bc55225573d46b4dcf5fe6fb13a836aedf79",
+      "compressed_sha256": "2000628721b19481057010f180287989155ea61f972ce3f18da1b6c1862cdee9",
+      "bytes": 2036736,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/partition-747e88e95cf322cb",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-partition-747e88e95cf322cb.gz",
+      "sha256": "cad168ba27f28a72d89984e68d976ee067b89fe6a294ec738393185c5a415ad6",
+      "compressed_sha256": "f7607de8808b3343389c261c9b036ff73352db7e2993c69bff69cf3164110346",
+      "bytes": 2256456,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-partitionline_broker-c952dbf8a96b13dc.gz",
+      "sha256": "37ef78be562020acb43de77379fc78403d63c98086866855fbfd7f633c8386d9",
+      "compressed_sha256": "cc59c3783ac4559d30332dc1ece44690c88239a18b2aac8a8ca0a9387fbb4734",
+      "bytes": 7285440,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/partitionline_broker-d553c0d403ec4ee5",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-partitionline_broker-d553c0d403ec4ee5.gz",
+      "sha256": "244452b5cfe92ee9c8ab6c2fb032a3c10465b55f7c1b5ce5191bbdd617128fcd",
+      "compressed_sha256": "2f391bcbfe38626ca8b48afef6d1a3e13ef3071aae24584d7ca7ed6e8f44cf04",
+      "bytes": 14356216,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/produce-057c4bfa6059c4c4",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-produce-057c4bfa6059c4c4.gz",
+      "sha256": "d2131849594fed5fc5ffc44dca62184d932712d205644c1b3bd5ba2b735c7c59",
+      "compressed_sha256": "a7457885265c589d1d34e45823f5835eff4c55c4e4847680a7537ab21b7ddaf1",
+      "bytes": 10136416,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/produce-6082aa461197432c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-produce-6082aa461197432c.gz",
+      "sha256": "91784829a14fb1b97812ffedfdac76a7d41be6232122d2aeaf837fd945da9bae",
+      "compressed_sha256": "e6f9c8052fc2d107caf3650368ad68a40bc7b74c4002d17440c04ceddfdb7ed5",
+      "bytes": 6265664,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/protocol-7277bf9ed8449c0c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-protocol-7277bf9ed8449c0c.gz",
+      "sha256": "5aaac9a2dd98695cef6811c7d2724b03048c0bb763f95a6b75c1c5d5adf4dbe9",
+      "compressed_sha256": "bacf3cdcbe637fbbb5148895ef2ba4ba988b066fd7a16ca336b6ae0f0b0cac4e",
+      "bytes": 7373472,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/protocol-85d4e14bfc80e99a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-protocol-85d4e14bfc80e99a.gz",
+      "sha256": "44937e7e61615fe7de80512b54250201f1a290e3c1f50154baf0be1313a6f464",
+      "compressed_sha256": "0d69a31b7252d256ffea5e67706daf20016c208de062079f1f0f997bc051b220",
+      "bytes": 4080312,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_election-d7ec6ad543a2cd21",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_election-d7ec6ad543a2cd21.gz",
+      "sha256": "b5a57ea7a5a21d89ef601f959df8eccd9063a0bfbc247350ef4db4f258277d64",
+      "compressed_sha256": "6c196b9e2de9a611f30d693d3d03d282e13b1237ee018fcaf5c2dacce889c6c9",
+      "bytes": 2031112,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_election-fdd916042ccc2539",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_election-fdd916042ccc2539.gz",
+      "sha256": "0a3af9c868f99012dc85a9030bd38fa6c7fe24e7b1bb3d74adaff489aa8111e8",
+      "compressed_sha256": "e5aa28b1b1ea3ea587fef03565d6abd46e96ee0a4d4c10dda4f0cae1dd668cf6",
+      "bytes": 1809808,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_protocol-2eb56817bf467f97",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_protocol-2eb56817bf467f97.gz",
+      "sha256": "9e328f6dd1a98ca118b4bd1a3d21da2c2fa99f41a2f191ade1f37191c3f59d5a",
+      "compressed_sha256": "90544a3569f9f6a27f533b2416b2a2711a5e6d86bf5429d4aff025f5189de5fa",
+      "bytes": 8496728,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_protocol-a5d013805f23b48d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_protocol-a5d013805f23b48d.gz",
+      "sha256": "829951d0928933cef1e8ebc5f67be9acea5fd21fc78f01a2c0f5e519b99830bd",
+      "compressed_sha256": "49ae56eca8b1a6d7139d15d4c4765ac4fd430d7aac6e6872ac05bbfa95b5ed28",
+      "bytes": 5223216,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_replication-0ded16aa4dab486e",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_replication-0ded16aa4dab486e.gz",
+      "sha256": "ad169923e20d52e10553cb66c5b7582ec50acc3fa0f7b8954252e6063074b8f2",
+      "compressed_sha256": "d0da4dc797f482997b131b026a45b6390da8efc7981359a037acad63b971c033",
+      "bytes": 4875016,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_replication-f54b01b49a708c2b",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_replication-f54b01b49a708c2b.gz",
+      "sha256": "03c73fef0dc5b9b6c03de1a62482af6e648e7ab9400553ca73f6e8bb6a7ce593",
+      "compressed_sha256": "f4ff4bc32e80df5671c996f0b9201a8056ba10b08a0352a845b506b58ff6e8a3",
+      "bytes": 5157592,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_snapshot-094df91f92704702",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_snapshot-094df91f92704702.gz",
+      "sha256": "f2c70fb337e91682a0ffb17cfbab7a4b9b19f458f39834377d718c2a38f3c464",
+      "compressed_sha256": "39e1cb913859b579f89013569bb22aa5be14713d6960a0291a4a2b2d8731a20e",
+      "bytes": 1713720,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/raft_snapshot-504fddb62bcd9d30",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-raft_snapshot-504fddb62bcd9d30.gz",
+      "sha256": "85890c10fb815c9a499f9c381ea17f473bff3d98698ec8b56844e718d6e4655f",
+      "compressed_sha256": "ffcb9b3099a9b1f6b0d547020975a76cbf5da4d1addad560832745cced4ad79d",
+      "bytes": 1934960,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/records-8024c5e3009ff876",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-records-8024c5e3009ff876.gz",
+      "sha256": "dc3b5f9d8d6b6c971813c74d50222d346a8b9a963ce57934471e3362c8389260",
+      "compressed_sha256": "a6e797674c3a9ee1100e8f8b690eb6a6f8b82c0744def64da4013dd9c7365fc5",
+      "bytes": 1846784,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/records-a33d3fff4f092df4",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-records-a33d3fff4f092df4.gz",
+      "sha256": "3d79436b9e28e20520a3abbd5efd86a510230effabbb03f6c608cc36dbec148d",
+      "compressed_sha256": "d74e83fa1fbf1265e135ca8b1022df629ca63f93bc106ee7d0cd6ce5a3e0407f",
+      "bytes": 1626872,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl-5b3669f368e2ae49",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl-5b3669f368e2ae49.gz",
+      "sha256": "35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0",
+      "compressed_sha256": "07653d4449a58e0ac4f0d0baae723e6a291268a2e478ec23678f955da46d0823",
+      "bytes": 1074808,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl-b79793747d359560",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl-b79793747d359560.gz",
+      "sha256": "14bdeb6211cb94ec54442a40bd70ee3ecc72ce506536b40d408f54795b6e8f41",
+      "compressed_sha256": "03cb5eb015ce0cbd857a75692dcb061dbd4f9b3b0f969be7a99110484b5abaa9",
+      "bytes": 3901408,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl_credentials-3add33d7750fd844",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl_credentials-3add33d7750fd844.gz",
+      "sha256": "2bd8822573829bad739ebf9bfa94be22ce8a54357cd6f40c1e6d68401d05c16d",
+      "compressed_sha256": "c684f10eed86ecc14e7bdd6dde7862752366c5d5b4b7c2242fc26c21623c5a00",
+      "bytes": 4343848,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl_credentials-6231c978092e056d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl_credentials-6231c978092e056d.gz",
+      "sha256": "ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87",
+      "compressed_sha256": "245ac5fb4274960e1e51d5fe8ce6a7e8dfa320dadd105e50664575678ce10a2f",
+      "bytes": 1074928,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl_sessions-392db3a5bc1508b4",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl_sessions-392db3a5bc1508b4.gz",
+      "sha256": "63ae780623d6b9ea6108d7a92206b393e1ede9cb8ed406d60acfc07ca0e7f0f9",
+      "compressed_sha256": "2b8905dc2501b24cddb25dcd7a13494da2806e0210d33629785a35bf1a8762f2",
+      "bytes": 10802912,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-sasl_sessions-e9364c4dc0ca55dc.gz",
+      "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+      "compressed_sha256": "1c02c91a1632a1df890ffc29b6a8ab82f3cf3e77add505ba866f09e801c94b6d",
+      "bytes": 1074904,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/segments-213b0db01981153c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-segments-213b0db01981153c.gz",
+      "sha256": "96c542e16ab4fce295d8f35502751fe555163b3ac17574a7c72fb6dbcf76a475",
+      "compressed_sha256": "ed21bc0e7611d5d5649136b4a14959896ee164d208119630b6934a21934317b6",
+      "bytes": 2132136,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/segments-b4b87189b57b3a3d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-segments-b4b87189b57b3a3d.gz",
+      "sha256": "fc5904007fd7d0dd43177522e5ae02e7cf587e4fd49e7a97dd0f2d03da4ae553",
+      "compressed_sha256": "de979ca58aca21d41c0328b4467197741bb91973ddae15beda3c5aef3f35c930",
+      "bytes": 2352296,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/tls-86e3f538d0b3e839",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-tls-86e3f538d0b3e839.gz",
+      "sha256": "00b180b2954ca750b9ee464e1b1c742c0571d46590ccd188679851bd876175e6",
+      "compressed_sha256": "841448ca2b8686a27254cd88b84789fb9d74ceda19ebe642e37e2df8aa2ecdbb",
+      "bytes": 11057536,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/tls-cfda0bad2b73264b",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-tls-cfda0bad2b73264b.gz",
+      "sha256": "52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5",
+      "compressed_sha256": "7bb9cc56a24c6fa977de7563951aee78a0402d694bed03a0a93fc785f4b11555",
+      "bytes": 1074800,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/transport-654727d80d8dea19",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-transport-654727d80d8dea19.gz",
+      "sha256": "ed9ea75cdefce21af4760723e393d12ba89dd99523dce9f98b9931f6911ab06f",
+      "compressed_sha256": "a1beac921809f2dd8f4cc1ceb296281778acc9c81d46cbbc62fab2e287782574",
+      "bytes": 9536208,
+      "mode": "0o700"
+    },
+    {
+      "lane": "stable",
+      "original": "/workspace/work/target-snapshot-runtime/debug/deps/transport-adfafaa7060b0246",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/stable-transport-adfafaa7060b0246.gz",
+      "sha256": "fd6cf3d1ad7f2c17eadf7f90636760dc48fb58df9f74e936c55bdccb4b723860",
+      "compressed_sha256": "4e23e45ac4c4635fa780eba4597fc9194431cc2b2d7b554e1497694e9e02542b",
+      "bytes": 13442080,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/catalog-4c9e8b6153d8a669",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-catalog-4c9e8b6153d8a669.gz",
+      "sha256": "389c22e7742efe9932c44156daf0c88caf068056ee16e7b457af829234c80c06",
+      "compressed_sha256": "4a5f3167f3357e459fcf476ddbde47e5a2215897fa07239222b49a38a631d565",
+      "bytes": 1682656,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/catalog-7707e2d61a7210e3",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-catalog-7707e2d61a7210e3.gz",
+      "sha256": "a70667f9ee3ca69f33d0ef5adc970ddf3e627b106a380503a18ce4eeb3890fac",
+      "compressed_sha256": "7485ffc763b9d011e6c6f8408a08009b1f587f8217eda19a58b1f9c61cc89dc2",
+      "bytes": 1751760,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/codecs-04d6a3a1629d873a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-codecs-04d6a3a1629d873a.gz",
+      "sha256": "284b0484f14fb0e4d2bfa6cc563a2af99575f76b88a06c98da155b3ba8f2bd26",
+      "compressed_sha256": "615f88f391a9a9a1f801f39f9eebbf04fd1b39635b57f00d5b9b53cab8be8301",
+      "bytes": 1079376,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/codecs-1036dc28f3a74684",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-codecs-1036dc28f3a74684.gz",
+      "sha256": "3a4d87eb950103dc39714a2b876b7d90d6f68c876cc91ae407c9a305db6415d1",
+      "compressed_sha256": "a63ca9e2a1ba8a0b99137059ebd11659a4fe3cddb962766ab4eb9c5fbeb196fa",
+      "bytes": 2077336,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/fetch-1751f282d6a56265",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-fetch-1751f282d6a56265.gz",
+      "sha256": "bb003653c6423e7a90e30b05dc542523a1e902228410e54134de913fe2c64bb9",
+      "compressed_sha256": "b19fd7d89a6f0b260a3deb3be794f3a494d2685f869c7afe934b6b365245ced6",
+      "bytes": 10403200,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/fetch-8562db1c75ebefc2",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-fetch-8562db1c75ebefc2.gz",
+      "sha256": "758b3d84cf01ee48fec7c3b72e7f402b4e95f78d38d67818ee2efee24cb36a3c",
+      "compressed_sha256": "c7e4c496da5b5417411b555ababd979eff3aff0965f5df55df96ab7c73eb9916",
+      "bytes": 7023712,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/journal-a38d6e65deabd563",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-journal-a38d6e65deabd563.gz",
+      "sha256": "6da7b6c12130c840d989c3905f5410188b2b0521dcc93bf08b2a4ec34e0bf04e",
+      "compressed_sha256": "f7009bb72290bfa405a964eb4dc3429aca8563b988ac6455b521f6ec6d25675e",
+      "bytes": 1652976,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/journal-f710ca211c750ad3",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-journal-f710ca211c750ad3.gz",
+      "sha256": "a8c317c2c859fba0c74a272ce916849b2d70fc5d6793da239a44e09f31b7e83e",
+      "compressed_sha256": "1cdc6b29dc64a3a5250299fc132215798a544840f6e978e0548735db1c144e56",
+      "bytes": 1594768,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/libtokio_macros-e99031ed9ca5c58a.so",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-libtokio_macros-e99031ed9ca5c58a.so.gz",
+      "sha256": "6193d265253e757692c7f684041c3eee3e43b1cc07167e3de1091458b02bd337",
+      "compressed_sha256": "174a01e36208e6041a3c283a23d4f05f7d22ad8d5982abfa66dbe774c242e0f0",
+      "bytes": 3218784,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/metadata-4d1387e52eb67a4d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-metadata-4d1387e52eb67a4d.gz",
+      "sha256": "6c690b2b02b6bb22ddc2cb4aaed33bf0d7503d6c32e3e8e9185d611894d5c884",
+      "compressed_sha256": "5e0bee0cede0871013029c21e0792d5c1617c0f2343ec73aa1f0c23716e48fc0",
+      "bytes": 8787000,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/metadata-b0ca26ddd70de977",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-metadata-b0ca26ddd70de977.gz",
+      "sha256": "437eae24c4fb62292bd7a749674413a285585a1051780ac08db82f40f8ed7142",
+      "compressed_sha256": "b88f6d7b3fc7158bc91b6f5bd6f434a4aa17796ee59f519dab18e271e1107160",
+      "bytes": 5403136,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/oidc_validation-1f132afeddf48469",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-oidc_validation-1f132afeddf48469.gz",
+      "sha256": "878aa83c7d61532817cc167974414e8d068287ba3b645f5734bdd15f75a215d9",
+      "compressed_sha256": "08a6519a74d51cfc3a0b0c0b8cdcc81810ae2e7067ade229dac0a3ba86863328",
+      "bytes": 3659680,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/oidc_validation-42016f58077d9a54",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-oidc_validation-42016f58077d9a54.gz",
+      "sha256": "d02773309e350d448792d85ba04d303ea8b883dd51bc06573daed6f707754786",
+      "compressed_sha256": "c40d8d73280ec95722b3f840f8c1c04695b1d083f571d9c66fb2bc700256e9b6",
+      "bytes": 1079392,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/partition-740a16c0a82eaef0",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-partition-740a16c0a82eaef0.gz",
+      "sha256": "b5aed2654d65ec3448869f3fb854c99d9099919ee7a2d0a633c31fd3c01c4296",
+      "compressed_sha256": "05ffb0e0d680de4b3f756590c78c9a5ebcbf71eec0b15aa4ea8a60d53cc2cee2",
+      "bytes": 1895888,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/partition-8db6cb900ffbb8e5",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-partition-8db6cb900ffbb8e5.gz",
+      "sha256": "9bd4264e27935afec85b42d5ba5b84ceeaa3dd73c5030307037232664e11d72c",
+      "compressed_sha256": "489305fc65bb92476619b5954c4bdad815c9e6b994204c68723cff54f40c87c5",
+      "bytes": 1954864,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/partitionline_broker-d8ab26ec19c1cfa0",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-partitionline_broker-d8ab26ec19c1cfa0.gz",
+      "sha256": "2cdfafdfee1755f66e6e4f775c621b91e933a4ca27123d7e73e30f91a5adb7bd",
+      "compressed_sha256": "4763420ca98c4d6cf486eb69e28c4a6f407b06d7a02fd7dd398e99697db57952",
+      "bytes": 11444968,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-partitionline_broker-ea773fb32d16e69c.gz",
+      "sha256": "1e9f835b17409adaee9b2a4e6bd9c1995ee7b54b6a0e436f940ca255dbea5fab",
+      "compressed_sha256": "bf73a13ae55d0fe0b699ad3ea9319d02a0fdd8f1a35d47d35ccfccb416f5df3e",
+      "bytes": 6098712,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/produce-6e9735a0c917a43c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-produce-6e9735a0c917a43c.gz",
+      "sha256": "0f71c714035d067ad401132847a37ba6fcf9625e7d4d46e80cfc1d152f169b55",
+      "compressed_sha256": "ad6876fa085d6e1f7d8f641da8040087713c0b0f11a9e0ba8db7d771db57232b",
+      "bytes": 8576472,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/produce-fe4853906326c6dc",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-produce-fe4853906326c6dc.gz",
+      "sha256": "d83ed9e623b66d3ac150c8506ed3dab000f04e15fbaa4a86f5cfc7c539b3c325",
+      "compressed_sha256": "7140edb68e3fc3030bd0ec97320aebe107fa369840c31ccb3070783c0f3c0554",
+      "bytes": 5194000,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/protocol-52138bcc7d2ce28e",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-protocol-52138bcc7d2ce28e.gz",
+      "sha256": "608e238bf546c5c14e5bd47434f7cbd8f206c5326bfed519bcec2cf9e25b995e",
+      "compressed_sha256": "ea200ca570c5eae2fcbc925bb10d5d9428ad3f135265d7b1bd0487bb36d82d37",
+      "bytes": 3562088,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/protocol-f232e75dec39e97d",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-protocol-f232e75dec39e97d.gz",
+      "sha256": "e13687e4bab0ba741036ab8e5692fa77b2063bf55ab80e15eb18b795e3eacddf",
+      "compressed_sha256": "8ab6df84d15bd18648c6684fba30c47b5745057ee44092e6bdad7b8f71efe51d",
+      "bytes": 6363680,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_election-4f72d87b5c9dd8dc",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_election-4f72d87b5c9dd8dc.gz",
+      "sha256": "7d1032e62814e0b5580b547d9387ea9574bf251e038011a141b0fb23367dd255",
+      "compressed_sha256": "dfa15428abaf6a633d55a2e610fd98c7d8ef504e88f1d9cde642d7dfa06040d7",
+      "bytes": 1749800,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_election-c18593246fa844c7",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_election-c18593246fa844c7.gz",
+      "sha256": "5f6acfe678c3a54d75d3d163622addbc8fda567b923c838452762c6c3a102952",
+      "compressed_sha256": "1c0e2c1e4806425a9c569008798c3f83c46c067e0b0f85a2d2b6c4da541e861e",
+      "bytes": 1688472,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_protocol-8c7ca5c1be7670cb",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_protocol-8c7ca5c1be7670cb.gz",
+      "sha256": "203b543d9fe9a1fd5db0a116c9b1f1f6e476b56adee0c0fa5226b250695fc2cc",
+      "compressed_sha256": "51b0f22bbff81ad3b9d82a26e1c05cb5c9183695f7f1b33be2576b6be485f376",
+      "bytes": 7226632,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_protocol-ab246e857326ed2a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_protocol-ab246e857326ed2a.gz",
+      "sha256": "e213259fad674035b9945ff8d88770a4ec33c914a3fea9f433dd9c637cbb65d0",
+      "compressed_sha256": "e59058d7f66b766f59d97251019f0990041b7639da6990d8dfc2a7554634d5dc",
+      "bytes": 4446736,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_replication-1f6964f389f2bde4",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_replication-1f6964f389f2bde4.gz",
+      "sha256": "bcb590da49defb58edcefd5c07eca5ac1c66dbf8bc6b1dd300e160648e0515a5",
+      "compressed_sha256": "7af5c5ac6bbc25e3e4d7876a0850f931cef3cd28740bc2b16ec7dd8845d0fbbc",
+      "bytes": 4420424,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_replication-9bcefe4fc77d2f90",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_replication-9bcefe4fc77d2f90.gz",
+      "sha256": "f82ad18f53b3089ab3e259f610febaa006fcfb3596f1f045eefcb1a728cd3820",
+      "compressed_sha256": "cf55ca21c6e2d8a8a4c159cf0b27966254a973eca5e7e4cd7a74776b03270564",
+      "bytes": 4302312,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_snapshot-12c7c0017cbf18bd",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_snapshot-12c7c0017cbf18bd.gz",
+      "sha256": "ca45131742f66c9d234c2105a1a32ca0aae13724276fe0d03b67871cd0e6c27b",
+      "compressed_sha256": "d8bbeb0c862c881e8fe7b0ab27409e7c3d71634ad6d47b1441c91afde75a235d",
+      "bytes": 1595376,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/raft_snapshot-956d1051e1ae9872",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-raft_snapshot-956d1051e1ae9872.gz",
+      "sha256": "575d152f8488736594aa36f97721511b537cc508778788dd2c7b53d9d01dc57e",
+      "compressed_sha256": "1fea613fc7adf41498781bb96d72563223c749685cfa12abcc380b213b900021",
+      "bytes": 1659272,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/records-0af8dd324333efd1",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-records-0af8dd324333efd1.gz",
+      "sha256": "d654ab73631cfd37cc1ad9e4c9b7383af2787be74d6f48ce4453a64d842ee3e2",
+      "compressed_sha256": "63eb21a1e6aa7fc4895687fae56ddb3b9f44d8e6061c2dbd2fafb2fdbd60f8ae",
+      "bytes": 1572064,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/records-fb825c23446ef8a7",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-records-fb825c23446ef8a7.gz",
+      "sha256": "4ef33b51f988c92f98235cbe8456e79b40643a9dc2c7ef75e8f991e4939d0454",
+      "compressed_sha256": "138f0e203fef5765760cee3b97d69480901782e0ff95a9040efa1a34a3f75239",
+      "bytes": 1519176,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl-47d61acd2a8e4562",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl-47d61acd2a8e4562.gz",
+      "sha256": "90b4bfe1323071693b5dccd0f8761ccc60fa6c1cf2a9477d77dcc5c909ff83c5",
+      "compressed_sha256": "6363b0847a6084cf748846ddf53968da51e679c72fa47d7f131ea6c55a191a32",
+      "bytes": 3239880,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl-904634524bfa597b",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl-904634524bfa597b.gz",
+      "sha256": "0dff20084c5b35399ceb43ffae3161d627fe5499f5f82ad32ad74ce44dced802",
+      "compressed_sha256": "08bda1a719f00290eba38b78cdb454ac342ceb9fd44318cc95a5a39230dd7fce",
+      "bytes": 1079368,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl_credentials-73c263917ae1bf49",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl_credentials-73c263917ae1bf49.gz",
+      "sha256": "a6db80a842eebec64d3ef5d5963914ec9abb88c123a35d9105d7390d032b6e8b",
+      "compressed_sha256": "807beaa126b5fdbc561cda1505067aa5d41b4d13b3ba69d37da8eae4bf14161a",
+      "bytes": 1079392,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl_credentials-b367c1f931a0e2e6",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl_credentials-b367c1f931a0e2e6.gz",
+      "sha256": "f49ccfb6fca8839cb4ffff3bba13d3d692bf4329638677cf8f328f36cac043f8",
+      "compressed_sha256": "f6d412dfb86371c2c5354a8a13b17c721e73c731124dff60d42c4417d5b44b67",
+      "bytes": 3565088,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl_sessions-e89950569065fb85",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl_sessions-e89950569065fb85.gz",
+      "sha256": "b7dce3eb270fc2dc67dd7f4efaff3b7f66e07146255d513b8422df2ceca1c57b",
+      "compressed_sha256": "912383a5f14d5ab724e2d7d97683f7e19e5b557bd2cde514c211dd7d1f018c1f",
+      "bytes": 1079384,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/sasl_sessions-fad506de04a37c3c",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-sasl_sessions-fad506de04a37c3c.gz",
+      "sha256": "70416d7c626076b09851c833db42a85b524118f6f31873f38a9d1788231413a8",
+      "compressed_sha256": "d9c0878d32ace24deb29d78e56c72c8c0a8cebeac1a1bca134403fffe1f15170",
+      "bytes": 9493136,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/segments-17cf2f4ce7ae3396",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-segments-17cf2f4ce7ae3396.gz",
+      "sha256": "6482f5eb6731a1a6a528896688c979ec6e804433d14b0e299d26b82e7a6b6b63",
+      "compressed_sha256": "e423d558c743f41ac77b61910f3847518e18b116bd70c69fb252e5524e1682b1",
+      "bytes": 2068616,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/segments-a6cf26df558bc909",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-segments-a6cf26df558bc909.gz",
+      "sha256": "d267ee1ab6fe8f4e83e39f3f79e466fd20c9aeb8122c456432e078d5efa6c92f",
+      "compressed_sha256": "121274c735c4f8984eb3976ab90133cf2ce2fd44b78731b082334f032179096c",
+      "bytes": 1999512,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/tls-3038d8c203686624",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-tls-3038d8c203686624.gz",
+      "sha256": "d1b940a75f86edf6113c01246c8e7cd320b20be8e97222342a6f6c10d11a7a28",
+      "compressed_sha256": "2dca958ad77171ed34656bacb638bfad3e229218c61d84ad7d456df71ae72cb4",
+      "bytes": 9457544,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/tls-cdfaa0504df3a5ed",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-tls-cdfaa0504df3a5ed.gz",
+      "sha256": "1201f44d6a405bf35074318a8a324fb0c22bb17cc0ea14793eb49af7bc46d0d3",
+      "compressed_sha256": "b69d38e1c72c93381beff73506274ce767d33eb6b6cd8656ccf682ed1b6e8c89",
+      "bytes": 1079368,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/transport-1096c292fb9f8ab8",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-transport-1096c292fb9f8ab8.gz",
+      "sha256": "11c0438f36ff95ef0bddd04c2e16924143ad55b105ef809f24eec01b3ea4fe55",
+      "compressed_sha256": "2dc77d8225a670cbaf6fe886114b437fdb5d3529851b938c3fca6504dc34a09d",
+      "bytes": 6458824,
+      "mode": "0o700"
+    },
+    {
+      "lane": "msrv",
+      "original": "/workspace/work/target-snapshot-runtime-msrv/debug/deps/transport-10c202537863126a",
+      "compressed": "/workspace/work/snapshot-runtime/retained-070598ee-cache-binaries/msrv-transport-10c202537863126a.gz",
+      "sha256": "454e7f94f6589133aea00b6d01b534fcb181eaa0aee10457757d8bef6d845285",
+      "compressed_sha256": "0738c794e30068c8b0f6d8a15817215e225944581755a3eefacb75e53153f293",
+      "bytes": 9774696,
+      "mode": "0o700"
+    }
+  ]
+}

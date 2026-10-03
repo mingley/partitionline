@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "scope": "Development-only combined81b490 immutable base plus13-file10 overlay; pre-final storage getter follow-up and root actor tests. Not accepted source qualification.",
+  "base_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "source_receipt": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-3/source.json",
+  "binary": "/workspace/work/retention-peer/server/development/retention",
+  "binary_sha256": "e7f0282e16aa6507b17b82d0f57318caec6199d479d6c32848cce1a0c843c93b"
+}

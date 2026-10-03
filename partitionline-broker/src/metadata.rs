@@ -10,6 +10,8 @@
 //! [`catalog`], not an Apache metadata log.
 //! The explicit [`Router::open_with_store`] profile adds ordinary Produce,
 //! and [`Router::open_with_read_store`] adds persisted Fetch/ListOffsets.
+//! [`Router::open_with_retention_store`] explicitly adds DeleteRecords and
+//! bounded policy sweeps to ordinary RF1 rolling storage.
 //!
 //! One bounded blocking actor owns the catalog and optional partition store.
 //! Read snapshots serialize with mutations; long polls wait outside that actor.
@@ -25,6 +27,7 @@ use crate::{
     catalog::{self, Catalog, Topic, TopicId},
     fetch, journal, produce,
     protocol::{self, ApiVersionsHandler, RequestHeader},
+    retention,
     transport::Handler,
 };
 use std::{
@@ -157,6 +160,8 @@ pub enum Error {
     Produce(produce::Error),
     /// Ordinary Fetch/ListOffsets parsing, scan or response budgets failed.
     Fetch(fetch::Error),
+    /// Explicit retention parsing, policy or storage operation failed.
+    Retention(retention::Error),
 }
 impl From<protocol::Error> for Error {
     fn from(value: protocol::Error) -> Self {
@@ -171,6 +176,11 @@ impl From<produce::Error> for Error {
 impl From<fetch::Error> for Error {
     fn from(value: fetch::Error) -> Self {
         Self::Fetch(value)
+    }
+}
+impl From<retention::Error> for Error {
+    fn from(value: retention::Error) -> Self {
+        Self::Retention(value)
     }
 }
 impl std::fmt::Display for Error {
@@ -188,7 +198,17 @@ struct Job {
 enum Command {
     Request(Job),
     Data(DataJob),
+    Sweep(SweepJob),
     Stop,
+}
+struct SweepJob {
+    now_ms: i64,
+    reply: oneshot::Sender<Result<retention::SweepReport, Error>>,
+}
+#[derive(Clone, Copy)]
+struct DataOptions {
+    reads: Option<fetch::Limits>,
+    retention: Option<retention::Config>,
 }
 struct DataJob {
     request: Vec<u8>,
@@ -220,6 +240,7 @@ pub struct Router {
     data: bool,
     data_slots: Semaphore,
     reads: Option<fetch::Limits>,
+    retention: Option<retention::Config>,
     changes: watch::Receiver<()>,
     wakeup: Weak<watch::Sender<()>>,
 }
@@ -229,7 +250,7 @@ impl Router {
         path: impl Into<PathBuf>,
         config: Config,
     ) -> Result<(Self, journal::Recovery), Error> {
-        Self::open_inner(path.into(), config, None, None).await
+        Self::open_inner(path.into(), config, None, None, None).await
     }
     /// Open the ordinary data profile on the same exclusive blocking actor.
     ///
@@ -249,7 +270,7 @@ impl Router {
         {
             return Err(produce::Error::InvalidConfig.into());
         }
-        Self::open_inner(path.into(), config, Some(store), None).await
+        Self::open_inner(path.into(), config, Some(store), None, None).await
     }
     /// Open the separately advertised ordinary read/write data profile.
     ///
@@ -284,13 +305,53 @@ impl Router {
         {
             return Err(fetch::Error::InvalidLimits.into());
         }
-        Self::open_inner(path.into(), config, Some(store), Some(reads)).await
+        Self::open_inner(path.into(), config, Some(store), Some(reads), None).await
+    }
+    /// Open the explicit rolling RF1 read/write/retention profile, adding API21.
+    ///
+    /// Legacy profiles retain their API ranges. Deletion/sweeps serialize with
+    /// reads and appends; a synced operation may complete after caller cancellation.
+    pub async fn open_with_retention_store(
+        path: impl Into<PathBuf>,
+        config: Config,
+        store: produce::Config,
+        reads: fetch::Limits,
+        retention: retention::Config,
+    ) -> Result<(Self, journal::Recovery), Error> {
+        retention.validate()?;
+        store.validate()?;
+        if store.segment_limits.is_none()
+            || config
+                .max_queued_requests
+                .saturating_mul(config.max_response_bytes)
+                > 512 * 1024 * 1024
+        {
+            return Err(produce::Error::InvalidConfig.into());
+        }
+        if config.max_queued_requests.saturating_mul(
+            config
+                .protocol_limits
+                .max_request_bytes()
+                .saturating_add(config.max_response_bytes),
+        ) > reads.max_retained_bytes()
+        {
+            return Err(fetch::Error::InvalidLimits.into());
+        }
+        Self::open_inner(
+            path.into(),
+            config,
+            Some(store),
+            Some(reads),
+            Some(retention),
+        )
+        .await
     }
     async fn open_inner(
         path: PathBuf,
         config: Config,
         store: Option<produce::Config>,
         reads: Option<fetch::Limits>,
+        retention: Option<retention::Config>,
     ) -> Result<(Self, journal::Recovery), Error> {
         config.validate()?;
         let data = store.is_some();
@@ -306,7 +367,13 @@ impl Router {
             match Catalog::open(path, worker_config.catalog_limits) {
                 Ok((catalog, recovery)) => {
                     let store = match store
-                        .map(|config| produce::Store::open(config, &catalog))
+                        .map(|config| {
+                            let mut store = produce::Store::open(config, &catalog)?;
+                            if let Some(retention) = retention {
+                                store.enable_retention(retention)?;
+                            }
+                            Ok::<_, produce::Error>(store)
+                        })
                         .transpose()
                     {
                         Ok(store) => store,
@@ -322,7 +389,7 @@ impl Router {
                             receiver,
                             &worker_config,
                             &worker_stop,
-                            reads,
+                            DataOptions { reads, retention },
                             &change_tx,
                         );
                     }
@@ -358,6 +425,7 @@ impl Router {
                 data,
                 data_slots,
                 reads,
+                retention,
                 changes,
                 wakeup,
             },
@@ -367,6 +435,28 @@ impl Router {
     /// Configuration validated at startup.
     pub fn config(&self) -> &Config {
         &self.config
+    }
+    /// Execute one bounded deterministic retention sweep on the storage owner.
+    /// Defaults disable age/size policies; this method does not start a timer.
+    pub async fn sweep_retention(&self, now_ms: i64) -> Result<retention::SweepReport, Error> {
+        if self.stopping.load(Ordering::Acquire) {
+            return Err(Error::Stopped);
+        }
+        if self.retention.is_none() {
+            return Err(retention::Error::InvalidConfig.into());
+        }
+        let _slot = self
+            .data_slots
+            .try_acquire()
+            .map_err(|_| Error::QueueFull)?;
+        let (reply, receiver) = oneshot::channel();
+        self.sender
+            .try_send(Command::Sweep(SweepJob { now_ms, reply }))
+            .map_err(|error| match error {
+                mpsc::error::TrySendError::Full(_) => Error::QueueFull,
+                mpsc::error::TrySendError::Closed(_) => Error::Stopped,
+            })?;
+        receiver.await.map_err(|_| Error::ActorFailed)?
     }
     /// Request stop, drain pending replies, and join without blocking Tokio.
     ///
@@ -412,7 +502,9 @@ impl Router {
             .and_then(|v| <[u8; 2]>::try_from(v).ok())
             .map(i16::from_be_bytes);
         if self.data
-            && (data_key == Some(0) || (self.reads.is_some() && matches!(data_key, Some(1 | 2))))
+            && (data_key == Some(0)
+                || (self.reads.is_some() && matches!(data_key, Some(1 | 2)))
+                || (self.retention.is_some() && data_key == Some(21)))
         {
             // Keep admitted data jobs and completed, unconsumed actor replies
             // bounded together. Once transferred, Vec ownership/budgets belong
@@ -436,6 +528,7 @@ impl Router {
                 0 => (3..=13).contains(&version),
                 1 => (4..=6).contains(&version),
                 2 => (1..=3).contains(&version),
+                21 => (0..=2).contains(&version),
                 _ => false,
             };
             if !supported {
@@ -498,7 +591,12 @@ impl Router {
         }
         let (key, _) = prefix(&request, &self.config)?;
         if key == 18 {
-            let handler = if self.reads.is_some() {
+            let handler = if self.retention.is_some() {
+                ApiVersionsHandler::with_advertised(
+                    self.config.protocol_limits,
+                    &retention::DATA_API_VERSIONS,
+                )
+            } else if self.reads.is_some() {
                 ApiVersionsHandler::with_advertised(
                     self.config.protocol_limits,
                     &fetch::DATA_API_VERSIONS,
@@ -545,7 +643,7 @@ fn actor(
     mut receiver: mpsc::Receiver<Command>,
     config: &Config,
     stopping: &AtomicBool,
-    reads: Option<fetch::Limits>,
+    options: DataOptions,
     changes: &watch::Sender<()>,
 ) {
     while let Some(command) = receiver.blocking_recv() {
@@ -577,6 +675,30 @@ fn actor(
                 }
                 let _ = job.reply.send(result);
             }
+            Command::Sweep(job) => {
+                if job.reply.is_closed() {
+                    continue;
+                }
+                let result = if catalog.is_poisoned() {
+                    Err(Error::StoragePoisoned)
+                } else if let Some(store) = store.as_mut() {
+                    store
+                        .sweep_retention(&catalog, job.now_ms, || {
+                            if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
+                                Err(retention::Error::Canceled)
+                            } else {
+                                Ok(())
+                            }
+                        })
+                        .map_err(Into::into)
+                } else {
+                    Err(retention::Error::InvalidConfig.into())
+                };
+                if store.as_mut().is_some_and(produce::Store::take_changed) {
+                    changes.send_replace(());
+                }
+                let _ = job.reply.send(result);
+            }
             Command::Data(job) => {
                 if job.reply.is_closed() {
                     continue;
@@ -601,7 +723,28 @@ fn actor(
                         )
                         .map(DataReply::Produce)
                         .map_err(Into::into)
-                    } else if let Some(reads) = reads {
+                    } else if job.request.get(..2) == Some(&[0, 21]) {
+                        if let Some(retention) = options.retention {
+                            retention::process(
+                                &catalog,
+                                store,
+                                &job.request,
+                                config,
+                                retention,
+                                || {
+                                    if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
+                                        Err(retention::Error::Canceled)
+                                    } else {
+                                        Ok(())
+                                    }
+                                },
+                            )
+                            .map(|response| DataReply::Produce(Some(response)))
+                            .map_err(Into::into)
+                        } else {
+                            Err(protocol::Error::UnimplementedApi(21).into())
+                        }
+                    } else if let Some(reads) = options.reads {
                         fetch::process(&catalog, store, &job.request, config, reads, || {
                             if job.reply.is_closed() || stopping.load(Ordering::Acquire) {
                                 Err(fetch::Error::Canceled)
@@ -638,6 +781,9 @@ fn reject(command: Command) {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Data(job) => {
+            let _ = job.reply.send(Err(Error::Stopped));
+        }
+        Command::Sweep(job) => {
             let _ = job.reply.send(Err(Error::Stopped));
         }
         Command::Stop => {}
@@ -1715,6 +1861,12 @@ mod tests {
         parked_profile(false)
     }
     fn parked_profile(data: bool) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
+        parked_options(data, None)
+    }
+    fn parked_options(
+        data: bool,
+        retention: Option<retention::Config>,
+    ) -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
         let path = std::env::temp_dir().join(format!(
             "partitionline-actor-{}-{}",
             std::process::id(),
@@ -1731,6 +1883,7 @@ mod tests {
         let (change_tx, changes) = watch::channel(());
         let change_tx = Arc::new(change_tx);
         let wakeup = Arc::downgrade(&change_tx);
+        let reads = retention.map(|_| fetch::Limits::default());
         let task = tokio::task::spawn_blocking(move || {
             if gate.recv().is_err() {
                 return;
@@ -1746,12 +1899,31 @@ mod tests {
                     if catalog.create("alpha", id, 2).is_err() {
                         return;
                     }
-                    let Ok(store) = produce::Store::open(
-                        produce::Config::new(worker_path.with_extension("parts")),
-                        &catalog,
-                    ) else {
+                    let mut store_config =
+                        produce::Config::new(worker_path.with_extension("parts"));
+                    if retention.is_some() {
+                        store_config.segment_limits = Some(crate::segments::Limits::default());
+                    }
+                    let Ok(mut store) = produce::Store::open(store_config, &catalog) else {
                         return;
                     };
+                    if let Some(policy) = retention {
+                        if store.enable_retention(policy).is_err()
+                            || produce::process(
+                                &catalog,
+                                &mut store,
+                                include_bytes!(
+                                    "../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin"
+                                ),
+                                &worker_config,
+                                Instant::now(),
+                                || Ok(()),
+                            )
+                            .is_err()
+                        {
+                            return;
+                        }
+                    }
                     Some(store)
                 } else {
                     None
@@ -1762,7 +1934,7 @@ mod tests {
                     receiver,
                     &worker_config,
                     &worker_stop,
-                    None,
+                    DataOptions { reads, retention },
                     &change_tx,
                 );
             }
@@ -1776,7 +1948,8 @@ mod tests {
                 task: Mutex::new(Some(task)),
                 data,
                 data_slots: Semaphore::new(1),
-                reads: None,
+                reads,
+                retention,
                 changes,
                 wakeup,
             }),
@@ -2061,6 +2234,133 @@ mod tests {
             Ok(())
         })
         .await??;
+        Ok(())
+    }
+
+    fn parked_retention() -> (Arc<Router>, std::sync::mpsc::Sender<()>, PathBuf) {
+        parked_options(
+            true,
+            Some(retention::Config {
+                retention_bytes: Some(0),
+                ..retention::Config::default()
+            }),
+        )
+    }
+    async fn retained_state(path: PathBuf) -> Result<(i64, i64), Box<dyn StdError>> {
+        Ok(
+            tokio::task::spawn_blocking(move || -> Result<(i64, i64), Error> {
+                let config = produce::Config::new(path.with_extension("parts"));
+                let (part, _) = crate::partition::Partition::open_segmented(
+                    path.with_extension("parts")
+                        .join("00000000000000000000000000000002-0.segments"),
+                    0,
+                    config.journal_limits,
+                    config.record_limits,
+                    crate::segments::Limits::default(),
+                )
+                .map_err(produce::Error::Partition)?;
+                let state = (part.log_start_offset(), part.next_offset());
+                drop(part);
+                std::fs::remove_file(&path).map_err(produce::Error::Io)?;
+                std::fs::remove_dir_all(path.with_extension("parts"))
+                    .map_err(produce::Error::Io)?;
+                Ok(state)
+            })
+            .await??,
+        )
+    }
+    #[tokio::test]
+    async fn canceled_sweep_and_shared_full_admission_never_retire() -> Result<(), Box<dyn StdError>>
+    {
+        let (router, release, path) = parked_retention();
+        let waiting = tokio::spawn({
+            let router = Arc::clone(&router);
+            async move { router.sweep_retention(0).await }
+        });
+        full(&router).await?;
+        assert!(matches!(
+            router.sweep_retention(0).await,
+            Err(Error::QueueFull)
+        ));
+        assert!(matches!(
+            router
+                .dispatch(
+                    include_bytes!("../tests/fixtures/produce/4.3.1/produce-v3-acks1.request.bin")
+                        .to_vec()
+                )
+                .await,
+            Err(Error::QueueFull)
+        ));
+        waiting.abort();
+        assert!(waiting.await.is_err());
+        assert_eq!(router.data_slots.available_permits(), 1);
+        release.send(())?;
+        // FIFO metadata completion proves the canceled job has been consumed.
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        router.respond(request(3)).await?;
+        router.shutdown().await?;
+        assert_eq!(retained_state(path).await?, (0, 1));
+        Ok(())
+    }
+    #[tokio::test]
+    async fn unconsumed_sweep_receipt_holds_shared_admission() -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_retention();
+        let mut pending = Box::pin(router.sweep_retention(0));
+        std::future::poll_fn(|cx| match std::future::Future::poll(pending.as_mut(), cx) {
+            std::task::Poll::Pending => std::task::Poll::Ready(Ok(())),
+            std::task::Poll::Ready(_) => {
+                std::task::Poll::Ready(Err("parked sweep completed unexpectedly"))
+            }
+        })
+        .await?;
+        release.send(())?;
+        tokio::time::timeout(Duration::from_secs(2), async {
+            while router.sender.capacity() == 0 {
+                tokio::task::yield_now().await;
+            }
+        })
+        .await?;
+        router.respond(request(3)).await?;
+        assert!(matches!(
+            router.sweep_retention(0).await,
+            Err(Error::QueueFull)
+        ));
+        assert_eq!(pending.await?.stores_changed, 1);
+        assert_eq!(router.sweep_retention(0).await?.stores_changed, 0);
+        router.shutdown().await?;
+        assert_eq!(retained_state(path).await?, (1, 1));
+        Ok(())
+    }
+    #[tokio::test]
+    async fn canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement(
+    ) -> Result<(), Box<dyn StdError>> {
+        let (router, release, path) = parked_retention();
+        let waiting = tokio::spawn({
+            let router = Arc::clone(&router);
+            async move { router.sweep_retention(0).await }
+        });
+        full(&router).await?;
+        assert!(
+            tokio::time::timeout(Duration::from_millis(2), router.shutdown())
+                .await
+                .is_err()
+        );
+        assert!(router.task.lock().await.is_some());
+        release.send(())?;
+        router.shutdown().await?;
+        assert!(matches!(waiting.await?, Err(Error::Stopped)));
+        assert!(matches!(
+            router.sweep_retention(0).await,
+            Err(Error::Stopped)
+        ));
+        assert!(router.task.lock().await.is_none());
+        router.shutdown().await?;
+        assert_eq!(retained_state(path).await?, (0, 1));
         Ok(())
     }
 }

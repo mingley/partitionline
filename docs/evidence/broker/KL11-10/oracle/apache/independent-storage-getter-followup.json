@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "scope": "Narrow independent read-only source review of the committed-floor scalar correction; no executed runtime/fault qualification",
+  "status": "candidate_corrective_no_blockers",
+  "pushed_source_sha": null,
+  "foundation_review_sha256": "b3d164e4422e6b6e309f3956160a7ee45bfe05bd5a35954b8fd3fbd73bd3aa46",
+  "candidate_files_sha256": {
+    "partitionline-broker/src/segments.rs": "85b44d6a6ccd4bb57f01b5f9c15c316168901a77f1f520686b12dfa2c32776a8",
+    "partitionline-broker/src/partition.rs": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+    "partitionline-broker/tests/segments.rs": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+    "partitionline-broker/tests/partition.rs": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6"
+  },
+  "finding": {
+    "old_source_sha256": "6a56a0b46daab18c7d1d98891746ae39dab2bf2b6e700211b8c27b0fe4369aea",
+    "description": "A poisoned typed Log scalar getter could expose the unpublished target floor after a pre-publication error, then reopen at the old acknowledged floor. Store already fenced poisoned wire reads; this concern involved the public typed scalar observer."
+  },
+  "resolution_review": [
+    "A private u64 committed_floor initializes from the validated authoritative manifest.",
+    "base_offset/log_start_offset read the committed scalar rather than the staging manifest floor.",
+    "publish_floor updates committed_floor only after the first synchronized manifest publication returns success, before cleanup; later cleanup failures keep the durable new scalar.",
+    "Errors before successful publication retain the old scalar; an actual publish that is ambiguous can reopen at the same or later floor, never below the last exposed confirmed scalar.",
+    "No manifest/data format, path generation, victim authority, retention eligibility, Store actor or wire response contract changes.",
+    "The fixed scalar is eight bytes; existing conservative fixed-allocation envelope remains sufficient."
+  ],
+  "validation_separation": "Open_loop retains its failing-first scalar regression and 23 getter/reopen fault scenarios on both toolchains. This receipt does not relabel those executions as independently run.",
+  "limitations": [
+    "Exact pushed corrective source binding is still pending.",
+    "Existing Apache component final proof remains exact4ffd and unchanged; it does not qualify local getter behavior."
+  ]
+}

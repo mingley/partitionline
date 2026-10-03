@@ -1,0 +1,7 @@
+{
+  "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "only_private_test_sha_helper_changed": true,
+  "managed_work_excluded": true,
+  "before_sha256": "51b75cd7086dfd706687c797ccbb457dc48fa5f1c12fd0f4246a898369569532",
+  "after_sha256": "d99b038ec6e77016dfd8258693d802fbd16f4649ac856f6f7ab9984addd2c5da"
+}

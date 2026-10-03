@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "Frozen root profile/actor source; final immutable complete matrix pending",
+  "source_files_sha256": {
+    "partitionline-broker/src/lib.rs": "248aaee9ab03d0d6e2e46af09b035a51f9ec5021a069e94c23cd71008225c3b5",
+    "partitionline-broker/src/metadata.rs": "7ed2dfb5fec0056672475f28d38c20268ecfbb9df33b29aec3b51bc0860f83be"
+  },
+  "development_scope": "All10 metadataactor units/12retention tests/363API21 outcomes/15eightprofileAPI18 layouts/defaultallteststrictClippy+formatter passed in preciseoverlay, as recorded in combined-stable-attempt-4. No full-source acceptance inferred.",
+  "profiles": "Legacy4/5/7 profile ranges stay unchanged; explicit rolling retention profile adds API21v0-2 and caller-driven bounded sweeps",
+  "remaining": "Full stable/MSRV default/all broker QA, fresh3Java/native/publicRust peer jobs, independentV2/finalwire/gatequalification"
+}

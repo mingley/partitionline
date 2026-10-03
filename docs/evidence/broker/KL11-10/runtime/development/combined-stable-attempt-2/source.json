@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "verified_unoverlaid_base_files": 33662,
+  "overlay": [
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "sha256": "248aaee9ab03d0d6e2e46af09b035a51f9ec5021a069e94c23cd71008225c3b5",
+      "bytes": 828
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "sha256": "63f9d9cf64c5f7e7f47e36b94f940a34b39a037982eb64a25906f918784c1799",
+      "bytes": 79399
+    },
+    {
+      "path": "partitionline-broker/src/produce.rs",
+      "sha256": "a908101835489c5fb15d899e2f043ccb701ffa453b1ab93b0ec64ac2d61c49f4",
+      "bytes": 37731
+    },
+    {
+      "path": "partitionline-broker/src/fetch.rs",
+      "sha256": "81c5ff1535d0bbfc7ec2bd64ac200732a58f62c489865b92454f08c85055d186",
+      "bytes": 25717
+    },
+    {
+      "path": "partitionline-broker/src/retention.rs",
+      "sha256": "da9a74aec25080b48b0dd0bbf82b223cafb1126064a53cbf3af0d245eff9547b",
+      "bytes": 16390
+    },
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "6a56a0b46daab18c7d1d98891746ae39dab2bf2b6e700211b8c27b0fe4369aea",
+      "bytes": 83875
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "bytes": 16594
+    },
+    {
+      "path": "partitionline-broker/tests/metadata.rs",
+      "sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
+      "bytes": 19057
+    },
+    {
+      "path": "partitionline-broker/tests/produce.rs",
+      "sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "bytes": 21757
+    },
+    {
+      "path": "partitionline-broker/tests/fetch.rs",
+      "sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+      "bytes": 60578
+    },
+    {
+      "path": "partitionline-broker/tests/retention.rs",
+      "sha256": "efebf7f4f853898569e19625a6f41df8c6d4d135d955b407969d1d0111442c1e",
+      "bytes": 23874
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "bytes": 29651
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "bytes": 13872
+    }
+  ],
+  "scope": "Current13-file10overlay on complete81archive. Development only; fixtures and final pushedsource pending."
+}

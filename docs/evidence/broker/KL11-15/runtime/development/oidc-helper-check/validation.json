@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "overlay": {
+    "path": "partitionline-broker/src/security/oidc/jwt.rs",
+    "sha256": "d99b038ec6e77016dfd8258693d802fbd16f4649ac856f6f7ab9984addd2c5da",
+    "source": "/workspace/partitionline/docs/evidence/broker/KL11-37/production/foundation-msrv-helper-fix/jwt.rs"
+  },
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--all-features",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/oidc-helper-check/source",
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/development/oidc-helper-check/clippy.log",
+      "sha256": "88d4e1984f7fb5baf1f34613bb97d26e4194f681109ff507283990f6e2ffa9e7"
+    }
+  ],
+  "results": {
+    "strict_msrv_allfeature_passed": true
+  },
+  "scope": "Development verification of authorized cfg(test)-only externally-owned helper snapshot. No WORK JWT used and no immutable archive modified."
+}

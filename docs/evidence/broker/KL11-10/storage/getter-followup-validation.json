@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "scope": "complete claim archive with four owned dirty overlays, precommit evidence only",
+  "source_hashes": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "85b44d6a6ccd4bb57f01b5f9c15c316168901a77f1f520686b12dfa2c32776a8",
+      "git_blob": "4fc2d43da38f8b613ca6b297c7b76a6a4f5ce033",
+      "bytes": 85818
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "git_blob": "0bc345c66535113193ed7c99eee1d6b05aa46d84",
+      "bytes": 16594
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "git_blob": "2bba4cea9cfaa0bc9f0c273a3fa7693b305c53ea",
+      "bytes": 29651
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "git_blob": "938d336e4560023e240a1867713f9de45d578db8",
+      "bytes": 13872
+    }
+  ],
+  "lanes": [
+    {
+      "toolchain": "stable",
+      "receipt": "docs/evidence/broker/KL11-10/storage/development/getter-followup-stable/validation.json",
+      "sha256": "6cc4a19a5c85a054018f0b26ea40909db54006e3b9ba99be8bf3b99ffab1ddb0",
+      "integration_tests": 31,
+      "unit_tests": 8,
+      "serialized_fault_histories": 46,
+      "serialized_states": 92,
+      "additional_getter_fault_scenarios": 23
+    },
+    {
+      "toolchain": "1.85.0",
+      "receipt": "docs/evidence/broker/KL11-10/storage/development/getter-followup-1.85.0/validation.json",
+      "sha256": "812861f1e0a15cad78b976f10ae2bf7c15085d7c31a0bdcbbcef3c46a6991bac",
+      "integration_tests": 31,
+      "unit_tests": 8,
+      "serialized_fault_histories": 46,
+      "serialized_states": 92,
+      "additional_getter_fault_scenarios": 23
+    }
+  ],
+  "regression": "failing-first and package-clean repeat reported3instead of confirmed1; corrected getter23stage/target scenarios pass",
+  "disk_format_and_wire_signatures_unchanged": true,
+  "full_immutable_four_cell_matrix_pending": true
+}

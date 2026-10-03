@@ -1,0 +1,19 @@
+{
+  "files": [
+    "LICENSE",
+    "NOTICE",
+    "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsRequest.java",
+    "clients/src/main/java/org/apache/kafka/common/requests/DeleteRecordsResponse.java",
+    "clients/src/main/java/org/apache/kafka/common/requests/RequestHeader.java",
+    "clients/src/main/java/org/apache/kafka/common/requests/ResponseHeader.java",
+    "clients/src/main/resources/common/message/DeleteRecordsRequest.json",
+    "clients/src/main/resources/common/message/DeleteRecordsResponse.json",
+    "clients/src/main/resources/common/message/RequestHeader.json",
+    "clients/src/main/resources/common/message/ResponseHeader.json",
+    "clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+    "clients/src/main/java/org/apache/kafka/common/protocol/Errors.java",
+    "generator/src/main/java/org/apache/kafka/message/ApiMessageTypeGenerator.java",
+    "generator/src/main/java/org/apache/kafka/message/MessageDataGenerator.java"
+  ],
+  "scope": "Serializer/parser/error envelopes; normal floor/HW policy and sorted request map are independently declared and source-only controller references remain in the parent component evidence."
+}

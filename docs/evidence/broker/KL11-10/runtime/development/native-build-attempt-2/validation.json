@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "scope": "Strict own native source; unmodified upstream header is a system include. No broker runtime qualification.",
+  "correction": "Prior failure was const-int return in pinned upstream header under ignored-qualifiers; system include preserves own-source strict warnings.",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "gcc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "/workspace/partitionline/docs/evidence/broker/KL11-10/peers/retention-native.c",
+    "-L/workspace/work/c-peer/lib",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-lrdkafka",
+    "-o",
+    "/workspace/work/retention-peer/retention-native"
+  ],
+  "exit_code": 0,
+  "pins": {
+    "/workspace/partitionline/docs/evidence/broker/KL11-10/peers/retention-native.c": "d68a7bc5d3b589a1b4ec91a9200e55da6dc747103703ea9a1a287c1a084901e3",
+    "/workspace/work/c-peer/source/src/rdkafka.h": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+    "/workspace/work/c-peer/lib/librdkafka.so.1": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+    "/workspace/work/retention-peer/retention-native": "347cf3e7706fb31290ea21f84da3c81bbedc7b3f90c03a4dcdf22a38ffab1669"
+  }
+}

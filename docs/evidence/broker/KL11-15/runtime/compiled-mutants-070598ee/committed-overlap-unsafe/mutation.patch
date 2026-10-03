@@ -1,0 +1,11 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -703,7 +703,7 @@
+                     && (old.kind == RecordKind::Barrier) == entry.barrier
+                     && old.payload == entry.payload;
+                 if !same {
+-                    if entry.index <= self.committed || old.term == entry.term {
++                    if false {
+                         return Err(Error::InvalidPeer);
+                     }
+                     exact_overlap = false;

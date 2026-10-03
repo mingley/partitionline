@@ -1,0 +1,21 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-storage/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.71s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 1 test
+
+thread 'segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases' (826014) panicked at src/segments.rs:2150:17:
+assertion `left == right` failed: prospective floor leaked at ManifestWritten/target3
+  left: 3
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases ... FAILED
+
+failures:
+
+failures:
+    segments::tests::failed_floor_getter_reports_confirmed_state_and_reopen_never_decreases
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

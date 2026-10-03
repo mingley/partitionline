@@ -1,0 +1,11 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -802,7 +802,7 @@
+             out.extend_from_slice(&[0; 40]);
+         }
+         out.extend_from_slice(&self.group);
+-        self.journal.append(1, &out)?;
++        // Deliberate unsafe counterexample: omit authoritative Install receipt.
+         self.install_memory(install, replacement);
+         Ok(())
+     }

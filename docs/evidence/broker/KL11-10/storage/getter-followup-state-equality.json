@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "scope": "developmental typed-getter follow-up; complete immutable final proof pending",
+  "equal_file_count": 566,
+  "serialized_history_count": 46,
+  "state_count": 92,
+  "matches_foundation_candidate_bytes": true,
+  "stable_and_msrv_equal": true,
+  "source_followup_manifest": "docs/evidence/broker/KL11-10/storage/getter-followup-source-hashes.json"
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "accepted": false,
+  "failures": [
+    {
+      "command": "/workspace/work/cargo/bin/rustfmt --edition 2021 partitionline-broker/src/retention.rs partitionline-broker/src/produce.rs partitionline-broker/src/fetch.rs",
+      "exit_code": 1,
+      "stderr": "error: rustup could not choose a version of rustfmt to run, because one wasn't specified explicitly, and no default is configured.\nhelp: run 'rustup default stable' to download the latest stable release of Rust and set it as your default toolchain.",
+      "classification": "preparation: command omitted existing task-specific RUSTUP_HOME/toolchain environment; no source or behavioral check ran",
+      "correction": "Use existing RUSTUP_HOME=/workspace/work/rustup and explicit +stable, without changing system defaults."
+    }
+  ]
+}

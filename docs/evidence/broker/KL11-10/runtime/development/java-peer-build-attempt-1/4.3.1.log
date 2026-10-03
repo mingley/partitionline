@@ -1,0 +1,6 @@
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:182: error: cannot find symbol
+                    check(deleted.get(new TopicPartition(topic, 0)).lowWatermark() == 3, "actual Admin DeleteRecords result");
+                                 ^
+  symbol:   method get(TopicPartition)
+  location: variable deleted of type Void
+1 error

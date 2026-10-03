@@ -1,0 +1,223 @@
+{
+  "scope": "Finite deliberately changed checker controls, separate from actual owner fault inputs",
+  "passed": true,
+  "positive_control": {
+    "kind": "retention-error",
+    "target": 3,
+    "phase": "ManifestRenamed",
+    "stage": "interrupted",
+    "logical_floor": 3,
+    "physical_base": 3,
+    "actual_end": 5,
+    "selected": [
+      {
+        "descriptor": {
+          "base": 3,
+          "end": 4,
+          "generation": 3,
+          "bytes": 130,
+          "entries": 1,
+          "max_time": 1000,
+          "fingerprint": 557087090
+        },
+        "journal_sha256": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "index": {
+          "sha256": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+          "checkpoints": 1
+        }
+      }
+    ],
+    "victims": [
+      {
+        "descriptor": {
+          "base": 1,
+          "end": 2,
+          "generation": 1,
+          "bytes": 130,
+          "entries": 1,
+          "max_time": 1000,
+          "fingerprint": 1219081935
+        },
+        "remaining_data": true,
+        "remaining_seek": true
+      },
+      {
+        "descriptor": {
+          "base": 2,
+          "end": 3,
+          "generation": 2,
+          "bytes": 130,
+          "entries": 1,
+          "max_time": 1000,
+          "fingerprint": 2102745676
+        },
+        "remaining_data": true,
+        "remaining_seek": true
+      }
+    ],
+    "manifest_sha256": "84030354c68d30975742ad84981b0a6b3406f436fa477693e2488715de2b579f",
+    "retained_records": [
+      {
+        "offset": 3,
+        "position": 24,
+        "prefix_max": -9223372036854775808,
+        "payload_sha256": "17dff8546f8b6d3a4b9fa7cbf9036217a44a592fd37e62012e33cdc5d6a938b4"
+      },
+      {
+        "offset": 4,
+        "position": 24,
+        "prefix_max": -9223372036854775808,
+        "payload_sha256": "38adca5784b2e621bdaa3cedde26579c05f07f021b574a81a917c5c233eaa983"
+      }
+    ],
+    "all_file_hashes": {
+      "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+      "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+      "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+      "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+      "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+      "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+      "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+      "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+      "manifest": "84030354c68d30975742ad84981b0a6b3406f436fa477693e2488715de2b579f"
+    }
+  },
+  "negative_controls": [
+    {
+      "name": "floor-above-watermark",
+      "expected_guard": "confirmed acknowledged floor/phase mismatch",
+      "actual_rejection": "confirmed acknowledged floor/phase mismatch",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "572174f35032d33f1acba54d41aa2c2e9230e933f56b5b23b280e20709a117cd"
+      }
+    },
+    {
+      "name": "foreign-origin",
+      "expected_guard": "floor/physical/origin/generation bounds",
+      "actual_rejection": "floor/physical/origin/generation bounds",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "5edcf65c222412f6d077c6ee0884df1fe39994ff6564538d380fde51261d4612"
+      }
+    },
+    {
+      "name": "victim-overlaps-survivor",
+      "expected_guard": "victim prefix/physical binding",
+      "actual_rejection": "victim prefix/physical binding",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "40074a0ef011035034689a48c8a5b04b8647c70c65c14f8e8b9f99f636303cf3"
+      }
+    },
+    {
+      "name": "impossible-victim-bytes",
+      "expected_guard": "protected descriptor structural bounds",
+      "actual_rejection": "protected descriptor structural bounds",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "3a3cf7f648b251226d65d35932578af01d968f6640dfa18d03c104079385eede"
+      }
+    },
+    {
+      "name": "wrong-victim-fingerprint",
+      "expected_guard": "victim seeded bytes/timestamp/fingerprint",
+      "actual_rejection": "victim seeded bytes/timestamp/fingerprint",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "290592700879f1dc6a5b87a0a55f73e944a3a1c02c2c27c72283a8b28788be5a"
+      }
+    },
+    {
+      "name": "changed-protected-seed",
+      "expected_guard": "acknowledged ordinary seed payload bytes",
+      "actual_rejection": "acknowledged ordinary seed payload bytes",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "706d1809b72f993a0d8d5ac75c7d135bda0c2bd729c7e67e77fc2e073ce9387e",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "b37a3a008fb35cc4478890a5c1b1f31fd4f1d70288ad5b0c65faf20420459baf"
+      }
+    },
+    {
+      "name": "wrong-seek-position",
+      "expected_guard": "seek physical position/prefix maximum",
+      "actual_rejection": "seek physical position/prefix maximum",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "05ab371d8e035e3f31acde2ada991f04e508f15100b451fb4278ffcd5824cef8",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "2ef35070048515afe5ed8f4de9ff603624880c49f20016b8219d5106de36a18b",
+        "manifest": "84030354c68d30975742ad84981b0a6b3406f436fa477693e2488715de2b579f"
+      }
+    },
+    {
+      "name": "incomplete-cleanup-reported-recovered",
+      "expected_guard": "recovered cleanup not complete",
+      "actual_rejection": "recovered cleanup not complete",
+      "manifest_crc_repaired": true,
+      "artifacts_sha256": {
+        "0000000000000001-0000000000000001.journal": "0d78129549ee252b318803b3cc850f4a1e893e867e21833a63aa0f07b8188aab",
+        "0000000000000001-0000000000000001.seek": "cbfe8f3a88b93c5cc78fd561331627a3d8c99db7e903044d94a7b13c8d33fcea",
+        "0000000000000002-0000000000000002.journal": "27ed3c9dae664ba0e4969f6f9ce8988179c044a16f217f35c691479e996ce46a",
+        "0000000000000002-0000000000000002.seek": "032a72b791e2382ee4fda7b63e69df6044b1fcfca6ee5cb835cc1442f4773576",
+        "0000000000000003-0000000000000003.journal": "c65af23357fea0cbb2a6bf2abe2cf341153331861962b20bedaec71c22406c02",
+        "0000000000000003-0000000000000003.seek": "d0820b98b544e1c2c1fa3e66578cc8570ca7981eb25d36de5836286eaa766e33",
+        "0000000000000004-0000000000000004.journal": "b190a278c4e8d473a7d912cd094b354ff2a6ef23878d0801eccccf549ae47c67",
+        "case.json": "fc65638f16fe7f77b4c58cb82b3809072d786c44c1e7a45c0d62ca2fcd6db7de",
+        "manifest": "84030354c68d30975742ad84981b0a6b3406f436fa477693e2488715de2b579f"
+      }
+    }
+  ]
+}

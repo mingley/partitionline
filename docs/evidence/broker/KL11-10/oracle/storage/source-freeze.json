@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "qualification": "Frozen independent candidate checker; immutable final execution pending",
+  "source_files_sha256": {
+    "docs/evidence/broker/KL11-10/oracle/storage/check-counterexamples.py": "45c90c47e95be22b5c19b560fd19e5eab346e4f16e9cf68ec17e1a962f246907",
+    "docs/evidence/broker/KL11-10/oracle/storage/check-retention-history.py": "50a40785e9741c2d6c4e5d8f2baa924a0fe0279a4e17c1abd0af25a7b2860fbf",
+    "docs/evidence/broker/KL11-10/oracle/storage/legacy_oracle.py": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834"
+  },
+  "unchanged_independent_decoder": {
+    "path": "docs/evidence/broker/KL11-09/oracle/check-storage-history.py",
+    "sha256": "1172fa84f9ec59ecb017b8bd6200d481704fe438447281a860d7dba31e9e4834"
+  },
+  "fixture": {
+    "path": "partitionline-broker/tests/fixtures/records/valid-basic.bin",
+    "sha256": "431810cfa21b3c669ede109ac7d40c53a63acf07e27f4087a1e834dd5cc00c28"
+  },
+  "development": {
+    "actual_histories": 46,
+    "actual_states": 92,
+    "raw_input_files": 566,
+    "deliberate_negative_controls": 8,
+    "scope": "WORK checker development only; finite static BASIC fixture; no production/full runtime claim"
+  },
+  "limitations": [
+    "Finite local process-visible publication/partial-cleanup states, no physical powerloss inference.",
+    "RF1 caller bounds only; no multi-replica retention/transaction protection proof.",
+    "API21 wire/publicpeers/completeRustprofileQA/confirmedgetter arithmetic are separate evidence."
+  ]
+}

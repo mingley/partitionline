@@ -7,6 +7,18 @@ after the coordinator pushes the complete implementation. Development runs use
 a complete `81b490f310bb3dbe4e89e4e140ef658e29fdf9e7` archive with the four
 claimed source/test files overlaid; they are not committed-source qualification.
 
+`run-final.py` extracts the complete supplied Git commit, checks the exact file
+set and every Git blob before and after each command, and uses one cleaned
+Cargo target across source/toolchain changes. Its 19 commands cover locked
+stable/Rust 1.85.0 default/all-feature tests, strict Clippy, rustdoc, doctest and
+formatting. The four capture directories are `stable-default`,
+`stable-all-features`, `1.85.0-default` and `1.85.0-all-features`. They retain
+ordinary/retention/rolling reports and fault files together with source-bound
+snapshot and replication captures. Live retention/fetch executables and
+compressed snapshot replay executables are preserved before cache cleanup.
+The independent live peers and file/history checkers consume those captures;
+their receipts are separate from compiled test success.
+
 `Partition::log_start_offset()` is a monotonic logical boundary. A requested
 offset inside an atomic input preserves that whole input physically. Reads
 below the logical boundary fail; reads at the boundary can return the containing
@@ -66,6 +78,10 @@ Recovery validates the selected active/sealed data first, then resumes only
 recorded victims; already absent victim files are idempotent cleanup. Missing
 selected data and impossible checksum-valid victim descriptors fail closed.
 Success means floor publication and cleanup have both completed.
+The scalar floor getter retains the last confirmed publication separately from
+the prospective manifest. A failed first publication cannot expose a boundary
+that decreases on reopen. Once first publication succeeds, later cleanup
+failures retain that confirmed boundary; serving still refuses poisoned handles.
 
 The selected segment count retains the configured ceiling. Replacement/active
 retirement can temporarily retain one additional old physical file, charged to
@@ -88,6 +104,9 @@ interrupts deletion through 3 or 5. Interrupted and recovered physical file
 copies carry the original request, guards and expected recovered floor. Tests
 verify the previously acknowledged floor, exact surviving payloads, stable end,
 cleanup completion and successful subsequent append.
+An additional 23 injected getter/reopen scenarios verify that the reported
+confirmed floor never decreases. The failing-first regression and original
+checkpoint source are preserved under `development/floor-getter/`.
 
 These finite local process/file histories do not establish physical power-loss
 behavior, multi-replica retention safety, compaction, exhaustive crash scheduling

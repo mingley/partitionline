@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "scope": "Retained development/preparation history, never counted as accepted final-source qualification. Controlled negative tests are distinct from these unexpected failures.",
+  "failures": [
+    {
+      "artifact": "preparation-failures.json",
+      "classification": "Rustfmt launcher environment omitted task-specific RUSTUP_HOME; no source behavior executed.",
+      "correction": "Explicit existing +stable task environment."
+    },
+    {
+      "artifact": "java-peer-build-attempt-1/validation.json",
+      "classification": "Peer source incorrectly treated DeleteRecordsResult.all() Void as a map; all three strict compiles failed.",
+      "correction": "Use public lowWatermarks().get(target).get().",
+      "source": "java-peer-build-attempt-1/RetentionPeer.java"
+    },
+    {
+      "artifact": "java-peer-build-attempt-2/validation.json",
+      "classification": "4.1.2/4.2.1 record imports used the later4.3 internal package;4.3.1 compiled.",
+      "correction": "Exactly two imports adapt to each pinned official SDK package, preserving executable logic."
+    },
+    {
+      "artifact": "native-build-attempt-1/validation.json",
+      "classification": "Strict compile encountered const-int return ignored-qualifier warning in the unchanged upstream header.",
+      "correction": "Upstream header is a system include; own source retains-Wall/-Wextra/-Werror/-pedantic."
+    },
+    {
+      "artifact": "combined-stable-attempt-2/clippy.log",
+      "classification": "Inert live-ready helper used globally disallowed std::fs::write inside spawn_blocking; behavioral tests passed but strict lint failed.",
+      "correction": "Use File/Write in the same blocking helper; no broker Tokio fs dependency or lint suppression.",
+      "source": "combined-stable-attempt-2/retention.rs"
+    },
+    {
+      "artifact": "live-attempt-1/validation.json",
+      "classification": "Native client construction returned NULL before any native protocol request; its fetch.max.bytes65536 conflicted with the default message.max.bytes according to the exact pinned constructor validation. Java4.1.2 seed had already passed.",
+      "correction": "Explicitly bound both native values to65536 and retain constructor error text. Subsequent fresh development18-job seed/restart attempt passed.",
+      "source": "live-attempt-1/retention-native.c",
+      "state": "live-attempt-1/failed-state/"
+    }
+  ],
+  "accepted_final_runtime": false
+}

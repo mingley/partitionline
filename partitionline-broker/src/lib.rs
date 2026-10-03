@@ -16,6 +16,7 @@ pub mod produce;
 pub mod protocol;
 pub mod raft;
 pub mod records;
+pub mod retention;
 pub mod segments;
 pub mod transport;
 

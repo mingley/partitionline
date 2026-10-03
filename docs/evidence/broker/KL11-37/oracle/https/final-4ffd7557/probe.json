@@ -1,0 +1,204 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "case": "untrusted-ca-rejected",
+      "passed": true
+    },
+    {
+      "case": "trusted-https-discovery",
+      "passed": true
+    },
+    {
+      "case": "initial-jwks",
+      "passed": true
+    },
+    {
+      "case": "unauthenticated-token-rejected",
+      "passed": true
+    },
+    {
+      "case": "signature-generation-0",
+      "passed": true,
+      "token_sha256": "92208c49a96b80197d3beceeab86ad137343d1f7435a1ec25a21f1d195e9679e",
+      "key_id": "synthetic-0",
+      "public_key_sha256": "cb625bcbc56b323af6d09616a096e76a86d43cd92c653b2e65af01eee4eadf1f"
+    },
+    {
+      "case": "positive-introspection",
+      "passed": true
+    },
+    {
+      "case": "revoked-introspection-inactive",
+      "passed": true
+    },
+    {
+      "case": "signature-generation-1",
+      "passed": true,
+      "token_sha256": "6fe316c76dc1533b01efeb424da0a14bdc4a698bbe72938c48792c59877892e6",
+      "key_id": "synthetic-1",
+      "public_key_sha256": "0791b9df1b45b32c61f3e70d194f8dcf5d7d1ebd1c807204984fac096d9f8f88"
+    },
+    {
+      "case": "rotated-jwks-and-acquisition",
+      "passed": true
+    },
+    {
+      "case": "outage-keys",
+      "passed": true
+    },
+    {
+      "case": "outage-openid-configuration",
+      "passed": true
+    },
+    {
+      "case": "outage-introspect",
+      "passed": true
+    },
+    {
+      "case": "outage-token",
+      "passed": true
+    },
+    {
+      "case": "authority-recovery",
+      "passed": true
+    },
+    {
+      "case": "joined-issuer-shutdown",
+      "passed": true
+    }
+  ],
+  "assertion_cases": 15,
+  "actual_https_requests": 20,
+  "events": [
+    {
+      "ordinal": 0,
+      "endpoint": "/issuer/.well-known/openid-configuration",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 1,
+      "endpoint": "/issuer/keys",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 2,
+      "endpoint": "/issuer/token",
+      "status": 401,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 3,
+      "endpoint": "/issuer/token",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 4,
+      "endpoint": "/issuer/introspect",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 5,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 6,
+      "endpoint": "/issuer/introspect",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 7,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 8,
+      "endpoint": "/issuer/keys",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 9,
+      "endpoint": "/issuer/token",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 10,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 11,
+      "endpoint": "/issuer/keys",
+      "status": 503,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 12,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 13,
+      "endpoint": "/issuer/.well-known/openid-configuration",
+      "status": 503,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 14,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 15,
+      "endpoint": "/issuer/introspect",
+      "status": 503,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 16,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 17,
+      "endpoint": "/issuer/token",
+      "status": 503,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 18,
+      "endpoint": "/control",
+      "status": 200,
+      "epoch": 1791003754
+    },
+    {
+      "ordinal": 19,
+      "endpoint": "/issuer/keys",
+      "status": 200,
+      "epoch": 1791003754
+    }
+  ],
+  "sources": {
+    "issuer.py": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+    "check-issuer.py": "b5056f18590f758a8dd0ba9e7593ac996606b88df4ee1c30303b90b4c88857fa"
+  },
+  "openssl_version": "OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)",
+  "python_tls_version": "OpenSSL 3.5.8 25 Aug 2026",
+  "public_ca_sha256": "eb77dae75492b06f5496eaccee27ea242467bee7bbaa0c04c2fbb4e68330e81f",
+  "scope": "Synthetic issuer harness qualification only; no production broker/service/client execution or third-party IdP claim.",
+  "secret_retention": "No private keys, client/control credentials or compact live bearers in this receipt."
+}

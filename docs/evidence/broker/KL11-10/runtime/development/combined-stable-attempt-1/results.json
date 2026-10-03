@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "scope": "Development focus only; final exact source still requires pushedfreeze.",
+  "passed": true,
+  "results": [
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-1/0.log"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--test",
+        "retention",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-1/1.log"
+    }
+  ]
+}

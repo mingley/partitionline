@@ -1,0 +1,34 @@
+{
+  "source_sha": "4ffd7557a2a35bfda931b0d0414b11264802dbc6",
+  "scope": "Scoped exact pushed synthetic HTTPS issuer source; harness only, no actual broker/IdP/client qualification",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "python3",
+    "/workspace/work/oidc-https-final-4ffd7557/source/check-issuer.py",
+    "--scratch",
+    "/workspace/work/oidc-https-final-4ffd7557/private",
+    "--output",
+    "/workspace/partitionline/docs/evidence/broker/KL11-37/oracle/https/final-4ffd7557/probe.json"
+  ],
+  "exit_code": 0,
+  "source_before": {
+    "issuer.py": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+    "check-issuer.py": "b5056f18590f758a8dd0ba9e7593ac996606b88df4ee1c30303b90b4c88857fa",
+    "README.md": "3e441ea638976115b2aac6e097dbb7799bba6d23410e0c485428a6c8ed3e4fab"
+  },
+  "source_after": {
+    "issuer.py": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+    "check-issuer.py": "b5056f18590f758a8dd0ba9e7593ac996606b88df4ee1c30303b90b4c88857fa",
+    "README.md": "3e441ea638976115b2aac6e097dbb7799bba6d23410e0c485428a6c8ed3e4fab"
+  },
+  "unchanged": true,
+  "private_material": "Only restrictive private scratch; no private key, bearer or credential contents retained here",
+  "artifacts_sha256": {
+    "command.log": "8925125a70dffd713f21e9fe47227f10c914260328b0516acc6b7ce2544a1fba",
+    "probe.json": "b4e9aa1af0641da9838d287f9d532534a49ae4fceeed7044a886ec0a282a4e98"
+  },
+  "assertion_cases": 15,
+  "actual_https_requests": 20
+}

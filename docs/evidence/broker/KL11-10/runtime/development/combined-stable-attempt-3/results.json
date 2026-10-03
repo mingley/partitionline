@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "scope": "Development only",
+  "passed": true,
+  "results": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--test",
+        "retention",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-3/0.log"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--lib",
+        "--test",
+        "retention",
+        "--test",
+        "produce",
+        "--test",
+        "fetch",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-3/1.log"
+    },
+    {
+      "command": [
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-3/2.log"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:34: error: package org.apache.kafka.common.record.internal does not exist
+import org.apache.kafka.common.record.internal.MemoryRecords;
+                                              ^
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:35: error: package org.apache.kafka.common.record.internal does not exist
+import org.apache.kafka.common.record.internal.SimpleRecord;
+                                              ^
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:107: error: cannot find symbol
+        SimpleRecord[] records = new SimpleRecord[5];
+        ^
+  symbol:   class SimpleRecord
+  location: class RetentionPeer
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:107: error: cannot find symbol
+        SimpleRecord[] records = new SimpleRecord[5];
+                                     ^
+  symbol:   class SimpleRecord
+  location: class RetentionPeer
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:108: error: cannot find symbol
+        for (int index = 0; index < records.length; index++) records[index] = new SimpleRecord(TIMES[index], key(index), value(index), headers(index));
+                                                                                  ^
+  symbol:   class SimpleRecord
+  location: class RetentionPeer
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:109: error: cannot find symbol
+        MemoryRecords bytes = MemoryRecords.withRecords(Compression.NONE, records);
+        ^
+  symbol:   class MemoryRecords
+  location: class RetentionPeer
+/workspace/partitionline/docs/evidence/broker/KL11-10/peers/RetentionPeer.java:109: error: cannot find symbol
+        MemoryRecords bytes = MemoryRecords.withRecords(Compression.NONE, records);
+                              ^
+  symbol:   variable MemoryRecords
+  location: class RetentionPeer
+7 errors

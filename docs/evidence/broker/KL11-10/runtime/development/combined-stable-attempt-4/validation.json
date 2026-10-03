@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_receipt": "source.json",
+  "source_sha256": "17dd0de3bf6e846c71dadb9a019d900d939eff3aa826a878ea9f00eb4fa278d4",
+  "commands": [
+    {
+      "label": "retention",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--test",
+        "retention"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-4/retention.log",
+      "log_sha256": "3e5e37f3fc9d25c54370245a51187c52a56d607266fa1b9fa0b712c59b162f21"
+    },
+    {
+      "label": "metadata-units",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--lib",
+        "metadata::tests"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-4/metadata-units.log",
+      "log_sha256": "953109c06e278e2352bacb6e9fb4087a72f22235b31ce7577fbd3270f7dd1e75"
+    },
+    {
+      "label": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--locked",
+        "--lib",
+        "--tests",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-4/clippy.log",
+      "log_sha256": "ed68c8e361f15278f1d71df20e3274c4e847d262b16059fa5de0cdefd324437b"
+    },
+    {
+      "label": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "/workspace/work/retention-runtime/source/partitionline-broker/Cargo.toml",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/combined-stable-attempt-4/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "Development-only focused check; final immutable matrix follows combined source push."
+}

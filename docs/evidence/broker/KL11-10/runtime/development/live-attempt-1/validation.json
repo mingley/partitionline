@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "passed": false,
+  "scope": "development overlay",
+  "toolchain": "stable",
+  "features": "default",
+  "port": 19145,
+  "failure": "RuntimeError: seed native reader of Java 4.1.2 failed",
+  "actual_peer_jobs": 2,
+  "results": [
+    {
+      "kind": "java",
+      "release": "4.1.2",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-peer/sdk/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.1.2",
+        "19145",
+        "seed",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/live-attempt-1",
+        "retention-java-4-1-2"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.1.2-java.log",
+      "log_sha256": "74387c3b6140cf528c1c9b31663cac65a46661c4af81d3bfa1aca2fbfd880d41",
+      "report": "4.1.2-seed.json",
+      "report_sha256": "d7dd7e1bf8110f8a8a28e6e2acde79e855f6e6fcf58b9d80a02c7a88c719c9e8"
+    },
+    {
+      "kind": "native",
+      "release": "4.1.2",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-peer/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-1-2",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/development/live-attempt-1/seed-4.1.2-native.json"
+      ],
+      "exit_code": 1,
+      "passed": false,
+      "log": "seed-4.1.2-native.log",
+      "log_sha256": "59fee306ebbd3701638544b05f22af30bab40c2ef62069a35f22e000e5304e70",
+      "report": "seed-4.1.2-native.json",
+      "report_sha256": null
+    }
+  ],
+  "servers": [
+    {
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-peer/server/development/retention",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "ready": true,
+      "exit_code": 0,
+      "log": "seed-server.log"
+    }
+  ],
+  "states": [
+    {
+      "phase": "failure",
+      "files": [
+        {
+          "path": "catalog.journal",
+          "bytes": 110,
+          "sha256": "5073abfe63c6df255f40e288bc878e8175f2f1cb5a7378a046c2bce660487325"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "fa302b8b452a79e9c105f2bf96ca4b1f5f53fb3be3b56b792d05f69633d102dd"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "9cb5fbf66b88963e9770a5d50736a4c0b97d5d2b4ac173bd8f32cdc6128c3c2c"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "8ace0cd2cc55a451e1b9470a339812ef938803070ecf6661a8d9cdb9bf36d906"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "64669f8dc01cc6ceae8b5359e3ff798f47977071e0e1d0410fb82b62c803cff8"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "ba2d7e976efa39cc9853730d693faba1717b660753e513cdda1375e3e8194e3a"
+        },
+        {
+          "path": "partitions/39116e54f88844dd957dd6b3579f825c-0.segments/manifest",
+          "bytes": 180,
+          "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+        }
+      ],
+      "bytes": 1340
+    }
+  ],
+  "receipts": {
+    "source": {
+      "path": "docs/evidence/broker/KL11-10/runtime/development/server-binary-attempt-3.json",
+      "sha256": "d9cffc2625aa4a1166566f5435bfbf997a66eb2f26446a019e41ad18483ce4ed"
+    },
+    "java_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/development/java-peer-build-attempt-3/validation.json",
+      "sha256": "fd9aa62d1d5e17fafc233a67d06d8c458deb9f595754802304a316932adcd09a"
+    },
+    "native_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/development/native-build-attempt-2/validation.json",
+      "sha256": "6cdacc03019bdf5a82a8bc79283996b9d42eacf4f9557dfbad2cfec1d91d564f"
+    },
+    "rust_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/development/rust-peer-build-attempt-1/validation.json",
+      "sha256": "cc9bac7217b1588f2c2d91e5a7ff00ef33e0735d9275c077db7263702a26d507"
+    }
+  },
+  "runner_sha256": "6e06d6b4dc83c730cf8ee3aab63fb48f6f57e3c9a14d15586c51ec11ac4197af",
+  "binaries": {
+    "server": {
+      "path": "/workspace/work/retention-peer/server/development/retention",
+      "sha256": "e7f0282e16aa6507b17b82d0f57318caec6199d479d6c32848cce1a0c843c93b"
+    },
+    "native": {
+      "path": "/workspace/work/retention-peer/retention-native",
+      "sha256": "347cf3e7706fb31290ea21f84da3c81bbedc7b3f90c03a4dcdf22a38ffab1669"
+    },
+    "rust": {
+      "path": "/workspace/work/retention-peer/rust/stable-default/retention-peer",
+      "sha256": "81dfe94da887834b82fcead10929fc653db7df00b330f42ee3372a4ad623d94b"
+    }
+  },
+  "limits": "Ordinary RF1 local durable end only; manual consumers; no replicated ISR, transactions or consumer-group coordinator."
+}

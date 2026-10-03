@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "81b490f310bb3dbe4e89e4e140ef658e29fdf9e7",
+  "scope": "Development full pushed archive plus precise13-file10overlay; not immutable final acceptance.",
+  "verified_base_files": 33673,
+  "verified_base_bytes": 261609431,
+  "overlay": [
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "sha256": "248aaee9ab03d0d6e2e46af09b035a51f9ec5021a069e94c23cd71008225c3b5",
+      "bytes": 828
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "sha256": "63f9d9cf64c5f7e7f47e36b94f940a34b39a037982eb64a25906f918784c1799",
+      "bytes": 79399
+    },
+    {
+      "path": "partitionline-broker/src/produce.rs",
+      "sha256": "a908101835489c5fb15d899e2f043ccb701ffa453b1ab93b0ec64ac2d61c49f4",
+      "bytes": 37731
+    },
+    {
+      "path": "partitionline-broker/src/fetch.rs",
+      "sha256": "81c5ff1535d0bbfc7ec2bd64ac200732a58f62c489865b92454f08c85055d186",
+      "bytes": 25717
+    },
+    {
+      "path": "partitionline-broker/src/retention.rs",
+      "sha256": "45a16d0cac8ca7495cd1d971fd7eb568dd0ad1c1f1c1fa8ae4147fc8fe3a6439",
+      "bytes": 16232
+    },
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "sha256": "77d35678a72a5b93ce7943826ed93e4d85bb6862a9c9e50436eca5ef708c2284",
+      "bytes": 83513
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "bytes": 16594
+    },
+    {
+      "path": "partitionline-broker/tests/metadata.rs",
+      "sha256": "a500a6cbc819d9fdef11a9bce27ef03153ddde39221a15b5442e3ae9b7aba17c",
+      "bytes": 19057
+    },
+    {
+      "path": "partitionline-broker/tests/produce.rs",
+      "sha256": "07c3336730947ef16e0b777fbc41cc429a8a28bcd0e8e94eb782901236ae1cb0",
+      "bytes": 21757
+    },
+    {
+      "path": "partitionline-broker/tests/fetch.rs",
+      "sha256": "d255b106ac8094b4017e869af3e06756477e9ea46d24fca61aa405ff3a0102ca",
+      "bytes": 60578
+    },
+    {
+      "path": "partitionline-broker/tests/retention.rs",
+      "sha256": "d2737c9dfee3847c98c71fbdb16913005364ff96372d427ebc1dc0d413069964",
+      "bytes": 19600
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "sha256": "ce710302a5ebb5a1bb3b6dba5883b2f2e2c2f3dfe0dc6f177a4e76430d6d414d",
+      "bytes": 27386
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "bytes": 13872
+    }
+  ]
+}

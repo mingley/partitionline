@@ -13,7 +13,7 @@
 
 use crate::{
     catalog::{Catalog, TopicId},
-    journal, metadata, partition, protocol, records, segments,
+    journal, metadata, partition, protocol, records, retention, segments,
 };
 use std::{
     fs::{self, File},
@@ -208,6 +208,8 @@ pub(crate) struct Store {
     config: Config,
     slots: Vec<Slot>,
     changed: bool,
+    retention: Option<retention::Config>,
+    sweep_cursor: usize,
 }
 impl Store {
     pub(crate) fn open(config: Config, catalog: &Catalog) -> Result<Self, Error> {
@@ -271,7 +273,17 @@ impl Store {
             config,
             slots,
             changed: false,
+            retention: None,
+            sweep_cursor: 0,
         })
+    }
+    pub(crate) fn enable_retention(&mut self, config: retention::Config) -> Result<(), Error> {
+        config.validate().map_err(|_| Error::InvalidConfig)?;
+        if self.config.segment_limits.is_none() || self.retention.is_some() {
+            return Err(Error::InvalidConfig);
+        }
+        self.retention = Some(config);
+        Ok(())
     }
     fn append(&mut self, id: TopicId, index: i32, bytes: &[u8]) -> Result<partition::Append, i16> {
         let position = match self
@@ -323,6 +335,103 @@ impl Store {
             Some(slot) if slot.partition.is_poisoned() => Err(56),
             Some(slot) => Ok(slot.partition.next_offset()),
         }
+    }
+    pub(crate) fn log_start(&self, id: TopicId, index: i32) -> Result<i64, i16> {
+        match self
+            .slots
+            .iter()
+            .find(|slot| slot.id == id && slot.index == index)
+        {
+            None => Ok(0),
+            Some(slot) if slot.partition.is_poisoned() => Err(56),
+            Some(slot) => Ok(slot.partition.log_start_offset()),
+        }
+    }
+    pub(crate) fn delete_records(
+        &mut self,
+        id: TopicId,
+        index: i32,
+        offset: i64,
+    ) -> Result<i64, i16> {
+        if self.retention.is_none() {
+            return Err(43);
+        }
+        let watermark = self.watermark(id, index)?;
+        let offset = if offset == -1 { watermark } else { offset };
+        if offset < 0 || offset > watermark {
+            return Err(1);
+        }
+        let Some(slot) = self
+            .slots
+            .iter_mut()
+            .find(|slot| slot.id == id && slot.index == index)
+        else {
+            // A known empty partition needs no filesystem handle or manifest.
+            return Ok(0);
+        };
+        let guard = segments::DeletionGuard::new(watermark, watermark).map_err(|_| 56i16)?;
+        let before = slot.partition.log_start_offset();
+        let poisoned = slot.partition.is_poisoned();
+        let result = slot.partition.delete_records(offset, guard);
+        self.changed |=
+            slot.partition.log_start_offset() != before || slot.partition.is_poisoned() != poisoned;
+        result
+            .map(|outcome| outcome.log_start_offset)
+            .map_err(|_| 56)
+    }
+    pub(crate) fn sweep_retention(
+        &mut self,
+        catalog: &Catalog,
+        now_ms: i64,
+        active: impl Fn() -> Result<(), retention::Error>,
+    ) -> Result<retention::SweepReport, retention::Error> {
+        let config = self.retention.ok_or(retention::Error::InvalidConfig)?;
+        let policy = segments::RetentionPolicy::new(
+            config.retention_ms,
+            config.retention_bytes,
+            config.max_segments_per_store,
+        )
+        .map_err(|_| retention::Error::InvalidConfig)?;
+        let mut report = retention::SweepReport::default();
+        let count = self.slots.len().min(config.max_sweep_stores);
+        for _ in 0..count {
+            active()?;
+            let position = self.sweep_cursor % self.slots.len();
+            self.sweep_cursor = (position + 1) % self.slots.len();
+            let slot = &mut self.slots[position];
+            report.stores_visited += 1;
+            // Deleted identities and internal coordination logs keep their history.
+            let Some(topic) = catalog.by_id(slot.id) else {
+                continue;
+            };
+            if matches!(
+                topic.name(),
+                "__consumer_offsets" | "__transaction_state" | "__share_group_state"
+            ) {
+                continue;
+            }
+            let before = slot.partition.log_start_offset();
+            let poisoned = slot.partition.is_poisoned();
+            let watermark = slot.partition.next_offset();
+            let guard = segments::DeletionGuard::new(watermark, watermark)
+                .map_err(|_| retention::Error::InvalidConfig)?;
+            let result = slot.partition.apply_retention(now_ms, policy, guard);
+            self.changed |= slot.partition.log_start_offset() != before
+                || slot.partition.is_poisoned() != poisoned;
+            let outcome = result.map_err(retention::Error::Storage)?;
+            report.stores_changed +=
+                usize::from(outcome.log_start_offset != before || outcome.reclaimed_files != 0);
+            report.reclaimed_files = report
+                .reclaimed_files
+                .checked_add(outcome.reclaimed_files)
+                .ok_or(retention::Error::ResourceLimit)?;
+            report.reclaimed_bytes = report
+                .reclaimed_bytes
+                .checked_add(outcome.reclaimed_bytes)
+                .ok_or(retention::Error::ResourceLimit)?;
+        }
+        active()?;
+        Ok(report)
     }
     pub(crate) fn read_entry(
         &mut self,
@@ -619,6 +728,7 @@ struct ResultPart {
     index: i32,
     error: i16,
     base: i64,
+    log_start: i64,
     bytes: Vec<u8>,
     id: Option<TopicId>,
 }
@@ -818,6 +928,7 @@ pub(crate) fn process(
                 index: part.index,
                 error,
                 base: -1,
+                log_start: -1,
                 bytes,
                 id: target.map(|t| t.id()),
             });
@@ -841,6 +952,13 @@ pub(crate) fn process(
                     match store.append(id, part.index, &part.bytes) {
                         Ok(result) => {
                             part.base = result.base_offset;
+                            match store.log_start(id, part.index) {
+                                Ok(log_start) => part.log_start = log_start,
+                                Err(error) => {
+                                    part.error = error;
+                                    part.base = -1;
+                                }
+                            }
                             if timed_out(admitted, parsed.timeout) {
                                 part.error = 7;
                                 part.base = -1;
@@ -878,7 +996,7 @@ pub(crate) fn process(
             writer.i64(part.base)?;
             writer.i64(-1)?;
             if version >= 5 {
-                writer.i64(if part.error == 0 { 0 } else { -1 })?;
+                writer.i64(if part.error == 0 { part.log_start } else { -1 })?;
             }
             if version >= 8 {
                 writer.count(0, flex)?;

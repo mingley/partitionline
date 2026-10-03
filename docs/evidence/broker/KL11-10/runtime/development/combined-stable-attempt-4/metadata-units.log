@@ -1,0 +1,18 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/retention-runtime/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.86s
+     Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 10 tests
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::canceled_sweep_and_shared_full_admission_never_retire ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test metadata::tests::canceled_sweep_shutdown_keeps_join_and_rejects_pending_retirement ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+test metadata::tests::unconsumed_sweep_receipt_holds_shared_admission ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 29 filtered out; finished in 0.00s
+

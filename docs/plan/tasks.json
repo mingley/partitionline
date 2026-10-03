@@ -25188,10 +25188,14 @@
       "docs/evidence/broker/KL11-10/oracle/storage/"
     ],
     "codex-c-peer-20261003": [
-      "docs/evidence/broker/KL11-10/oracle/apache/"
+      "docs/evidence/broker/KL11-10/oracle/apache/",
+      "scripts/check-broker-api-matrix.py",
+      "tests/ci/test_broker_api_matrix.py",
+      "tests/conformance/broker/features.json",
+      "tests/conformance/broker/implemented-api-versions.json"
     ]
   },
-  "integration_coordinator": "Avro owns DeleteRecords wire/Store/Fetch runtime; open_loop owns exclusively rolling storage/Partition logical floor/publication/cleanup hooks. Root owns exports, Metadata/shared inventory/profiles and independent oracle. Agree typed hooks before edits, preserve explicit legacy/default profiles, and source-freeze before final immutable QA. Safe deletion is constrained by confirmed ordinary RF1 high watermark and explicit retained floor; no fabricated replication/transaction safety. All named acceptance/fault/upstream gates remain necessary before10 closure. c_peer owns the independent Apache UnifiedLog component oracle exclusively under oracle/apache; root owns independent raw storage oracle under oracle/storage. Real component results, source-only facade handling, and policy differences remain separately labeled."
+  "integration_coordinator": "Avro owns DeleteRecords wire/Store/Fetch runtime; open_loop owns exclusively rolling storage/Partition logical floor/publication/cleanup hooks. Root owns exports, Metadata/shared inventory/profiles and independent oracle. Agree typed hooks before edits, preserve explicit legacy/default profiles, and source-freeze before final immutable QA. Safe deletion is constrained by confirmed ordinary RF1 high watermark and explicit retained floor; no fabricated replication/transaction safety. All named acceptance/fault/upstream gates remain necessary before10 closure. c_peer owns the independent Apache UnifiedLog component oracle exclusively under oracle/apache; root owns independent raw storage oracle under oracle/storage. Real component results, source-only facade handling, and policy differences remain separately labeled. After the combined source checkpoint, c_peer exclusively adds the strictly reviewed optional retention profile to these four shared gate files, leaving the pinned upstream api-matrix.json read only. Root normalizes existing frozen source hashes at the handoff; no other advertised profile or production qualification is broadened."
 },
     {
       "id": "KL11-11",
