@@ -1,0 +1,64 @@
+{
+  "driver": {
+    "pid": 1194851,
+    "pgid": 1194851,
+    "starttime_ticks": 8667367
+  },
+  "owned_groups": [
+    {
+      "actor": "broker",
+      "pid": 1194870,
+      "pgid": 1194870,
+      "starttime_ticks": 8668030
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1194879,
+      "pgid": 1194879,
+      "starttime_ticks": 8668050
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195169,
+      "pgid": 1195169,
+      "starttime_ticks": 8668851
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195464,
+      "pgid": 1195464,
+      "starttime_ticks": 8669674
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195614,
+      "pgid": 1195614,
+      "starttime_ticks": 8670207
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195724,
+      "pgid": 1195724,
+      "starttime_ticks": 8670625
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195821,
+      "pgid": 1195821,
+      "starttime_ticks": 8671022
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1195897,
+      "pgid": 1195897,
+      "starttime_ticks": 8671248
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1196389,
+      "pgid": 1196389,
+      "starttime_ticks": 8672522
+    }
+  ],
+  "scope": "PID/starttime bound process groups; no secret argv or token data"
+}

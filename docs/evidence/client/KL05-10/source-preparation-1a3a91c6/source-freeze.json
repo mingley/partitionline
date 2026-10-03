@@ -1,0 +1,165 @@
+{
+  "schema": 1,
+  "task": "KL05-10",
+  "claimed_main_sha": "1a3a91c6facc25e0b250fe06d9aefde9086a184c",
+  "status": "first implemented source candidate; uncompiled and unqualified",
+  "contract": "Kafka 4.3 uniform adaptive=false state machine with Rust successful-admission conservative packed-byte accounting",
+  "write_set_reconciliation": {
+    "old_proposal_sha": "6dc94920ca52b38059199794e455351e19a85f2e42469b3f131e24fb9a988763",
+    "actual_pushed_test": "tests/sticky_partitioner.rs",
+    "actual_pushed_fixture_directory": "tests/fixtures/sticky-partitioner/",
+    "no_unpublished_paths_written": true
+  },
+  "source_files": {
+    "src/partitioner.rs": {
+      "sha256": "4b7f9a9168fac20e775d8eb720b4cf4f77b353fde8f9eb90996faf57bca95f79",
+      "bytes": 36377,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "src/producer.rs": {
+      "sha256": "2b0e99fd175cec0b5c9c491c848a18dcd116b57ecbe660c3fc091db3e2c20b94",
+      "bytes": 214031,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/client_api.rs": {
+      "sha256": "6338a2442f341455c1ee8e3496c4052d6f5b983cde4eb14c6d753eb90c4e4f7d",
+      "bytes": 161560,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/BuiltInPartitioner.java": {
+      "sha256": "7f9af016cad8b414be9da32abe151877ffba2fbbac8981ce57e884ab8c1b6d1a",
+      "bytes": 17173,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/BuiltInPartitionerTest.java": {
+      "sha256": "2153752e226a3d4e5cd290bb979be85f5425565a24ccf1c5053c9bc97e4b7eb6",
+      "bytes": 10061,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/GenerateUniformSticky.java": {
+      "sha256": "77ea267770d4513cf3ae1cedfb327a990183dbb4ccb86d690d0561ab2dc9996a",
+      "bytes": 4615,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/ProducerConfig.java": {
+      "sha256": "464068167673e9c37f65083d55e72c0f58ddcffd66fa9f10a0ec5cfb2172c8b0",
+      "bytes": 53518,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/README.md": {
+      "sha256": "18916cf123ff5dd3a8c463517dd194e2072615395acb4a3213224de2ec174a7e",
+      "bytes": 1410,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/RecordAccumulator.java": {
+      "sha256": "18dad54c2a6f58b868c2e3b21b2d021bee02fb001fa8d1fc0c98059bd1086a7c",
+      "bytes": 63071,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/fixtures/sticky-partitioner/upstream-source-pin.json": {
+      "sha256": "5c2d9c445fc1043aba4d3e2b53fdacc22350775a127a1a0652d91c0f139efe73",
+      "bytes": 2328,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "3ca4104fff5467cfc019aa43254778ca73bdf24c8a530679a4a8436ef3c40229",
+      "bytes": 28062,
+      "mode": "0o600",
+      "git_mode": "100644"
+    }
+  },
+  "baselines": {
+    "src/partitioner.rs": "ad9c8977c4f5ef8b54284167020eb35d931e27fd5cc95a23d427c80bb9bd90b5",
+    "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+    "tests/client_api.rs": "4381fe434363ab13b550dc85414506b705b0af0246b916c2e169f979540c19c8"
+  },
+  "prepared_socket_tests": [
+    "sticky_burst_is_one_real_batch_and_partial_flush_preserves_partition",
+    "mixed_keyed_and_explicit_records_share_real_tail_without_unkeyed_charge",
+    "failed_buffer_admission_does_not_charge_or_consume_route",
+    "failed_leader_routing_does_not_create_history_or_advance_accounting",
+    "pressure_singletons_are_not_merged_and_ledger_is_bounded",
+    "zero_caps_use_stateless_singletons_without_new_admission_errors",
+    "independent_producers_from_one_config_have_independent_histories",
+    "retries_preserve_cohort_membership_and_never_charge_twice",
+    "terminal_errors_retire_all_cohort_rows_and_payload_reservations",
+    "broker_terminal_error_and_acks_zero_both_retire_rows",
+    "cancelled_queued_send_still_delivers_and_retires_its_cohort",
+    "cancellation_before_buffer_admission_does_not_charge_or_leak",
+    "absolute_max_block_with_unavailable_leaders_is_bounded_and_uncharged",
+    "expiry_and_close_clear_state_without_late_history_recreation",
+    "retained_topic_text_and_idle_eviction_stay_within_hard_caps",
+    "transaction_partition_failure_retires_cohort_and_allows_abort",
+    "new_uniform_draws_exclude_unavailable_partitions",
+    "existing_sticky_selection_survives_leader_loss_without_consuming_draws",
+    "produce_v13_uses_admitted_uuid_after_metadata_recreation",
+    "leader_movement_retries_original_partition_and_complete_cohort",
+    "sequenced_retry_expiry_cancels_remaining_cohort_without_resending_short_batch",
+    "asynchronous_mixed_admissions_across_connection_slots_complete_and_release_ledger"
+  ],
+  "prepared_policy_tests": [
+    "prepared_routes_and_plans_are_pure_until_commit",
+    "real_tail_fullness_defers_b_then_zero_byte_drain_completes_rotation",
+    "two_b_forces_rotation_with_an_incomplete_tail_and_can_redraw_same_partition",
+    "keyed_overhead_is_not_charged_to_the_unkeyed_counter",
+    "uuid_reset_and_removed_partition_preserve_old_delivery_rows_without_stale_rotation",
+    "partial_terminal_expiry_shrinks_members_and_sequenced_cancellation_is_sticky",
+    "close_discards_bounded_history_and_late_callbacks_cannot_recreate_it",
+    "actual_seeded_policy_rotations_are_uniform_over_available_leaders"
+  ],
+  "held_observed_at_handoff": {
+    "src/protocol/records.rs": {
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "bytes": 171836,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "src/protocol/buf.rs": {
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "src/net.rs": {
+      "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+      "bytes": 83409,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "src/group.rs": {
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+      "bytes": 137817,
+      "mode": "0o600",
+      "git_mode": "100644"
+    },
+    "src/cluster.rs": {
+      "sha256": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa",
+      "bytes": 20271,
+      "mode": "0o600",
+      "git_mode": "100644"
+    }
+  },
+  "limits": {
+    "max_topics_ceiling": 1024,
+    "max_outstanding_cohorts_ceiling": 4096,
+    "retained_topic_text_bytes_ceiling": 262144,
+    "pressure_mode": "uniform singleton; no new admission error",
+    "opt_in_produce_requests": "one complete bounded cohort per RPC; throughput/memory effects unmeasured",
+    "default_routing": "prior default/custom path remains; internal Pending size changed and performance must be measured",
+    "reference_execution": "caller prepared; SDK source pinned; no generated Java output fixture",
+    "qualified": false,
+    "performance_claims": false
+  },
+  "prepared_policy_test_count": 8,
+  "prepared_socket_test_count": 22
+}

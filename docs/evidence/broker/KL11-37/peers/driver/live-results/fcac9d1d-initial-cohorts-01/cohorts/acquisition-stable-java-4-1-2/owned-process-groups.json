@@ -1,0 +1,34 @@
+{
+  "driver": {
+    "pid": 1196477,
+    "pgid": 1196477,
+    "starttime_ticks": 8673455
+  },
+  "owned_groups": [
+    {
+      "actor": "broker",
+      "pid": 1196493,
+      "pgid": 1196493,
+      "starttime_ticks": 8674079
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1196502,
+      "pgid": 1196502,
+      "starttime_ticks": 8674100
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1196583,
+      "pgid": 1196583,
+      "starttime_ticks": 8674328
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1196639,
+      "pgid": 1196639,
+      "starttime_ticks": 8674495
+    }
+  ],
+  "scope": "PID/starttime bound process groups; no secret argv or token data"
+}

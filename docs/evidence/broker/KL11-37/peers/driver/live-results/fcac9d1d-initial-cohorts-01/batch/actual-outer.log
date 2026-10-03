@@ -1,0 +1,10 @@
+{"event": "cohort-start", "ordinal": 1, "total": 31, "name": "authority-stable-java-4-1-2", "steps": 53, "free_bytes": 1626714112}
+{"event": "cohort-pending", "ordinal": 1, "name": "authority-stable-java-4-1-2", "elapsed_seconds": 30.03, "free_bytes": 1624887296, "completed_prior": 0}
+{"event": "cohort-pending", "ordinal": 1, "name": "authority-stable-java-4-1-2", "elapsed_seconds": 60.06, "free_bytes": 1624723456, "completed_prior": 0}
+{"event": "cohort-closed", "ordinal": 1, "name": "authority-stable-java-4-1-2", "passed": true, "steps": 53, "exit_code": 0, "failure_stage": null, "failed_step": null, "elapsed_seconds": 60.74, "free_bytes": 1622048768}
+{"event": "cohort-start", "ordinal": 2, "total": 31, "name": "acquisition-stable-java-4-1-2", "steps": 9, "free_bytes": 1622036480}
+{"event": "cohort-closed", "ordinal": 2, "name": "acquisition-stable-java-4-1-2", "passed": true, "steps": 9, "exit_code": 0, "failure_stage": null, "failed_step": null, "elapsed_seconds": 19.73, "free_bytes": 1619263488}
+{"event": "cohort-start", "ordinal": 3, "total": 31, "name": "signed-stable-java-4-1-2", "steps": 78, "free_bytes": 1619255296}
+{"event": "cohort-pending", "ordinal": 3, "name": "signed-stable-java-4-1-2", "elapsed_seconds": 30.04, "free_bytes": 1619120128, "completed_prior": 2}
+{"event": "cohort-pending", "ordinal": 3, "name": "signed-stable-java-4-1-2", "elapsed_seconds": 60.05, "free_bytes": 1619120128, "completed_prior": 2}
+{"event": "cohort-closed", "ordinal": 3, "name": "signed-stable-java-4-1-2", "passed": false, "steps": 29, "exit_code": 1, "failure_stage": "predeclared-lifecycle-step", "failed_step": 29, "elapsed_seconds": 68.74, "free_bytes": 1616379904}

@@ -1,0 +1,100 @@
+Compiled from "DefaultJwtValidator.java"
+public class org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator implements org.apache.kafka.common.security.oauthbearer.JwtValidator {
+  private final java.util.Optional<org.apache.kafka.common.security.oauthbearer.internals.secured.CloseableVerificationKeyResolver> verificationKeyResolver;
+
+  private org.apache.kafka.common.security.oauthbearer.JwtValidator delegate;
+
+  public org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: invokestatic  #7                  // Method java/util/Optional.empty:()Ljava/util/Optional;
+       8: putfield      #13                 // Field verificationKeyResolver:Ljava/util/Optional;
+      11: return
+
+  public org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator(org.apache.kafka.common.security.oauthbearer.internals.secured.CloseableVerificationKeyResolver);
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: invokestatic  #19                 // Method java/util/Optional.of:(Ljava/lang/Object;)Ljava/util/Optional;
+       9: putfield      #13                 // Field verificationKeyResolver:Ljava/util/Optional;
+      12: return
+
+  public void configure(java.util.Map<java.lang.String, ?>, java.lang.String, java.util.List<javax.security.auth.login.AppConfigurationEntry>);
+    Code:
+       0: aload_0
+       1: getfield      #13                 // Field verificationKeyResolver:Ljava/util/Optional;
+       4: invokevirtual #23                 // Method java/util/Optional.isPresent:()Z
+       7: ifeq          34
+      10: aload_0
+      11: new           #27                 // class org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator
+      14: dup
+      15: aload_0
+      16: getfield      #13                 // Field verificationKeyResolver:Ljava/util/Optional;
+      19: invokevirtual #29                 // Method java/util/Optional.get:()Ljava/lang/Object;
+      22: checkcast     #33                 // class org/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver
+      25: invokespecial #35                 // Method org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator."<init>":(Lorg/apache/kafka/common/security/oauthbearer/internals/secured/CloseableVerificationKeyResolver;)V
+      28: putfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+      31: goto          80
+      34: new           #42                 // class org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils
+      37: dup
+      38: aload_1
+      39: aload_2
+      40: invokespecial #44                 // Method org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils."<init>":(Ljava/util/Map;Ljava/lang/String;)V
+      43: astore        4
+      45: aload         4
+      47: ldc           #49                 // String sasl.oauthbearer.jwks.endpoint.url
+      49: invokevirtual #51                 // Method org/apache/kafka/common/security/oauthbearer/internals/secured/ConfigurationUtils.containsKey:(Ljava/lang/String;)Z
+      52: ifeq          69
+      55: aload_0
+      56: new           #27                 // class org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator
+      59: dup
+      60: invokespecial #55                 // Method org/apache/kafka/common/security/oauthbearer/BrokerJwtValidator."<init>":()V
+      63: putfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+      66: goto          80
+      69: aload_0
+      70: new           #56                 // class org/apache/kafka/common/security/oauthbearer/ClientJwtValidator
+      73: dup
+      74: invokespecial #58                 // Method org/apache/kafka/common/security/oauthbearer/ClientJwtValidator."<init>":()V
+      77: putfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+      80: aload_0
+      81: getfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+      84: aload_1
+      85: aload_2
+      86: aload_3
+      87: invokeinterface #59,  4           // InterfaceMethod org/apache/kafka/common/security/oauthbearer/JwtValidator.configure:(Ljava/util/Map;Ljava/lang/String;Ljava/util/List;)V
+      92: return
+
+  public org.apache.kafka.common.security.oauthbearer.OAuthBearerToken validate(java.lang.String) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_0
+       1: getfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+       4: ifnonnull     17
+       7: new           #65                 // class java/lang/IllegalStateException
+      10: dup
+      11: ldc           #67                 // String JWT validator delegate is null; please call configure() first
+      13: invokespecial #69                 // Method java/lang/IllegalStateException."<init>":(Ljava/lang/String;)V
+      16: athrow
+      17: aload_0
+      18: getfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+      21: aload_1
+      22: invokeinterface #72,  2           // InterfaceMethod org/apache/kafka/common/security/oauthbearer/JwtValidator.validate:(Ljava/lang/String;)Lorg/apache/kafka/common/security/oauthbearer/OAuthBearerToken;
+      27: areturn
+
+  public void close() throws java.io.IOException;
+    Code:
+       0: aload_0
+       1: getfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+       4: ldc           #76                 // String JWT validator delegate
+       6: invokestatic  #78                 // Method org/apache/kafka/common/utils/Utils.closeQuietly:(Ljava/lang/AutoCloseable;Ljava/lang/String;)V
+       9: return
+
+  org.apache.kafka.common.security.oauthbearer.JwtValidator delegate();
+    Code:
+       0: aload_0
+       1: getfield      #38                 // Field delegate:Lorg/apache/kafka/common/security/oauthbearer/JwtValidator;
+       4: areturn
+}

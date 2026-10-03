@@ -1,0 +1,580 @@
+Compiled from "SaslConfigs.java"
+public class org.apache.kafka.common.config.SaslConfigs {
+  private static final java.lang.String OAUTHBEARER_NOTE = " Currently applies only to OAUTHBEARER.";
+
+  public static final java.lang.String SASL_MECHANISM = "sasl.mechanism";
+
+  public static final java.lang.String SASL_MECHANISM_DOC = "SASL mechanism used for client connections. This may be any mechanism for which a security provider is available. GSSAPI is the default mechanism.";
+
+  public static final java.lang.String GSSAPI_MECHANISM = "GSSAPI";
+
+  public static final java.lang.String DEFAULT_SASL_MECHANISM = "GSSAPI";
+
+  public static final java.lang.String SASL_JAAS_CONFIG = "sasl.jaas.config";
+
+  public static final java.lang.String SASL_JAAS_CONFIG_DOC = "JAAS login context parameters for SASL connections in the format used by JAAS configuration files. JAAS configuration file format is described <a href=\"https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/LoginConfigFile.html\">here</a>. The format for the value is: <code>loginModuleClass controlFlag (optionName=optionValue)*;</code>. For brokers, the config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.jaas.config=com.example.ScramLoginModule required;";
+
+  public static final java.lang.String SASL_CLIENT_CALLBACK_HANDLER_CLASS = "sasl.client.callback.handler.class";
+
+  public static final java.lang.String SASL_CLIENT_CALLBACK_HANDLER_CLASS_DOC = "The fully qualified name of a SASL client callback handler class that implements the AuthenticateCallbackHandler interface.";
+
+  public static final java.lang.String SASL_LOGIN_CALLBACK_HANDLER_CLASS = "sasl.login.callback.handler.class";
+
+  public static final java.lang.String SASL_LOGIN_CALLBACK_HANDLER_CLASS_DOC = "The fully qualified name of a SASL login callback handler class that implements the AuthenticateCallbackHandler interface. For brokers, login callback handler config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.login.callback.handler.class=com.example.CustomScramLoginCallbackHandler";
+
+  public static final java.lang.String SASL_LOGIN_CLASS = "sasl.login.class";
+
+  public static final java.lang.String SASL_LOGIN_CLASS_DOC = "The fully qualified name of a class that implements the Login interface. For brokers, login config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.login.class=com.example.CustomScramLogin";
+
+  public static final java.lang.String SASL_KERBEROS_SERVICE_NAME = "sasl.kerberos.service.name";
+
+  public static final java.lang.String SASL_KERBEROS_SERVICE_NAME_DOC = "The Kerberos principal name that Kafka runs as. This can be defined either in Kafka's JAAS config or in Kafka's config.";
+
+  public static final java.lang.String SASL_KERBEROS_KINIT_CMD = "sasl.kerberos.kinit.cmd";
+
+  public static final java.lang.String SASL_KERBEROS_KINIT_CMD_DOC = "Kerberos kinit command path.";
+
+  public static final java.lang.String DEFAULT_KERBEROS_KINIT_CMD = "/usr/bin/kinit";
+
+  public static final java.lang.String SASL_KERBEROS_TICKET_RENEW_WINDOW_FACTOR = "sasl.kerberos.ticket.renew.window.factor";
+
+  public static final java.lang.String SASL_KERBEROS_TICKET_RENEW_WINDOW_FACTOR_DOC = "Login thread will sleep until the specified window factor of time from last refresh to ticket's expiry has been reached, at which time it will try to renew the ticket.";
+
+  public static final double DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR = 0.8d;
+
+  public static final java.lang.String SASL_KERBEROS_TICKET_RENEW_JITTER = "sasl.kerberos.ticket.renew.jitter";
+
+  public static final java.lang.String SASL_KERBEROS_TICKET_RENEW_JITTER_DOC = "Percentage of random jitter added to the renewal time.";
+
+  public static final double DEFAULT_KERBEROS_TICKET_RENEW_JITTER = 0.05d;
+
+  public static final java.lang.String SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN = "sasl.kerberos.min.time.before.relogin";
+
+  public static final java.lang.String SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN_DOC = "Login thread sleep time between refresh attempts.";
+
+  public static final long DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN = 60000l;
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_WINDOW_FACTOR = "sasl.login.refresh.window.factor";
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_WINDOW_FACTOR_DOC = "Login refresh thread will sleep until the specified window factor relative to the credential's lifetime has been reached, at which time it will try to refresh the credential. Legal values are between 0.5 (50%) and 1.0 (100%) inclusive; a default value of 0.8 (80%) is used if no value is specified. Currently applies only to OAUTHBEARER.";
+
+  public static final double DEFAULT_LOGIN_REFRESH_WINDOW_FACTOR = 0.8d;
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_WINDOW_JITTER = "sasl.login.refresh.window.jitter";
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_WINDOW_JITTER_DOC = "The maximum amount of random jitter relative to the credential's lifetime that is added to the login refresh thread's sleep time. Legal values are between 0 and 0.25 (25%) inclusive; a default value of 0.05 (5%) is used if no value is specified. Currently applies only to OAUTHBEARER.";
+
+  public static final double DEFAULT_LOGIN_REFRESH_WINDOW_JITTER = 0.05d;
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_MIN_PERIOD_SECONDS = "sasl.login.refresh.min.period.seconds";
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_MIN_PERIOD_SECONDS_DOC = "The desired minimum time for the login refresh thread to wait before refreshing a credential, in seconds. Legal values are between 0 and 900 (15 minutes); a default value of 60 (1 minute) is used if no value is specified.  This value and  sasl.login.refresh.buffer.seconds are both ignored if their sum exceeds the remaining lifetime of a credential. Currently applies only to OAUTHBEARER.";
+
+  public static final short DEFAULT_LOGIN_REFRESH_MIN_PERIOD_SECONDS = 60;
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_BUFFER_SECONDS = "sasl.login.refresh.buffer.seconds";
+
+  public static final java.lang.String SASL_LOGIN_REFRESH_BUFFER_SECONDS_DOC = "The amount of buffer time before credential expiration to maintain when refreshing a credential, in seconds. If a refresh would otherwise occur closer to expiration than the number of buffer seconds then the refresh will be moved up to maintain as much of the buffer time as possible. Legal values are between 0 and 3600 (1 hour); a default value of  300 (5 minutes) is used if no value is specified. This value and sasl.login.refresh.min.period.seconds are both ignored if their sum exceeds the remaining lifetime of a credential. Currently applies only to OAUTHBEARER.";
+
+  public static final short DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS = 300;
+
+  public static final java.lang.String SASL_LOGIN_CONNECT_TIMEOUT_MS = "sasl.login.connect.timeout.ms";
+
+  public static final java.lang.String SASL_LOGIN_CONNECT_TIMEOUT_MS_DOC = "The (optional) value in milliseconds for the external authentication provider connection timeout. Currently applies only to OAUTHBEARER.";
+
+  public static final java.lang.String SASL_LOGIN_READ_TIMEOUT_MS = "sasl.login.read.timeout.ms";
+
+  public static final java.lang.String SASL_LOGIN_READ_TIMEOUT_MS_DOC = "The (optional) value in milliseconds for the external authentication provider read timeout. Currently applies only to OAUTHBEARER.";
+
+  private static final java.lang.String LOGIN_EXPONENTIAL_BACKOFF_NOTE = " Login uses an exponential backoff algorithm with an initial wait based on the sasl.login.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.login.retry.backoff.max.ms setting. Currently applies only to OAUTHBEARER.";
+
+  public static final java.lang.String SASL_LOGIN_RETRY_BACKOFF_MAX_MS = "sasl.login.retry.backoff.max.ms";
+
+  public static final long DEFAULT_SASL_LOGIN_RETRY_BACKOFF_MAX_MS = 10000l;
+
+  public static final java.lang.String SASL_LOGIN_RETRY_BACKOFF_MAX_MS_DOC = "The (optional) value in milliseconds for the maximum wait between login attempts to the external authentication provider. Login uses an exponential backoff algorithm with an initial wait based on the sasl.login.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.login.retry.backoff.max.ms setting. Currently applies only to OAUTHBEARER.";
+
+  public static final java.lang.String SASL_LOGIN_RETRY_BACKOFF_MS = "sasl.login.retry.backoff.ms";
+
+  public static final long DEFAULT_SASL_LOGIN_RETRY_BACKOFF_MS = 100l;
+
+  public static final java.lang.String SASL_LOGIN_RETRY_BACKOFF_MS_DOC = "The (optional) value in milliseconds for the initial wait between login attempts to the external authentication provider. Login uses an exponential backoff algorithm with an initial wait based on the sasl.login.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.login.retry.backoff.max.ms setting. Currently applies only to OAUTHBEARER.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWT_RETRIEVER_CLASS = "sasl.oauthbearer.jwt.retriever.class";
+
+  public static final java.lang.String DEFAULT_SASL_OAUTHBEARER_JWT_RETRIEVER_CLASS = "org.apache.kafka.common.security.oauthbearer.DefaultJwtRetriever";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWT_RETRIEVER_CLASS_DOC = "<p>The fully-qualified class name of a <code>JwtRetriever</code> implementation used to request tokens from the identity provider.</p><p>The default configuration value represents a class that maintains backward compatibility with previous versions of Apache Kafka. The default implementation uses the configuration to determine which concrete implementation to create.<p>Other implementations that are provided include:</p><ul><li><code>org.apache.kafka.common.security.oauthbearer.ClientCredentialsJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.DefaultJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.FileJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.JwtBearerJwtRetriever</code></li></ul>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWT_VALIDATOR_CLASS = "sasl.oauthbearer.jwt.validator.class";
+
+  public static final java.lang.String DEFAULT_SASL_OAUTHBEARER_JWT_VALIDATOR_CLASS = "org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWT_VALIDATOR_CLASS_DOC = "<p>The fully-qualified class name of a <code>JwtValidator</code> implementation used to validate the JWT from the identity provider.</p><p>The default validator (<code>org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator</code>) maintains backward compatibility with previous versions of Apache Kafka. The default validator uses configuration to determine which concrete implementation to create.<p>The built-in <code>JwtValidator</code> implementations are:</p><ul><li><code>org.apache.kafka.common.security.oauthbearer.BrokerJwtValidator</code></li><li><code>org.apache.kafka.common.security.oauthbearer.ClientJwtValidator</code></li><li><code>org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator</code></li></ul>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SCOPE = "sasl.oauthbearer.scope";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SCOPE_DOC = "<p>This is the level of access a client application is granted to a resource or API which is included in the token request. If provided, it should match one or more scopes configured in the identity provider.</p><p>The scope was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>scope</code>. For backward compatibility, the <code>scope</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.scope</code> from configuration</li><li><code>scope</code> from JAAS</li></ul>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLIENT_CREDENTIALS_CLIENT_ID = "sasl.oauthbearer.client.credentials.client.id";
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLIENT_CREDENTIALS_CLIENT_ID_DOC = "<p>The ID (defined in/by the OAuth identity provider) to identify the client requesting the token.</p><p>The client ID was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>clientId</code>. For backward compatibility, the <code>clientId</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.client.credentials.client.id</code> from configuration</li><li><code>clientId</code> from JAAS</li></ul>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLIENT_CREDENTIALS_CLIENT_SECRET = "sasl.oauthbearer.client.credentials.client.secret";
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLIENT_CREDENTIALS_CLIENT_SECRET_DOC = "<p>The secret (defined by either the user or preassigned, depending on the identity provider) of the client requesting the token.</p><p>The client secret was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>clientSecret</code>. For backward compatibility, the <code>clientSecret</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.client.credentials.client.secret</code> from configuration</li><li><code>clientSecret</code> from JAAS</li></ul>";
+
+  private static final java.lang.String ASSERTION_FILE_MUTUAL_EXCLUSION_NOTICE = "<p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_ALGORITHM = "sasl.oauthbearer.assertion.algorithm";
+
+  public static final java.lang.String DEFAULT_SASL_OAUTHBEARER_ASSERTION_ALGORITHM = "RS256";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_ALGORITHM_DOC = "<p>The algorithm the Apache Kafka client should use to sign the assertion sent to the identity provider. It is also used as the value of the OAuth <code>alg</code> (Algorithm) header in the JWT assertion.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_AUD = "sasl.oauthbearer.assertion.claim.aud";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_AUD_DOC = "<p>The JWT <code>aud</code> (Audience) claim which will be included in the  client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_EXP_SECONDS = "sasl.oauthbearer.assertion.claim.exp.seconds";
+
+  public static final int DEFAULT_SASL_OAUTHBEARER_ASSERTION_CLAIM_EXP_SECONDS = 300;
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_EXP_SECONDS_DOC = "<p>The number of seconds <em>in the future</em> for which the JWT is valid. The value is used to determine the JWT <code>exp</code> (Expiration) claim based on the current system time when the JWT is created.</p><p>The formula to generate the <code>exp</code> claim is very simple:</p><pre>Let:\n\n  x = the current timestamp in seconds, on client\n  y = the value of this configuration\n\nThen:\n\n  exp = x + y\n</pre><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_ISS = "sasl.oauthbearer.assertion.claim.iss";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_ISS_DOC = "<p>The value to be used as the <code>iss</code> (Issuer) claim which will be included in the client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_JTI_INCLUDE = "sasl.oauthbearer.assertion.claim.jti.include";
+
+  public static final boolean DEFAULT_SASL_OAUTHBEARER_ASSERTION_CLAIM_JTI_INCLUDE = false;
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_JTI_INCLUDE_DOC = "<p>Flag that determines if the JWT assertion should generate a unique ID for the JWT and include it in the <code>jti</code> (JWT ID) claim.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_NBF_SECONDS = "sasl.oauthbearer.assertion.claim.nbf.seconds";
+
+  public static final int DEFAULT_SASL_OAUTHBEARER_ASSERTION_CLAIM_NBF_SECONDS = 60;
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_NBF_SECONDS_DOC = "<p>The number of seconds <em>in the past</em> from which the JWT is valid. The value is used to determine the JWT <code>nbf</code> (Not Before) claim based on the current system time when the JWT is created.</p><p>The formula to generate the <code>nbf</code> claim is very simple:</p><pre>Let:\n\n  x = the current timestamp in seconds, on client\n  y = the value of this configuration\n\nThen:\n\n  nbf = x - y\n</pre><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_SUB = "sasl.oauthbearer.assertion.claim.sub";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_CLAIM_SUB_DOC = "<p>The value to be used as the <code>sub</code> (Subject) claim which will be included in the client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_FILE = "sasl.oauthbearer.assertion.file";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_FILE_DOC = "<p>File that contains a <em>pre-generated</em> JWT assertion.</p><p>The underlying implementation caches the file contents to avoid the performance hit of loading the file on each access. The caching mechanism will detect whenthe file changes to allow for the file to be reloaded on modifications. This allows for &quot;live&quot; assertion rotation without restarting the Kafka client.</p><p>The file contains the assertion in the serialized, three part JWT format:</p><ol><li>The <em>header</em> section is a base 64-encoded JWT header that contains values like <code>alg</code> (Algorithm), <code>typ</code> (Type, always the literal value <code>JWT</code>), etc.</li><li>The <em>payload</em> section includes the base 64-encoded set of JWT claims, such as <code>aud</code> (Audience), <code>iss</code> (Issuer), <code>sub</code> (Subject), etc.</li><li>The <em>signature</em> section is the concatenated <em>header</em> and <em>payload</em> sections that was signed using a private key</li></ol><p>See <a href=\"https://datatracker.ietf.org/doc/html/rfc7519\">RFC 7519</a> and <a href=\"https://datatracker.ietf.org/doc/html/rfc7515\">RFC 7515</a> for more details on the JWT and JWS formats.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, all other <code>sasl.oauthbearer.assertion.</code>* configurations are ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_PRIVATE_KEY_FILE = "sasl.oauthbearer.assertion.private.key.file";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_PRIVATE_KEY_FILE_DOC = "<p>File that contains a private key in the standard PEM format which is used to sign the JWT assertion sent to the identity provider.</p><p>The underlying implementation caches the file contents to avoid the performance hit of loading the file on each access. The caching mechanism will detect when the file changes to allow for the file to be reloaded on modifications. This allows for &quot;live&quot; private key rotation without restarting the Kafka client.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_PRIVATE_KEY_PASSPHRASE = "sasl.oauthbearer.assertion.private.key.passphrase";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_PRIVATE_KEY_PASSPHRASE_DOC = "<p>The optional passphrase to decrypt the private key file specified by <code>sasl.oauthbearer.assertion.private.key.file</code>.</p><p><em>Note</em>: If the file referred to by <code>sasl.oauthbearer.assertion.private.key.file</code> is modified on the file system at runtime and it was created with a <em>different</em> passphrase than it was previously, the client will not be able to access the private key file because the passphrase is now out of date. For that reason, when using private key passphrases, either use the same passphrase each time, or&mdash;for improved security&mdash;restart the Kafka client using the new passphrase configuration.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_TEMPLATE_FILE = "sasl.oauthbearer.assertion.template.file";
+
+  public static final java.lang.String SASL_OAUTHBEARER_ASSERTION_TEMPLATE_FILE_DOC = "<p>This optional configuration specifies the file containing the JWT headers and/or payload claims to be used when creating the JWT assertion.</p><p>Not all identity providers require the same set of claims; some may require a given claim while others may prohibit it. In order to provide the most flexibility, this configuration allows the user to provide the static header values and claims that are to be included in the JWT.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SCOPE_CLAIM_NAME = "sasl.oauthbearer.scope.claim.name";
+
+  public static final java.lang.String DEFAULT_SASL_OAUTHBEARER_SCOPE_CLAIM_NAME = "scope";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SCOPE_CLAIM_NAME_DOC = "The OAuth claim for the scope is often named \"scope\", but this (optional) setting can provide a different name to use for the scope included in the JWT payload's claims if the OAuth/OIDC provider uses a different name for that claim.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SUB_CLAIM_NAME = "sasl.oauthbearer.sub.claim.name";
+
+  public static final java.lang.String DEFAULT_SASL_OAUTHBEARER_SUB_CLAIM_NAME = "sub";
+
+  public static final java.lang.String SASL_OAUTHBEARER_SUB_CLAIM_NAME_DOC = "The OAuth claim for the subject is often named \"sub\", but this (optional) setting can provide a different name to use for the subject included in the JWT payload's claims if the OAuth/OIDC provider uses a different name for that claim.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL = "sasl.oauthbearer.token.endpoint.url";
+
+  public static final java.lang.String SASL_OAUTHBEARER_TOKEN_ENDPOINT_URL_DOC = "The URL for the OAuth/OIDC identity provider. If the URL is HTTP(S)-based, it is the issuer's token endpoint URL to which requests will be made to login based on the configuration in <code>sasl.oauthbearer.jwt.retriever.class</code>. If the URL is file-based, it specifies a file containing an access token (in JWT serialized form) issued by the OAuth/OIDC identity provider to use for authorization.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_URL = "sasl.oauthbearer.jwks.endpoint.url";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_URL_DOC = "The OAuth/OIDC provider URL from which the provider's <a href=\"https://datatracker.ietf.org/doc/html/rfc7517#section-5\">JWKS (JSON Web Key Set)</a> can be retrieved. The URL can be HTTP(S)-based or file-based. If the URL is HTTP(S)-based, the JWKS data will be retrieved from the OAuth/OIDC provider via the configured URL on broker startup. All then-current keys will be cached on the broker for incoming requests. If an authentication request is received for a JWT that includes a \"kid\" header claim value that isn't yet in the cache, the JWKS endpoint will be queried again on demand. However, the broker polls the URL every sasl.oauthbearer.jwks.endpoint.refresh.ms milliseconds to refresh the cache with any forthcoming keys before any JWT requests that include them are received. If the URL is file-based, the broker will load the JWKS file from a configured location on startup. In the event that the JWT includes a \"kid\" header value that isn't in the JWKS file, the broker will reject the JWT and authentication will fail.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_REFRESH_MS = "sasl.oauthbearer.jwks.endpoint.refresh.ms";
+
+  public static final long DEFAULT_SASL_OAUTHBEARER_JWKS_ENDPOINT_REFRESH_MS = 3600000l;
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_REFRESH_MS_DOC = "The (optional) value in milliseconds for the broker to wait between refreshing its JWKS (JSON Web Key Set) cache that contains the keys to verify the signature of the JWT.";
+
+  private static final java.lang.String JWKS_EXPONENTIAL_BACKOFF_NOTE = " JWKS retrieval uses an exponential backoff algorithm with an initial wait based on the sasl.oauthbearer.jwks.endpoint.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms setting.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MAX_MS = "sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms";
+
+  public static final long DEFAULT_SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MAX_MS = 10000l;
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MAX_MS_DOC = "The (optional) value in milliseconds for the maximum wait between attempts to retrieve the JWKS (JSON Web Key Set) from the external authentication provider. JWKS retrieval uses an exponential backoff algorithm with an initial wait based on the sasl.oauthbearer.jwks.endpoint.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms setting.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MS = "sasl.oauthbearer.jwks.endpoint.retry.backoff.ms";
+
+  public static final long DEFAULT_SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MS = 100l;
+
+  public static final java.lang.String SASL_OAUTHBEARER_JWKS_ENDPOINT_RETRY_BACKOFF_MS_DOC = "The (optional) value in milliseconds for the initial wait between JWKS (JSON Web Key Set) retrieval attempts from the external authentication provider. JWKS retrieval uses an exponential backoff algorithm with an initial wait based on the sasl.oauthbearer.jwks.endpoint.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms setting.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLOCK_SKEW_SECONDS = "sasl.oauthbearer.clock.skew.seconds";
+
+  public static final int DEFAULT_SASL_OAUTHBEARER_CLOCK_SKEW_SECONDS = 30;
+
+  public static final java.lang.String SASL_OAUTHBEARER_CLOCK_SKEW_SECONDS_DOC = "The (optional) value in seconds to allow for differences between the time of the OAuth/OIDC identity provider and the broker.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_EXPECTED_AUDIENCE = "sasl.oauthbearer.expected.audience";
+
+  public static final java.lang.String SASL_OAUTHBEARER_EXPECTED_AUDIENCE_DOC = "The (optional) comma-delimited setting for the broker to use to verify that the JWT was issued for one of the expected audiences. The JWT will be inspected for the standard OAuth \"aud\" claim and if this value is set, the broker will match the value from JWT's \"aud\" claim  to see if there is an exact match. If there is no match, the broker will reject the JWT and authentication will fail.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_EXPECTED_ISSUER = "sasl.oauthbearer.expected.issuer";
+
+  public static final java.lang.String SASL_OAUTHBEARER_EXPECTED_ISSUER_DOC = "The (optional) setting for the broker to use to verify that the JWT was created by the expected issuer. The JWT will be inspected for the standard OAuth \"iss\" claim and if this value is set, the broker will match it exactly against what is in the JWT's \"iss\" claim. If there is no match, the broker will reject the JWT and authentication will fail.";
+
+  public static final java.lang.String SASL_OAUTHBEARER_HEADER_URLENCODE = "sasl.oauthbearer.header.urlencode";
+
+  public static final boolean DEFAULT_SASL_OAUTHBEARER_HEADER_URLENCODE = false;
+
+  public static final java.lang.String SASL_OAUTHBEARER_HEADER_URLENCODE_DOC = "The (optional) setting to enable the OAuth client to URL-encode the client_id and client_secret in the authorization header in accordance with RFC6749, see <a href=\"https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1\">here</a> for more details. The default value is set to 'false' for backward compatibility";
+
+  public org.apache.kafka.common.config.SaslConfigs();
+    Code:
+       0: aload_0
+       1: invokespecial #369                // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static void addClientSaslSupport(org.apache.kafka.common.config.ConfigDef);
+    Code:
+       0: aload_0
+       1: ldc           #63                 // String sasl.kerberos.service.name
+       3: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+       6: aconst_null
+       7: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+      10: ldc           #66                 // String The Kerberos principal name that Kafka runs as. This can be defined either in Kafka\'s JAAS config or in Kafka\'s config.
+      12: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+      15: ldc           #69                 // String sasl.kerberos.kinit.cmd
+      17: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+      20: ldc           #75                 // String /usr/bin/kinit
+      22: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+      25: ldc           #72                 // String Kerberos kinit command path.
+      27: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+      30: ldc           #78                 // String sasl.kerberos.ticket.renew.window.factor
+      32: getstatic     #391                // Field org/apache/kafka/common/config/ConfigDef$Type.DOUBLE:Lorg/apache/kafka/common/config/ConfigDef$Type;
+      35: ldc2_w        #84                 // double 0.8d
+      38: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+      41: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+      44: ldc           #81                 // String Login thread will sleep until the specified window factor of time from last refresh to ticket\'s expiry has been reached, at which time it will try to renew the ticket.
+      46: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+      49: ldc           #88                 // String sasl.kerberos.ticket.renew.jitter
+      51: getstatic     #391                // Field org/apache/kafka/common/config/ConfigDef$Type.DOUBLE:Lorg/apache/kafka/common/config/ConfigDef$Type;
+      54: ldc2_w        #93                 // double 0.05d
+      57: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+      60: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+      63: ldc           #91                 // String Percentage of random jitter added to the renewal time.
+      65: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+      68: ldc           #97                 // String sasl.kerberos.min.time.before.relogin
+      70: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+      73: ldc2_w        #103                // long 60000l
+      76: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+      79: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+      82: ldc           #100                // String Login thread sleep time between refresh attempts.
+      84: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+      87: ldc           #107                // String sasl.login.refresh.window.factor
+      89: getstatic     #391                // Field org/apache/kafka/common/config/ConfigDef$Type.DOUBLE:Lorg/apache/kafka/common/config/ConfigDef$Type;
+      92: ldc2_w        #84                 // double 0.8d
+      95: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+      98: ldc2_w        #406                // double 0.5d
+     101: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+     104: dconst_1
+     105: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+     108: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     111: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     114: ldc           #110                // String Login refresh thread will sleep until the specified window factor relative to the credential\'s lifetime has been reached, at which time it will try to refresh the credential. Legal values are between 0.5 (50%) and 1.0 (100%) inclusive; a default value of 0.8 (80%) is used if no value is specified. Currently applies only to OAUTHBEARER.
+     116: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     119: ldc           #114                // String sasl.login.refresh.window.jitter
+     121: getstatic     #391                // Field org/apache/kafka/common/config/ConfigDef$Type.DOUBLE:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     124: ldc2_w        #93                 // double 0.05d
+     127: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+     130: dconst_0
+     131: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+     134: ldc2_w        #415                // double 0.25d
+     137: invokestatic  #397                // Method java/lang/Double.valueOf:(D)Ljava/lang/Double;
+     140: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     143: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     146: ldc           #117                // String The maximum amount of random jitter relative to the credential\'s lifetime that is added to the login refresh thread\'s sleep time. Legal values are between 0 and 0.25 (25%) inclusive; a default value of 0.05 (5%) is used if no value is specified. Currently applies only to OAUTHBEARER.
+     148: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     151: ldc           #121                // String sasl.login.refresh.min.period.seconds
+     153: getstatic     #419                // Field org/apache/kafka/common/config/ConfigDef$Type.SHORT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     156: bipush        60
+     158: invokestatic  #424                // Method java/lang/Short.valueOf:(S)Ljava/lang/Short;
+     161: iconst_0
+     162: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     165: sipush        900
+     168: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     171: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     174: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     177: ldc           #124                // String The desired minimum time for the login refresh thread to wait before refreshing a credential, in seconds. Legal values are between 0 and 900 (15 minutes); a default value of 60 (1 minute) is used if no value is specified.  This value and  sasl.login.refresh.buffer.seconds are both ignored if their sum exceeds the remaining lifetime of a credential. Currently applies only to OAUTHBEARER.
+     179: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     182: ldc           #130                // String sasl.login.refresh.buffer.seconds
+     184: getstatic     #419                // Field org/apache/kafka/common/config/ConfigDef$Type.SHORT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     187: sipush        300
+     190: invokestatic  #424                // Method java/lang/Short.valueOf:(S)Ljava/lang/Short;
+     193: iconst_0
+     194: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     197: sipush        3600
+     200: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     203: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     206: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     209: ldc           #133                // String The amount of buffer time before credential expiration to maintain when refreshing a credential, in seconds. If a refresh would otherwise occur closer to expiration than the number of buffer seconds then the refresh will be moved up to maintain as much of the buffer time as possible. Legal values are between 0 and 3600 (1 hour); a default value of  300 (5 minutes) is used if no value is specified. This value and sasl.login.refresh.min.period.seconds are both ignored if their sum exceeds the remaining lifetime of a credential. Currently applies only to OAUTHBEARER.
+     211: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     214: ldc           #29                 // String sasl.mechanism
+     216: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     219: ldc           #35                 // String GSSAPI
+     221: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     224: ldc           #32                 // String SASL mechanism used for client connections. This may be any mechanism for which a security provider is available. GSSAPI is the default mechanism.
+     226: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     229: ldc           #39                 // String sasl.jaas.config
+     231: getstatic     #432                // Field org/apache/kafka/common/config/ConfigDef$Type.PASSWORD:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     234: aconst_null
+     235: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     238: ldc           #42                 // String JAAS login context parameters for SASL connections in the format used by JAAS configuration files. JAAS configuration file format is described <a href=\"https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/LoginConfigFile.html\">here</a>. The format for the value is: <code>loginModuleClass controlFlag (optionName=optionValue)*;</code>. For brokers, the config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.jaas.config=com.example.ScramLoginModule required;
+     240: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     243: ldc           #45                 // String sasl.client.callback.handler.class
+     245: getstatic     #435                // Field org/apache/kafka/common/config/ConfigDef$Type.CLASS:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     248: aconst_null
+     249: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     252: ldc           #48                 // String The fully qualified name of a SASL client callback handler class that implements the AuthenticateCallbackHandler interface.
+     254: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     257: ldc           #51                 // String sasl.login.callback.handler.class
+     259: getstatic     #435                // Field org/apache/kafka/common/config/ConfigDef$Type.CLASS:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     262: aconst_null
+     263: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     266: ldc           #54                 // String The fully qualified name of a SASL login callback handler class that implements the AuthenticateCallbackHandler interface. For brokers, login callback handler config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.login.callback.handler.class=com.example.CustomScramLoginCallbackHandler
+     268: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     271: ldc           #57                 // String sasl.login.class
+     273: getstatic     #435                // Field org/apache/kafka/common/config/ConfigDef$Type.CLASS:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     276: aconst_null
+     277: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     280: ldc           #60                 // String The fully qualified name of a class that implements the Login interface. For brokers, login config must be prefixed with listener prefix and SASL mechanism name in lower-case. For example, listener.name.sasl_ssl.scram-sha-256.sasl.login.class=com.example.CustomScramLogin
+     282: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     285: ldc           #138                // String sasl.login.connect.timeout.ms
+     287: getstatic     #438                // Field org/apache/kafka/common/config/ConfigDef$Type.INT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     290: aconst_null
+     291: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     294: ldc           #141                // String The (optional) value in milliseconds for the external authentication provider connection timeout. Currently applies only to OAUTHBEARER.
+     296: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     299: ldc           #144                // String sasl.login.read.timeout.ms
+     301: getstatic     #438                // Field org/apache/kafka/common/config/ConfigDef$Type.INT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     304: aconst_null
+     305: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     308: ldc           #147                // String The (optional) value in milliseconds for the external authentication provider read timeout. Currently applies only to OAUTHBEARER.
+     310: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     313: ldc           #153                // String sasl.login.retry.backoff.max.ms
+     315: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     318: ldc2_w        #155                // long 10000l
+     321: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+     324: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     327: ldc           #159                // String The (optional) value in milliseconds for the maximum wait between login attempts to the external authentication provider. Login uses an exponential backoff algorithm with an initial wait based on the sasl.login.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.login.retry.backoff.max.ms setting. Currently applies only to OAUTHBEARER.
+     329: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     332: ldc           #162                // String sasl.login.retry.backoff.ms
+     334: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     337: ldc2_w        #164                // long 100l
+     340: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+     343: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     346: ldc           #168                // String The (optional) value in milliseconds for the initial wait between login attempts to the external authentication provider. Login uses an exponential backoff algorithm with an initial wait based on the sasl.login.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.login.retry.backoff.max.ms setting. Currently applies only to OAUTHBEARER.
+     348: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     351: ldc           #171                // String sasl.oauthbearer.jwt.retriever.class
+     353: getstatic     #435                // Field org/apache/kafka/common/config/ConfigDef$Type.CLASS:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     356: ldc           #174                // String org.apache.kafka.common.security.oauthbearer.DefaultJwtRetriever
+     358: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     361: ldc           #177                // String <p>The fully-qualified class name of a <code>JwtRetriever</code> implementation used to request tokens from the identity provider.</p><p>The default configuration value represents a class that maintains backward compatibility with previous versions of Apache Kafka. The default implementation uses the configuration to determine which concrete implementation to create.<p>Other implementations that are provided include:</p><ul><li><code>org.apache.kafka.common.security.oauthbearer.ClientCredentialsJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.DefaultJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.FileJwtRetriever</code></li><li><code>org.apache.kafka.common.security.oauthbearer.JwtBearerJwtRetriever</code></li></ul>
+     363: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     366: ldc           #180                // String sasl.oauthbearer.jwt.validator.class
+     368: getstatic     #435                // Field org/apache/kafka/common/config/ConfigDef$Type.CLASS:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     371: ldc           #183                // String org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator
+     373: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     376: ldc           #186                // String <p>The fully-qualified class name of a <code>JwtValidator</code> implementation used to validate the JWT from the identity provider.</p><p>The default validator (<code>org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator</code>) maintains backward compatibility with previous versions of Apache Kafka. The default validator uses configuration to determine which concrete implementation to create.<p>The built-in <code>JwtValidator</code> implementations are:</p><ul><li><code>org.apache.kafka.common.security.oauthbearer.BrokerJwtValidator</code></li><li><code>org.apache.kafka.common.security.oauthbearer.ClientJwtValidator</code></li><li><code>org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator</code></li></ul>
+     378: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     381: ldc           #189                // String sasl.oauthbearer.scope
+     383: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     386: aconst_null
+     387: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     390: ldc           #192                // String <p>This is the level of access a client application is granted to a resource or API which is included in the token request. If provided, it should match one or more scopes configured in the identity provider.</p><p>The scope was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>scope</code>. For backward compatibility, the <code>scope</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.scope</code> from configuration</li><li><code>scope</code> from JAAS</li></ul>
+     392: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     395: ldc           #195                // String sasl.oauthbearer.client.credentials.client.id
+     397: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     400: aconst_null
+     401: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     404: ldc           #198                // String <p>The ID (defined in/by the OAuth identity provider) to identify the client requesting the token.</p><p>The client ID was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>clientId</code>. For backward compatibility, the <code>clientId</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.client.credentials.client.id</code> from configuration</li><li><code>clientId</code> from JAAS</li></ul>
+     406: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     409: ldc           #201                // String sasl.oauthbearer.client.credentials.client.secret
+     411: getstatic     #432                // Field org/apache/kafka/common/config/ConfigDef$Type.PASSWORD:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     414: aconst_null
+     415: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     418: ldc           #204                // String <p>The secret (defined by either the user or preassigned, depending on the identity provider) of the client requesting the token.</p><p>The client secret was previously stored as part of the <code>sasl.jaas.config</code> configuration with the key <code>clientSecret</code>. For backward compatibility, the <code>clientSecret</code> JAAS option can still be used, but it is deprecated and will be removed in a future version.</p><p>Order of precedence:</p><ul><li><code>sasl.oauthbearer.client.credentials.client.secret</code> from configuration</li><li><code>clientSecret</code> from JAAS</li></ul>
+     420: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     423: ldc           #210                // String sasl.oauthbearer.assertion.algorithm
+     425: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     428: ldc           #213                // String RS256
+     430: iconst_2
+     431: anewarray     #440                // class java/lang/String
+     434: dup
+     435: iconst_0
+     436: ldc_w         #442                // String ES256
+     439: aastore
+     440: dup
+     441: iconst_1
+     442: ldc           #213                // String RS256
+     444: aastore
+     445: invokestatic  #446                // Method org/apache/kafka/common/config/ConfigDef$CaseInsensitiveValidString.in:([Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef$CaseInsensitiveValidString;
+     448: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     451: ldc           #216                // String <p>The algorithm the Apache Kafka client should use to sign the assertion sent to the identity provider. It is also used as the value of the OAuth <code>alg</code> (Algorithm) header in the JWT assertion.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     453: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     456: ldc           #219                // String sasl.oauthbearer.assertion.claim.aud
+     458: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     461: aconst_null
+     462: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     465: ldc           #222                // String <p>The JWT <code>aud</code> (Audience) claim which will be included in the  client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     467: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     470: ldc           #225                // String sasl.oauthbearer.assertion.claim.exp.seconds
+     472: getstatic     #438                // Field org/apache/kafka/common/config/ConfigDef$Type.INT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     475: sipush        300
+     478: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     481: iconst_0
+     482: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     485: ldc_w         #447                // int 86400
+     488: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     491: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     494: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     497: ldc           #230                // String <p>The number of seconds <em>in the future</em> for which the JWT is valid. The value is used to determine the JWT <code>exp</code> (Expiration) claim based on the current system time when the JWT is created.</p><p>The formula to generate the <code>exp</code> claim is very simple:</p><pre>Let:\n\n  x = the current timestamp in seconds, on client\n  y = the value of this configuration\n\nThen:\n\n  exp = x + y\n</pre><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     499: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     502: ldc           #233                // String sasl.oauthbearer.assertion.claim.iss
+     504: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     507: aconst_null
+     508: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     511: ldc           #236                // String <p>The value to be used as the <code>iss</code> (Issuer) claim which will be included in the client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     513: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     516: ldc           #239                // String sasl.oauthbearer.assertion.claim.jti.include
+     518: getstatic     #450                // Field org/apache/kafka/common/config/ConfigDef$Type.BOOLEAN:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     521: iconst_0
+     522: invokestatic  #455                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+     525: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     528: ldc           #245                // String <p>Flag that determines if the JWT assertion should generate a unique ID for the JWT and include it in the <code>jti</code> (JWT ID) claim.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     530: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     533: ldc           #248                // String sasl.oauthbearer.assertion.claim.nbf.seconds
+     535: getstatic     #438                // Field org/apache/kafka/common/config/ConfigDef$Type.INT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     538: bipush        60
+     540: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     543: iconst_0
+     544: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     547: sipush        3600
+     550: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     553: invokestatic  #411                // Method org/apache/kafka/common/config/ConfigDef$Range.between:(Ljava/lang/Number;Ljava/lang/Number;)Lorg/apache/kafka/common/config/ConfigDef$Range;
+     556: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     559: ldc           #252                // String <p>The number of seconds <em>in the past</em> from which the JWT is valid. The value is used to determine the JWT <code>nbf</code> (Not Before) claim based on the current system time when the JWT is created.</p><p>The formula to generate the <code>nbf</code> claim is very simple:</p><pre>Let:\n\n  x = the current timestamp in seconds, on client\n  y = the value of this configuration\n\nThen:\n\n  nbf = x - y\n</pre><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     561: invokevirtual #414                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Validator;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     564: ldc           #255                // String sasl.oauthbearer.assertion.claim.sub
+     566: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     569: aconst_null
+     570: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     573: ldc_w         #258                // String <p>The value to be used as the <code>sub</code> (Subject) claim which will be included in the client JWT assertion created locally.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     576: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     579: ldc_w         #261                // String sasl.oauthbearer.assertion.file
+     582: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     585: aconst_null
+     586: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     589: ldc_w         #264                // String <p>File that contains a <em>pre-generated</em> JWT assertion.</p><p>The underlying implementation caches the file contents to avoid the performance hit of loading the file on each access. The caching mechanism will detect whenthe file changes to allow for the file to be reloaded on modifications. This allows for &quot;live&quot; assertion rotation without restarting the Kafka client.</p><p>The file contains the assertion in the serialized, three part JWT format:</p><ol><li>The <em>header</em> section is a base 64-encoded JWT header that contains values like <code>alg</code> (Algorithm), <code>typ</code> (Type, always the literal value <code>JWT</code>), etc.</li><li>The <em>payload</em> section includes the base 64-encoded set of JWT claims, such as <code>aud</code> (Audience), <code>iss</code> (Issuer), <code>sub</code> (Subject), etc.</li><li>The <em>signature</em> section is the concatenated <em>header</em> and <em>payload</em> sections that was signed using a private key</li></ol><p>See <a href=\"https://datatracker.ietf.org/doc/html/rfc7519\">RFC 7519</a> and <a href=\"https://datatracker.ietf.org/doc/html/rfc7515\">RFC 7515</a> for more details on the JWT and JWS formats.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, all other <code>sasl.oauthbearer.assertion.</code>* configurations are ignored.</p>
+     592: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     595: ldc_w         #267                // String sasl.oauthbearer.assertion.private.key.file
+     598: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     601: aconst_null
+     602: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     605: ldc_w         #270                // String <p>File that contains a private key in the standard PEM format which is used to sign the JWT assertion sent to the identity provider.</p><p>The underlying implementation caches the file contents to avoid the performance hit of loading the file on each access. The caching mechanism will detect when the file changes to allow for the file to be reloaded on modifications. This allows for &quot;live&quot; private key rotation without restarting the Kafka client.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     608: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     611: ldc_w         #273                // String sasl.oauthbearer.assertion.private.key.passphrase
+     614: getstatic     #432                // Field org/apache/kafka/common/config/ConfigDef$Type.PASSWORD:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     617: aconst_null
+     618: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     621: ldc_w         #276                // String <p>The optional passphrase to decrypt the private key file specified by <code>sasl.oauthbearer.assertion.private.key.file</code>.</p><p><em>Note</em>: If the file referred to by <code>sasl.oauthbearer.assertion.private.key.file</code> is modified on the file system at runtime and it was created with a <em>different</em> passphrase than it was previously, the client will not be able to access the private key file because the passphrase is now out of date. For that reason, when using private key passphrases, either use the same passphrase each time, or&mdash;for improved security&mdash;restart the Kafka client using the new passphrase configuration.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     624: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     627: ldc_w         #279                // String sasl.oauthbearer.assertion.template.file
+     630: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     633: aconst_null
+     634: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     637: ldc_w         #282                // String <p>This optional configuration specifies the file containing the JWT headers and/or payload claims to be used when creating the JWT assertion.</p><p>Not all identity providers require the same set of claims; some may require a given claim while others may prohibit it. In order to provide the most flexibility, this configuration allows the user to provide the static header values and claims that are to be included in the JWT.</p><p><em>Note</em>: If a value for <code>sasl.oauthbearer.assertion.file</code> is provided, this configuration will be ignored.</p>
+     640: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     643: ldc_w         #285                // String sasl.oauthbearer.scope.claim.name
+     646: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     649: ldc_w         #288                // String scope
+     652: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     655: ldc_w         #291                // String The OAuth claim for the scope is often named \"scope\", but this (optional) setting can provide a different name to use for the scope included in the JWT payload\'s claims if the OAuth/OIDC provider uses a different name for that claim.
+     658: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     661: ldc_w         #294                // String sasl.oauthbearer.sub.claim.name
+     664: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     667: ldc_w         #297                // String sub
+     670: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     673: ldc_w         #300                // String The OAuth claim for the subject is often named \"sub\", but this (optional) setting can provide a different name to use for the subject included in the JWT payload\'s claims if the OAuth/OIDC provider uses a different name for that claim.
+     676: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     679: ldc_w         #303                // String sasl.oauthbearer.token.endpoint.url
+     682: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     685: aconst_null
+     686: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     689: ldc_w         #306                // String The URL for the OAuth/OIDC identity provider. If the URL is HTTP(S)-based, it is the issuer\'s token endpoint URL to which requests will be made to login based on the configuration in <code>sasl.oauthbearer.jwt.retriever.class</code>. If the URL is file-based, it specifies a file containing an access token (in JWT serialized form) issued by the OAuth/OIDC identity provider to use for authorization.
+     692: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     695: ldc_w         #309                // String sasl.oauthbearer.jwks.endpoint.url
+     698: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     701: aconst_null
+     702: getstatic     #381                // Field org/apache/kafka/common/config/ConfigDef$Importance.MEDIUM:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     705: ldc_w         #312                // String The OAuth/OIDC provider URL from which the provider\'s <a href=\"https://datatracker.ietf.org/doc/html/rfc7517#section-5\">JWKS (JSON Web Key Set)</a> can be retrieved. The URL can be HTTP(S)-based or file-based. If the URL is HTTP(S)-based, the JWKS data will be retrieved from the OAuth/OIDC provider via the configured URL on broker startup. All then-current keys will be cached on the broker for incoming requests. If an authentication request is received for a JWT that includes a \"kid\" header claim value that isn\'t yet in the cache, the JWKS endpoint will be queried again on demand. However, the broker polls the URL every sasl.oauthbearer.jwks.endpoint.refresh.ms milliseconds to refresh the cache with any forthcoming keys before any JWT requests that include them are received. If the URL is file-based, the broker will load the JWKS file from a configured location on startup. In the event that the JWT includes a \"kid\" header value that isn\'t in the JWKS file, the broker will reject the JWT and authentication will fail.
+     708: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     711: ldc_w         #315                // String sasl.oauthbearer.jwks.endpoint.refresh.ms
+     714: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     717: ldc2_w        #317                // long 3600000l
+     720: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+     723: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     726: ldc_w         #321                // String The (optional) value in milliseconds for the broker to wait between refreshing its JWKS (JSON Web Key Set) cache that contains the keys to verify the signature of the JWT.
+     729: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     732: ldc_w         #327                // String sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms
+     735: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     738: ldc2_w        #155                // long 10000l
+     741: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+     744: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     747: ldc_w         #331                // String The (optional) value in milliseconds for the maximum wait between attempts to retrieve the JWKS (JSON Web Key Set) from the external authentication provider. JWKS retrieval uses an exponential backoff algorithm with an initial wait based on the sasl.oauthbearer.jwks.endpoint.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms setting.
+     750: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     753: ldc_w         #334                // String sasl.oauthbearer.jwks.endpoint.retry.backoff.ms
+     756: getstatic     #400                // Field org/apache/kafka/common/config/ConfigDef$Type.LONG:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     759: ldc2_w        #164                // long 100l
+     762: invokestatic  #405                // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+     765: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     768: ldc_w         #338                // String The (optional) value in milliseconds for the initial wait between JWKS (JSON Web Key Set) retrieval attempts from the external authentication provider. JWKS retrieval uses an exponential backoff algorithm with an initial wait based on the sasl.oauthbearer.jwks.endpoint.retry.backoff.ms setting and will double in wait length between attempts up to a maximum wait length specified by the sasl.oauthbearer.jwks.endpoint.retry.backoff.max.ms setting.
+     771: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     774: ldc_w         #341                // String sasl.oauthbearer.clock.skew.seconds
+     777: getstatic     #438                // Field org/apache/kafka/common/config/ConfigDef$Type.INT:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     780: bipush        30
+     782: invokestatic  #429                // Method java/lang/Integer.valueOf:(I)Ljava/lang/Integer;
+     785: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     788: ldc_w         #346                // String The (optional) value in seconds to allow for differences between the time of the OAuth/OIDC identity provider and the broker.
+     791: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     794: ldc_w         #349                // String sasl.oauthbearer.expected.audience
+     797: getstatic     #458                // Field org/apache/kafka/common/config/ConfigDef$Type.LIST:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     800: aconst_null
+     801: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     804: ldc_w         #352                // String The (optional) comma-delimited setting for the broker to use to verify that the JWT was issued for one of the expected audiences. The JWT will be inspected for the standard OAuth \"aud\" claim and if this value is set, the broker will match the value from JWT\'s \"aud\" claim  to see if there is an exact match. If there is no match, the broker will reject the JWT and authentication will fail.
+     807: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     810: ldc_w         #355                // String sasl.oauthbearer.expected.issuer
+     813: getstatic     #377                // Field org/apache/kafka/common/config/ConfigDef$Type.STRING:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     816: aconst_null
+     817: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     820: ldc_w         #358                // String The (optional) setting for the broker to use to verify that the JWT was created by the expected issuer. The JWT will be inspected for the standard OAuth \"iss\" claim and if this value is set, the broker will match it exactly against what is in the JWT\'s \"iss\" claim. If there is no match, the broker will reject the JWT and authentication will fail.
+     823: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     826: ldc_w         #361                // String sasl.oauthbearer.header.urlencode
+     829: getstatic     #450                // Field org/apache/kafka/common/config/ConfigDef$Type.BOOLEAN:Lorg/apache/kafka/common/config/ConfigDef$Type;
+     832: iconst_0
+     833: invokestatic  #455                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+     836: getstatic     #388                // Field org/apache/kafka/common/config/ConfigDef$Importance.LOW:Lorg/apache/kafka/common/config/ConfigDef$Importance;
+     839: ldc_w         #365                // String The (optional) setting to enable the OAuth client to URL-encode the client_id and client_secret in the authorization header in accordance with RFC6749, see <a href=\"https://datatracker.ietf.org/doc/html/rfc6749#section-2.3.1\">here</a> for more details. The default value is set to \'false\' for backward compatibility
+     842: invokevirtual #385                // Method org/apache/kafka/common/config/ConfigDef.define:(Ljava/lang/String;Lorg/apache/kafka/common/config/ConfigDef$Type;Ljava/lang/Object;Lorg/apache/kafka/common/config/ConfigDef$Importance;Ljava/lang/String;)Lorg/apache/kafka/common/config/ConfigDef;
+     845: pop
+     846: return
+}

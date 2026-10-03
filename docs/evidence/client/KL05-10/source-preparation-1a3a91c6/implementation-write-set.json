@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "task": "KL05-10",
+  "status": "WORK-only claim-ready proposal; not claimed, not authorized for source edits",
+  "study_manifest_sha256": "6644510254df320f8c33eb22e3a8dd14b79615e789fe0958043baa89e2db86bc",
+  "selected_contract": "Kafka4.3 uniform sticky state machine with Rust admitted conservative packed-byte accounting; adaptive=false",
+  "product_write_set": [
+    "src/partitioner.rs",
+    "src/producer.rs"
+  ],
+  "test_write_set": [
+    "tests/client_api.rs",
+    "tests/sticky_partitioner_semantics.rs"
+  ],
+  "fixture_write_set": [
+    "tests/fixtures/partitioner/kafka43_uniform_rust_accounting/"
+  ],
+  "evidence_write_set": [
+    "docs/evidence/client/KL05-10/"
+  ],
+  "root_integration_only": [
+    "src/lib.rs additive exports/docs",
+    "docs/plan/tasks.json",
+    "docs/plan/evidence/KL05-10.json",
+    "tests/conformance/features.json",
+    "tests/conformance/cases.json",
+    "README.md",
+    "docs/support.md"
+  ],
+  "explicitly_excluded": [
+    "src/admin.rs",
+    "src/protocol/admin.rs",
+    "src/protocol/txn.rs",
+    "src/protocol/records.rs",
+    "src/protocol/buf.rs",
+    "src/net.rs",
+    "src/rpc_conn.rs",
+    "src/cluster.rs",
+    "Cargo.toml",
+    "Cargo.lock",
+    "tests/common/mod.rs"
+  ],
+  "source_baseline": {
+    "src/partitioner.rs": {
+      "sha256": "ad9c8977c4f5ef8b54284167020eb35d931e27fd5cc95a23d427c80bb9bd90b5",
+      "bytes": 5209,
+      "matches_sealed_study": true
+    },
+    "src/producer.rs": {
+      "sha256": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+      "bytes": 193923,
+      "matches_sealed_study": true
+    },
+    "tests/client_api.rs": {
+      "sha256": "4381fe434363ab13b550dc85414506b705b0af0246b916c2e169f979540c19c8",
+      "bytes": 160296,
+      "matches_sealed_study": true
+    }
+  },
+  "public_api_constraint": "Existing Partitioner signature/object safety and all current struct-literal layouts remain compatible. A defaulted descriptor hook activates Producer-owned lifecycle; existing custom implementations opt out automatically. Cloned configs must not share mutable sticky topic state across independent Producer::new instances.",
+  "defaults_constraint": "Default unkeyed global round robin and keyed murmur2 (including Some(empty)) unchanged; explicit partitions and custom partitioners retain prior routing/normalization. Opt-in only.",
+  "cohort_obligations": [
+    "Counter advances only on actual successful enqueue/append: record_size_upper_bound plus61B once when a new admitted cohort opens, separate from retained-payload permit bytes.",
+    "A route token is prepared once and reused by fast/fallback; no mutation on failed readiness/buffer/channel admission. Stale generation is rejected before enqueue; original absolute max_block and delivery budgets are retained.",
+    "All keyed/explicit/unkeyed admissions to a partition participate in its bounded tail/cohort ledger; only unkeyed append deltas charge the sticky counter.",
+    "Rotate atB with a genuinely full/empty tail or at2B regardless; random draws may reselect the same partition. Partial linger/flush drain belowB preserves accumulated sticky bytes.",
+    "Attach internal inline topic-lifetime/generation/cohort tags to Pending; opt-in grouping/take_count must not merge separately charged same-partition cohorts. Preserve existing retry/idempotent batch identity and never recharge retries.",
+    "Sealing takes a fixed admitted-membership snapshot. Actual worker partial/full drain, expiry, purge, routing replacement and shutdown retire precisely those cohorts; stale notifications cannot reopen a new topic lifetime.",
+    "Prefer complete bounded opt-in cohorts in each request, preserving existing max_request_size and single oversized-valid-record progress. Aggregate multiple-partition request caps and member retrieval must not strand or silently split a cohort without accounting.",
+    "Default mode keeps existing batching path. In opt-in mode keyed routing stays identical but keyed/explicit records share real cohort boundaries with unkeyed records."
+  ],
+  "bounded_state": {
+    "proposed_max_topics": 1024,
+    "proposed_max_ledger_rows": 4096,
+    "proposed_retained_topic_key_bytes": 262144,
+    "no_payload_copies_or_extra_unbounded_leader_arrays": true,
+    "idle_eviction": "only retire rows no longer pinned by required drain notifications",
+    "capacity_pressure": "uncached uniform selection with singleton/full cohort instead of new admission errors or unbounded allocation; degraded stickiness must be named and captured",
+    "cleanup": "close/last-handle shutdown clears state; changed known topicUUID/deletion/removed future partition invalidate only unadmitted tokens; transient leaderlessness or metadata-age refresh does not reset sticky history",
+    "limits": "No exact Java accumulator/compression/timestamp byte-history parity; no indefinite Java topic history after bounded eviction; missing UUID cannot detect recreation as strongly"
+  },
+  "admission_locking_review_gate": [
+    "No await, user interceptor/partitioner callback, network operation, or metadata refresh under the policy lock.",
+    "Use one documented order for final metadata/generation validation and policy commit, preferably cluster -> policy; never acquire cluster/nodes/fast from inside policy. Release both before waiting for channel/buffer or retry.",
+    "Tokio channel reservation is not itself a record append. Permit::send has no error return: explicitly prove receiver-close races before adopting it. Prefer committing the real synchronous try_send under the short policy critical section so Full/Closed outcomes cannot charge bytes; an async path may wait for capacity outside the lock and retry within the original deadline.",
+    "Worker notifications use the same short policy lock, so they cannot observe an enqueued member before its admission ledger entry commits."
+  ],
+  "reference_and_test_gates": "/workspace/work/client-sticky-assessment/validation-plan.json",
+  "prepared_java_oracle": "/workspace/work/client-sticky-assessment/GenerateUniformSticky.java",
+  "completed_model": "19 source-derived Python cases; not Java/Rust/runtime qualification",
+  "builds_fixtures_runtime_benchmarks_executed_for_this_prep": false,
+  "benchmark_source_scope": "Not claimed: root must name/delegate exact driver and Java/C peer paths before edits. Separate keyed/unkeyed/null-broker/current-broker profiles report accounting contract/seed availability/leader eligibility; native time-sticky is distinct. No performance claim without measured qualification."
+}

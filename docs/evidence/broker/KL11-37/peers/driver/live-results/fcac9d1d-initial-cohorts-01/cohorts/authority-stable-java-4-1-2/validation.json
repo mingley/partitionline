@@ -1,0 +1,334 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "complete_source_unchanged": true,
+  "unresolved_negative_recovery_peers": [],
+  "failed_step": null,
+  "failure_stage": null,
+  "phase_dispatch_denial_proved": false,
+  "audit_limit": "Independent stdout readers do not create a synchronized phase barrier. Retained complete joined audit totals are distinct from precise denial proven by source-pinned core socket tests.",
+  "steps": [
+    {
+      "ordinal": 0,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 1,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 2,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 3,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 4,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 5,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 6,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 7,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 8,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 9,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 10,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 11,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 12,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 13,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 14,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 15,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 16,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 17,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 18,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 19,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 20,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 21,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 22,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 23,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 24,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 25,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 26,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 27,
+      "operation": "revoke-issued",
+      "passed": true
+    },
+    {
+      "ordinal": 28,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 29,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 30,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 31,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 32,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 33,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 34,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 35,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 36,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 37,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 38,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 39,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 40,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 41,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 42,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 43,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 44,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 45,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 46,
+      "operation": "wait",
+      "passed": true
+    },
+    {
+      "ordinal": 47,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 48,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 49,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 50,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 51,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 52,
+      "operation": "stop-peer",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "owner": "broker",
+      "joined": true
+    },
+    {
+      "owner": "broker-process-0",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-1",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-2",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-3",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-4",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-5",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-6",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-7",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-8",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "issuer",
+      "joined": true
+    }
+  ],
+  "ordinary_expected_history": [],
+  "scope": "real token acquisition/socket metadata and explicitly selected ordinary RF1 records; reconnect lifetime0"
+}

@@ -1,0 +1,17 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "closed_cohorts": 4,
+  "passed_cohorts": 3,
+  "failed_cohorts": 1,
+  "unrun_held": 28,
+  "first_positive_handoff": {
+    "path": "/workspace/work/broker-oidc/fcac-first-live-stage-packet-01.json",
+    "sha256": "c55e3caa41ed382e8e2f32fa42df466b8c32f2dbc3265f7560fa0c7c49fbf6db"
+  },
+  "actual_failure": "FrozenJava4.1.2 expired start-peer expectedconstructorFATAL; officialprovider insteadREADY/token_success1, laternormalexit0. Failed atstep29; no expiredmetadataqueryissued.",
+  "classification": "Constructor/local-provider expectation mismatch. Expiredbrokeracceptance/rejection unproved. Alloriginalfrozenconfigs/recipes/failures remainunchanged.",
+  "temporal_evidence": "Sourcebounduniqueexpiredissuedmetadata exp1791042498 vs actualtokenHTTPS200epoch1791042558; routeeventdoesnotincludetokenhash, mintsource exp=now-60 association disclosed.",
+  "SDK_evidence": "15actualjavapclassmetadatacommands plusfirsttwo dumps arepublicclassintrospectiononly; no additionalJWTverification/login/network/SDK/brokerlivecells. All3default-without-JWKS ClientValidator paths differfrom earlierBroker/Default-with-JWKS420componentexecutions.",
+  "cleanup": "All4cohorts completewhole73196sourceunchanged, noouterforcedcleanup/unverified/survivors; privatepaths-only audits PASS. Failedcohort retainsactualexitstatus/stdoutcounts/stderrSHA+counts only, rawarbitrarySDKstderrdiscarded.",
+  "privacy": "No privatecontents/hashreads/copies. Onlypublicreceipts/sourceauditgzip/metadata/classdisassemblytext and actualorchestrationproducers."
+}

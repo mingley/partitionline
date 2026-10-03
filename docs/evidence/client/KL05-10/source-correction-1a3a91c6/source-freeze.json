@@ -1,0 +1,200 @@
+{
+  "claimed_main_sha": "1a3a91c6facc25e0b250fe06d9aefde9086a184c",
+  "compiled": false,
+  "contract": "Kafka 4.3 uniform adaptive=false state machine with Rust successful-admission conservative packed-byte accounting",
+  "held_observed_before_install": {
+    "src/cluster.rs": {
+      "bytes": 20271,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "a5c6d573cf10af287551d2f9d466bf37d4acf45dd2899a93e3cb1a2d609e0baa"
+    },
+    "src/group.rs": {
+      "bytes": 137817,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3"
+    },
+    "src/net.rs": {
+      "bytes": 83409,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a"
+    },
+    "src/protocol/buf.rs": {
+      "bytes": 61797,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+    },
+    "src/protocol/records.rs": {
+      "bytes": 171836,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+    }
+  },
+  "limits": {
+    "default_routing": "prior default/custom path remains; internal Pending size changed and performance must be measured",
+    "max_outstanding_cohorts_ceiling": 4096,
+    "max_pending_records_default_and_hard_ceiling": 100000,
+    "max_pending_records_minimum": 1,
+    "max_topics_ceiling": 1024,
+    "opt_in_produce_requests": "one complete bounded cohort per RPC; throughput/memory effects unmeasured",
+    "outside_record_budget": "Caller send_all staged input vector and other existing producer/network buffers",
+    "performance_claims": false,
+    "pressure_mode": "uniform singleton; no new admission error",
+    "qualified": false,
+    "record_budget_counts": "Reserved admission slots plus accepted records, including null/empty payloads and unlimited payload-byte budgets",
+    "record_capacity_exhaustion": "Existing QueueFull/max_block Timeout; no new error type",
+    "reference_execution": "caller prepared; SDK source pinned; no generated Java output fixture",
+    "retained_topic_text_bytes_ceiling": 262144
+  },
+  "next_gates": "Actual pushed immutable source; format first; stable/MSRV default/all strict checks and meaningful policy/socket tests; full four-client QA; genuine pinned Java reference; matched keyed/unkeyed benchmark with explicit accounting and leader/seed configuration",
+  "performance_claims": false,
+  "prepared_policy_test_count": 11,
+  "prepared_policy_tests": [
+    "prepared_routes_and_plans_are_pure_until_commit",
+    "real_tail_fullness_defers_b_then_zero_byte_drain_completes_rotation",
+    "two_b_forces_rotation_with_an_incomplete_tail_and_can_redraw_same_partition",
+    "keyed_overhead_is_not_charged_to_the_unkeyed_counter",
+    "uuid_reset_and_removed_partition_preserve_old_delivery_rows_without_stale_rotation",
+    "partial_terminal_expiry_shrinks_members_and_sequenced_cancellation_is_sticky",
+    "close_discards_bounded_history_and_late_callbacks_cannot_recreate_it",
+    "actual_seeded_policy_rotations_are_uniform_over_available_leaders",
+    "non_power_of_two_rejection_peeks_do_not_consume_rng_and_commit_all_attempted_draws",
+    "rotation_and_pressure_consume_the_returned_rejection_state_for_eligible_leaders",
+    "cached_route_pressure_never_consumes_a_draw_that_was_not_used_for_selection"
+  ],
+  "prepared_socket_test_count": 28,
+  "prepared_socket_tests": [
+    "sticky_burst_is_one_real_batch_and_partial_flush_preserves_partition",
+    "mixed_keyed_and_explicit_records_share_real_tail_without_unkeyed_charge",
+    "failed_buffer_admission_does_not_charge_or_consume_route",
+    "failed_leader_routing_does_not_create_history_or_advance_accounting",
+    "pressure_singletons_are_not_merged_and_ledger_is_bounded",
+    "zero_caps_use_stateless_singletons_without_new_admission_errors",
+    "independent_producers_from_one_config_have_independent_histories",
+    "retries_preserve_cohort_membership_and_never_charge_twice",
+    "terminal_errors_retire_all_cohort_rows_and_payload_reservations",
+    "broker_terminal_error_and_acks_zero_both_retire_rows",
+    "cancelled_queued_send_still_delivers_and_retires_its_cohort",
+    "cancellation_before_buffer_admission_does_not_charge_or_leak",
+    "absolute_max_block_with_unavailable_leaders_is_bounded_and_uncharged",
+    "expiry_and_close_clear_state_without_late_history_recreation",
+    "retained_topic_text_and_idle_eviction_stay_within_hard_caps",
+    "transaction_partition_failure_retires_cohort_and_allows_abort",
+    "new_uniform_draws_exclude_unavailable_partitions",
+    "existing_sticky_selection_survives_leader_loss_without_consuming_draws",
+    "produce_v13_uses_admitted_uuid_after_metadata_recreation",
+    "leader_movement_retries_original_partition_and_complete_cohort",
+    "sequenced_retry_expiry_cancels_remaining_cohort_without_resending_short_batch",
+    "asynchronous_mixed_admissions_across_connection_slots_complete_and_release_ledger",
+    "two_record_cap_bounds_null_and_empty_payloads_even_with_unlimited_byte_budget",
+    "cancellation_before_enqueue_releases_the_reserved_record_slot_without_policy_charge",
+    "cancellation_while_waiting_record_capacity_creates_no_reservation_or_admission",
+    "cancelled_accepted_null_send_retains_slot_until_terminal_delivery",
+    "retry_backoff_retains_record_slots_without_double_acquisition_or_charge",
+    "terminal_failure_and_failed_routing_release_record_slots_exactly_once"
+  ],
+  "reviewed_corrections": [
+    "Unbiased eligible-index rejection sampling with successful-enqueue post-draw state commit",
+    "Producer-wide reserved-plus-accepted record budget with per-Pending RAII ownership"
+  ],
+  "root_integration": {
+    "exports": [
+      "StickyPartitioner",
+      "StickyPartitionerConfig"
+    ],
+    "owner": "root; same source checkpoint; not edited by this agent"
+  },
+  "rust_or_java_tests_executed": false,
+  "schema": 1,
+  "source_files": {
+    "src/partitioner.rs": {
+      "bytes": 43758,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "89dd6ee18b26b5e8590bc919b9ce176b28fc093cce4cb82dbeb58e7dadb3c3f5"
+    },
+    "src/producer.rs": {
+      "bytes": 218265,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    "tests/client_api.rs": {
+      "bytes": 161560,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "6338a2442f341455c1ee8e3496c4052d6f5b983cde4eb14c6d753eb90c4e4f7d"
+    },
+    "tests/fixtures/sticky-partitioner/BuiltInPartitioner.java": {
+      "bytes": 17173,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "7f9af016cad8b414be9da32abe151877ffba2fbbac8981ce57e884ab8c1b6d1a"
+    },
+    "tests/fixtures/sticky-partitioner/BuiltInPartitionerTest.java": {
+      "bytes": 10061,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "2153752e226a3d4e5cd290bb979be85f5425565a24ccf1c5053c9bc97e4b7eb6"
+    },
+    "tests/fixtures/sticky-partitioner/GenerateUniformSticky.java": {
+      "bytes": 4615,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "77ea267770d4513cf3ae1cedfb327a990183dbb4ccb86d690d0561ab2dc9996a"
+    },
+    "tests/fixtures/sticky-partitioner/ProducerConfig.java": {
+      "bytes": 53518,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "464068167673e9c37f65083d55e72c0f58ddcffd66fa9f10a0ec5cfb2172c8b0"
+    },
+    "tests/fixtures/sticky-partitioner/README.md": {
+      "bytes": 1895,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "7c15cd3eeb5d8857e36bd501138b277b9cff38990830cc8d3b19ba45d8aa7bfa"
+    },
+    "tests/fixtures/sticky-partitioner/RecordAccumulator.java": {
+      "bytes": 63071,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "18dad54c2a6f58b868c2e3b21b2d021bee02fb001fa8d1fc0c98059bd1086a7c"
+    },
+    "tests/fixtures/sticky-partitioner/upstream-source-pin.json": {
+      "bytes": 2328,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "5c2d9c445fc1043aba4d3e2b53fdacc22350775a127a1a0652d91c0f139efe73"
+    },
+    "tests/sticky_partitioner.rs": {
+      "bytes": 37454,
+      "git_mode": "100644",
+      "mode": "0o600",
+      "sha256": "9d42a3a64008bac73e4b4d88c0bdaffa89d0b3b421da8ada5ab4f43add2785fc"
+    }
+  },
+  "status": "Corrected source checkpoint; uncompiled and unqualified",
+  "supersedes_source_candidate": {
+    "handoff": {
+      "bytes": 16725,
+      "mode": "0o600",
+      "sha256": "39aac98fdcd360f074ae0c4f53ec7b6d2124acb28b0a118ee8e4da1567e71af3"
+    },
+    "lossless_history_archive": {
+      "bytes": 552859,
+      "mode": "0o600",
+      "sha256": "1970306c142c031159e4383a930ba41baab5b09bb06177ca5ebc022b0bd2e3cc"
+    },
+    "source_freeze": {
+      "bytes": 7178,
+      "mode": "0o600",
+      "sha256": "b01ae19fed885193e264031a217bcf4376462031aee16e108e6663245bc8cffd"
+    }
+  },
+  "task": "KL05-10"
+}

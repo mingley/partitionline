@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "scope": "source preparation before pushed claim GO; copied exact base bytes only, candidate logic not yet changed",
+  "candidate_directory": "/workspace/work/client-sticky-implementation-prep/candidate",
+  "source_baseline": [
+    {
+      "path": "src/partitioner.rs",
+      "sha256": "ad9c8977c4f5ef8b54284167020eb35d931e27fd5cc95a23d427c80bb9bd90b5",
+      "bytes": 5209
+    },
+    {
+      "path": "src/producer.rs",
+      "sha256": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+      "bytes": 193923
+    },
+    {
+      "path": "tests/client_api.rs",
+      "sha256": "4381fe434363ab13b550dc85414506b705b0af0246b916c2e169f979540c19c8",
+      "bytes": 160296
+    }
+  ],
+  "product_source_stage": [
+    "partitioner defaulted descriptor/named opt-in and private uniform state-machine helpers",
+    "Shared-owned bounded topic/cohort ledger with effective B and record caps",
+    "single route token and real successful enqueue admission for both producer entrypoints",
+    "Pending cohort tags; true seal/fixed-membership, default unchanged, opt-in complete-cohort selection",
+    "retire actual drained/expired/failed/shutdown cohorts; retry tags/accounting preserved"
+  ],
+  "tests_stage": [
+    "Existing default RR/murmur2/custom/explicit API compatibility",
+    "New focused socket mixed records, availability, pre-drain bursts, failed/full/canceled admission, metadata recreation, retention/pressure/close/retry gates",
+    "Pinned actual-Java explicit-byte state-machine fixtures after separately granted fixture execution"
+  ],
+  "source_truth": "First code freeze will say uncompiled; rustfmt syntax-only if run is not Clippy/typecheck/runtime proof. Root push precedes immutable full QA; no timing/improvement assertion before real benchmark gates.",
+  "no_cargo_jvm_or_repo_edits": true,
+  "awaiting_pushed_claim_GO": true
+}

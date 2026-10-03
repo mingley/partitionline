@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "scope": "syntax/format only; no Cargo, rustc, Clippy, tests, JVM, broker or performance command executed",
+  "cpu_set": "0,1",
+  "toolchain_homes": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup"
+  },
+  "commands": [
+    {
+      "label": "format-final-complete",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/client-sticky-implementation-prep/candidate/src/partitioner.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/src/producer.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/tests/sticky_partitioner.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/tests/client_api.rs"
+      ],
+      "exit": 0,
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "0o600",
+        "git_mode": "100644"
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "0o600",
+        "git_mode": "100644"
+      }
+    },
+    {
+      "label": "msrv-final-complete-format-check",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/client-sticky-implementation-prep/candidate/src/partitioner.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/src/producer.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/tests/sticky_partitioner.rs",
+        "/workspace/work/client-sticky-implementation-prep/candidate/tests/client_api.rs"
+      ],
+      "exit": 0,
+      "stdout": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "0o600",
+        "git_mode": "100644"
+      },
+      "stderr": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "bytes": 0,
+        "mode": "0o600",
+        "git_mode": "100644"
+      }
+    }
+  ]
+}

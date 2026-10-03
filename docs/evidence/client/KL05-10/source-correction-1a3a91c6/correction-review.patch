@@ -1,0 +1,925 @@
+--- first-candidate/src/partitioner.rs
++++ corrected-candidate/src/partitioner.rs
+@@ -38,6 +38,9 @@
+     pub max_cohorts: usize,
+     /// Maximum retained topic-name bytes, capped at 256 KiB.
+     pub max_topic_bytes: usize,
++    /// Reserved admission slots plus accepted records, clamped to 1..=100,000.
++    /// The bound includes empty/null records and unlimited payload-byte budgets.
++    pub max_pending_records: usize,
+     /// Reproducible draw seed; None obtains a per-producer seed.
+     pub seed: Option<u64>,
+ }
+@@ -48,6 +51,7 @@
+             max_topics: 1024,
+             max_cohorts: 4096,
+             max_topic_bytes: 256 * 1024,
++            max_pending_records: 100_000,
+             seed: None,
+         }
+     }
+@@ -75,8 +79,9 @@
+ 
+     /// Configure hard state caps and, optionally, a reproducible seed.
+     ///
+-    /// At a cap the producer uses uniform singleton cohorts until space becomes
+-    /// available; it does not introduce a new admission error or unbounded state.
++    /// At a topic/cohort/text cap the producer uses uniform singleton cohorts
++    /// until space becomes available. Exhausting record slots uses the existing
++    /// QueueFull or max_block wait behavior, with no new error type.
+     #[must_use]
+     pub fn with_config(config: StickyPartitionerConfig) -> Self {
+         Self {
+@@ -110,7 +115,7 @@
+     lifetime: Option<u128>,
+     generation: Option<u128>,
+     identity: Option<[u8; 16]>,
+-    rng: Option<u64>,
++    pub(crate) rng: Option<u64>,
+     pub(crate) partition: i32,
+ }
+ 
+@@ -150,6 +155,7 @@
+ 
+ pub(crate) struct StickyAppend {
+     pub(crate) tag: StickyTag,
++    pub(crate) next_rng: Option<u64>,
+     old_tail: Option<u128>,
+     existing_tail: bool,
+     cache: bool,
+@@ -188,6 +194,7 @@
+             max_topics: config.max_topics.min(1024),
+             max_cohorts: config.max_cohorts.min(4096),
+             max_topic_bytes: config.max_topic_bytes.min(256 * 1024),
++            max_pending_records: config.max_pending_records.clamp(1, 100_000),
+             ..config
+         };
+         let seed = config.seed.unwrap_or_else(|| {
+@@ -232,8 +239,9 @@
+         (next, i32::try_from(z & 0x7fff_ffff).unwrap_or(0))
+     }
+ 
+-    fn choose(seed: u64, leaders: &[i32]) -> i32 {
+-        let (_, random) = Self::draw(seed);
++    /// Uniform over eligible indices: the incomplete modulus bucket is rejected.
++    /// Return the state after every attempted draw without mutating the policy.
++    fn choose(seed: u64, leaders: &[i32]) -> (i32, u64) {
+         let available = leaders.iter().filter(|&&leader| leader >= 0).count();
+         let count = if available == 0 {
+             leaders.len()
+@@ -241,19 +249,34 @@
+             available
+         };
+         if count == 0 {
+-            return 0;
+-        }
+-        let index = usize::try_from(random).unwrap_or(0) % count;
+-        if available == 0 {
+-            return i32::try_from(index).unwrap_or(0);
+-        }
+-        leaders
+-            .iter()
+-            .enumerate()
+-            .filter(|(_, leader)| **leader >= 0)
+-            .nth(index)
+-            .and_then(|(p, _)| i32::try_from(p).ok())
+-            .unwrap_or(0)
++            return (0, seed);
++        }
++        // Kafka partition indices/counts are int32. Ignore an unrepresentable
++        // suffix if called with a non-protocol, oversized metadata slice.
++        let count = u64::try_from(count.min(2_147_483_647)).unwrap_or(1);
++        let domain = 1u64 << 31;
++        let accepted_domain = domain - domain % count;
++        let mut post = seed;
++        let index = loop {
++            let (next, random) = Self::draw(post);
++            post = next;
++            let random = u64::try_from(random).unwrap_or(0);
++            if random < accepted_domain {
++                break usize::try_from(random % count).unwrap_or(0);
++            }
++        };
++        let partition = if available == 0 {
++            i32::try_from(index).unwrap_or(0)
++        } else {
++            leaders
++                .iter()
++                .enumerate()
++                .filter(|(_, leader)| **leader >= 0)
++                .nth(index)
++                .and_then(|(p, _)| i32::try_from(p).ok())
++                .unwrap_or(0)
++        };
++        (partition, post)
+     }
+ 
+     fn identity(cluster: &Cluster, topic: &str) -> Option<[u8; 16]> {
+@@ -290,12 +313,16 @@
+                 self.cohorts.len() < self.config.max_cohorts
+                     || row.is_some_and(|row| !self.full(topic, row.lifetime, info.partition))
+             });
++        let drawn = info.is_none().then(|| Self::choose(self.rng, leaders));
+         Some(StickyRoute {
+             lifetime: row.map(|row| row.lifetime),
+             generation: info.map(|info| info.generation),
+             identity,
+-            rng: info.is_none().then_some(self.rng),
+-            partition: info.map_or_else(|| Self::choose(self.rng, leaders), |info| info.partition),
++            rng: drawn.map(|(_, post)| post),
++            partition: info.map_or_else(
++                || drawn.map_or(0, |(partition, _)| partition),
++                |info| info.partition,
++            ),
+         })
+     }
+ 
+@@ -369,6 +396,7 @@
+         let tracked = existing_tail
+             || (cache && !self.exhausted && self.cohorts.len() < self.config.max_cohorts);
+         StickyAppend {
++            next_rng: None,
+             tag: StickyTag {
+                 id: if existing_tail {
+                     old_tail.unwrap_or(0)
+@@ -435,8 +463,8 @@
+         let Some(leaders) = cluster.leaders.get(topic).filter(|v| !v.is_empty()) else {
+             return;
+         };
+-        let partition = Self::choose(self.rng, leaders);
+-        self.rng = Self::draw(self.rng).0;
++        let (partition, post) = Self::choose(self.rng, leaders);
++        self.rng = post;
+         let generation = self.allocate_id();
+         if let Some(row) = self.topics.get_mut(topic) {
+             row.info = Some(StickyInfo {
+@@ -493,7 +521,9 @@
+                 && self.topics.get(topic).is_some_and(|row| row.info.is_none())
+             {
+                 let generation = self.allocate_id();
+-                self.rng = Self::draw(self.rng).0;
++                if let Some(post) = plan.next_rng {
++                    self.rng = post;
++                }
+                 if let Some(row) = self.topics.get_mut(topic) {
+                     row.info = Some(StickyInfo {
+                         generation,
+@@ -510,7 +540,9 @@
+             }
+         }
+         if unkeyed && plan.tag.id == 0 {
+-            self.rng = Self::draw(self.rng).0;
++            if let Some(post) = plan.next_rng {
++                self.rng = post;
++            }
+             if let Some(row) = self.topics.get_mut(topic) {
+                 row.info = None;
+             }
+@@ -840,7 +872,9 @@
+         unkeyed: bool,
+     ) -> StickyTag {
+         let topic: Arc<str> = Arc::from("t");
+-        let plan = state.plan(&topic, partition, worker, bytes, cluster);
++        let route = unkeyed.then(|| state.route(&topic, cluster)).flatten();
++        let mut plan = state.plan(&topic, partition, worker, bytes, cluster);
++        plan.next_rng = route.and_then(|route| route.rng);
+         let tag = plan.tag;
+         state.commit(&topic, partition, worker, unkeyed, plan, cluster);
+         tag
+@@ -1035,7 +1069,8 @@
+             let route = state.route("t", &cluster).unwrap();
+             let index = usize::try_from(route.partition).unwrap();
+             *counts.get_mut(index).unwrap() += 1;
+-            let plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
++            let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
++            plan.next_rng = route.rng;
+             let tag = plan.tag;
+             state.commit(&topic, route.partition, &worker, true, plan, &cluster);
+             state.release(tag, 1, &cluster);
+@@ -1054,3 +1089,156 @@
+         assert_eq!(state.counts().4, 60_000 * 161);
+     }
+ }
++
++#[cfg(test)]
++mod sticky_rejection_tests {
++    use super::*;
++
++    #[test]
++    fn non_power_of_two_rejection_peeks_do_not_consume_rng_and_commit_all_attempted_draws() {
++        // Seeds obtained by inverting the documented SplitMix64 transform; the
++        // first masked values are the two excluded values in the 3-way domain.
++        for (seed, rejected, partitions, expected_partition, post) in [
++            (
++                0xf7fd_dcff_99ab_5ded,
++                2_147_483_647,
++                3,
++                1,
++                0x346c_d072_9840_5617,
++            ),
++            (
++                0xf199_1e83_504c_5420,
++                2_147_483_646,
++                3,
++                1,
++                0x2e08_11f6_4ee1_4c4a,
++            ),
++            (
++                0xf7fd_dcff_99ab_5ded,
++                2_147_483_647,
++                5,
++                3,
++                0x346c_d072_9840_5617,
++            ),
++        ] {
++            let mut cluster = Cluster::default();
++            let _ = cluster.leaders.insert("t".to_owned(), vec![0; partitions]);
++            let topic: Arc<str> = Arc::from("t");
++            let worker = Arc::new(());
++            let mut state = StickyState::new(
++                StickyPartitionerConfig {
++                    seed: Some(seed),
++                    ..StickyPartitionerConfig::default()
++                },
++                1000,
++                100,
++            );
++            assert_eq!(StickyState::draw(seed).1, rejected);
++            let before = state.counts();
++            let route = state.route(&topic, &cluster).unwrap();
++            assert_eq!(route.partition, expected_partition);
++            assert_eq!(route.rng, Some(post));
++            for _ in 0..100 {
++                let _ = state.plan(&topic, route.partition, &worker, 100, &cluster);
++                assert_eq!(state.route(&topic, &cluster), Some(route));
++                assert_eq!(state.rng, seed);
++                assert_eq!(state.counts(), before);
++            }
++            let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
++            plan.next_rng = route.rng;
++            state.commit(&topic, route.partition, &worker, true, plan, &cluster);
++            assert_eq!(state.rng, post);
++            assert_eq!(state.route(&topic, &cluster).unwrap().rng, None);
++            assert_eq!(state.counts().4, 161);
++        }
++    }
++
++    #[test]
++    fn rotation_and_pressure_consume_the_returned_rejection_state_for_eligible_leaders() {
++        let seed = 0xf7fd_dcff_99ab_5ded;
++        let post = 0x346c_d072_9840_5617;
++        let mut cluster = Cluster::default();
++        let _ = cluster
++            .leaders
++            .insert("t".to_owned(), vec![0, -1, 0, -1, 0]);
++        let topic: Arc<str> = Arc::from("t");
++        let worker = Arc::new(());
++        let mut state = StickyState::new(
++            StickyPartitionerConfig {
++                seed: Some(seed),
++                ..StickyPartitionerConfig::default()
++            },
++            1000,
++            100,
++        );
++        let route = state.route(&topic, &cluster).unwrap();
++        assert_eq!((route.partition, route.rng), (2, Some(post)));
++        let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
++        plan.next_rng = route.rng;
++        let tag = plan.tag;
++        state.commit(&topic, route.partition, &worker, true, plan, &cluster);
++        state.rng = seed;
++        state
++            .topics
++            .get_mut(&topic)
++            .unwrap()
++            .info
++            .as_mut()
++            .unwrap()
++            .bytes = 1000;
++        state.drain(tag, &cluster);
++        assert_eq!(state.rng, post);
++        assert_eq!(state.route(&topic, &cluster).unwrap().partition, 2);
++        let mut pressure = StickyState::new(
++            StickyPartitionerConfig {
++                max_topics: 0,
++                seed: Some(seed),
++                ..StickyPartitionerConfig::default()
++            },
++            1000,
++            100,
++        );
++        let route = pressure.route(&topic, &cluster).unwrap();
++        let mut plan = pressure.plan(&topic, route.partition, &worker, 100, &cluster);
++        assert_eq!(plan.tag.id, 0);
++        plan.next_rng = route.rng;
++        pressure.commit(&topic, route.partition, &worker, true, plan, &cluster);
++        assert_eq!(pressure.rng, post);
++        assert_eq!(pressure.counts().3, 1);
++    }
++}
++
++#[cfg(test)]
++mod sticky_pressure_rng_tests {
++    use super::*;
++
++    #[test]
++    fn cached_route_pressure_never_consumes_a_draw_that_was_not_used_for_selection() {
++        let mut cluster = Cluster::default();
++        let _ = cluster.leaders.insert("t".to_owned(), vec![0, 0, 0]);
++        let topic: Arc<str> = Arc::from("t");
++        let worker = Arc::new(());
++        let mut state = StickyState::new(
++            StickyPartitionerConfig {
++                max_cohorts: 1,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            },
++            300,
++            100,
++        );
++        let first = state.route(&topic, &cluster).unwrap();
++        let mut plan = state.plan(&topic, first.partition, &worker, 100, &cluster);
++        plan.next_rng = first.rng;
++        state.commit(&topic, first.partition, &worker, true, plan, &cluster);
++        let rng = state.rng;
++        let cached = state.route(&topic, &cluster).unwrap();
++        assert_eq!(cached.rng, None);
++        let mut pressure = state.plan(&topic, cached.partition, &worker, 200, &cluster);
++        assert_eq!(pressure.tag.id, 0);
++        pressure.next_rng = cached.rng;
++        state.commit(&topic, cached.partition, &worker, true, pressure, &cluster);
++        assert_eq!(state.rng, rng);
++        assert_eq!(state.counts().3, 1);
++    }
++}
+--- first-candidate/src/producer.rs
++++ corrected-candidate/src/producer.rs
+@@ -781,7 +781,58 @@
+     }
+ }
+ 
++/// A producer-wide record-slot bound, independent of payload byte accounting.
++/// Fresh per Producer, including when cloned configs share a partitioner Arc.
++struct StickyRecordBudget {
++    limit: usize,
++    used: AtomicUsize,
++    nudge: Notify,
++}
++
++impl StickyRecordBudget {
++    fn new(limit: usize) -> Self {
++        Self {
++            limit: limit.clamp(1, 100_000),
++            used: AtomicUsize::new(0),
++            nudge: Notify::new(),
++        }
++    }
++    fn acquire(self: &Arc<Self>) -> Option<StickyRecordPermit> {
++        let mut used = self.used.load(Ordering::Acquire);
++        loop {
++            if used >= self.limit {
++                return None;
++            }
++            match self.used.compare_exchange_weak(
++                used,
++                used + 1,
++                Ordering::AcqRel,
++                Ordering::Acquire,
++            ) {
++                Ok(_) => {
++                    return Some(StickyRecordPermit {
++                        budget: Arc::clone(self),
++                    })
++                }
++                Err(current) => used = current,
++            }
++        }
++    }
++}
++
++/// Non-Clone: one reservation moves with Pending through every owner and retry.
++struct StickyRecordPermit {
++    budget: Arc<StickyRecordBudget>,
++}
++impl Drop for StickyRecordPermit {
++    fn drop(&mut self) {
++        let _ = self.budget.used.fetch_sub(1, Ordering::AcqRel);
++        self.budget.nudge.notify_waiters();
++    }
++}
++
+ struct Pending {
++    sticky_record: Option<StickyRecordPermit>,
+     sticky: Option<StickyTag>,
+     rec: ProduceRecord,
+     tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
+@@ -884,6 +935,7 @@
+     partitioner: Arc<dyn Partitioner>,
+     /// Present only for the explicit opt-in; mutable history is per producer.
+     sticky: Option<parking_lot::Mutex<StickyState>>,
++    sticky_records: Option<Arc<StickyRecordBudget>>,
+     producer_id: AtomicI64,
+     producer_epoch: AtomicI16,
+     /// Generation of the shared idempotent identity. Incremented on every
+@@ -1019,6 +1071,9 @@
+         if let Some(state) = &self.sticky {
+             state.lock().clear();
+         }
++        if let Some(records) = &self.sticky_records {
++            records.nudge.notify_waiters();
++        }
+     }
+ 
+     fn retire_sticky(&self, pending: &[Pending], failed: bool) {
+@@ -1459,6 +1514,7 @@
+         let (meta_tx, meta_rx) = mpsc::channel(8);
+         let (connect_tx, connect_rx) = mpsc::channel(16);
+         let (retry_tx, retry_rx) = mpsc::channel(cap.max(1024));
++        let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
+         let shared = Arc::new(Shared {
+             cfg: cfg.clone(),
+             cluster: parking_lot::Mutex::new(Cluster::default()),
+@@ -1475,17 +1531,15 @@
+             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
+             client_instance_id: parking_lot::Mutex::new(None),
+             partitioner: cfg.partitioner.arc(),
+-            sticky: cfg
+-                .partitioner
+-                .arc()
+-                .unkeyed_batching_policy()
+-                .map(|policy| {
+-                    parking_lot::Mutex::new(StickyState::new(
+-                        policy,
+-                        cfg.produce_batch_bytes(),
+-                        cfg.batch_records,
+-                    ))
+-                }),
++            sticky: sticky_policy.map(|policy| {
++                parking_lot::Mutex::new(StickyState::new(
++                    policy,
++                    cfg.produce_batch_bytes(),
++                    cfg.batch_records,
++                ))
++            }),
++            sticky_records: sticky_policy
++                .map(|policy| Arc::new(StickyRecordBudget::new(policy.max_pending_records))),
+             producer_id: AtomicI64::new(producer_id),
+             producer_epoch: AtomicI16::new(producer_epoch),
+             epoch_gen: AtomicU64::new(0),
+@@ -1757,6 +1811,7 @@
+             let send_res = tokio::time::timeout(
+                 rest_block,
+                 w.data.send(Pending {
++                    sticky_record: None,
+                     sticky: None,
+                     rec,
+                     tx: Some(tx),
+@@ -1800,6 +1855,7 @@
+         now: Instant,
+     ) -> Pending {
+         Pending {
++            sticky_record: None,
+             sticky: None,
+             rec,
+             tx,
+@@ -1818,7 +1874,12 @@
+     /// The one accounting linearization point. Both route and plan are pure until
+     /// the actual try_send succeeds. No callback, network operation, or await is
+     /// performed while metadata/policy locks are held.
+-    fn sticky_enqueue(&self, pending_slot: &mut Option<Pending>, unkeyed: bool) -> Result<()> {
++    fn sticky_enqueue(
++        &self,
++        pending_slot: &mut Option<Pending>,
++        unkeyed: bool,
++        block_deadline: Option<Instant>,
++    ) -> Result<()> {
+         let Some(pending) = pending_slot.as_mut() else {
+             return Err(Error::Closed);
+         };
+@@ -1834,17 +1895,23 @@
+         let Some(np) = cluster.partition_count(&pending.rec.topic) else {
+             return Err(Error::QueueFull);
+         };
+-        let partition = if unkeyed {
++        let route = if unkeyed {
+             let Some(route) = policy.route(&pending.rec.topic, &cluster) else {
+                 return Err(Error::QueueFull);
+             };
+             debug_assert!(policy.route_current(&pending.rec.topic, route, &cluster));
+-            route.partition
++            Some(route)
+         } else {
+-            pending.rec.partition.unwrap_or_else(|| {
+-                partition_for_key(pending.rec.key.as_deref().unwrap_or_default(), np)
+-            })
++            None
+         };
++        let partition = route.map_or_else(
++            || {
++                pending.rec.partition.unwrap_or_else(|| {
++                    partition_for_key(pending.rec.key.as_deref().unwrap_or_default(), np)
++                })
++            },
++            |route| route.partition,
++        );
+         pending.rec.partition = Some(partition);
+         let Ok((node, _)) = cluster.leader(&pending.rec.topic, partition) else {
+             return Err(Error::QueueFull);
+@@ -1861,7 +1928,15 @@
+             return Err(Error::QueueFull);
+         };
+         let topic = Arc::clone(&pending.rec.topic);
+-        let plan = policy.plan(&topic, partition, &worker.id, estimate(pending), &cluster);
++        let mut plan = policy.plan(&topic, partition, &worker.id, estimate(pending), &cluster);
++        plan.next_rng = route.and_then(|route| route.rng);
++        let now = Instant::now();
++        if block_deadline.is_some_and(|deadline| now >= deadline) {
++            return Err(Error::Timeout);
++        }
++        pending.queued_at = now;
++        pending.retry_after = now;
++        pending.deadline = now + shared.cfg.delivery_timeout;
+         pending.sticky = Some(plan.tag);
+         let Some(pending) = pending_slot.take() else {
+             return Err(Error::Closed);
+@@ -1881,6 +1956,26 @@
+                 *pending_slot = Some(pending);
+                 Err(Error::Closed)
+             }
++        }
++    }
++
++    async fn wait_sticky_record(&self, deadline: Instant) -> Result<StickyRecordPermit> {
++        let shared = &self.inner.shared;
++        let records = shared.sticky_records.as_ref().ok_or(Error::Closed)?;
++        loop {
++            if shared.closed.load(Ordering::SeqCst) {
++                return Err(Error::Closed);
++            }
++            let now = Instant::now();
++            if now >= deadline {
++                return Err(Error::Timeout);
++            }
++            if let Some(permit) = records.acquire() {
++                return Ok(permit);
++            }
++            let notified = records.nudge.notified();
++            tokio::pin!(notified);
++            tokio::select! { _ = notified => {}, _ = tokio::time::sleep(deadline.saturating_duration_since(now).min(Duration::from_millis(5))) => {} }
+         }
+     }
+ 
+@@ -1912,6 +2007,8 @@
+             .await
+             .map_err(|_| Error::Timeout)??;
+         }
++        let record_permit = self.wait_sticky_record(deadline).await?;
++        pending.as_mut().ok_or(Error::Closed)?.sticky_record = Some(record_permit);
+         self.wait_buffer(bytes, deadline).await?;
+         let mut reservation = BufferReservation {
+             shared,
+@@ -1933,7 +2030,7 @@
+             current.queued_at = now;
+             current.retry_after = now;
+             current.deadline = now + shared.cfg.delivery_timeout;
+-            match self.sticky_enqueue(&mut pending, unkeyed) {
++            match self.sticky_enqueue(&mut pending, unkeyed, Some(deadline)) {
+                 Ok(()) => {
+                     reservation.active = false;
+                     shared.note_queued_n(&topic, 1, bytes);
+@@ -1964,6 +2061,18 @@
+             .sticky
+             .as_ref()
+             .map(|state| state.lock().counts())
++    }
++
++    /// Test hook: currently reserved initial-admission slots plus accepted
++    /// records, and the hard normalized record capacity. Includes byte-empty
++    /// records and slots held by a pre-enqueue future; retries do not reacquire.
++    #[doc(hidden)]
++    pub fn __test_sticky_records(&self) -> Option<(usize, usize)> {
++        self.inner
++            .shared
++            .sticky_records
++            .as_ref()
++            .map(|records| (records.used.load(Ordering::Acquire), records.limit))
+     }
+ 
+     fn fast_route(&self, rec: &ProduceRecord) -> Option<(i32, WorkerHandle)> {
+@@ -2044,6 +2153,13 @@
+         let mut rec = self.inner.shared.interceptors.on_send(rec);
+         let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
+         if self.inner.shared.sticky.is_some() {
++            let record_permit = self
++                .inner
++                .shared
++                .sticky_records
++                .as_ref()
++                .and_then(StickyRecordBudget::acquire)
++                .ok_or(Error::QueueFull)?;
+             if !self.inner.shared.try_reserve_buffer(bytes) {
+                 return Err(Error::QueueFull);
+             }
+@@ -2055,8 +2171,10 @@
+             let unkeyed = rec.partition.is_none() && rec.key.is_none();
+             let now = Instant::now();
+             let topic = Arc::clone(&rec.topic);
+-            let mut pending = Some(self.new_pending(rec, None, now));
+-            match self.sticky_enqueue(&mut pending, unkeyed) {
++            let mut current = self.new_pending(rec, None, now);
++            current.sticky_record = Some(record_permit);
++            let mut pending = Some(current);
++            match self.sticky_enqueue(&mut pending, unkeyed, None) {
+                 Ok(()) => {
+                     reservation.active = false;
+                     self.inner.shared.note_queued_n(&topic, 1, bytes);
+@@ -2091,6 +2209,7 @@
+             return Err(Error::QueueFull);
+         }
+         if let Err(e) = w.data.try_send(Pending {
++            sticky_record: None,
+             sticky: None,
+             rec,
+             tx: None,
+--- first-candidate/tests/fixtures/sticky-partitioner/README.md
++++ corrected-candidate/tests/fixtures/sticky-partitioner/README.md
+@@ -1,6 +1,6 @@
+ This directory prepares the pinned Kafka 4.3.1 uniform (`partitioner.adaptive.partitioning.enable=false`) reference for KL05-10. `GenerateUniformSticky.java` calls the official SDK's `BuiltInPartitioner`; it does not reimplement that class. `upstream-source-pin.json` records the exact source commit and hashes used in the design.
+ 
+-The selected Rust contract accounts successfully admitted conservative record bytes plus 61 bytes when a new cohort opens. Keyed and explicit records affect the actual tail without charging the unkeyed counter. An actual full/empty tail can complete a deferred switch with a zero-byte notification; partial drain below the threshold preserves the counter. State pressure uses uniform singleton admissions within fixed topic/cohort/text ceilings.
++The selected Rust contract accounts successfully admitted conservative record bytes plus 61 bytes when a new cohort opens. Keyed and explicit records affect the actual tail without charging the unkeyed counter. An actual full/empty tail can complete a deferred switch with a zero-byte notification; partial drain below the threshold preserves the counter. State pressure uses uniform singleton admissions within fixed topic/cohort/text ceilings. Rust draws use deterministic rejection sampling to remove modulus bias; this differs from Java RNG identity. A producer-wide non-Clone record-slot permit limits reserved admission slots plus accepted records to at most100,000, including empty/null records and buffer_memory=0 traffic. Retry/in-flight movement retains the permit until terminal drop. The cap does not include the existing caller input Vec staged by send_all or claim a bound for every existing producer/network buffer.
+ 
+ The prepared reference events test the uniform state machine, leader eligibility, deferred switching, two-threshold switching, same-partition redraws, and keyed null-info events. They do not establish identical Java accumulator, compression, RNG seed, batch encoding, or whole producer histories. Native librdkafka's time-based sticky contract is separate.
+ 
+--- first-candidate/tests/sticky_partitioner.rs
++++ corrected-candidate/tests/sticky_partitioner.rs
+@@ -117,7 +117,7 @@
+             .collect::<Vec<_>>(),
+         vec![partition_for_key(b"", 4), partition_for_key(b"key", 4), 3]
+     );
+-    producer.close().await.unwrap();
++    producer.clone().close().await.unwrap();
+ }
+ 
+ #[tokio::test]
+@@ -191,6 +191,7 @@
+         max_topics: 1,
+         max_cohorts: 1,
+         max_topic_bytes: 1,
++        max_pending_records: 100_000,
+         seed: Some(9),
+     });
+     let producer = Producer::new(
+@@ -239,6 +240,7 @@
+                 max_topics: 0,
+                 max_cohorts: 0,
+                 max_topic_bytes: 0,
++                max_pending_records: 100_000,
+                 seed: Some(90),
+             }))
+             .linger(Duration::from_secs(30)),
+@@ -505,6 +507,7 @@
+                 max_topics: 2,
+                 max_cohorts: 2,
+                 max_topic_bytes: 8,
++                max_pending_records: 100_000,
+                 seed: Some(2),
+             }))
+             .linger(Duration::ZERO),
+@@ -788,3 +791,235 @@
+     assert_eq!(producer.metrics().bytes_buffered, 0);
+     producer.close().await.unwrap();
+ }
++
++#[tokio::test]
++async fn two_record_cap_bounds_null_and_empty_payloads_even_with_unlimited_byte_budget() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 2,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30))
++            .max_block(Duration::from_millis(80)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    producer.try_send(ProduceRecord::to("t")).unwrap();
++    producer
++        .try_send(ProduceRecord::to("t").key(&b""[..]).value(&b""[..]))
++        .unwrap();
++    assert_eq!(producer.metrics().bytes_buffered, 0);
++    assert_eq!(producer.__test_sticky_records(), Some((2, 2)));
++    let before = producer.__test_sticky_state().unwrap();
++    for _ in 0..100 {
++        assert!(matches!(
++            producer.try_send(ProduceRecord::to("t")),
++            Err(Error::QueueFull)
++        ));
++        assert_eq!(producer.__test_sticky_records(), Some((2, 2)));
++        assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    }
++    let result = timeout(
++        Duration::from_secs(1),
++        producer.send(ProduceRecord::to("t")),
++    )
++    .await
++    .unwrap();
++    assert!(matches!(result, Err(Error::Timeout)));
++    assert_eq!(producer.__test_sticky_records(), Some((2, 2)));
++    assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    producer.flush().await.unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++    producer.close().await.unwrap();
++}
++
++#[tokio::test]
++async fn cancellation_before_enqueue_releases_the_reserved_record_slot_without_policy_charge() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 3,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .buffer_memory(160)
++            .linger(Duration::from_secs(30)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    let payload = vec![b'x'; 80];
++    for _ in 0..2 {
++        producer
++            .try_send(ProduceRecord::to("t").value(payload.clone()))
++            .unwrap();
++    }
++    let before = producer.__test_sticky_state().unwrap();
++    let mut blocked = Box::pin(producer.send(ProduceRecord::to("t").value(payload)));
++    tokio::select! {
++        result = &mut blocked => panic!("byte-blocked send completed: {result:?}"),
++        _ = common::wait_pred("reserved third admission slot", || producer.__test_sticky_records() == Some((3, 3))) => {}
++    }
++    assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    assert_eq!(producer.metrics().bytes_buffered, 160);
++    drop(blocked);
++    assert_eq!(producer.__test_sticky_records(), Some((2, 3)));
++    assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    producer.flush().await.unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 3)));
++    producer.close().await.unwrap();
++}
++
++#[tokio::test]
++async fn cancellation_while_waiting_record_capacity_creates_no_reservation_or_admission() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 1,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    producer.try_send(ProduceRecord::to("t")).unwrap();
++    let before = producer.__test_sticky_state().unwrap();
++    let mut blocked = Box::pin(producer.send(ProduceRecord::to("t")));
++    tokio::select! { result = &mut blocked => panic!("record-capacity wait completed: {result:?}"), _ = sleep(Duration::from_millis(20)) => {} }
++    drop(blocked);
++    assert_eq!(producer.__test_sticky_records(), Some((1, 1)));
++    assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    producer.flush().await.unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 1)));
++    producer.close().await.unwrap();
++}
++
++#[tokio::test]
++async fn cancelled_accepted_null_send_retains_slot_until_terminal_delivery() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 2,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    let queued = producer.metrics().records_queued;
++    let mut future = Box::pin(producer.send(ProduceRecord::to("t")));
++    tokio::select! {
++        result = &mut future => panic!("accepted send finished before cancellation: {result:?}"),
++        _ = common::wait_pred("null record admitted", || producer.metrics().records_queued == queued + 1) => {}
++    }
++    let charged = producer.__test_sticky_state().unwrap().4;
++    drop(future);
++    assert_eq!(producer.__test_sticky_records(), Some((1, 2)));
++    producer.flush().await.unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++    assert_eq!(producer.__test_sticky_state().unwrap().4, charged);
++    producer.close().await.unwrap();
++}
++
++#[tokio::test]
++async fn retry_backoff_retains_record_slots_without_double_acquisition_or_charge() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 2,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .idempotent(true)
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30))
++            .retry_backoff(Duration::from_millis(150)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    producer.inject_pre_send_fault(PreSendFault::WriteRetriable);
++    for _ in 0..2 {
++        producer.try_send(ProduceRecord::to("t")).unwrap();
++    }
++    let charged = producer.__test_sticky_state().unwrap().4;
++    let flush = producer.flush();
++    tokio::pin!(flush);
++    tokio::select! {
++        result = &mut flush => panic!("flush finished before observed retry ownership: {result:?}"),
++        _ = common::wait_pred("records in retry ownership", || producer.retries_in_flight() > 0) => {}
++    }
++    assert_eq!(producer.__test_sticky_records(), Some((2, 2)));
++    assert!(matches!(
++        producer.try_send(ProduceRecord::to("t")),
++        Err(Error::QueueFull)
++    ));
++    assert_eq!(producer.__test_sticky_state().unwrap().4, charged);
++    timeout(Duration::from_secs(5), &mut flush)
++        .await
++        .unwrap()
++        .unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++    assert_eq!(producer.__test_sticky_state().unwrap().1, 0);
++    assert_eq!(producer.__test_sticky_state().unwrap().4, charged);
++    producer.clone().close().await.unwrap();
++}
++
++#[tokio::test]
++async fn terminal_failure_and_failed_routing_release_record_slots_exactly_once() {
++    let mock = common::Mock::start().await;
++    let producer = Producer::new(
++        ProducerConfig::bootstrap([mock.addr.clone()])
++            .connections(1)
++            .partitioner(StickyPartitioner::with_config(StickyPartitionerConfig {
++                max_pending_records: 2,
++                seed: Some(9),
++                ..StickyPartitionerConfig::default()
++            }))
++            .buffer_memory(0)
++            .linger(Duration::from_secs(30)),
++    )
++    .await
++    .unwrap();
++    warm(&producer).await.unwrap();
++    producer.inject_pre_send_fault(PreSendFault::Encode);
++    for _ in 0..2 {
++        producer.try_send(ProduceRecord::to("t")).unwrap();
++    }
++    assert!(producer.flush().await.is_err());
++    assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++    let before = producer.__test_sticky_state().unwrap();
++    for _ in 0..20 {
++        assert!(matches!(
++            producer.try_send(ProduceRecord::to("t").partition(99)),
++            Err(Error::QueueFull)
++        ));
++        assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++        assert_eq!(producer.__test_sticky_state().unwrap(), before);
++    }
++    producer.try_send(ProduceRecord::to("t")).unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((1, 2)));
++    producer.flush().await.unwrap();
++    assert_eq!(producer.__test_sticky_records(), Some((0, 2)));
++    producer.close().await.unwrap();
++}

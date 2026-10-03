@@ -1,0 +1,38 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "source_packet_sha256": "29a5568bec1259bca0b6f582e8e1294ee4a2b7efdd7d1be669b9e895a1000d51",
+  "new_public_files_verified": 62,
+  "cohorts": [
+    {
+      "cohort": "authority-stable-java-4-1-2",
+      "passed": true,
+      "completed_steps": 53,
+      "receipt_sha256": "a478b03bbf185d074a37661f4d41bdbb4d73aeadfdd90566823840ab1be75243",
+      "all_owners_joined_without_force": true,
+      "private_paths_only_mode_count": 23
+    },
+    {
+      "cohort": "acquisition-stable-java-4-1-2",
+      "passed": true,
+      "completed_steps": 9,
+      "receipt_sha256": "a5e6f6261893b61e009f87d0b97fb43be309759cfc4547de4ebce9d99d260489",
+      "all_owners_joined_without_force": true,
+      "private_paths_only_mode_count": 23
+    },
+    {
+      "cohort": "signed-stable-java-4-1-2",
+      "passed": false,
+      "completed_steps": 29,
+      "receipt_sha256": "bbcc28d460869c37a4c9134cc8ae0d4e8b661b5b122324bcb8d5c54097187852",
+      "all_owners_joined_without_force": true,
+      "private_paths_only_mode_count": 23
+    }
+  ],
+  "total_closed": 4,
+  "total_passed_with_prior_first_ordinary": 3,
+  "total_failed": 1,
+  "held": 28,
+  "expired_token_broker_query_executed": false,
+  "expired_token_broker_verdict": "unproved; original constructor expectation failed before query",
+  "phase_synchronized_no_dispatch_claimed": false
+}

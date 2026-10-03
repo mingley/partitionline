@@ -1,0 +1,206 @@
+Compiled from "ClaimValidationUtils.java"
+public class org.apache.kafka.common.security.oauthbearer.internals.secured.ClaimValidationUtils {
+  public org.apache.kafka.common.security.oauthbearer.internals.secured.ClaimValidationUtils();
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: return
+
+  public static java.util.Set<java.lang.String> validateScopes(java.lang.String, java.util.Collection<java.lang.String>) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_1
+       1: ifnonnull     25
+       4: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+       7: dup
+       8: ldc           #9                  // String %s value must be non-null
+      10: iconst_1
+      11: anewarray     #2                  // class java/lang/Object
+      14: dup
+      15: iconst_0
+      16: aload_0
+      17: aastore
+      18: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      21: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      24: athrow
+      25: new           #20                 // class java/util/HashSet
+      28: dup
+      29: invokespecial #22                 // Method java/util/HashSet."<init>":()V
+      32: astore_2
+      33: aload_1
+      34: invokeinterface #23,  1           // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+      39: astore_3
+      40: aload_3
+      41: invokeinterface #29,  1           // InterfaceMethod java/util/Iterator.hasNext:()Z
+      46: ifeq          117
+      49: aload_3
+      50: invokeinterface #35,  1           // InterfaceMethod java/util/Iterator.next:()Ljava/lang/Object;
+      55: checkcast     #12                 // class java/lang/String
+      58: astore        4
+      60: aload_0
+      61: aload         4
+      63: invokestatic  #39                 // Method validateString:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+      66: astore        4
+      68: aload_2
+      69: aload         4
+      71: invokeinterface #45,  2           // InterfaceMethod java/util/Set.contains:(Ljava/lang/Object;)Z
+      76: ifeq          105
+      79: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+      82: dup
+      83: ldc           #51                 // String %s value must not contain duplicates - %s already present
+      85: iconst_2
+      86: anewarray     #2                  // class java/lang/Object
+      89: dup
+      90: iconst_0
+      91: aload_0
+      92: aastore
+      93: dup
+      94: iconst_1
+      95: aload         4
+      97: aastore
+      98: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+     101: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+     104: athrow
+     105: aload_2
+     106: aload         4
+     108: invokeinterface #53,  2           // InterfaceMethod java/util/Set.add:(Ljava/lang/Object;)Z
+     113: pop
+     114: goto          40
+     117: aload_2
+     118: invokestatic  #56                 // Method java/util/Collections.unmodifiableSet:(Ljava/util/Set;)Ljava/util/Set;
+     121: areturn
+
+  public static long validateExpiration(java.lang.String, java.lang.Long) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_1
+       1: ifnonnull     25
+       4: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+       7: dup
+       8: ldc           #9                  // String %s value must be non-null
+      10: iconst_1
+      11: anewarray     #2                  // class java/lang/Object
+      14: dup
+      15: iconst_0
+      16: aload_0
+      17: aastore
+      18: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      21: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      24: athrow
+      25: aload_1
+      26: invokevirtual #62                 // Method java/lang/Long.longValue:()J
+      29: lconst_0
+      30: lcmp
+      31: ifge          59
+      34: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+      37: dup
+      38: ldc           #68                 // String %s value must be non-negative; value given was \"%s\"
+      40: iconst_2
+      41: anewarray     #2                  // class java/lang/Object
+      44: dup
+      45: iconst_0
+      46: aload_0
+      47: aastore
+      48: dup
+      49: iconst_1
+      50: aload_1
+      51: aastore
+      52: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      55: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      58: athrow
+      59: aload_1
+      60: invokevirtual #62                 // Method java/lang/Long.longValue:()J
+      63: lreturn
+
+  public static java.lang.String validateSubject(java.lang.String, java.lang.String) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokestatic  #39                 // Method validateString:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       5: areturn
+
+  public static java.lang.Long validateIssuedAt(java.lang.String, java.lang.Long) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_1
+       1: ifnull        38
+       4: aload_1
+       5: invokevirtual #62                 // Method java/lang/Long.longValue:()J
+       8: lconst_0
+       9: lcmp
+      10: ifge          38
+      13: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+      16: dup
+      17: ldc           #70                 // String %s value must be null or non-negative; value given was \"%s\"
+      19: iconst_2
+      20: anewarray     #2                  // class java/lang/Object
+      23: dup
+      24: iconst_0
+      25: aload_0
+      26: aastore
+      27: dup
+      28: iconst_1
+      29: aload_1
+      30: aastore
+      31: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      34: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      37: athrow
+      38: aload_1
+      39: areturn
+
+  public static java.lang.String validateClaimNameOverride(java.lang.String, java.lang.String) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokestatic  #39                 // Method validateString:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+       5: areturn
+
+  private static java.lang.String validateString(java.lang.String, java.lang.String) throws org.apache.kafka.common.security.oauthbearer.JwtValidatorException;
+    Code:
+       0: aload_1
+       1: ifnonnull     25
+       4: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+       7: dup
+       8: ldc           #9                  // String %s value must be non-null
+      10: iconst_1
+      11: anewarray     #2                  // class java/lang/Object
+      14: dup
+      15: iconst_0
+      16: aload_0
+      17: aastore
+      18: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      21: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      24: athrow
+      25: aload_1
+      26: invokevirtual #72                 // Method java/lang/String.isEmpty:()Z
+      29: ifeq          53
+      32: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+      35: dup
+      36: ldc           #75                 // String %s value must be non-empty
+      38: iconst_1
+      39: anewarray     #2                  // class java/lang/Object
+      42: dup
+      43: iconst_0
+      44: aload_0
+      45: aastore
+      46: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      49: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      52: athrow
+      53: aload_1
+      54: invokevirtual #77                 // Method java/lang/String.trim:()Ljava/lang/String;
+      57: astore_1
+      58: aload_1
+      59: invokevirtual #72                 // Method java/lang/String.isEmpty:()Z
+      62: ifeq          86
+      65: new           #7                  // class org/apache/kafka/common/security/oauthbearer/JwtValidatorException
+      68: dup
+      69: ldc           #81                 // String %s value must not contain only whitespace
+      71: iconst_1
+      72: anewarray     #2                  // class java/lang/Object
+      75: dup
+      76: iconst_0
+      77: aload_0
+      78: aastore
+      79: invokestatic  #11                 // Method java/lang/String.format:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+      82: invokespecial #17                 // Method org/apache/kafka/common/security/oauthbearer/JwtValidatorException."<init>":(Ljava/lang/String;)V
+      85: athrow
+      86: aload_1
+      87: areturn
+}

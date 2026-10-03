@@ -1,0 +1,89 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "complete_source_unchanged": true,
+  "unresolved_negative_recovery_peers": [],
+  "failed_step": null,
+  "failure_stage": null,
+  "phase_dispatch_denial_proved": false,
+  "audit_limit": "Independent stdout readers do not create a synchronized phase barrier. Retained complete joined audit totals are distinct from precise denial proven by source-pinned core socket tests.",
+  "steps": [
+    {
+      "ordinal": 0,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 1,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 2,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 3,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 4,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 5,
+      "operation": "control",
+      "passed": true
+    },
+    {
+      "ordinal": 6,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 7,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 8,
+      "operation": "stop-peer",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "owner": "broker",
+      "joined": true
+    },
+    {
+      "owner": "broker-process-0",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-1",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-2",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-3",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "issuer",
+      "joined": true
+    }
+  ],
+  "ordinary_expected_history": [],
+  "scope": "real token acquisition/socket metadata and explicitly selected ordinary RF1 records; reconnect lifetime0"
+}

@@ -1,0 +1,15 @@
+{
+  "task": "KL05-10",
+  "handoff_sha256": "73884f8e226eb9d40b5b7bdf13243e390be4275947951ec4487ed5cc60ee4dff",
+  "exact_paths_rehashed_full_modes": 106,
+  "prior_files_replayed_against_originals": 99,
+  "prior_directory_modes": 30,
+  "root_exports": [
+    "StickyPartitioner",
+    "StickyPartitionerConfig"
+  ],
+  "root_source_review": "admission, successful enqueue accounting, unbiased draws, record-slot ownership through retry and terminal cleanup, UUID capture, cohort sequence/failure and lock order",
+  "actual_compile_or_runtime_qualification": false,
+  "prepared_socket_tests": 28,
+  "prepared_policy_tests": 11
+}

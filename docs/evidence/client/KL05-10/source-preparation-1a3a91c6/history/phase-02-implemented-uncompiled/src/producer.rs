@@ -781,58 +781,7 @@ impl fmt::Display for RecordMetadata {
     }
 }
 
-/// A producer-wide record-slot bound, independent of payload byte accounting.
-/// Fresh per Producer, including when cloned configs share a partitioner Arc.
-struct StickyRecordBudget {
-    limit: usize,
-    used: AtomicUsize,
-    nudge: Notify,
-}
-
-impl StickyRecordBudget {
-    fn new(limit: usize) -> Self {
-        Self {
-            limit: limit.clamp(1, 100_000),
-            used: AtomicUsize::new(0),
-            nudge: Notify::new(),
-        }
-    }
-    fn acquire(self: &Arc<Self>) -> Option<StickyRecordPermit> {
-        let mut used = self.used.load(Ordering::Acquire);
-        loop {
-            if used >= self.limit {
-                return None;
-            }
-            match self.used.compare_exchange_weak(
-                used,
-                used + 1,
-                Ordering::AcqRel,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => {
-                    return Some(StickyRecordPermit {
-                        budget: Arc::clone(self),
-                    })
-                }
-                Err(current) => used = current,
-            }
-        }
-    }
-}
-
-/// Non-Clone: one reservation moves with Pending through every owner and retry.
-struct StickyRecordPermit {
-    budget: Arc<StickyRecordBudget>,
-}
-impl Drop for StickyRecordPermit {
-    fn drop(&mut self) {
-        let _ = self.budget.used.fetch_sub(1, Ordering::AcqRel);
-        self.budget.nudge.notify_waiters();
-    }
-}
-
 struct Pending {
-    sticky_record: Option<StickyRecordPermit>,
     sticky: Option<StickyTag>,
     rec: ProduceRecord,
     tx: Option<oneshot::Sender<Result<RecordMetadata>>>,
@@ -935,7 +884,6 @@ struct Shared {
     partitioner: Arc<dyn Partitioner>,
     /// Present only for the explicit opt-in; mutable history is per producer.
     sticky: Option<parking_lot::Mutex<StickyState>>,
-    sticky_records: Option<Arc<StickyRecordBudget>>,
     producer_id: AtomicI64,
     producer_epoch: AtomicI16,
     /// Generation of the shared idempotent identity. Incremented on every
@@ -1070,9 +1018,6 @@ impl Shared {
     fn clear_sticky(&self) {
         if let Some(state) = &self.sticky {
             state.lock().clear();
-        }
-        if let Some(records) = &self.sticky_records {
-            records.nudge.notify_waiters();
         }
     }
 
@@ -1514,7 +1459,6 @@ impl Producer {
         let (meta_tx, meta_rx) = mpsc::channel(8);
         let (connect_tx, connect_rx) = mpsc::channel(16);
         let (retry_tx, retry_rx) = mpsc::channel(cap.max(1024));
-        let sticky_policy = cfg.partitioner.arc().unkeyed_batching_policy();
         let shared = Arc::new(Shared {
             cfg: cfg.clone(),
             cluster: parking_lot::Mutex::new(Cluster::default()),
@@ -1531,15 +1475,17 @@ impl Producer {
             telemetry_version: pick(&versions, GET_TELEMETRY_SUBSCRIPTIONS, 0, 0),
             client_instance_id: parking_lot::Mutex::new(None),
             partitioner: cfg.partitioner.arc(),
-            sticky: sticky_policy.map(|policy| {
-                parking_lot::Mutex::new(StickyState::new(
-                    policy,
-                    cfg.produce_batch_bytes(),
-                    cfg.batch_records,
-                ))
-            }),
-            sticky_records: sticky_policy
-                .map(|policy| Arc::new(StickyRecordBudget::new(policy.max_pending_records))),
+            sticky: cfg
+                .partitioner
+                .arc()
+                .unkeyed_batching_policy()
+                .map(|policy| {
+                    parking_lot::Mutex::new(StickyState::new(
+                        policy,
+                        cfg.produce_batch_bytes(),
+                        cfg.batch_records,
+                    ))
+                }),
             producer_id: AtomicI64::new(producer_id),
             producer_epoch: AtomicI16::new(producer_epoch),
             epoch_gen: AtomicU64::new(0),
@@ -1811,7 +1757,6 @@ impl Producer {
             let send_res = tokio::time::timeout(
                 rest_block,
                 w.data.send(Pending {
-                    sticky_record: None,
                     sticky: None,
                     rec,
                     tx: Some(tx),
@@ -1855,7 +1800,6 @@ impl Producer {
         now: Instant,
     ) -> Pending {
         Pending {
-            sticky_record: None,
             sticky: None,
             rec,
             tx,
@@ -1876,45 +1820,35 @@ impl Producer {
     /// performed while metadata/policy locks are held.
     fn sticky_enqueue(
         &self,
-        pending_slot: &mut Option<Pending>,
+        mut pending: Pending,
         unkeyed: bool,
-        block_deadline: Option<Instant>,
-    ) -> Result<()> {
-        let Some(pending) = pending_slot.as_mut() else {
-            return Err(Error::Closed);
-        };
+    ) -> std::result::Result<(), (Error, Pending)> {
         let shared = &self.inner.shared;
         let Some(policy) = &shared.sticky else {
-            return Err(Error::Closed);
+            return Err((Error::Closed, pending));
         };
         let cluster = shared.cluster.lock();
         let mut policy = policy.lock();
         if shared.closed.load(Ordering::SeqCst) {
-            return Err(Error::Closed);
+            return Err((Error::Closed, pending));
         }
         let Some(np) = cluster.partition_count(&pending.rec.topic) else {
-            return Err(Error::QueueFull);
+            return Err((Error::QueueFull, pending));
         };
-        let route = if unkeyed {
+        let partition = if unkeyed {
             let Some(route) = policy.route(&pending.rec.topic, &cluster) else {
-                return Err(Error::QueueFull);
+                return Err((Error::QueueFull, pending));
             };
             debug_assert!(policy.route_current(&pending.rec.topic, route, &cluster));
-            Some(route)
+            route.partition
         } else {
-            None
+            pending.rec.partition.unwrap_or_else(|| {
+                partition_for_key(pending.rec.key.as_deref().unwrap_or_default(), np)
+            })
         };
-        let partition = route.map_or_else(
-            || {
-                pending.rec.partition.unwrap_or_else(|| {
-                    partition_for_key(pending.rec.key.as_deref().unwrap_or_default(), np)
-                })
-            },
-            |route| route.partition,
-        );
         pending.rec.partition = Some(partition);
         let Ok((node, _)) = cluster.leader(&pending.rec.topic, partition) else {
-            return Err(Error::QueueFull);
+            return Err((Error::QueueFull, pending));
         };
         let slot = usize::try_from(partition).unwrap_or(0) % shared.cfg.connections.max(1);
         let worker = shared
@@ -1925,22 +1859,11 @@ impl Producer {
             .cloned()
             .flatten();
         let Some(worker) = worker else {
-            return Err(Error::QueueFull);
+            return Err((Error::QueueFull, pending));
         };
         let topic = Arc::clone(&pending.rec.topic);
-        let mut plan = policy.plan(&topic, partition, &worker.id, estimate(pending), &cluster);
-        plan.next_rng = route.and_then(|route| route.rng);
-        let now = Instant::now();
-        if block_deadline.is_some_and(|deadline| now >= deadline) {
-            return Err(Error::Timeout);
-        }
-        pending.queued_at = now;
-        pending.retry_after = now;
-        pending.deadline = now + shared.cfg.delivery_timeout;
+        let plan = policy.plan(&topic, partition, &worker.id, estimate(&pending), &cluster);
         pending.sticky = Some(plan.tag);
-        let Some(pending) = pending_slot.take() else {
-            return Err(Error::Closed);
-        };
         match worker.data.try_send(pending) {
             Ok(()) => {
                 policy.commit(&topic, partition, &worker.id, unkeyed, plan, &cluster);
@@ -1948,34 +1871,12 @@ impl Producer {
             }
             Err(mpsc::error::TrySendError::Full(mut pending)) => {
                 pending.sticky = None;
-                *pending_slot = Some(pending);
-                Err(Error::QueueFull)
+                Err((Error::QueueFull, pending))
             }
             Err(mpsc::error::TrySendError::Closed(mut pending)) => {
                 pending.sticky = None;
-                *pending_slot = Some(pending);
-                Err(Error::Closed)
+                Err((Error::Closed, pending))
             }
-        }
-    }
-
-    async fn wait_sticky_record(&self, deadline: Instant) -> Result<StickyRecordPermit> {
-        let shared = &self.inner.shared;
-        let records = shared.sticky_records.as_ref().ok_or(Error::Closed)?;
-        loop {
-            if shared.closed.load(Ordering::SeqCst) {
-                return Err(Error::Closed);
-            }
-            let now = Instant::now();
-            if now >= deadline {
-                return Err(Error::Timeout);
-            }
-            if let Some(permit) = records.acquire() {
-                return Ok(permit);
-            }
-            let notified = records.nudge.notified();
-            tokio::pin!(notified);
-            tokio::select! { _ = notified => {}, _ = tokio::time::sleep(deadline.saturating_duration_since(now).min(Duration::from_millis(5))) => {} }
         }
     }
 
@@ -1989,7 +1890,7 @@ impl Producer {
         let shared = &self.inner.shared;
         let unkeyed = rec.partition.is_none() && rec.key.is_none();
         let topic = Arc::clone(&rec.topic);
-        let mut pending = Some(self.new_pending(rec, tx, Instant::now()));
+        let mut pending = self.new_pending(rec, tx, Instant::now());
         // Metadata waits consume the same absolute max_block budget as admission.
         if !shared
             .cluster
@@ -2007,8 +1908,6 @@ impl Producer {
             .await
             .map_err(|_| Error::Timeout)??;
         }
-        let record_permit = self.wait_sticky_record(deadline).await?;
-        pending.as_mut().ok_or(Error::Closed)?.sticky_record = Some(record_permit);
         self.wait_buffer(bytes, deadline).await?;
         let mut reservation = BufferReservation {
             shared,
@@ -2026,22 +1925,20 @@ impl Producer {
             if now >= deadline {
                 return Err(Error::Timeout);
             }
-            let current = pending.as_mut().ok_or(Error::Closed)?;
-            current.queued_at = now;
-            current.retry_after = now;
-            current.deadline = now + shared.cfg.delivery_timeout;
-            match self.sticky_enqueue(&mut pending, unkeyed, Some(deadline)) {
+            pending.queued_at = now;
+            pending.retry_after = now;
+            pending.deadline = now + shared.cfg.delivery_timeout;
+            match self.sticky_enqueue(pending, unkeyed) {
                 Ok(()) => {
                     reservation.active = false;
                     shared.note_queued_n(&topic, 1, bytes);
                     return Ok(());
                 }
-                Err(Error::QueueFull) => {
-                    if let Some(current) = &pending {
-                        self.nudge_topic(&current.rec);
-                    }
+                Err((Error::QueueFull, returned)) => {
+                    pending = returned;
+                    self.nudge_topic(&pending.rec);
                 }
-                Err(err) => return Err(err),
+                Err((err, _)) => return Err(err),
             }
             // Capacity/readiness notifications and the bounded fallback wake are
             // outside the policy lock. Cancellation drops the reserved budget.
@@ -2061,18 +1958,6 @@ impl Producer {
             .sticky
             .as_ref()
             .map(|state| state.lock().counts())
-    }
-
-    /// Test hook: currently reserved initial-admission slots plus accepted
-    /// records, and the hard normalized record capacity. Includes byte-empty
-    /// records and slots held by a pre-enqueue future; retries do not reacquire.
-    #[doc(hidden)]
-    pub fn __test_sticky_records(&self) -> Option<(usize, usize)> {
-        self.inner
-            .shared
-            .sticky_records
-            .as_ref()
-            .map(|records| (records.used.load(Ordering::Acquire), records.limit))
     }
 
     fn fast_route(&self, rec: &ProduceRecord) -> Option<(i32, WorkerHandle)> {
@@ -2153,13 +2038,6 @@ impl Producer {
         let mut rec = self.inner.shared.interceptors.on_send(rec);
         let bytes = reject_oversized(&self.inner.shared.cfg, &rec)?;
         if self.inner.shared.sticky.is_some() {
-            let record_permit = self
-                .inner
-                .shared
-                .sticky_records
-                .as_ref()
-                .and_then(StickyRecordBudget::acquire)
-                .ok_or(Error::QueueFull)?;
             if !self.inner.shared.try_reserve_buffer(bytes) {
                 return Err(Error::QueueFull);
             }
@@ -2171,20 +2049,16 @@ impl Producer {
             let unkeyed = rec.partition.is_none() && rec.key.is_none();
             let now = Instant::now();
             let topic = Arc::clone(&rec.topic);
-            let mut current = self.new_pending(rec, None, now);
-            current.sticky_record = Some(record_permit);
-            let mut pending = Some(current);
-            match self.sticky_enqueue(&mut pending, unkeyed, None) {
+            let pending = self.new_pending(rec, None, now);
+            match self.sticky_enqueue(pending, unkeyed) {
                 Ok(()) => {
                     reservation.active = false;
                     self.inner.shared.note_queued_n(&topic, 1, bytes);
                     return Ok(());
                 }
-                Err(err) => {
+                Err((err, pending)) => {
                     if matches!(err, Error::QueueFull) {
-                        if let Some(current) = &pending {
-                            self.nudge_topic(&current.rec);
-                        }
+                        self.nudge_topic(&pending.rec);
                     }
                     return Err(err);
                 }
@@ -2209,7 +2083,6 @@ impl Producer {
             return Err(Error::QueueFull);
         }
         if let Err(e) = w.data.try_send(Pending {
-            sticky_record: None,
             sticky: None,
             rec,
             tx: None,

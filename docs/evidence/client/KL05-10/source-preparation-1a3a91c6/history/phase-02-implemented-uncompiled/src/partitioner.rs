@@ -38,9 +38,6 @@ pub struct StickyPartitionerConfig {
     pub max_cohorts: usize,
     /// Maximum retained topic-name bytes, capped at 256 KiB.
     pub max_topic_bytes: usize,
-    /// Reserved admission slots plus accepted records, clamped to 1..=100,000.
-    /// The bound includes empty/null records and unlimited payload-byte budgets.
-    pub max_pending_records: usize,
     /// Reproducible draw seed; None obtains a per-producer seed.
     pub seed: Option<u64>,
 }
@@ -51,7 +48,6 @@ impl Default for StickyPartitionerConfig {
             max_topics: 1024,
             max_cohorts: 4096,
             max_topic_bytes: 256 * 1024,
-            max_pending_records: 100_000,
             seed: None,
         }
     }
@@ -79,9 +75,8 @@ impl StickyPartitioner {
 
     /// Configure hard state caps and, optionally, a reproducible seed.
     ///
-    /// At a topic/cohort/text cap the producer uses uniform singleton cohorts
-    /// until space becomes available. Exhausting record slots uses the existing
-    /// QueueFull or max_block wait behavior, with no new error type.
+    /// At a cap the producer uses uniform singleton cohorts until space becomes
+    /// available; it does not introduce a new admission error or unbounded state.
     #[must_use]
     pub fn with_config(config: StickyPartitionerConfig) -> Self {
         Self {
@@ -115,7 +110,7 @@ pub(crate) struct StickyRoute {
     lifetime: Option<u128>,
     generation: Option<u128>,
     identity: Option<[u8; 16]>,
-    pub(crate) rng: Option<u64>,
+    rng: Option<u64>,
     pub(crate) partition: i32,
 }
 
@@ -155,7 +150,6 @@ struct StickyCohort {
 
 pub(crate) struct StickyAppend {
     pub(crate) tag: StickyTag,
-    pub(crate) next_rng: Option<u64>,
     old_tail: Option<u128>,
     existing_tail: bool,
     cache: bool,
@@ -194,7 +188,6 @@ impl StickyState {
             max_topics: config.max_topics.min(1024),
             max_cohorts: config.max_cohorts.min(4096),
             max_topic_bytes: config.max_topic_bytes.min(256 * 1024),
-            max_pending_records: config.max_pending_records.clamp(1, 100_000),
             ..config
         };
         let seed = config.seed.unwrap_or_else(|| {
@@ -239,9 +232,8 @@ impl StickyState {
         (next, i32::try_from(z & 0x7fff_ffff).unwrap_or(0))
     }
 
-    /// Uniform over eligible indices: the incomplete modulus bucket is rejected.
-    /// Return the state after every attempted draw without mutating the policy.
-    fn choose(seed: u64, leaders: &[i32]) -> (i32, u64) {
+    fn choose(seed: u64, leaders: &[i32]) -> i32 {
+        let (_, random) = Self::draw(seed);
         let available = leaders.iter().filter(|&&leader| leader >= 0).count();
         let count = if available == 0 {
             leaders.len()
@@ -249,34 +241,19 @@ impl StickyState {
             available
         };
         if count == 0 {
-            return (0, seed);
+            return 0;
         }
-        // Kafka partition indices/counts are int32. Ignore an unrepresentable
-        // suffix if called with a non-protocol, oversized metadata slice.
-        let count = u64::try_from(count.min(2_147_483_647)).unwrap_or(1);
-        let domain = 1u64 << 31;
-        let accepted_domain = domain - domain % count;
-        let mut post = seed;
-        let index = loop {
-            let (next, random) = Self::draw(post);
-            post = next;
-            let random = u64::try_from(random).unwrap_or(0);
-            if random < accepted_domain {
-                break usize::try_from(random % count).unwrap_or(0);
-            }
-        };
-        let partition = if available == 0 {
-            i32::try_from(index).unwrap_or(0)
-        } else {
-            leaders
-                .iter()
-                .enumerate()
-                .filter(|(_, leader)| **leader >= 0)
-                .nth(index)
-                .and_then(|(p, _)| i32::try_from(p).ok())
-                .unwrap_or(0)
-        };
-        (partition, post)
+        let index = usize::try_from(random).unwrap_or(0) % count;
+        if available == 0 {
+            return i32::try_from(index).unwrap_or(0);
+        }
+        leaders
+            .iter()
+            .enumerate()
+            .filter(|(_, leader)| **leader >= 0)
+            .nth(index)
+            .and_then(|(p, _)| i32::try_from(p).ok())
+            .unwrap_or(0)
     }
 
     fn identity(cluster: &Cluster, topic: &str) -> Option<[u8; 16]> {
@@ -313,16 +290,12 @@ impl StickyState {
                 self.cohorts.len() < self.config.max_cohorts
                     || row.is_some_and(|row| !self.full(topic, row.lifetime, info.partition))
             });
-        let drawn = info.is_none().then(|| Self::choose(self.rng, leaders));
         Some(StickyRoute {
             lifetime: row.map(|row| row.lifetime),
             generation: info.map(|info| info.generation),
             identity,
-            rng: drawn.map(|(_, post)| post),
-            partition: info.map_or_else(
-                || drawn.map_or(0, |(partition, _)| partition),
-                |info| info.partition,
-            ),
+            rng: info.is_none().then_some(self.rng),
+            partition: info.map_or_else(|| Self::choose(self.rng, leaders), |info| info.partition),
         })
     }
 
@@ -396,7 +369,6 @@ impl StickyState {
         let tracked = existing_tail
             || (cache && !self.exhausted && self.cohorts.len() < self.config.max_cohorts);
         StickyAppend {
-            next_rng: None,
             tag: StickyTag {
                 id: if existing_tail {
                     old_tail.unwrap_or(0)
@@ -463,8 +435,8 @@ impl StickyState {
         let Some(leaders) = cluster.leaders.get(topic).filter(|v| !v.is_empty()) else {
             return;
         };
-        let (partition, post) = Self::choose(self.rng, leaders);
-        self.rng = post;
+        let partition = Self::choose(self.rng, leaders);
+        self.rng = Self::draw(self.rng).0;
         let generation = self.allocate_id();
         if let Some(row) = self.topics.get_mut(topic) {
             row.info = Some(StickyInfo {
@@ -521,9 +493,7 @@ impl StickyState {
                 && self.topics.get(topic).is_some_and(|row| row.info.is_none())
             {
                 let generation = self.allocate_id();
-                if let Some(post) = plan.next_rng {
-                    self.rng = post;
-                }
+                self.rng = Self::draw(self.rng).0;
                 if let Some(row) = self.topics.get_mut(topic) {
                     row.info = Some(StickyInfo {
                         generation,
@@ -540,9 +510,7 @@ impl StickyState {
             }
         }
         if unkeyed && plan.tag.id == 0 {
-            if let Some(post) = plan.next_rng {
-                self.rng = post;
-            }
+            self.rng = Self::draw(self.rng).0;
             if let Some(row) = self.topics.get_mut(topic) {
                 row.info = None;
             }
@@ -872,9 +840,7 @@ mod sticky_tests {
         unkeyed: bool,
     ) -> StickyTag {
         let topic: Arc<str> = Arc::from("t");
-        let route = unkeyed.then(|| state.route(&topic, cluster)).flatten();
-        let mut plan = state.plan(&topic, partition, worker, bytes, cluster);
-        plan.next_rng = route.and_then(|route| route.rng);
+        let plan = state.plan(&topic, partition, worker, bytes, cluster);
         let tag = plan.tag;
         state.commit(&topic, partition, worker, unkeyed, plan, cluster);
         tag
@@ -1069,8 +1035,7 @@ mod sticky_uniformity_tests {
             let route = state.route("t", &cluster).unwrap();
             let index = usize::try_from(route.partition).unwrap();
             *counts.get_mut(index).unwrap() += 1;
-            let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
-            plan.next_rng = route.rng;
+            let plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
             let tag = plan.tag;
             state.commit(&topic, route.partition, &worker, true, plan, &cluster);
             state.release(tag, 1, &cluster);
@@ -1087,158 +1052,5 @@ mod sticky_uniformity_tests {
         }
         assert_eq!(state.counts().1, 0);
         assert_eq!(state.counts().4, 60_000 * 161);
-    }
-}
-
-#[cfg(test)]
-mod sticky_rejection_tests {
-    use super::*;
-
-    #[test]
-    fn non_power_of_two_rejection_peeks_do_not_consume_rng_and_commit_all_attempted_draws() {
-        // Seeds obtained by inverting the documented SplitMix64 transform; the
-        // first masked values are the two excluded values in the 3-way domain.
-        for (seed, rejected, partitions, expected_partition, post) in [
-            (
-                0xf7fd_dcff_99ab_5ded,
-                2_147_483_647,
-                3,
-                1,
-                0x346c_d072_9840_5617,
-            ),
-            (
-                0xf199_1e83_504c_5420,
-                2_147_483_646,
-                3,
-                1,
-                0x2e08_11f6_4ee1_4c4a,
-            ),
-            (
-                0xf7fd_dcff_99ab_5ded,
-                2_147_483_647,
-                5,
-                3,
-                0x346c_d072_9840_5617,
-            ),
-        ] {
-            let mut cluster = Cluster::default();
-            let _ = cluster.leaders.insert("t".to_owned(), vec![0; partitions]);
-            let topic: Arc<str> = Arc::from("t");
-            let worker = Arc::new(());
-            let mut state = StickyState::new(
-                StickyPartitionerConfig {
-                    seed: Some(seed),
-                    ..StickyPartitionerConfig::default()
-                },
-                1000,
-                100,
-            );
-            assert_eq!(StickyState::draw(seed).1, rejected);
-            let before = state.counts();
-            let route = state.route(&topic, &cluster).unwrap();
-            assert_eq!(route.partition, expected_partition);
-            assert_eq!(route.rng, Some(post));
-            for _ in 0..100 {
-                let _ = state.plan(&topic, route.partition, &worker, 100, &cluster);
-                assert_eq!(state.route(&topic, &cluster), Some(route));
-                assert_eq!(state.rng, seed);
-                assert_eq!(state.counts(), before);
-            }
-            let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
-            plan.next_rng = route.rng;
-            state.commit(&topic, route.partition, &worker, true, plan, &cluster);
-            assert_eq!(state.rng, post);
-            assert_eq!(state.route(&topic, &cluster).unwrap().rng, None);
-            assert_eq!(state.counts().4, 161);
-        }
-    }
-
-    #[test]
-    fn rotation_and_pressure_consume_the_returned_rejection_state_for_eligible_leaders() {
-        let seed = 0xf7fd_dcff_99ab_5ded;
-        let post = 0x346c_d072_9840_5617;
-        let mut cluster = Cluster::default();
-        let _ = cluster
-            .leaders
-            .insert("t".to_owned(), vec![0, -1, 0, -1, 0]);
-        let topic: Arc<str> = Arc::from("t");
-        let worker = Arc::new(());
-        let mut state = StickyState::new(
-            StickyPartitionerConfig {
-                seed: Some(seed),
-                ..StickyPartitionerConfig::default()
-            },
-            1000,
-            100,
-        );
-        let route = state.route(&topic, &cluster).unwrap();
-        assert_eq!((route.partition, route.rng), (2, Some(post)));
-        let mut plan = state.plan(&topic, route.partition, &worker, 100, &cluster);
-        plan.next_rng = route.rng;
-        let tag = plan.tag;
-        state.commit(&topic, route.partition, &worker, true, plan, &cluster);
-        state.rng = seed;
-        state
-            .topics
-            .get_mut(&topic)
-            .unwrap()
-            .info
-            .as_mut()
-            .unwrap()
-            .bytes = 1000;
-        state.drain(tag, &cluster);
-        assert_eq!(state.rng, post);
-        assert_eq!(state.route(&topic, &cluster).unwrap().partition, 2);
-        let mut pressure = StickyState::new(
-            StickyPartitionerConfig {
-                max_topics: 0,
-                seed: Some(seed),
-                ..StickyPartitionerConfig::default()
-            },
-            1000,
-            100,
-        );
-        let route = pressure.route(&topic, &cluster).unwrap();
-        let mut plan = pressure.plan(&topic, route.partition, &worker, 100, &cluster);
-        assert_eq!(plan.tag.id, 0);
-        plan.next_rng = route.rng;
-        pressure.commit(&topic, route.partition, &worker, true, plan, &cluster);
-        assert_eq!(pressure.rng, post);
-        assert_eq!(pressure.counts().3, 1);
-    }
-}
-
-#[cfg(test)]
-mod sticky_pressure_rng_tests {
-    use super::*;
-
-    #[test]
-    fn cached_route_pressure_never_consumes_a_draw_that_was_not_used_for_selection() {
-        let mut cluster = Cluster::default();
-        let _ = cluster.leaders.insert("t".to_owned(), vec![0, 0, 0]);
-        let topic: Arc<str> = Arc::from("t");
-        let worker = Arc::new(());
-        let mut state = StickyState::new(
-            StickyPartitionerConfig {
-                max_cohorts: 1,
-                seed: Some(9),
-                ..StickyPartitionerConfig::default()
-            },
-            300,
-            100,
-        );
-        let first = state.route(&topic, &cluster).unwrap();
-        let mut plan = state.plan(&topic, first.partition, &worker, 100, &cluster);
-        plan.next_rng = first.rng;
-        state.commit(&topic, first.partition, &worker, true, plan, &cluster);
-        let rng = state.rng;
-        let cached = state.route(&topic, &cluster).unwrap();
-        assert_eq!(cached.rng, None);
-        let mut pressure = state.plan(&topic, cached.partition, &worker, 200, &cluster);
-        assert_eq!(pressure.tag.id, 0);
-        pressure.next_rng = cached.rng;
-        state.commit(&topic, cached.partition, &worker, true, pressure, &cluster);
-        assert_eq!(state.rng, rng);
-        assert_eq!(state.counts().3, 1);
     }
 }

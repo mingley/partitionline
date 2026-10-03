@@ -3259,7 +3259,8 @@ pub use metrics::{
 };
 pub use net::TlsConfig;
 pub use partitioner::{
-    murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox,
+    murmur2, partition_for_key, DefaultPartitioner, Partitioner, PartitionerBox, StickyPartitioner,
+    StickyPartitionerConfig,
 };
 pub use producer::{ProduceRecord, Producer, ProducerConfig, RecordMetadata};
 pub use protocol::acl::{

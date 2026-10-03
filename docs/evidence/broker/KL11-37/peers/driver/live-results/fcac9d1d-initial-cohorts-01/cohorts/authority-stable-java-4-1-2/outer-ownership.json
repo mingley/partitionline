@@ -1,0 +1,31 @@
+{
+  "scope": "Linux infrastructure group ownership; OIDC results are separate",
+  "passed": true,
+  "driver_exit_code": 0,
+  "timed_out": false,
+  "forced_cleanup": false,
+  "outer_interrupted": false,
+  "total_budget_seconds": 300,
+  "elapsed_seconds": 60.28790411900263,
+  "deadline_includes_cleanup": true,
+  "total_deadline_exceeded": false,
+  "deadline_limitation": "No planned waits exceed the absolute deadline; Linux proc/signal/exec/wait syscalls cannot be forcibly interrupted by this owner. Any observed overrun fails.",
+  "unverified_ownership": false,
+  "remaining": [],
+  "unconfirmed_registered_group_members": [],
+  "registry_sha256_history": [
+    "3a852cf24446d763a525de36a53df9a1a3ff91a5067688666e7d0a1e23f90d0f",
+    "2af230b332ba300626a6d1bd9a673fe061746d1ef68fc790f01b72b56f29a207",
+    "f9e6fda9330f5796686f226b063ae9eb3543859b536bde493f6eb2de77b51547",
+    "f7a74dd61faad041ef98f4b8f95ce58406c029ec7863ecf2ae647117d0695095",
+    "f2a7c109afd867603df26a928816942af1f3fad3a8b39b6f618bac6c662e43e5",
+    "21dd751ada1b137423d9e1426f66a565c3098754c7eee0801a7980482e9ae970",
+    "2472a2dc81c650f42d07911b370a01c543c78f013d57059d1538064fa5e9f093",
+    "30b474954e2a0a8eb3f1a58667e8919c2adf93eeeac71cfed146f5cf304a2ff7",
+    "2b04091b49c49b89499046ba1152a455fa70f377afa43a4e0416d7f85a758769",
+    "01e5414ed7d830d09dd43202d6adcc410e55e5590efb440a14adbfeed09cb543"
+  ],
+  "events": [],
+  "confirmed_identity_count": 14,
+  "driver_stdout_stderr": "discarded; no arbitrary messages or private token data retained"
+}

@@ -1,0 +1,72 @@
+{
+  "scope": "Pinned default validator selector bytecode metadata; no token validation/login/SDK/broker execution",
+  "commands": [
+    {
+      "release": "4.1.2",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "-m",
+        "jdk.jdeps/com.sun.tools.javap.Main",
+        "-classpath",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar",
+        "-c",
+        "-p",
+        "-constants",
+        "org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator"
+      ],
+      "exit_code": 0,
+      "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.1.2.complete-javap.txt",
+      "sha256": "29e26c54fe08a058299381768eaef71361359797f6752435b69595440549e0e3"
+    },
+    {
+      "release": "4.2.1",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "-m",
+        "jdk.jdeps/com.sun.tools.javap.Main",
+        "-classpath",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar",
+        "-c",
+        "-p",
+        "-constants",
+        "org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator"
+      ],
+      "exit_code": 0,
+      "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.2.1.complete-javap.txt",
+      "sha256": "29e26c54fe08a058299381768eaef71361359797f6752435b69595440549e0e3"
+    },
+    {
+      "release": "4.3.1",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "-m",
+        "jdk.jdeps/com.sun.tools.javap.Main",
+        "-classpath",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar",
+        "-c",
+        "-p",
+        "-constants",
+        "org.apache.kafka.common.security.oauthbearer.DefaultJwtValidator"
+      ],
+      "exit_code": 0,
+      "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.3.1.complete-javap.txt",
+      "sha256": "db661dd92114a6199d5bdd3a929db77f1f1c536c421eaaec3dd029726426714a"
+    }
+  ],
+  "passed": true
+}

@@ -1,0 +1,66 @@
+[
+  {
+    "token_sha256": "e84db461c8f81ce92f7e0e89a4103daef03750598865397ab62c8fb88d9faab7",
+    "issued_epoch": 1791042543,
+    "expires_epoch": 1791042603,
+    "subject": "issuer-probe",
+    "policy": "valid",
+    "generation": 0
+  },
+  {
+    "token_sha256": "89f89b0ed7f1fede637851283fffc39c11444ae6b78ccc47a92e870e106a0d2b",
+    "issued_epoch": 1791042545,
+    "expires_epoch": 1791042605,
+    "subject": "issuer-probe",
+    "policy": "wrong_issuer",
+    "generation": 0
+  },
+  {
+    "token_sha256": "772c5dc3a4072856e5037fbb13857268beefa5288b4f6c6d9702b5f0a3c52bc4",
+    "issued_epoch": 1791042547,
+    "expires_epoch": 1791042607,
+    "subject": "issuer-probe",
+    "policy": "valid",
+    "generation": 0
+  },
+  {
+    "token_sha256": "6cca4c36e97d9a1992fc45a873d7a62e02afbc8925d32a9e77b3256eac45fcdd",
+    "issued_epoch": 1791042549,
+    "expires_epoch": 1791042609,
+    "subject": "issuer-probe",
+    "policy": "valid",
+    "generation": 0
+  },
+  {
+    "token_sha256": "0fc53e3e088ecb0987aad37629d379070fb69008a771f7312f16f9123a2b8ad4",
+    "issued_epoch": 1791042552,
+    "expires_epoch": 1791042612,
+    "subject": "issuer-probe",
+    "policy": "wrong_audience",
+    "generation": 0
+  },
+  {
+    "token_sha256": "03a7bf206afd756b6ae1eb4a733df63ac8a48ac0f078d8427ccbb3f353324d25",
+    "issued_epoch": 1791042553,
+    "expires_epoch": 1791042613,
+    "subject": "issuer-probe",
+    "policy": "valid",
+    "generation": 0
+  },
+  {
+    "token_sha256": "ed13e370c5aa855c78782510661d40d807149f53182429866ce1f3e7aef94b04",
+    "issued_epoch": 1791042556,
+    "expires_epoch": 1791042616,
+    "subject": "issuer-probe",
+    "policy": "valid",
+    "generation": 0
+  },
+  {
+    "token_sha256": "ffd4f5aca489422b27e1bfe17e7e16a5e46697818ffc27269e87de6413250dbd",
+    "issued_epoch": 1791042438,
+    "expires_epoch": 1791042498,
+    "subject": "issuer-probe",
+    "policy": "expired",
+    "generation": 0
+  }
+]

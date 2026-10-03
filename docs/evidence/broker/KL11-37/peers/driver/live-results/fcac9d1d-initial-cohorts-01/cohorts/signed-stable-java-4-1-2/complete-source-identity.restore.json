@@ -1,0 +1,9 @@
+{
+  "original_path": "complete-source-identity.json",
+  "original_bytes": 23229060,
+  "original_mode": "0o600",
+  "original_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4",
+  "compressed_path": "complete-source-identity.json.gz",
+  "compressed_sha256": "73144930f40bc66fb4f9dfc1defa082900b19013d25ddc37d79e45c780c61b4c",
+  "roundtrip_verified": true
+}

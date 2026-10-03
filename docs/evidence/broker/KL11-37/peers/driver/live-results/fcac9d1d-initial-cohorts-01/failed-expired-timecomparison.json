@@ -1,0 +1,23 @@
+{
+  "observed_constructor": "READY token_success1/failures0 thennormalexit0; no expiredpublicqueryissued",
+  "actual_public_expired_metadata": {
+    "token_sha256": "ffd4f5aca489422b27e1bfe17e7e16a5e46697818ffc27269e87de6413250dbd",
+    "issued_epoch": 1791042438,
+    "expires_epoch": 1791042498,
+    "subject": "issuer-probe",
+    "policy": "expired",
+    "generation": 0
+  },
+  "claim_iat_epoch_not_request_time": 1791042438,
+  "claim_exp_epoch": 1791042498,
+  "matching_actual_https_token_response_epochs": [
+    1791042558
+  ],
+  "seconds_past_exp_at_response": [
+    60
+  ],
+  "link_limit": "Issuer publicroute events omit tokenhash; association usesuniqueexpiredissuedmetadata and hash-bound mintsource policy exp=now-60 with1s event granularity. This proves the publicmint-policy timestamp condition, not a broker query/verdict.",
+  "mint_source_sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+  "failed_validation_sha256": "bbcc28d460869c37a4c9134cc8ae0d4e8b661b5b122324bcb8d5c54097187852",
+  "no_query_limitation": true
+}

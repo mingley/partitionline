@@ -1,0 +1,99 @@
+Compiled from "BasicOAuthBearerToken.java"
+public class org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken implements org.apache.kafka.common.security.oauthbearer.OAuthBearerToken {
+  private final java.lang.String token;
+
+  private final java.util.Set<java.lang.String> scopes;
+
+  private final java.lang.Long lifetimeMs;
+
+  private final java.lang.String principalName;
+
+  private final java.lang.Long startTimeMs;
+
+  public org.apache.kafka.common.security.oauthbearer.internals.secured.BasicOAuthBearerToken(java.lang.String, java.util.Set<java.lang.String>, long, java.lang.String, java.lang.Long);
+    Code:
+       0: aload_0
+       1: invokespecial #1                  // Method java/lang/Object."<init>":()V
+       4: aload_0
+       5: aload_1
+       6: putfield      #7                  // Field token:Ljava/lang/String;
+       9: aload_0
+      10: aload_2
+      11: putfield      #13                 // Field scopes:Ljava/util/Set;
+      14: aload_0
+      15: lload_3
+      16: invokestatic  #17                 // Method java/lang/Long.valueOf:(J)Ljava/lang/Long;
+      19: putfield      #23                 // Field lifetimeMs:Ljava/lang/Long;
+      22: aload_0
+      23: aload         5
+      25: putfield      #27                 // Field principalName:Ljava/lang/String;
+      28: aload_0
+      29: aload         6
+      31: putfield      #30                 // Field startTimeMs:Ljava/lang/Long;
+      34: return
+
+  public java.lang.String value();
+    Code:
+       0: aload_0
+       1: getfield      #7                  // Field token:Ljava/lang/String;
+       4: areturn
+
+  public java.util.Set<java.lang.String> scope();
+    Code:
+       0: aload_0
+       1: getfield      #13                 // Field scopes:Ljava/util/Set;
+       4: areturn
+
+  public long lifetimeMs();
+    Code:
+       0: aload_0
+       1: getfield      #23                 // Field lifetimeMs:Ljava/lang/Long;
+       4: invokevirtual #33                 // Method java/lang/Long.longValue:()J
+       7: lreturn
+
+  public java.lang.String principalName();
+    Code:
+       0: aload_0
+       1: getfield      #27                 // Field principalName:Ljava/lang/String;
+       4: areturn
+
+  public java.lang.Long startTimeMs();
+    Code:
+       0: aload_0
+       1: getfield      #30                 // Field startTimeMs:Ljava/lang/Long;
+       4: areturn
+
+  public java.lang.String toString();
+    Code:
+       0: new           #37                 // class java/util/StringJoiner
+       3: dup
+       4: ldc           #39                 // String ,
+       6: ldc           #8                  // class org/apache/kafka/common/security/oauthbearer/internals/secured/BasicOAuthBearerToken
+       8: invokevirtual #41                 // Method java/lang/Class.getSimpleName:()Ljava/lang/String;
+      11: invokedynamic #47,  0             // InvokeDynamic #0:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      16: ldc           #51                 // String ]
+      18: invokespecial #53                 // Method java/util/StringJoiner."<init>":(Ljava/lang/CharSequence;Ljava/lang/CharSequence;Ljava/lang/CharSequence;)V
+      21: aload_0
+      22: getfield      #7                  // Field token:Ljava/lang/String;
+      25: invokedynamic #56,  0             // InvokeDynamic #1:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      30: invokevirtual #57                 // Method java/util/StringJoiner.add:(Ljava/lang/CharSequence;)Ljava/util/StringJoiner;
+      33: aload_0
+      34: getfield      #13                 // Field scopes:Ljava/util/Set;
+      37: invokestatic  #61                 // Method java/lang/String.valueOf:(Ljava/lang/Object;)Ljava/lang/String;
+      40: invokedynamic #66,  0             // InvokeDynamic #2:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      45: invokevirtual #57                 // Method java/util/StringJoiner.add:(Ljava/lang/CharSequence;)Ljava/util/StringJoiner;
+      48: aload_0
+      49: getfield      #23                 // Field lifetimeMs:Ljava/lang/Long;
+      52: invokedynamic #67,  0             // InvokeDynamic #3:makeConcatWithConstants:(Ljava/lang/Long;)Ljava/lang/String;
+      57: invokevirtual #57                 // Method java/util/StringJoiner.add:(Ljava/lang/CharSequence;)Ljava/util/StringJoiner;
+      60: aload_0
+      61: getfield      #27                 // Field principalName:Ljava/lang/String;
+      64: invokedynamic #70,  0             // InvokeDynamic #4:makeConcatWithConstants:(Ljava/lang/String;)Ljava/lang/String;
+      69: invokevirtual #57                 // Method java/util/StringJoiner.add:(Ljava/lang/CharSequence;)Ljava/util/StringJoiner;
+      72: aload_0
+      73: getfield      #30                 // Field startTimeMs:Ljava/lang/Long;
+      76: invokedynamic #71,  0             // InvokeDynamic #5:makeConcatWithConstants:(Ljava/lang/Long;)Ljava/lang/String;
+      81: invokevirtual #57                 // Method java/util/StringJoiner.add:(Ljava/lang/CharSequence;)Ljava/util/StringJoiner;
+      84: invokevirtual #72                 // Method java/util/StringJoiner.toString:()Ljava/lang/String;
+      87: areturn
+}

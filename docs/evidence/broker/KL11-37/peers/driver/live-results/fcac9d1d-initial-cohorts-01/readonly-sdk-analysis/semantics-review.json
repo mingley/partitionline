@@ -1,0 +1,83 @@
+{
+  "scope": "source-bound official classmetadata interpretation; selfreview, not independentruntimeconstructor equivalence",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "default_selector": "When no supplied verificationresolver/JWKS endpoint, actual DefaultJwtValidator selects ClientJwtValidator; publicpeer source sets retriever/endpoint and no JWKS override.",
+      "expiration": "ClientJwtValidator calls shape-only ClaimValidationUtils.validateExpiration; no nowcomparison in this path.",
+      "future_nbf": "No nbfclaim read in ClientJwtValidator.validate path; no runtimefuture_nbf constructor executed in stoppedbatch.",
+      "missing_subject": "ClientJwtValidator validatesSubject through shared ClaimValidationUtils; retain separate localconstructor expectation.",
+      "class_dumps": [
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClientJwtValidator-4.1.2.complete-javap.txt",
+          "sha256": "633ebdd4b13a7e22118329e42642da66c69d33bc01ba2e775bf63700f26f1124"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClaimValidationUtils-4.1.2.complete-javap.txt",
+          "sha256": "d525948404bd7f5fec10c1bccf249ddb59d709a3fc5f2daa1f23223863b99eb9"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/BasicOAuthBearerToken-4.1.2.complete-javap.txt",
+          "sha256": "a28b4bfec89bb474ab7dbc99479ebb2f4d02d0c9f287e29bb2e1070db26e3e41"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.1.2.complete-javap.txt",
+          "sha256": "29e26c54fe08a058299381768eaef71361359797f6752435b69595440549e0e3"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "default_selector": "When no supplied verificationresolver/JWKS endpoint, actual DefaultJwtValidator selects ClientJwtValidator; publicpeer source sets retriever/endpoint and no JWKS override.",
+      "expiration": "ClientJwtValidator calls shape-only ClaimValidationUtils.validateExpiration; no nowcomparison in this path.",
+      "future_nbf": "No nbfclaim read in ClientJwtValidator.validate path; no runtimefuture_nbf constructor executed in stoppedbatch.",
+      "missing_subject": "ClientJwtValidator validatesSubject through shared ClaimValidationUtils; retain separate localconstructor expectation.",
+      "class_dumps": [
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClientJwtValidator-4.2.1.complete-javap.txt",
+          "sha256": "633ebdd4b13a7e22118329e42642da66c69d33bc01ba2e775bf63700f26f1124"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClaimValidationUtils-4.2.1.complete-javap.txt",
+          "sha256": "d525948404bd7f5fec10c1bccf249ddb59d709a3fc5f2daa1f23223863b99eb9"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/BasicOAuthBearerToken-4.2.1.complete-javap.txt",
+          "sha256": "a28b4bfec89bb474ab7dbc99479ebb2f4d02d0c9f287e29bb2e1070db26e3e41"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.2.1.complete-javap.txt",
+          "sha256": "29e26c54fe08a058299381768eaef71361359797f6752435b69595440549e0e3"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "default_selector": "When no supplied verificationresolver/JWKS endpoint, actual DefaultJwtValidator selects ClientJwtValidator; publicpeer source sets retriever/endpoint and no JWKS override.",
+      "expiration": "ClientJwtValidator calls shape-only ClaimValidationUtils.validateExpiration; no nowcomparison in this path.",
+      "future_nbf": "No nbfclaim read in ClientJwtValidator.validate path; no runtimefuture_nbf constructor executed in stoppedbatch.",
+      "missing_subject": "ClientJwtValidator validatesSubject through shared ClaimValidationUtils; retain separate localconstructor expectation.",
+      "class_dumps": [
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClientJwtValidator-4.3.1.complete-javap.txt",
+          "sha256": "d2c59c29831a1fe7a43bd2156bb285bc24baeef2f1872f74faa9ef659bf90996"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/ClaimValidationUtils-4.3.1.complete-javap.txt",
+          "sha256": "72a68a97294f2ba64ce9f5e673394996da9a2f7dfd0414beeb7303690bdc0699"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/BasicOAuthBearerToken-4.3.1.complete-javap.txt",
+          "sha256": "b9fdefe3789678d695f81fdaf6a70c8ad452bb8528e7c9380675986272537748"
+        },
+        {
+          "path": "/workspace/work/broker-oidc/signed-first-failure-readonly-analysis/DefaultJwtValidator-4.3.1.complete-javap.txt",
+          "sha256": "db661dd92114a6199d5bdd3a929db77f1f1c536c421eaaec3dd029726426714a"
+        }
+      ]
+    }
+  ],
+  "observed_live": "Only4.1.2expiredconstruct READY token_success1/failures0; noexpiredqueryissued.",
+  "distinction": "ConfiguredBrokerJwtValidator/Default-with-JWKS component420executions are distinct from live client-default-without-JWKS ClientJwtValidator path.",
+  "recommendation": "Independent reviewer should confirm future_nbf localassumption before newfullsignedJava recipes; preserve original3PASS1FAIL and old32 configs."
+}

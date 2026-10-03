@@ -1,0 +1,2090 @@
+[
+  {
+    "driver_sequence": 0,
+    "actor": "broker",
+    "api_keys": [
+      3,
+      17,
+      18,
+      19,
+      20,
+      36
+    ],
+    "broker": "localhost:41845",
+    "event": "ready",
+    "maximum_runtime_secs": 240,
+    "profile": "metadata",
+    "recovered_entries": 1,
+    "session_lifetime_ms": 0,
+    "topic": "oidc-probe"
+  },
+  {
+    "driver_sequence": 1,
+    "actor": "java-4-1-2",
+    "issuer": "https://localhost:40357/issuer",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 2,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 0,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 3,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 1,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 4,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 2,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 5,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 3,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 6,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 4,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 7,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 5,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 8,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 6,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 9,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 10,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": [
+      "/issuer/keys"
+    ]
+  },
+  {
+    "driver_sequence": 11,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "keys_outage",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 4.0,
+      "admin-client-metrics:connection-creation-total": 4.0,
+      "admin-client-metrics:failed-authentication-total": 2.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 12,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "outage",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 13,
+    "actor": "java-4-1-2",
+    "operator_commands": 3,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 14,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 15,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 16,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": []
+  },
+  {
+    "driver_sequence": 17,
+    "actor": "java-4-1-2",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "issuer": "https://localhost:40357/issuer",
+    "callback": {
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 18,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 7,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 19,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 8,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 20,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 9,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 21,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 10,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 22,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 26,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 11,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 23,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 26,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 12,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 24,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 26,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 13,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 25,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "keys_outage_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 26,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "keys_outage_recovered"
+  },
+  {
+    "driver_sequence": 27,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": [
+      "/issuer/.well-known/openid-configuration"
+    ]
+  },
+  {
+    "driver_sequence": 28,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "discovery_outage",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 4.0,
+      "admin-client-metrics:connection-creation-total": 4.0,
+      "admin-client-metrics:failed-authentication-total": 2.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 29,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "outage",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 30,
+    "actor": "java-4-1-2",
+    "deadline_reached": false,
+    "operator_commands": 3,
+    "event": "complete",
+    "callback": {
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 31,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 32,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 33,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": []
+  },
+  {
+    "driver_sequence": 34,
+    "actor": "java-4-1-2",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:40357/issuer",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "callback": {
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 35,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 41,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 14,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 36,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 41,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 15,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 37,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 41,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 16,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 38,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 17,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 39,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 18,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 40,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 19,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 41,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 20,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 42,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "discovery_outage_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 43,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "discovery_outage_recovered"
+  },
+  {
+    "driver_sequence": 44,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": [
+      "/issuer/introspect"
+    ]
+  },
+  {
+    "driver_sequence": 45,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "introspection_outage",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 4.0,
+      "admin-client-metrics:connection-creation-total": 4.0,
+      "admin-client-metrics:failed-authentication-total": 2.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 46,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "outage",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 47,
+    "actor": "java-4-1-2",
+    "deadline_reached": false,
+    "event": "complete",
+    "operator_commands": 3,
+    "callback": {
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 48,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 49,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 50,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": []
+  },
+  {
+    "driver_sequence": 51,
+    "actor": "java-4-1-2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "issuer": "https://localhost:40357/issuer",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 52,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 65,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 21,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 53,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 65,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 22,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 54,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 65,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 23,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 55,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 66,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 24,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 56,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 68,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 25,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 57,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 68,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 26,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 58,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 68,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 27,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 59,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "introspection_outage_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 60,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "introspection_outage_recovered"
+  },
+  {
+    "driver_sequence": 61,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": [
+      "/issuer/token"
+    ]
+  },
+  {
+    "driver_sequence": 62,
+    "actor": "driver",
+    "event": "issuer-control",
+    "revoke_sha256": "ca2a70699ab9899b20004d7cc083465101fc40b2d66a77d8f2379c0813e2e597"
+  },
+  {
+    "driver_sequence": 63,
+    "actor": "driver",
+    "event": "issuer-control",
+    "revoke_sha256": "b63e6708bd0ac4e49d27856484035d07e51a17864c185465dd252418f6ec0fb3"
+  },
+  {
+    "driver_sequence": 64,
+    "actor": "driver",
+    "event": "issuer-control",
+    "revoke_sha256": "2c9f96a458a724dc4b8e3de46870989d5e5175060aac1558c25b2afd7d541194"
+  },
+  {
+    "driver_sequence": 65,
+    "actor": "driver",
+    "event": "issuer-control",
+    "revoke_sha256": "a74fa0ae0c122de9ba25a7a19e71a4f94d9b07db92091cce6b62b08d1c13a049"
+  },
+  {
+    "driver_sequence": 66,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "revoked",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 4.0,
+      "admin-client-metrics:connection-creation-total": 4.0,
+      "admin-client-metrics:failed-authentication-total": 2.0,
+      "admin-client-metrics:request-total": 7.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 5.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 67,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "revoked",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 68,
+    "actor": "java-4-1-2",
+    "operator_commands": 3,
+    "event": "complete",
+    "deadline_reached": false,
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 69,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 70,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 71,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": []
+  },
+  {
+    "driver_sequence": 72,
+    "actor": "java-4-1-2",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:40357/issuer",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "callback": {
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1
+    }
+  },
+  {
+    "driver_sequence": 73,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 85,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 28,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 74,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 85,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 29,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 75,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 85,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 30,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 76,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 86,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 31,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 77,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 87,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 32,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 78,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 87,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 33,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 79,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 87,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 34,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 80,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "revocation_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1
+    }
+  },
+  {
+    "driver_sequence": 81,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "revocation_recovered"
+  },
+  {
+    "driver_sequence": 82,
+    "actor": "driver",
+    "event": "issuer-control",
+    "generation": 1,
+    "outage": [
+      "/issuer/token"
+    ]
+  },
+  {
+    "driver_sequence": 83,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "key_removed",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 4.0,
+      "admin-client-metrics:connection-creation-total": 4.0,
+      "admin-client-metrics:failed-authentication-total": 2.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1
+    }
+  },
+  {
+    "driver_sequence": 84,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "key-removed",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 85,
+    "actor": "java-4-1-2",
+    "deadline_reached": false,
+    "event": "complete",
+    "operator_commands": 3,
+    "callback": {
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0,
+      "configured": 1
+    }
+  },
+  {
+    "driver_sequence": 86,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1,
+      "failures": 0,
+      "configured": 1
+    }
+  },
+  {
+    "driver_sequence": 87,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 88,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": []
+  },
+  {
+    "driver_sequence": 89,
+    "actor": "java-4-1-2",
+    "issuer": "https://localhost:40357/issuer",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 90,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 103,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 35,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 91,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 103,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 36,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 92,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 103,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 37,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 93,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 104,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 38,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 94,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 105,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 39,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 95,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 105,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 40,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 96,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 105,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 41,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 97,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "rotated_fresh",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 98,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "rotated_fresh"
+  },
+  {
+    "driver_sequence": 99,
+    "actor": "java-4-1-2",
+    "event": "complete",
+    "deadline_reached": false,
+    "operator_commands": 2,
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 100,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 101,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 102,
+    "actor": "driver",
+    "event": "issuer-control",
+    "ttl": 10
+  },
+  {
+    "driver_sequence": 103,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "issuer": "https://localhost:40357/issuer",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 104,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 114,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 42,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 105,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 114,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 43,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 106,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 114,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 44,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 107,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 115,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 45,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 108,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 117,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 46,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 109,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 117,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 47,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 110,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 117,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 48,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 111,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "short_lifetime",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 112,
+    "actor": "driver",
+    "event": "issuer-control",
+    "outage": [
+      "/issuer/token"
+    ]
+  },
+  {
+    "driver_sequence": 113,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "expired",
+    "passed": false,
+    "error_types": [
+      "org.apache.kafka.common.errors.SaslAuthenticationException"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 5.0,
+      "admin-client-metrics:connection-creation-total": 5.0,
+      "admin-client-metrics:failed-authentication-total": 3.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 3.0,
+      "consumer-metrics:connection-creation-total": 3.0,
+      "consumer-metrics:failed-authentication-total": 1.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 2,
+      "configured": 1,
+      "failures": 1
+    }
+  },
+  {
+    "driver_sequence": 114,
+    "actor": "driver",
+    "event": "negative-causal-witness",
+    "peer": "java-4-1-2",
+    "condition": "expired",
+    "acquisition_before_ready": false,
+    "observed_rejection_layer": "broker-authentication",
+    "classification": "public failure with actual controlled authority condition; precise socket lease semantics are separately tested"
+  },
+  {
+    "driver_sequence": 115,
+    "actor": "java-4-1-2",
+    "event": "complete",
+    "deadline_reached": false,
+    "operator_commands": 3,
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 2,
+      "configured": 1,
+      "failures": 1
+    }
+  },
+  {
+    "driver_sequence": 116,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 2,
+      "configured": 1,
+      "failures": 1
+    }
+  },
+  {
+    "driver_sequence": 117,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 118,
+    "actor": "driver",
+    "event": "issuer-control",
+    "ttl": 60,
+    "outage": []
+  },
+  {
+    "driver_sequence": 119,
+    "actor": "java-4-1-2",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "issuer": "https://localhost:40357/issuer",
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 120,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 175,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 49,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 121,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 175,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 50,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 122,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 175,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 51,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 123,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 176,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 52,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 124,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 178,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 53,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 125,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 178,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 54,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 126,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 178,
+    "issuer": "https://localhost:40357/issuer",
+    "ordinal": 55,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 127,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "expiry_recovered",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 128,
+    "actor": "driver",
+    "event": "positive-recovery",
+    "peer": "java-4-1-2",
+    "phase": "expiry_recovered"
+  },
+  {
+    "driver_sequence": 129,
+    "actor": "java-4-1-2",
+    "deadline_reached": false,
+    "operator_commands": 2,
+    "event": "complete",
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 130,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 131,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 132,
+    "actor": "broker",
+    "event": "shutdown-attempts",
+    "listener_attempted": true,
+    "listener_ok": true,
+    "router_attempted": true,
+    "router_ok": true,
+    "service_attempted": true,
+    "service_ok": true,
+    "stage": "served"
+  },
+  {
+    "driver_sequence": 133,
+    "actor": "broker",
+    "absolute_lifetime_reached": false,
+    "accepted": 51,
+    "application_dispatches": 56,
+    "event": "joined",
+    "handler_errors": 43,
+    "joined": 51,
+    "read_deadlines": 0,
+    "stop_file": true,
+    "tls_handshake_errors": 0,
+    "worker_failures": 0
+  },
+  {
+    "driver_sequence": 134,
+    "actor": "broker",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 135,
+    "actor": "broker",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 59,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 136,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 137,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 138,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 139,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 140,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 141,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 142,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 5,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 143,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 144,
+    "actor": "driver",
+    "event": "complete-source-identity",
+    "file_count": 73196,
+    "before_after_identical": true,
+    "raw_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4"
+  }
+]
