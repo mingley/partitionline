@@ -1,0 +1,919 @@
+--- a/src/protocol/txn.rs
++++ b/src/protocol/txn.rs
+@@ -1709,6 +1709,29 @@
+     pub name: String,
+     /// Partition indexes to write the marker on.
+     pub partitions: Vec<i32>,
++}
++
++/// A transaction marker with the explicit v2 transaction-version field.
++///
++/// The legacy marker shape is preserved. Version0/1 omit this ignorable field;
++/// version2 writes its signed INT8 value after CoordinatorEpoch (KIP-1228).
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct WritableTxnMarkerWithVersion {
++    /// Existing marker fields.
++    pub marker: WritableTxnMarker,
++    /// Signed TransactionVersion; the schema default is zero.
++    pub transaction_version: i8,
++}
++
++impl WritableTxnMarkerWithVersion {
++    /// Pair an existing marker with its explicit transaction version.
++    #[must_use]
++    pub const fn new(marker: WritableTxnMarker, transaction_version: i8) -> Self {
++        Self {
++            marker,
++            transaction_version,
++        }
++    }
+ }
+ 
+ /// One transaction marker in WriteTxnMarkers v0–1.
+@@ -2057,22 +2080,56 @@
+ fn write_txn_markers_flexible(version: i16) -> Result<bool> {
+     match version {
+         0 => Ok(false),
+-        1 => Ok(true),
++        1 | 2 => Ok(true),
+         other => Err(Error::protocol(format!(
+             "WriteTxnMarkers version {other} is not implemented"
+         ))),
+     }
+ }
+ 
+-/// WriteTxnMarkers v0 (classic) or v1 (flexible). v2 is not implemented.
++/// Encode legacy marker fields at version0/1, or version2 with default0.
++///
++/// Use [`encode_write_txn_markers_request_with_transaction_versions`] to send
++/// explicit v2 values. Ordinary public Admin force-abort uses default zero,
++/// matching the official AbortTransactionHandler.
+ pub fn encode_write_txn_markers_request(
+     buf: &mut BytesMut,
+     version: i16,
+     markers: &[WritableTxnMarker],
+ ) -> Result<()> {
++    encode_write_txn_markers_request_items(
++        buf,
++        version,
++        markers.len(),
++        markers.iter().map(|marker| (marker, 0)),
++    )
++}
++
++/// Encode explicit transaction versions, omitted on version0/1 as ignorable.
++pub fn encode_write_txn_markers_request_with_transaction_versions(
++    buf: &mut BytesMut,
++    version: i16,
++    markers: &[WritableTxnMarkerWithVersion],
++) -> Result<()> {
++    encode_write_txn_markers_request_items(
++        buf,
++        version,
++        markers.len(),
++        markers
++            .iter()
++            .map(|item| (&item.marker, item.transaction_version)),
++    )
++}
++
++fn encode_write_txn_markers_request_items<'a>(
++    buf: &mut BytesMut,
++    version: i16,
++    count: usize,
++    markers: impl IntoIterator<Item = (&'a WritableTxnMarker, i8)>,
++) -> Result<()> {
+     let flexible = write_txn_markers_flexible(version)?;
+-    buf::put_array_len(buf, flexible, Some(markers.len()))?;
+-    for m in markers {
++    buf::put_array_len(buf, flexible, Some(count))?;
++    for (m, transaction_version) in markers {
+         buf.put_i64(m.producer_id);
+         buf.put_i16(m.producer_epoch);
+         buf.put_u8(u8::from(m.transaction_result));
+@@ -2088,6 +2145,9 @@
+             }
+         }
+         buf.put_i32(m.coordinator_epoch);
++        if version >= 2 {
++            buf.put_i8(transaction_version);
++        }
+         if flexible {
+             buf::put_empty_tagged_fields(buf);
+         }
+@@ -2098,23 +2158,62 @@
+     Ok(())
+ }
+ 
+-/// Decode WriteTxnMarkers v0 (classic) or v1 (flexible).
++/// Decode the unchanged legacy marker shape at version0/1.
++///
++/// Version2 is deliberately rejected here: its field cannot be represented in
++/// this type. The versioned decoder retains it explicitly.
+ pub fn decode_write_txn_markers_request<B: Buf>(
+     buf: &mut B,
+     version: i16,
+ ) -> Result<Vec<WritableTxnMarker>> {
++    if version != 0 && version != 1 {
++        return Err(Error::protocol(
++            "legacy WriteTxnMarkers decoder supports0/1",
++        ));
++    }
++    decode_write_txn_markers_request_items(buf, version, |marker, _| marker)
++}
++
++/// Decode version0/1/2 retaining the transaction version (default0 before2).
++pub fn decode_write_txn_markers_request_with_transaction_versions<B: Buf>(
++    buf: &mut B,
++    version: i16,
++) -> Result<Vec<WritableTxnMarkerWithVersion>> {
++    decode_write_txn_markers_request_items(buf, version, WritableTxnMarkerWithVersion::new)
++}
++
++fn txn_marker_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()> {
++    if count
++        .checked_mul(minimum)
++        .is_none_or(|bytes| bytes > buf.remaining())
++    {
++        return Err(Error::protocol(
++            "WriteTxnMarkers count exceeds remaining input",
++        ));
++    }
++    Ok(())
++}
++
++fn decode_write_txn_markers_request_items<B: Buf, T>(
++    buf: &mut B,
++    version: i16,
++    mut project: impl FnMut(WritableTxnMarker, i8) -> T,
++) -> Result<Vec<T>> {
+     let flexible = write_txn_markers_flexible(version)?;
+     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++    txn_marker_count(buf, n, if flexible { 17 } else { 19 })?;
+     let mut markers = Vec::with_capacity(n);
+     for _ in 0..n {
+         let producer_id = buf::get_i64(buf)?;
+         let producer_epoch = buf::get_i16(buf)?;
+         let transaction_result = buf::get_bool(buf)?;
+         let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++        txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
+         let mut topics = Vec::with_capacity(tn);
+         for _ in 0..tn {
+             let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+             let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++            txn_marker_count(buf, pn, 4)?;
+             let mut partitions = Vec::with_capacity(pn);
+             for _ in 0..pn {
+                 partitions.push(buf::get_i32(buf)?);
+@@ -2125,16 +2224,20 @@
+             topics.push(WritableTxnMarkerTopic { name, partitions });
+         }
+         let coordinator_epoch = buf::get_i32(buf)?;
++        let transaction_version = if version >= 2 { buf::get_i8(buf)? } else { 0 };
+         if flexible {
+             buf::skip_tagged_fields(buf)?;
+         }
+-        markers.push(WritableTxnMarker {
+-            producer_id,
+-            producer_epoch,
+-            transaction_result,
+-            topics,
+-            coordinator_epoch,
+-        });
++        markers.push(project(
++            WritableTxnMarker {
++                producer_id,
++                producer_epoch,
++                transaction_result,
++                topics,
++                coordinator_epoch,
++            },
++            transaction_version,
++        ));
+     }
+     if flexible {
+         buf::skip_tagged_fields(buf)?;
+@@ -2184,14 +2287,17 @@
+ ) -> Result<Vec<WritableTxnMarkerResult>> {
+     let flexible = write_txn_markers_flexible(version)?;
+     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++    txn_marker_count(buf, n, if flexible { 10 } else { 12 })?;
+     let mut markers = Vec::with_capacity(n);
+     for _ in 0..n {
+         let producer_id = buf::get_i64(buf)?;
+         let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++        txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
+         let mut topics = Vec::with_capacity(tn);
+         for _ in 0..tn {
+             let name = buf::get_string(buf, flexible)?.unwrap_or_default();
+             let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
++            txn_marker_count(buf, pn, if flexible { 7 } else { 6 })?;
+             let mut partitions = Vec::with_capacity(pn);
+             for _ in 0..pn {
+                 let partition_index = buf::get_i32(buf)?;
+@@ -6679,8 +6785,8 @@
+         );
+         buf.clear();
+         assert!(
+-            encode_write_txn_markers_request(&mut buf, 2, &markers).is_err(),
+-            "WriteTxnMarkers v2 TransactionVersion is not spoken"
+-        );
+-    }
+-}
++            encode_write_txn_markers_request(&mut buf, 3, &markers).is_err(),
++            "WriteTxnMarkers v3 is not implemented"
++        );
++    }
++}
+--- a/src/protocol/admin.rs
++++ b/src/protocol/admin.rs
+@@ -11892,6 +11892,211 @@
+         let error_message = buf::get_compact_string(buf)?;
+         buf::skip_tagged_fields(buf)?;
+         groups.push(DescribedShareGroupOffsets {
++            group_id,
++            topics,
++            error_code,
++            error_message,
++        });
++    }
++    buf::skip_tagged_fields(buf)?;
++    Ok((groups, throttle_time_ms))
++}
++
++/// A share-offset partition retaining the version1 raw lag field.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct DescribedShareGroupOffsetsPartitionWithLag {
++    /// Existing version0 partition fields.
++    pub partition: DescribedShareGroupOffsetsPartition,
++    /// Raw signed Lag; version0 has the schema default minus one.
++    pub raw_lag: i64,
++}
++
++impl DescribedShareGroupOffsetsPartitionWithLag {
++    /// Official Java interpretation: negative is absent, nonnegative present.
++    #[must_use]
++    pub const fn lag(&self) -> Option<i64> {
++        if self.raw_lag < 0 {
++            None
++        } else {
++            Some(self.raw_lag)
++        }
++    }
++}
++
++/// A topic in the typed versioned share-offset result.
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct DescribedShareGroupOffsetsTopicWithLag {
++    /// Topic name.
++    pub topic_name: String,
++    /// Topic UUID.
++    pub topic_id: [u8; 16],
++    /// Partition results retaining raw lag values and errors.
++    pub partitions: Vec<DescribedShareGroupOffsetsPartitionWithLag>,
++}
++
++/// A described group retaining version1 lag values (KIP-1226).
++#[derive(Debug, Clone, PartialEq, Eq)]
++pub struct DescribedShareGroupOffsetsWithLag {
++    /// Group id.
++    pub group_id: String,
++    /// Topic results.
++    pub topics: Vec<DescribedShareGroupOffsetsTopicWithLag>,
++    /// Group-level Kafka error code, after topics in the wire schema.
++    pub error_code: i16,
++    /// Group-level error message.
++    pub error_message: Option<String>,
++}
++
++impl DescribedShareGroupOffsetsWithLag {
++    /// Explicit projection to the unchanged legacy public result shape.
++    #[must_use]
++    pub fn into_legacy(self) -> DescribedShareGroupOffsets {
++        DescribedShareGroupOffsets {
++            group_id: self.group_id,
++            topics: self
++                .topics
++                .into_iter()
++                .map(|topic| DescribedShareGroupOffsetsTopic {
++                    topic_name: topic.topic_name,
++                    topic_id: topic.topic_id,
++                    partitions: topic
++                        .partitions
++                        .into_iter()
++                        .map(|value| value.partition)
++                        .collect(),
++                })
++                .collect(),
++            error_code: self.error_code,
++            error_message: self.error_message,
++        }
++    }
++}
++
++fn share_offsets_version(version: i16) -> Result<()> {
++    if version != 0 && version != 1 {
++        return Err(Error::protocol(
++            "DescribeShareGroupOffsets supports versions0/1",
++        ));
++    }
++    Ok(())
++}
++
++fn share_offsets_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()> {
++    if count
++        .checked_mul(minimum)
++        .is_none_or(|bytes| bytes > buf.remaining())
++    {
++        return Err(Error::protocol(
++            "DescribeShareGroupOffsets count exceeds remaining input",
++        ));
++    }
++    Ok(())
++}
++
++/// Encode version0/1 requests; both versions have the same body schema.
++pub fn encode_describe_share_group_offsets_request_versioned(
++    buf: &mut BytesMut,
++    version: i16,
++    groups: &[DescribeShareGroupOffsetsGroup],
++) -> Result<()> {
++    share_offsets_version(version)?;
++    encode_describe_share_group_offsets_request(buf, groups)
++}
++
++/// Encode a typed share-offset response at version0/1 with exact raw lag.
++///
++/// Version0 omits the ignorable lag; existing versionless helpers stay intact.
++pub fn encode_describe_share_group_offsets_response_versioned(
++    buf: &mut BytesMut,
++    version: i16,
++    groups: &[DescribedShareGroupOffsetsWithLag],
++    throttle_time_ms: i32,
++) -> Result<()> {
++    share_offsets_version(version)?;
++    buf.put_i32(throttle_time_ms);
++    buf::put_array_len(buf, true, Some(groups.len()))?;
++    for group in groups {
++        buf::put_compact_string(buf, Some(&group.group_id))?;
++        buf::put_array_len(buf, true, Some(group.topics.len()))?;
++        for topic in &group.topics {
++            buf::put_compact_string(buf, Some(&topic.topic_name))?;
++            buf.extend_from_slice(&topic.topic_id);
++            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
++            for value in &topic.partitions {
++                let partition = &value.partition;
++                buf.put_i32(partition.partition_index);
++                buf.put_i64(partition.start_offset);
++                buf.put_i32(partition.leader_epoch);
++                if version >= 1 {
++                    buf.put_i64(value.raw_lag);
++                }
++                buf.put_i16(partition.error_code);
++                buf::put_compact_string(buf, partition.error_message.as_deref())?;
++                buf::put_empty_tagged_fields(buf);
++            }
++            buf::put_empty_tagged_fields(buf);
++        }
++        buf.put_i16(group.error_code);
++        buf::put_compact_string(buf, group.error_message.as_deref())?;
++        buf::put_empty_tagged_fields(buf);
++    }
++    buf::put_empty_tagged_fields(buf);
++    Ok(())
++}
++
++/// Decode version0/1 without losing lag or misreading it as an error code.
++///
++/// Counts are checked against minimum remaining wire bytes before allocation.
++pub fn decode_describe_share_group_offsets_response_versioned<B: Buf>(
++    buf: &mut B,
++    version: i16,
++) -> Result<(Vec<DescribedShareGroupOffsetsWithLag>, i32)> {
++    share_offsets_version(version)?;
++    let throttle_time_ms = buf::get_i32(buf)?;
++    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
++    share_offsets_count(buf, n, 6)?;
++    let mut groups = Vec::with_capacity(n);
++    for _ in 0..n {
++        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
++        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
++        share_offsets_count(buf, tn, 19)?;
++        let mut topics = Vec::with_capacity(tn);
++        for _ in 0..tn {
++            let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
++            let topic_id = buf::get_uuid(buf)?;
++            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
++            share_offsets_count(buf, pn, if version >= 1 { 28 } else { 20 })?;
++            let mut partitions = Vec::with_capacity(pn);
++            for _ in 0..pn {
++                let partition_index = buf::get_i32(buf)?;
++                let start_offset = buf::get_i64(buf)?;
++                let leader_epoch = buf::get_i32(buf)?;
++                let raw_lag = if version >= 1 { buf::get_i64(buf)? } else { -1 };
++                let error_code = buf::get_i16(buf)?;
++                let error_message = buf::get_compact_string(buf)?;
++                buf::skip_tagged_fields(buf)?;
++                partitions.push(DescribedShareGroupOffsetsPartitionWithLag {
++                    partition: DescribedShareGroupOffsetsPartition {
++                        partition_index,
++                        start_offset,
++                        leader_epoch,
++                        error_code,
++                        error_message,
++                    },
++                    raw_lag,
++                });
++            }
++            buf::skip_tagged_fields(buf)?;
++            topics.push(DescribedShareGroupOffsetsTopicWithLag {
++                topic_name,
++                topic_id,
++                partitions,
++            });
++        }
++        let error_code = buf::get_i16(buf)?;
++        let error_message = buf::get_compact_string(buf)?;
++        buf::skip_tagged_fields(buf)?;
++        groups.push(DescribedShareGroupOffsetsWithLag {
+             group_id,
+             topics,
+             error_code,
+--- a/src/admin.rs
++++ b/src/admin.rs
+@@ -31,7 +31,7 @@
+     decode_describe_client_quotas_response, decode_describe_cluster_response,
+     decode_describe_configs_response, decode_describe_delegation_token_response,
+     decode_describe_groups_response, decode_describe_log_dirs_response,
+-    decode_describe_producers_response, decode_describe_share_group_offsets_response,
++    decode_describe_producers_response, decode_describe_share_group_offsets_response_versioned,
+     decode_describe_topic_partitions_response, decode_describe_transactions_response,
+     decode_describe_user_scram_credentials_response, decode_expire_delegation_token_response,
+     decode_get_telemetry_subscriptions_response, decode_incremental_alter_configs_resource_results,
+@@ -51,20 +51,21 @@
+     encode_describe_cluster_request, encode_describe_configs_request,
+     encode_describe_delegation_token_request, encode_describe_groups_request,
+     encode_describe_log_dirs_request, encode_describe_producers_topics_request,
+-    encode_describe_share_group_offsets_request, encode_describe_topic_partitions_request,
+-    encode_describe_transactions_request, encode_describe_user_scram_credentials_request,
+-    encode_expire_delegation_token_request, encode_get_telemetry_subscriptions_request,
+-    encode_incremental_alter_configs_resources_request, encode_list_config_resources_request,
+-    encode_list_groups_request, encode_list_partition_reassignments_request,
+-    encode_list_transactions_request, encode_push_telemetry_request,
+-    encode_renew_delegation_token_request, encode_share_group_describe_request,
+-    encode_unregister_broker_request, encode_update_features_request, AlterConfigsResource,
+-    AlterableResource, CreatableTopic, CreatePartitionsTopic, CreateTopicsRequest,
+-    DeleteRecordsPartition, DeleteRecordsTopic, DeleteTopicState, DescribeConfigsResource,
+-    DescribeConfigsResult, DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic,
+-    ReassignablePartition, ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion,
+-    ScramCredentialUpsertion, TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER,
+-    RESOURCE_CLIENT_METRICS, RESOURCE_GROUP, RESOURCE_TOPIC,
++    encode_describe_share_group_offsets_request_versioned,
++    encode_describe_topic_partitions_request, encode_describe_transactions_request,
++    encode_describe_user_scram_credentials_request, encode_expire_delegation_token_request,
++    encode_get_telemetry_subscriptions_request, encode_incremental_alter_configs_resources_request,
++    encode_list_config_resources_request, encode_list_groups_request,
++    encode_list_partition_reassignments_request, encode_list_transactions_request,
++    encode_push_telemetry_request, encode_renew_delegation_token_request,
++    encode_share_group_describe_request, encode_unregister_broker_request,
++    encode_update_features_request, AlterConfigsResource, AlterableResource, CreatableTopic,
++    CreatePartitionsTopic, CreateTopicsRequest, DeleteRecordsPartition, DeleteRecordsTopic,
++    DeleteTopicState, DescribeConfigsResource, DescribeConfigsResult,
++    DescribeProducersTopicRequest, FeatureUpdateKey, ListReassignmentTopic, ReassignablePartition,
++    ReassignableTopic, ReplicaAssignment, ScramCredentialDeletion, ScramCredentialUpsertion,
++    TopicConfig, TopicResult, RESOURCE_BROKER, RESOURCE_BROKER_LOGGER, RESOURCE_CLIENT_METRICS,
++    RESOURCE_GROUP, RESOURCE_TOPIC,
+ };
+ use crate::protocol::api::{
+     decode_api_versions_response, decode_metadata_response, encode_api_versions_request,
+@@ -136,23 +137,24 @@
+     DescribeUserScramCredentialsResult, DescribedConsumerGroup, DescribedDelegationToken,
+     DescribedDelegationTokenRenewer, DescribedGroup, DescribedGroupMember, DescribedShareGroup,
+     DescribedShareGroupOffsets, DescribedShareGroupOffsetsPartition,
+-    DescribedShareGroupOffsetsTopic, DescribedTopicPartition, DescribedTopicPartitions,
+-    ElectLeadersPartitionResult, ElectLeadersResponse, ElectLeadersResult, ElectLeadersTopic,
+-    EndpointType, ExpireDelegationTokenRequest, ExpireDelegationTokenResponse,
+-    GetTelemetrySubscriptionsResponse, GroupState, GroupType, ListedConfigResource, ListedGroup,
+-    Node, PushTelemetryRequest, PushTelemetryResponse, RenewDelegationTokenRequest,
+-    RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism, ShareGroupAssignment,
+-    ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor, TopicPartitionInfo,
+-    TransactionListing, TransactionState, TransactionTopic, UnregisterBrokerResponse, UpgradeType,
+-    ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE, ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT,
+-    AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT, CONFIG_SOURCE_DYNAMIC_BROKER,
+-    CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER, CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS,
+-    CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER, CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC,
+-    CONFIG_SOURCE_STATIC_BROKER, CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS,
+-    CONFIG_TYPE_DOUBLE, CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD,
+-    CONFIG_TYPE_SHORT, CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS,
+-    ENDPOINT_TYPE_CONTROLLERS, INVALID_OFFSET_LAG, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT,
+-    QUOTA_MATCH_EXACT, RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
++    DescribedShareGroupOffsetsTopic, DescribedShareGroupOffsetsWithLag, DescribedTopicPartition,
++    DescribedTopicPartitions, ElectLeadersPartitionResult, ElectLeadersResponse,
++    ElectLeadersResult, ElectLeadersTopic, EndpointType, ExpireDelegationTokenRequest,
++    ExpireDelegationTokenResponse, GetTelemetrySubscriptionsResponse, GroupState, GroupType,
++    ListedConfigResource, ListedGroup, Node, PushTelemetryRequest, PushTelemetryResponse,
++    RenewDelegationTokenRequest, RenewDelegationTokenResponse, ScramCredentialInfo, ScramMechanism,
++    ShareGroupAssignment, ShareGroupMember, ShareGroupTopicPartitions, TopicPartitionCursor,
++    TopicPartitionInfo, TransactionListing, TransactionState, TransactionTopic,
++    UnregisterBrokerResponse, UpgradeType, ALTER_CONFIG_APPEND, ALTER_CONFIG_DELETE,
++    ALTER_CONFIG_SET, ALTER_CONFIG_SUBTRACT, AUTHORIZED_OPERATIONS_OMITTED, CONFIG_SOURCE_DEFAULT,
++    CONFIG_SOURCE_DYNAMIC_BROKER, CONFIG_SOURCE_DYNAMIC_BROKER_LOGGER,
++    CONFIG_SOURCE_DYNAMIC_CLIENT_METRICS, CONFIG_SOURCE_DYNAMIC_DEFAULT_BROKER,
++    CONFIG_SOURCE_DYNAMIC_GROUP, CONFIG_SOURCE_DYNAMIC_TOPIC, CONFIG_SOURCE_STATIC_BROKER,
++    CONFIG_SOURCE_UNKNOWN, CONFIG_TYPE_BOOLEAN, CONFIG_TYPE_CLASS, CONFIG_TYPE_DOUBLE,
++    CONFIG_TYPE_INT, CONFIG_TYPE_LIST, CONFIG_TYPE_LONG, CONFIG_TYPE_PASSWORD, CONFIG_TYPE_SHORT,
++    CONFIG_TYPE_STRING, CONFIG_TYPE_UNKNOWN, ENDPOINT_TYPE_BROKERS, ENDPOINT_TYPE_CONTROLLERS,
++    INVALID_OFFSET_LAG, QUOTA_MATCH_ANY, QUOTA_MATCH_DEFAULT, QUOTA_MATCH_EXACT,
++    RESOURCE_BROKER as CONFIG_RESOURCE_BROKER,
+     RESOURCE_BROKER_LOGGER as CONFIG_RESOURCE_BROKER_LOGGER,
+     RESOURCE_CLIENT_METRICS as CONFIG_RESOURCE_CLIENT_METRICS,
+     RESOURCE_GROUP as CONFIG_RESOURCE_GROUP, RESOURCE_TOPIC as CONFIG_RESOURCE_TOPIC,
+@@ -3844,7 +3846,7 @@
+             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
+         let describe_share_group_offsets_version = versions
+             .get(&DESCRIBE_SHARE_GROUP_OFFSETS)
+-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
++            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
+         let alter_share_group_offsets_version = versions
+             .get(&ALTER_SHARE_GROUP_OFFSETS)
+             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
+@@ -6631,12 +6633,11 @@
+ 
+     /// Force-abort an open transaction on a partition (Java `abortTransaction`).
+     ///
+-    /// Sends WriteTxnMarkers (api 27) v0 (classic) or v1 (flexible;
+-    /// Kafka 4.0 baseline) with `transactionResult=false` to the
++    /// Sends WriteTxnMarkers (api27) v0 classic or v1/v2 flexible with `transactionResult=false` to the
+     /// Metadata partition leader. `NOT_LEADER_OR_FOLLOWER` and
+     /// fenced/unknown leader epochs refresh Metadata and retry. This is
+     /// not a controller hop and not a transaction-coordinator hop.
+-    /// v2 `TransactionVersion` (KIP-1228) is not spoken. WriteTxnMarkers
++    /// Version2 sends default TransactionVersion0 like Java force-abort. WriteTxnMarkers
+     /// has no TimeoutMs; the RPC deadline is [`AdminConfig::request_timeout`].
+     /// For a one-shot deadline, use [`Self::abort_transaction_timeout`].
+     pub async fn abort_transaction(&mut self, spec: AbortTransactionSpec) -> Result<()> {
+@@ -6657,81 +6658,116 @@
+         let version = self
+             .versions
+             .get(&WRITE_TXN_MARKERS)
+-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1))
++            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
+             .ok_or_else(|| Error::Unsupported("broker does not support WriteTxnMarkers".into()))?;
+-        let deadline = Instant::now() + timeout;
+-        let mut attempt = 0u32;
+-        let marker = WritableTxnMarker {
+-            producer_id: spec.producer_id,
+-            producer_epoch: spec.producer_epoch,
+-            transaction_result: TransactionResult::Abort.id(),
+-            topics: vec![WritableTxnMarkerTopic {
+-                name: spec.topic.clone(),
+-                partitions: vec![spec.partition],
+-            }],
+-            coordinator_epoch: spec.coordinator_epoch,
+-        };
+-        loop {
+-            if self.cluster.leader(&spec.topic, spec.partition).is_err() {
+-                let topics = [spec.topic.clone()];
+-                self.refresh_metadata(Some(&topics)).await?;
+-            }
+-            let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
+-            self.connect_node(node).await?;
+-            let body = {
+-                let conn = self
+-                    .conns
+-                    .get_mut(&node)
+-                    .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
+-                conn.roundtrip(
+-                    WRITE_TXN_MARKERS,
+-                    version,
+-                    |buf| {
+-                        encode_write_txn_markers_request(
+-                            buf,
+-                            version,
+-                            std::slice::from_ref(&marker),
+-                        )
+-                    },
+-                    timeout,
+-                )
+-                .await
++        if timeout.is_zero() {
++            return Err(Error::Timeout);
++        }
++        let deadline = Instant::now()
++            .checked_add(timeout)
++            .ok_or_else(|| Error::protocol("WriteTxnMarkers deadline overflow"))?;
++        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
++            let mut attempt = 0u32;
++            let marker = WritableTxnMarker {
++                producer_id: spec.producer_id,
++                producer_epoch: spec.producer_epoch,
++                transaction_result: TransactionResult::Abort.id(),
++                topics: vec![WritableTxnMarkerTopic {
++                    name: spec.topic.clone(),
++                    partitions: vec![spec.partition],
++                }],
++                coordinator_epoch: spec.coordinator_epoch,
+             };
+-            let body = match body {
+-                Ok(b) => b,
+-                Err(e) if e.is_retriable() => {
++            loop {
++                if self.cluster.leader(&spec.topic, spec.partition).is_err() {
++                    let topics = [spec.topic.clone()];
++                    self.refresh_metadata(Some(&topics)).await?;
++                }
++                let (node, _) = self.cluster.leader(&spec.topic, spec.partition)?;
++                self.connect_node(node).await?;
++                let body = {
++                    let conn = self
++                        .conns
++                        .get_mut(&node)
++                        .ok_or_else(|| Error::protocol("missing abort_transaction conn"))?;
++                    conn.roundtrip(
++                        WRITE_TXN_MARKERS,
++                        version,
++                        |buf| {
++                            encode_write_txn_markers_request(
++                                buf,
++                                version,
++                                std::slice::from_ref(&marker),
++                            )
++                        },
++                        timeout,
++                    )
++                    .await
++                };
++                let body = match body {
++                    Ok(b) => b,
++                    Err(e) if e.is_retriable() => {
++                        let _ = self.conns.remove(&node);
++                        self.wait_retry(&mut attempt, deadline).await?;
++                        continue;
++                    }
++                    Err(e) => return Err(e),
++                };
++                let mut cursor = body.clone();
++                let resp = decode_write_txn_markers_response(&mut cursor, version)?;
++                if !cursor.is_empty() {
++                    return Err(Error::protocol("WriteTxnMarkers trailing response bytes"));
++                }
++                // Official AbortTransactionHandler requires exactly one matching
++                // marker/topic/partition before consulting its error. A generic
++                // batched codec permits many entries; this public operation sent
++                // exactly one marker and must not infer success from absence.
++                let [marker_result] = resp.as_slice() else {
++                    return Err(Error::protocol("WriteTxnMarkers unexpected marker count"));
++                };
++                if marker_result.producer_id != spec.producer_id {
++                    return Err(Error::protocol(
++                        "WriteTxnMarkers unexpected producer identity",
++                    ));
++                }
++                let [topic_result] = marker_result.topics.as_slice() else {
++                    return Err(Error::protocol("WriteTxnMarkers unexpected topic count"));
++                };
++                if topic_result.name != spec.topic {
++                    return Err(Error::protocol("WriteTxnMarkers unexpected topic identity"));
++                }
++                let [partition_result] = topic_result.partitions.as_slice() else {
++                    return Err(Error::protocol(
++                        "WriteTxnMarkers unexpected partition count",
++                    ));
++                };
++                if partition_result.partition_index != spec.partition {
++                    return Err(Error::protocol(
++                        "WriteTxnMarkers unexpected partition identity",
++                    ));
++                }
++                let error_code = partition_result.error_code;
++                if error_code == 0 {
++                    return Ok(());
++                }
++                let e = Error::broker(error_code, "WriteTxnMarkers");
++                if matches!(
++                    error_code,
++                    error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
++                ) || e.is_retriable()
++                {
++                    self.cluster.invalidate_topic(&spec.topic);
+                     let _ = self.conns.remove(&node);
+                     self.wait_retry(&mut attempt, deadline).await?;
++                    let topics = [spec.topic.clone()];
++                    self.refresh_metadata(Some(&topics)).await?;
+                     continue;
+                 }
+-                Err(e) => return Err(e),
+-            };
+-            let resp = decode_write_txn_markers_response(&mut body.clone(), version)?;
+-            let error_code = resp
+-                .iter()
+-                .flat_map(|m| m.topics.iter())
+-                .flat_map(|t| t.partitions.iter())
+-                .map(|p| p.error_code)
+-                .find(|&c| c != 0)
+-                .unwrap_or(0);
+-            if error_code == 0 {
+-                return Ok(());
+-            }
+-            let e = Error::broker(error_code, "WriteTxnMarkers");
+-            if matches!(
+-                error_code,
+-                error::FENCED_LEADER_EPOCH | error::UNKNOWN_LEADER_EPOCH
+-            ) || e.is_retriable()
+-            {
+-                self.cluster.invalidate_topic(&spec.topic);
+-                let _ = self.conns.remove(&node);
+-                self.wait_retry(&mut attempt, deadline).await?;
+-                let topics = [spec.topic.clone()];
+-                self.refresh_metadata(Some(&topics)).await?;
+-                continue;
+-            }
+-            return Err(e);
+-        }
++                return Err(e);
++            }
++        })
++        .await
++        .map_err(|_| Error::Timeout)?
+     }
+ 
+     /// Describe transactional.id state (DescribeTransactions api 65).
+@@ -10268,6 +10304,36 @@
+         groups: &[DescribeShareGroupOffsetsGroup],
+         timeout: Duration,
+     ) -> Result<Vec<DescribedShareGroupOffsets>> {
++        // This documented legacy projection still negotiates/consumes v1.
++        self.describe_share_group_offsets_with_lag_timeout(groups, timeout)
++            .await
++            .map(|groups| {
++                groups
++                    .into_iter()
++                    .map(DescribedShareGroupOffsetsWithLag::into_legacy)
++                    .collect()
++            })
++    }
++
++    /// Describe share offsets retaining version1 lag (negative means absent).
++    ///
++    /// Version0 falls back to absent lag. Coordinator routing, retry and the
++    /// absolute deadline are shared with the legacy operation.
++    pub async fn describe_share_group_offsets_with_lag(
++        &mut self,
++        groups: &[DescribeShareGroupOffsetsGroup],
++    ) -> Result<Vec<DescribedShareGroupOffsetsWithLag>> {
++        let timeout = self.cfg.request_timeout;
++        self.describe_share_group_offsets_with_lag_timeout(groups, timeout)
++            .await
++    }
++
++    /// The typed lag operation with one absolute coordinator/RPC retry budget.
++    pub async fn describe_share_group_offsets_with_lag_timeout(
++        &mut self,
++        groups: &[DescribeShareGroupOffsetsGroup],
++        timeout: Duration,
++    ) -> Result<Vec<DescribedShareGroupOffsetsWithLag>> {
+         if groups.is_empty() {
+             return Ok(Vec::new());
+         }
+@@ -10275,50 +10341,67 @@
+         let version = self.describe_share_group_offsets_version.ok_or_else(|| {
+             Error::Unsupported("broker does not support DescribeShareGroupOffsets".into())
+         })?;
+-        let deadline = Instant::now() + timeout;
+-        let mut attempt = 0u32;
+-        let mut out: Vec<Option<DescribedShareGroupOffsets>> = vec![None; groups.len()];
+-        let mut pending: Vec<usize> = (0..groups.len()).collect();
+-        loop {
+-            let by_node = self.group_coord_nodes(&ids, &pending).await?;
+-            let mut nodes: Vec<i32> = by_node.keys().copied().collect();
+-            nodes.sort_unstable();
+-            let mut still = Vec::new();
+-            for node in nodes {
+-                let idxs = by_node.get(&node).cloned().unwrap_or_default();
+-                match self
+-                    .describe_share_group_offsets_on_node(node, version, groups, &idxs, timeout)
+-                    .await
+-                {
+-                    Ok(done) => {
+-                        for (i, g) in done {
+-                            if error::coordinator_retriable(g.error_code) {
+-                                self.invalidate_group_coord_idxs(&ids, &[i], node);
+-                                still.push(i);
+-                            } else if let Some(slot) = out.get_mut(i) {
+-                                *slot = Some(g);
++        if timeout.is_zero() {
++            return Err(Error::Timeout);
++        }
++        let deadline = Instant::now()
++            .checked_add(timeout)
++            .ok_or_else(|| Error::protocol("DescribeShareGroupOffsets deadline overflow"))?;
++        tokio::time::timeout_at(tokio::time::Instant::from_std(deadline), async {
++            let mut attempt = 0u32;
++            let mut out: Vec<Option<DescribedShareGroupOffsetsWithLag>> = vec![None; groups.len()];
++            let mut pending: Vec<usize> = (0..groups.len()).collect();
++            loop {
++                let by_node = self.group_coord_nodes(&ids, &pending).await?;
++                let mut nodes: Vec<i32> = by_node.keys().copied().collect();
++                nodes.sort_unstable();
++                let mut still = Vec::new();
++                for node in nodes {
++                    let idxs = by_node.get(&node).cloned().unwrap_or_default();
++                    match self
++                        .describe_share_group_offsets_on_node(
++                            node,
++                            version,
++                            groups,
++                            &idxs,
++                            deadline.saturating_duration_since(Instant::now()),
++                        )
++                        .await
++                    {
++                        Ok(done) => {
++                            for (i, g) in done {
++                                if error::coordinator_retriable(g.error_code) {
++                                    self.invalidate_group_coord_idxs(&ids, &[i], node);
++                                    still.push(i);
++                                } else if let Some(slot) = out.get_mut(i) {
++                                    *slot = Some(g);
++                                }
+                             }
+                         }
++                        Err(e) if e.is_retriable() => {
++                            self.invalidate_group_coord_idxs(&ids, &idxs, node);
++                            still.extend(idxs);
++                        }
++                        Err(e) => return Err(e),
+                     }
+-                    Err(e) if e.is_retriable() => {
+-                        self.invalidate_group_coord_idxs(&ids, &idxs, node);
+-                        still.extend(idxs);
+-                    }
+-                    Err(e) => return Err(e),
+                 }
+-            }
+-            pending = still;
+-            if pending.is_empty() {
+-                break;
+-            }
+-            self.wait_retry(&mut attempt, deadline).await?;
+-        }
+-        out.into_iter()
+-            .zip(ids)
+-            .map(|(g, id)| {
+-                g.ok_or_else(|| Error::protocol(format!("DescribeShareGroupOffsets missing {id}")))
+-            })
+-            .collect()
++                pending = still;
++                if pending.is_empty() {
++                    break;
++                }
++                self.wait_retry(&mut attempt, deadline).await?;
++            }
++            out.into_iter()
++                .zip(ids)
++                .map(|(g, id)| {
++                    g.ok_or_else(|| {
++                        Error::protocol(format!("DescribeShareGroupOffsets missing {id}"))
++                    })
++                })
++                .collect()
++        })
++        .await
++        .map_err(|_| Error::Timeout)?
+     }
+ 
+     /// List share-group offsets (Java `Admin.listShareGroupOffsets`).
+@@ -12185,7 +12268,7 @@
+         groups: &[DescribeShareGroupOffsetsGroup],
+         idxs: &[usize],
+         timeout: Duration,
+-    ) -> Result<Vec<(usize, DescribedShareGroupOffsets)>> {
++    ) -> Result<Vec<(usize, DescribedShareGroupOffsetsWithLag)>> {
+         let subset: Vec<DescribeShareGroupOffsetsGroup> = idxs
+             .iter()
+             .filter_map(|&i| groups.get(i).cloned())
+@@ -12199,13 +12282,21 @@
+             conn.roundtrip(
+                 DESCRIBE_SHARE_GROUP_OFFSETS,
+                 version,
+-                |buf| encode_describe_share_group_offsets_request(buf, &subset),
++                |buf| encode_describe_share_group_offsets_request_versioned(buf, version, &subset),
+                 timeout,
+             )
+             .await
+         }?;
+-        let (results, ..) = decode_describe_share_group_offsets_response(&mut body.clone())?;
+-        let mut by_id: HashMap<String, VecDeque<DescribedShareGroupOffsets>> = HashMap::new();
++        let mut cursor = body.clone();
++        let (results, ..) =
++            decode_describe_share_group_offsets_response_versioned(&mut cursor, version)?;
++        if !cursor.is_empty() {
++            return Err(Error::protocol(
++                "DescribeShareGroupOffsets trailing response bytes",
++            ));
++        }
++        let mut by_id: HashMap<String, VecDeque<DescribedShareGroupOffsetsWithLag>> =
++            HashMap::new();
+         for g in results {
+             by_id.entry(g.group_id.clone()).or_default().push_back(g);
+         }

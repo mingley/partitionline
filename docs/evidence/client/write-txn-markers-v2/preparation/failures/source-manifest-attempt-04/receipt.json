@@ -1,0 +1,8 @@
+{
+  "scope": "Source packet metadata preflight, no product mutation/compile/runtime",
+  "exit_code": 1,
+  "observed_exception": "json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)",
+  "capture": "Observed tool failure category retained; no original raw shell log was created.",
+  "cause": "Pinned authentic Apache schema JSON files contain ASF line comments and were incorrectly fed to strict json.loads while enumerating metadata files.",
+  "correction": "Preserve authoritative upstream bytes unchanged and only strictly parse the actual evidence metadata JSON files."
+}

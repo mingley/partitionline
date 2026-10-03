@@ -1,0 +1,215 @@
+{
+  "schema_version": 1,
+  "oracle_policy": "Exact official source/archive identities retained from independently verified inventory; no SDK execution inferred by this source packet",
+  "review_base": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "sources": [
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "a9b0a0f62343883fb3c748863e3d68dafdcb9cf6b1a67cf7aa0e4592ff38a335",
+      "bytes": 3454
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "bba42703e36127e6adacb5d2a306c9eea6b16b7a33d5d7029967fe52fed75723",
+      "bytes": 1751
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "78a97a835eb10b3f057c7a1b80391decbb8ac47236f23f149d941d3bd34500fc",
+      "bytes": 3481
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "f823471520a648a8d1e3ceeaf3b38842d6d4b3b6df7315a79f2c7d512afc6f96",
+      "bytes": 10477
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "b8651d301304eea30e74158fce6b755ae34eec475acfa079408168646ba5a6ef",
+      "bytes": 3701
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021",
+      "bytes": 1865
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "88ac3b2426514ca8f6f97cc556ec8806616707faa3069181701e6a0f6d1e89c6",
+      "bytes": 3301
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "38f1dd1e09914744c0fed8493d7a5bbba1bdb09e16b0481e74702c93e84e509a",
+      "bytes": 10684
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd",
+      "bytes": 17874
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "5da70be446cd41ddf1de9d2e95779d43c606113bf633d89c3d492c69e240a4cb",
+      "bytes": 3699
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021",
+      "bytes": 1865
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "88ac3b2426514ca8f6f97cc556ec8806616707faa3069181701e6a0f6d1e89c6",
+      "bytes": 3301
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "38f1dd1e09914744c0fed8493d7a5bbba1bdb09e16b0481e74702c93e84e509a",
+      "bytes": 10684
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595
+    }
+  ],
+  "oracle_source_pins": [
+    {
+      "release": "4.1.2",
+      "source_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "api_key": 90,
+      "name": "DescribeShareGroupOffsets",
+      "enum_name": "DESCRIBE_SHARE_GROUP_OFFSETS",
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": false,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "listShareGroupOffsets",
+      "source_files": [
+        {
+          "path": "official-source/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce"
+        },
+        {
+          "path": "official-source/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+          "sha256": "bba42703e36127e6adacb5d2a306c9eea6b16b7a33d5d7029967fe52fed75723"
+        },
+        {
+          "path": "official-source/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+          "sha256": "a9b0a0f62343883fb3c748863e3d68dafdcb9cf6b1a67cf7aa0e4592ff38a335"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "api_key": 90,
+      "name": "DescribeShareGroupOffsets",
+      "enum_name": "DESCRIBE_SHARE_GROUP_OFFSETS",
+      "valid_versions": "0-1",
+      "flexible_versions": "0+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": false,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "listShareGroupOffsets",
+      "source_files": [
+        {
+          "path": "official-source/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce"
+        },
+        {
+          "path": "official-source/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+          "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021"
+        },
+        {
+          "path": "official-source/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+          "sha256": "b8651d301304eea30e74158fce6b755ae34eec475acfa079408168646ba5a6ef"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "api_key": 90,
+      "name": "DescribeShareGroupOffsets",
+      "enum_name": "DESCRIBE_SHARE_GROUP_OFFSETS",
+      "valid_versions": "0-1",
+      "flexible_versions": "0+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": false,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "listShareGroupOffsets",
+      "source_files": [
+        {
+          "path": "official-source/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd"
+        },
+        {
+          "path": "official-source/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+          "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021"
+        },
+        {
+          "path": "official-source/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+          "sha256": "5da70be446cd41ddf1de9d2e95779d43c606113bf633d89c3d492c69e240a4cb"
+        }
+      ]
+    }
+  ],
+  "acceptance": [
+    "Consume v1 Lag INT64 after LeaderEpoch before ErrorCode; request body remains v0. Raw signed lag retained by typed wire result; public lag accessor returnsNone for every negative value andSome for nonnegative values like official SharePartitionOffsetInfo. v0 typed result has absent lag/default-1.",
+    "Existing Admin describe/list_share_group_offsets negotiate highest <=1 and correctly consume v1, explicitly project to unchanged legacy result. A new typed public with-lag operation exposes the field. Both paths share one retry/coordinator routing implementation.",
+    "Public Admin tests cover0-only,1-only,0..1,unsupported; actual group coordinator type0 routing (never controller/Metadata leader), coordinator16/14/15 refresh, partial group errors/duplicates/order, exact one-shot deadline/cancellation and unsupported-before-discovery.",
+    "Independent fixtures cover lag-1/othernegative/0/positive/MAX, null/all versus empty/named requests, group/partition errors, flexible unknown tags, duplicate groups and malformed/truncated counts/fields. Genuine official listShareGroupOffsets public request and returned Optional lag must be observed separately from codec/handler fixtures.",
+    "Keep existing public struct-literal types and legacy wire helpers source/byte compatible; additive typed APIs expose the new field without silently discarding it at the wire boundary.",
+    "Fail invalid/unsupported versions before unrelated metadata/coordinator/network work. Positive nested-count/minimum-byte and frame/resource checks precede allocation; full successful body/header consumption and exact correlation/version are asserted.",
+    "Preserve the existing operation routing/retry implementation once; both legacy projection and new typed operation share the same coordinator/leader invalidation and absolute deadline.",
+    "Pin actual Apache4.1.2/4.2.1/4.3.1 jars, schemas and source. Execute independent fixtures in applicable versions and retain actual unsupported outcomes on4.1.2; do not claim fabricated full broker transaction/share semantics.",
+    "Freeze and push exact source before immutable stable+1.85 default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
+  ]
+}

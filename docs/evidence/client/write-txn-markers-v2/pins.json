@@ -1,0 +1,248 @@
+{
+  "schema_version": 1,
+  "oracle_policy": "Exact official source/archive identities retained from independently verified inventory; no SDK execution inferred by this source packet",
+  "review_base": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "sources": [
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "5f853b8d6a5ff8e1cf86d05329cf673cd2e18600880371dc06f423786d28df85",
+      "bytes": 2366
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "591998743b9b30b175f6c7ec4d5f132bd71a1fc4f6a54c99b6cfa3199f9a694f",
+      "bytes": 2092
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "b8e5ff1399e67907b0db3052ad89af4d29726a78e79827bd8611f26c7fd640f4",
+      "bytes": 8276
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "f6fe5eabbe096b36395e06298d050ea4c1ff08fd4a82f413daf159692025b18d",
+      "bytes": 3618
+    },
+    {
+      "path": "upstream/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9",
+      "bytes": 2655
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39",
+      "bytes": 2162
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "dcba55cb134a92d25a8fc124c2cc78642385a7c6c602b3493eb281971819f75b",
+      "bytes": 9462
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "8d8d4bb1d6bfb25919a007a10ff0b57550fbdb73a844e1fd0c8f2b69e1bb1955",
+      "bytes": 12647
+    },
+    {
+      "path": "upstream/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd",
+      "bytes": 17874
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9",
+      "bytes": 2655
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39",
+      "bytes": 2162
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "dcba55cb134a92d25a8fc124c2cc78642385a7c6c602b3493eb281971819f75b",
+      "bytes": 9462
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "8d8d4bb1d6bfb25919a007a10ff0b57550fbdb73a844e1fd0c8f2b69e1bb1955",
+      "bytes": 12647
+    },
+    {
+      "path": "upstream/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628
+    }
+  ],
+  "oracle_source_pins": [
+    {
+      "release": "4.1.2",
+      "source_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "api_key": 27,
+      "name": "WriteTxnMarkers",
+      "enum_name": "WRITE_TXN_MARKERS",
+      "valid_versions": "1",
+      "flexible_versions": "1+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": true,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "abortTransaction",
+      "source_files": [
+        {
+          "path": "official-source/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce"
+        },
+        {
+          "path": "official-source/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+          "sha256": "5f853b8d6a5ff8e1cf86d05329cf673cd2e18600880371dc06f423786d28df85"
+        },
+        {
+          "path": "official-source/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+          "sha256": "591998743b9b30b175f6c7ec4d5f132bd71a1fc4f6a54c99b6cfa3199f9a694f"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "api_key": 27,
+      "name": "WriteTxnMarkers",
+      "enum_name": "WRITE_TXN_MARKERS",
+      "valid_versions": "1-2",
+      "flexible_versions": "1+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": true,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "abortTransaction",
+      "source_files": [
+        {
+          "path": "official-source/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce"
+        },
+        {
+          "path": "official-source/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+          "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9"
+        },
+        {
+          "path": "official-source/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+          "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "api_key": 27,
+      "name": "WriteTxnMarkers",
+      "enum_name": "WRITE_TXN_MARKERS",
+      "valid_versions": "1-2",
+      "flexible_versions": "1+",
+      "listeners": [
+        "broker"
+      ],
+      "cluster_action_from_ApiKeys": true,
+      "forwardable_from_ApiKeys": false,
+      "latest_version_unstable": false,
+      "standard_Java_Admin_method": "abortTransaction",
+      "source_files": [
+        {
+          "path": "official-source/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+          "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd"
+        },
+        {
+          "path": "official-source/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+          "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9"
+        },
+        {
+          "path": "official-source/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+          "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39"
+        }
+      ]
+    }
+  ],
+  "acceptance": [
+    "Encode v2 TransactionVersion INT8 after CoordinatorEpoch before marker tagged fields; response layout remains v1 flexible. Existing Admin force-abort negotiates highest <=2 and sends default0 exactly as official AbortTransactionHandler.",
+    "New typed marker/codec retains INT8 values explicitly; v1/v0 omit the ignorable field; legacy request decoder remains explicit0/1 while versioned decoder exposes v2. Do not claim producer TXV2 recovery/replication because this wire field is present.",
+    "Public Admin tests cover broker ranges1-only,2-only,1..2,unsupported; actual Metadata partition leader routing, NOT_LEADER retry/invalidation, fencing/error return, malformed/truncated v2, canceled/deadline work and unrelated operation continuity.",
+    "Public abort response authority exactly matches official AbortTransactionHandler: exactly one requested producer, exactly one requested topic and exactly one requested partition are required before reading the error. Empty/omitted, duplicate or unrelated result identities are protocol failures, even when all included error codes are zero. Generic batched codecs remain capable of plural marker responses.",
+    "Capture the inherited false-success counterexample and independent official handler failures before correcting it. Actual public socket cases cover missing marker/topic/partition, mismatched producer/topic/partition, duplicate target entries at each level, matching success/error and unrelated zero/nonzero entries; preserve retries only for the matching authoritative target error.",
+    "Matching authoritative error8 BROKER_NOT_AVAILABLE and9 REPLICA_NOT_AVAILABLE refresh partition-leader Metadata and retry like official AbortTransactionHandler, scoped to this public operation. Controlled public socket tests cover8/9 then success, terminal cluster-authorization/producer-epoch/coordinator-fencing errors, retries exhausting one absolute deadline and cancellation. Do not alter global Error.is_retriable or unrelated transport behavior.",
+    "Independent tests use full request/response frames and actual official serializer/parser for default0,TV1,TV2 and signed INT8 boundaries, empty/duplicate markers/topics/partitions, errors/tags/CRC-free request framing. Java public abortTransaction call must be observed as a genuine SDK wire operation separately from direct handler/codec fixtures.",
+    "Keep existing public struct-literal types and legacy wire helpers source/byte compatible; additive typed APIs expose the new field without silently discarding it at the wire boundary.",
+    "Fail invalid/unsupported versions before unrelated metadata/coordinator/network work. Positive nested-count/minimum-byte and frame/resource checks precede allocation; full successful body/header consumption and exact correlation/version are asserted.",
+    "Preserve the existing operation routing/retry implementation once; both legacy projection and new typed operation share the same coordinator/leader invalidation and absolute deadline.",
+    "Pin actual Apache4.1.2/4.2.1/4.3.1 jars, schemas and source. Execute independent fixtures in applicable versions and retain actual unsupported outcomes on4.1.2; do not claim fabricated full broker transaction/share semantics.",
+    "Freeze and push exact source before immutable stable+1.85 default/all-feature behavioral/strict fmt/Clippy/rustdoc/doctest qualification; preserve first failures and all initial preparation attempts."
+  ]
+}

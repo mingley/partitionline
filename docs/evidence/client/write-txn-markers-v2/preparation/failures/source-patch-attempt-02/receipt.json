@@ -1,0 +1,9 @@
+{
+  "scope": "Source-preparation text-replacement assertion, before any file write; not a compiler or product runtime failure",
+  "inner_python_exit_code": 1,
+  "combined_shell_exit_code": 0,
+  "observed_output": "Traceback (most recent call last):\n  File \"<stdin>\", line 6, in <module>\nAssertionError\n",
+  "capture": "Actual tool observation retained; original shell log was not created. No fabricated raw log.",
+  "cause": "Indentation-sensitive replacement patterns no longer matched rustfmt output. In-memory checks rejected the source before Path.write_text.",
+  "correction": "Used a reviewed contextual apply_patch to add full payload/response-write capture."
+}

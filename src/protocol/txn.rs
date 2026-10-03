@@ -1702,7 +1702,7 @@ pub fn decode_txn_offset_commit_topics_response<B: Buf>(
     Ok((topics, throttle_time_ms))
 }
 
-/// One topic in a WriteTxnMarkers marker (api 27 v0–1).
+/// One topic in a WriteTxnMarkers marker (api 27 v0–2).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WritableTxnMarkerTopic {
     /// Topic name.
@@ -1711,10 +1711,34 @@ pub struct WritableTxnMarkerTopic {
     pub partitions: Vec<i32>,
 }
 
-/// One transaction marker in WriteTxnMarkers v0–1.
+/// A transaction marker with the explicit v2 transaction-version field.
 ///
-/// v0 is classic. v1 is flexible (Kafka 4.0 baseline). v2
-/// `TransactionVersion` (KIP-1228) is not spoken.
+/// The legacy marker shape is preserved. Version0/1 omit this ignorable field;
+/// version2 writes its signed INT8 value after CoordinatorEpoch (KIP-1228).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WritableTxnMarkerWithVersion {
+    /// Existing marker fields.
+    pub marker: WritableTxnMarker,
+    /// Signed TransactionVersion; the schema default is zero.
+    pub transaction_version: i8,
+}
+
+impl WritableTxnMarkerWithVersion {
+    /// Pair an existing marker with its explicit transaction version.
+    #[must_use]
+    pub const fn new(marker: WritableTxnMarker, transaction_version: i8) -> Self {
+        Self {
+            marker,
+            transaction_version,
+        }
+    }
+}
+
+/// Legacy transaction-marker fields in WriteTxnMarkers v0–2.
+///
+/// v0 is classic; v1/v2 are flexible. The legacy encoder uses the v2
+/// schema default zero. [`WritableTxnMarkerWithVersion`] retains an explicit
+/// signed `TransactionVersion` (KIP-1228).
 ///
 /// [`std::fmt::Display`] is Java `WriteTxnMarkersRequest.TxnMarkerEntry.toString`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -1918,7 +1942,8 @@ impl WriteTxnMarkersRequest {
     /// short)`). Marker grouping is [`WritableTxnMarker::from_partitions`].
     /// Encode still writes independently of this Builder range (v0 is
     /// still spoken). The data-only Builder uses the full spoken range.
-    /// This crate speaks 0–1. This is not [`Self::error_response`] /
+    /// This historical convenience pins v1; the versioned encoder also speaks v2.
+    /// This is not [`Self::error_response`] /
     /// [`WritableTxnMarker::from_partitions`].
     #[must_use]
     pub const fn builder() -> (i16, i16) {
@@ -2049,30 +2074,63 @@ impl WriteTxnMarkersResponse {
     }
 }
 
-/// `true` when WriteTxnMarkers `version` is flexible (v1).
+/// Whether WriteTxnMarkers uses compact arrays/strings and tagged fields.
 ///
-/// v0 is classic. v1 is compact arrays/strings plus tagged fields
-/// (Apache JSON `flexibleVersions: "1+"`). v2 adds `TransactionVersion`
-/// (KIP-1228) and is not implemented.
+/// v0 is classic; v1/v2 are flexible (`flexibleVersions: "1+"`).
+/// v2 adds signed `TransactionVersion` after `CoordinatorEpoch`.
 fn write_txn_markers_flexible(version: i16) -> Result<bool> {
     match version {
         0 => Ok(false),
-        1 => Ok(true),
+        1 | 2 => Ok(true),
         other => Err(Error::protocol(format!(
             "WriteTxnMarkers version {other} is not implemented"
         ))),
     }
 }
 
-/// WriteTxnMarkers v0 (classic) or v1 (flexible). v2 is not implemented.
+/// Encode legacy marker fields at version0/1, or version2 with default0.
+///
+/// Use [`encode_write_txn_markers_request_with_transaction_versions`] to send
+/// explicit v2 values. Ordinary public Admin force-abort uses default zero,
+/// matching the official AbortTransactionHandler.
 pub fn encode_write_txn_markers_request(
     buf: &mut BytesMut,
     version: i16,
     markers: &[WritableTxnMarker],
 ) -> Result<()> {
+    encode_write_txn_markers_request_items(
+        buf,
+        version,
+        markers.len(),
+        markers.iter().map(|marker| (marker, 0)),
+    )
+}
+
+/// Encode explicit transaction versions, omitted on version0/1 as ignorable.
+pub fn encode_write_txn_markers_request_with_transaction_versions(
+    buf: &mut BytesMut,
+    version: i16,
+    markers: &[WritableTxnMarkerWithVersion],
+) -> Result<()> {
+    encode_write_txn_markers_request_items(
+        buf,
+        version,
+        markers.len(),
+        markers
+            .iter()
+            .map(|item| (&item.marker, item.transaction_version)),
+    )
+}
+
+fn encode_write_txn_markers_request_items<'a>(
+    buf: &mut BytesMut,
+    version: i16,
+    count: usize,
+    markers: impl IntoIterator<Item = (&'a WritableTxnMarker, i8)>,
+) -> Result<()> {
     let flexible = write_txn_markers_flexible(version)?;
-    buf::put_array_len(buf, flexible, Some(markers.len()))?;
-    for m in markers {
+    buf::put_array_len(buf, flexible, Some(count))?;
+    for (m, transaction_version) in markers {
         buf.put_i64(m.producer_id);
         buf.put_i16(m.producer_epoch);
         buf.put_u8(u8::from(m.transaction_result));
@@ -2088,6 +2146,9 @@ pub fn encode_write_txn_markers_request(
             }
         }
         buf.put_i32(m.coordinator_epoch);
+        if version >= 2 {
+            buf.put_i8(transaction_version);
+        }
         if flexible {
             buf::put_empty_tagged_fields(buf);
         }
@@ -2098,23 +2159,62 @@ pub fn encode_write_txn_markers_request(
     Ok(())
 }
 
-/// Decode WriteTxnMarkers v0 (classic) or v1 (flexible).
+/// Decode the unchanged legacy marker shape at version0/1.
+///
+/// Version2 is deliberately rejected here: its field cannot be represented in
+/// this type. The versioned decoder retains it explicitly.
 pub fn decode_write_txn_markers_request<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<WritableTxnMarker>> {
+    if version != 0 && version != 1 {
+        return Err(Error::protocol(
+            "legacy WriteTxnMarkers decoder supports0/1",
+        ));
+    }
+    decode_write_txn_markers_request_items(buf, version, |marker, _| marker)
+}
+
+/// Decode version0/1/2 retaining the transaction version (default0 before2).
+pub fn decode_write_txn_markers_request_with_transaction_versions<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<Vec<WritableTxnMarkerWithVersion>> {
+    decode_write_txn_markers_request_items(buf, version, WritableTxnMarkerWithVersion::new)
+}
+
+fn txn_marker_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()> {
+    if count
+        .checked_mul(minimum)
+        .is_none_or(|bytes| bytes > buf.remaining())
+    {
+        return Err(Error::protocol(
+            "WriteTxnMarkers count exceeds remaining input",
+        ));
+    }
+    Ok(())
+}
+
+fn decode_write_txn_markers_request_items<B: Buf, T>(
+    buf: &mut B,
+    version: i16,
+    mut project: impl FnMut(WritableTxnMarker, i8) -> T,
+) -> Result<Vec<T>> {
     let flexible = write_txn_markers_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    txn_marker_count(buf, n, if flexible { 17 } else { 19 })?;
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
         let producer_epoch = buf::get_i16(buf)?;
         let transaction_result = buf::get_bool(buf)?;
         let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
             let name = buf::get_string(buf, flexible)?.unwrap_or_default();
             let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            txn_marker_count(buf, pn, 4)?;
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
                 partitions.push(buf::get_i32(buf)?);
@@ -2125,16 +2225,20 @@ pub fn decode_write_txn_markers_request<B: Buf>(
             topics.push(WritableTxnMarkerTopic { name, partitions });
         }
         let coordinator_epoch = buf::get_i32(buf)?;
+        let transaction_version = if version >= 2 { buf::get_i8(buf)? } else { 0 };
         if flexible {
             buf::skip_tagged_fields(buf)?;
         }
-        markers.push(WritableTxnMarker {
-            producer_id,
-            producer_epoch,
-            transaction_result,
-            topics,
-            coordinator_epoch,
-        });
+        markers.push(project(
+            WritableTxnMarker {
+                producer_id,
+                producer_epoch,
+                transaction_result,
+                topics,
+                coordinator_epoch,
+            },
+            transaction_version,
+        ));
     }
     if flexible {
         buf::skip_tagged_fields(buf)?;
@@ -2142,7 +2246,7 @@ pub fn decode_write_txn_markers_request<B: Buf>(
     Ok(markers)
 }
 
-/// Encode WriteTxnMarkers v0 (classic) or v1 (flexible).
+/// Encode WriteTxnMarkers v0 classic or the identical v1/v2 flexible response.
 pub fn encode_write_txn_markers_response(
     buf: &mut BytesMut,
     version: i16,
@@ -2177,21 +2281,24 @@ pub fn encode_write_txn_markers_response(
     Ok(())
 }
 
-/// Decode WriteTxnMarkers v0 (classic) or v1 (flexible).
+/// Decode WriteTxnMarkers v0 classic or the identical v1/v2 flexible response.
 pub fn decode_write_txn_markers_response<B: Buf>(
     buf: &mut B,
     version: i16,
 ) -> Result<Vec<WritableTxnMarkerResult>> {
     let flexible = write_txn_markers_flexible(version)?;
     let n = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+    txn_marker_count(buf, n, if flexible { 10 } else { 12 })?;
     let mut markers = Vec::with_capacity(n);
     for _ in 0..n {
         let producer_id = buf::get_i64(buf)?;
         let tn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+        txn_marker_count(buf, tn, if flexible { 3 } else { 6 })?;
         let mut topics = Vec::with_capacity(tn);
         for _ in 0..tn {
             let name = buf::get_string(buf, flexible)?.unwrap_or_default();
             let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
+            txn_marker_count(buf, pn, if flexible { 7 } else { 6 })?;
             let mut partitions = Vec::with_capacity(pn);
             for _ in 0..pn {
                 let partition_index = buf::get_i32(buf)?;
@@ -6679,8 +6786,8 @@ mod tests {
         );
         buf.clear();
         assert!(
-            encode_write_txn_markers_request(&mut buf, 2, &markers).is_err(),
-            "WriteTxnMarkers v2 TransactionVersion is not spoken"
+            encode_write_txn_markers_request(&mut buf, 3, &markers).is_err(),
+            "WriteTxnMarkers v3 is not implemented"
         );
     }
 }

@@ -1,0 +1,658 @@
+{
+  "schema_version": 1,
+  "ownership_claim_source": "1a3a91c6facc25e0b250fe06d9aefde9086a184c",
+  "review_base": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "no_compile_or_runtime": true,
+  "scope": "Source-only candidate checkpoint. Actual compiler/tests/SDK fixture execution remain pending ROOT pin/CPU/disk lease.",
+  "files": [
+    {
+      "path": "docs/evidence/client/share-offsets-v1/README.md",
+      "sha256": "56fd514f7dffc442793f3514c7eeade8854814838353f74134f0fe59bbc2bd75",
+      "bytes": 2821,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/pins.json",
+      "sha256": "578dc6e2ff9bc1a23cf6c706eaefbe657811396af8f93a869cc896e3d1bb2d9a",
+      "bytes": 11221,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-01-uncompiled-a80c935a/preservation.json",
+      "sha256": "145a1759ba86b6b327718063d1b1565b36082ce9bc92b4785a3a5a9572092945",
+      "bytes": 1838,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-01-uncompiled-a80c935a/source-review.json",
+      "sha256": "15bd9531819354e8621a40795867897da6aa87435baaffdd9a4ca055c8ad7124",
+      "bytes": 2926,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-01-uncompiled-a80c935a/source-review.patch",
+      "sha256": "a80c935a402f91c0e1257c58aec1c1285eaf199afa187472292ac23972cccd8f",
+      "bytes": 39695,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/preservation.json",
+      "sha256": "f22ac756a24a60db842e617c42dc1a2c490ab4694652f11feda832a1370a2f93",
+      "bytes": 412,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/source-review.json",
+      "sha256": "7014fb6e42e8a297f3d368c56e8da0cfb4c0e7c2289373ac18f2589db02f2f0f",
+      "bytes": 2926,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/source-review.patch",
+      "sha256": "4e51e3c0bc582d97afdf5a681b626aa81b14b7c909c50c18c3c1366b2a3e73d9",
+      "bytes": 40985,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/preparation/fail-first.rs",
+      "sha256": "b5a5ffd5c33224286ffe9908133fb421c349976fd0d3a8033ef0415215f99e12",
+      "bytes": 1075,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "78a97a835eb10b3f057c7a1b80391decbb8ac47236f23f149d941d3bd34500fc",
+      "bytes": 3481,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "f823471520a648a8d1e3ceeaf3b38842d6d4b3b6df7315a79f2c7d512afc6f96",
+      "bytes": 10477,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "bba42703e36127e6adacb5d2a306c9eea6b16b7a33d5d7029967fe52fed75723",
+      "bytes": 1751,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.1.2/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "a9b0a0f62343883fb3c748863e3d68dafdcb9cf6b1a67cf7aa0e4592ff38a335",
+      "bytes": 3454,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "88ac3b2426514ca8f6f97cc556ec8806616707faa3069181701e6a0f6d1e89c6",
+      "bytes": 3301,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "38f1dd1e09914744c0fed8493d7a5bbba1bdb09e16b0481e74702c93e84e509a",
+      "bytes": 10684,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021",
+      "bytes": 1865,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.2.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "b8651d301304eea30e74158fce6b755ae34eec475acfa079408168646ba5a6ef",
+      "bytes": 3701,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/ListShareGroupOffsetsResult.java",
+      "sha256": "88ac3b2426514ca8f6f97cc556ec8806616707faa3069181701e6a0f6d1e89c6",
+      "bytes": 3301,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/ListShareGroupOffsetsHandler.java",
+      "sha256": "38f1dd1e09914744c0fed8493d7a5bbba1bdb09e16b0481e74702c93e84e509a",
+      "bytes": 10684,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd",
+      "bytes": 17874,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsRequest.java",
+      "sha256": "dc4bc137507988272d2cdcb2a06c5b31c4921651b6ccb6d06fe477ab7e379ad9",
+      "bytes": 3595,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/DescribeShareGroupOffsetsResponse.java",
+      "sha256": "14e2f7257d9ea45abc613921c10b9aae5e5882af7561cca9db3346df9861d462",
+      "bytes": 4397,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsRequest.json",
+      "sha256": "f1ff3872ed908875237c4f69a281b1fe07899837c57198b35497d343fce75021",
+      "bytes": 1865,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/share-offsets-v1/upstream/4.3.1/clients/src/main/resources/common/message/DescribeShareGroupOffsetsResponse.json",
+      "sha256": "5da70be446cd41ddf1de9d2e95779d43c606113bf633d89c3d492c69e240a4cb",
+      "bytes": 3699,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/README.md",
+      "sha256": "56fd514f7dffc442793f3514c7eeade8854814838353f74134f0fe59bbc2bd75",
+      "bytes": 2821,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java",
+      "sha256": "8b5b75b6e911174ab8c903b218b11570cbe83c2e41f4157a7d0627178e76d382",
+      "bytes": 18687,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java",
+      "sha256": "8965efae2d3b65f7405e8fe705cbc000961c035f285a58b336a62b06bd17ca41",
+      "bytes": 3457,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/pins.json",
+      "sha256": "670103fc4b384666651c377eb58a999a9692825660a8880f46bfdf549ab66d2f",
+      "bytes": 13517,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-01-uncompiled-a80c935a/preservation.json",
+      "sha256": "145a1759ba86b6b327718063d1b1565b36082ce9bc92b4785a3a5a9572092945",
+      "bytes": 1838,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-01-uncompiled-a80c935a/source-review.json",
+      "sha256": "15bd9531819354e8621a40795867897da6aa87435baaffdd9a4ca055c8ad7124",
+      "bytes": 2926,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-01-uncompiled-a80c935a/source-review.patch",
+      "sha256": "a80c935a402f91c0e1257c58aec1c1285eaf199afa187472292ac23972cccd8f",
+      "bytes": 39695,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/preservation.json",
+      "sha256": "f22ac756a24a60db842e617c42dc1a2c490ab4694652f11feda832a1370a2f93",
+      "bytes": 412,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/source-review.json",
+      "sha256": "7014fb6e42e8a297f3d368c56e8da0cfb4c0e7c2289373ac18f2589db02f2f0f",
+      "bytes": 2926,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/draft-history/attempt-02-uncompiled-4e51e3c0/source-review.patch",
+      "sha256": "4e51e3c0bc582d97afdf5a681b626aa81b14b7c909c50c18c3c1366b2a3e73d9",
+      "bytes": 40985,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/fail-first.rs",
+      "sha256": "b2bcb762d286a744453dd8ad16c43fcfa9a3ecccb7e52f145e4b8d4269db970b",
+      "bytes": 2471,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/failures/source-format-attempt-01/observed-stderr.txt",
+      "sha256": "de31466c0e7369a8943d7fdcf74b7851d46c97ccbefa88642805ada70a26531a",
+      "bytes": 986,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/failures/source-format-attempt-01/receipt.json",
+      "sha256": "5f16f81289a7db083af794af9e70db3d53ecf6aa4102d980baf97aaf63a7e3ed",
+      "bytes": 650,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/failures/source-patch-attempt-02/receipt.json",
+      "sha256": "91ca6c2cd679513ffb70387fa72c42682a602a7c54de31ba7bdf6a6e4541539a",
+      "bytes": 674,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "b8e5ff1399e67907b0db3052ad89af4d29726a78e79827bd8611f26c7fd640f4",
+      "bytes": 8276,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "5f853b8d6a5ff8e1cf86d05329cf673cd2e18600880371dc06f423786d28df85",
+      "bytes": 2366,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "591998743b9b30b175f6c7ec4d5f132bd71a1fc4f6a54c99b6cfa3199f9a694f",
+      "bytes": 2092,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "f6fe5eabbe096b36395e06298d050ea4c1ff08fd4a82f413daf159692025b18d",
+      "bytes": 3618,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.1.2/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "9fb5d1d4ef3477afdd613f9a6a0d9b3eb2642a865a3658507cadb06157ceb2ce",
+      "bytes": 17332,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "dcba55cb134a92d25a8fc124c2cc78642385a7c6c602b3493eb281971819f75b",
+      "bytes": 9462,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9",
+      "bytes": 2655,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39",
+      "bytes": 2162,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "8d8d4bb1d6bfb25919a007a10ff0b57550fbdb73a844e1fd0c8f2b69e1bb1955",
+      "bytes": 12647,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.2.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/AbortTransactionSpec.java",
+      "sha256": "b13c5f85230f263ae3e88fd14759086d02406bb6b95b081bcdefd391d1c6d2e9",
+      "bytes": 2651,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/java/org/apache/kafka/clients/admin/internals/AbortTransactionHandler.java",
+      "sha256": "140b45a552dffa7975624d153ce7b89d7b35252c558b852c14506b6bbfb51289",
+      "bytes": 9145,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/protocol/ApiKeys.java",
+      "sha256": "1bb448e5d24d9a33ff106eed6763a067dbe15a48004543419d1843326a5aebbd",
+      "bytes": 17874,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersRequest.java",
+      "sha256": "dcba55cb134a92d25a8fc124c2cc78642385a7c6c602b3493eb281971819f75b",
+      "bytes": 9462,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/java/org/apache/kafka/common/requests/WriteTxnMarkersResponse.java",
+      "sha256": "ea27abc9f675291f0aa07d8e4739f5509c7ae05ce9b2566d923d8db751af99ac",
+      "bytes": 5650,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersRequest.json",
+      "sha256": "3845cb619a6da7b3d9ca8588d3f23e9a7adf6bf8fef3fe64ddc96013e49ac0f9",
+      "bytes": 2655,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/main/resources/common/message/WriteTxnMarkersResponse.json",
+      "sha256": "0dc0ffd22775d3f05dc9a588ef8541d8e938651431350b75890d7fccb304af39",
+      "bytes": 2162,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersRequestTest.java",
+      "sha256": "8d8d4bb1d6bfb25919a007a10ff0b57550fbdb73a844e1fd0c8f2b69e1bb1955",
+      "bytes": 12647,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/upstream/4.3.1/clients/src/test/java/org/apache/kafka/common/requests/WriteTxnMarkersResponseTest.java",
+      "sha256": "0f1485fae47a1dd2944f9a56f8c6f2899c516abfc36a279d2a168b27c89ef7b0",
+      "bytes": 2628,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/admin.rs",
+      "sha256": "278564415d0431d8df21a3bcd5413122eb09625ee27d22cb69d25d8ff33867cc",
+      "bytes": 576058,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/protocol/admin.rs",
+      "sha256": "e8236f9b9220fd953d849c216ecdbe2b321d46e23752ac748d3f9ee50d100ac0",
+      "bytes": 1467875,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/protocol/txn.rs",
+      "sha256": "bb99b77949130c1c6bbc5f2bf1740e45712ae75fa76a9156537684b469c2c5cf",
+      "bytes": 255842,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-0.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-0.response.bin",
+      "sha256": "f8dcad67e0041bd20b98a886462488e454e3b12afab05acba8f46f769afa45b3",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-1.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-1.response.bin",
+      "sha256": "8a7361f248d66c97ebefc7ee8fd4213538946fd6d8da41591eb8414498ac7b0b",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-9223372036854775807.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-9223372036854775807.response.bin",
+      "sha256": "7574c32758df97cbbfef77ebe97b9392669a62a474cfffee4a9a6ac534b48cdb",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus1.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus1.response.bin",
+      "sha256": "d54736c9b6d7b6b0145e9c86c13316fe6b02f9ef9498e27f94c9869c5a04292b",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus2.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus2.response.bin",
+      "sha256": "3ddb48d92ce4b11a3b21f4382e7fafc923e3f4e97bb61bec0343fe5dcb97edd6",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus9223372036854775808.request.bin",
+      "sha256": "5732f7ea144cf5e675f6b95088eb7cbcd59e10cccfa2ca81d7c52fe022b4e40a",
+      "bytes": 34,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-lag-minus9223372036854775808.response.bin",
+      "sha256": "083b5c6624c9ffbeeb462e1b32f2f3df475b19b95b7c85939c5ccdefd9a047f9",
+      "bytes": 66,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/share-offsets-v1/schema-vectors.json",
+      "sha256": "fd69868bad3dc7f8147fc57a44ba54c11c8085f3a283837d78668e9ed1fdc365",
+      "bytes": 3833,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-0.request.bin",
+      "sha256": "38e1b4293d82cc6ed71ce86ec246edd7fc176573e2609b2d86a0045304900c51",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-0.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-1.request.bin",
+      "sha256": "d6a94f339a6755142d8dd3b43dff67ef6d9e3e328df10713a3f5b79fdf7cece0",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-1.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-127.request.bin",
+      "sha256": "23eb4cd5caef15f336b4aa2048d008441c872846c6ce844916f57a033fb94ecc",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-127.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-2.request.bin",
+      "sha256": "0b4053c98a8f2a022d2f7e3aaeca9baa110405c424534541c3bbdbbd9fa00b40",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-2.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-minus1.request.bin",
+      "sha256": "76ed4450e477abd6fae8c565ced2c053a8434fb6002e865e3cb60168ddf36ed8",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-minus1.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-minus128.request.bin",
+      "sha256": "7c320af983fd63046eb0e3c7654da2b897b8795755970f8da474be574f5cb44c",
+      "bytes": 56,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-tv-minus128.response.bin",
+      "sha256": "7d1f583269bbcf2b250c57ad67eb70d78bd43af8a54e3d41a9d049c8937cea9c",
+      "bytes": 28,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema-vectors.json",
+      "sha256": "ce5e057ab81eedf9d1ea3a36834f5c9b8c0a1bb4b1496f8f9a26ff2d923de0c9",
+      "bytes": 3743,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/schema_vectors.py",
+      "sha256": "1724e3be9758b004424c3427c8ef18fa9dbb1928528b1beba4dfe18ee31e15a1",
+      "bytes": 2275,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "f0a50b41ca05a078d45d59bed5199fe129f539303ac51ffd85f7051424ed6ee1",
+      "bytes": 15146,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/share_offsets_v1.rs",
+      "sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "bytes": 14540,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/write_txn_markers_v2.rs",
+      "sha256": "fdc6a4da4273a76314f6f38f8a6384599acb4a83b02ef2cec5a1f90c2ee4a795",
+      "bytes": 17768,
+      "full_mode": "0o600"
+    }
+  ],
+  "file_count": 104,
+  "total_bytes": 2911869,
+  "root_owned_excluded": [
+    "src/lib.rs",
+    "scripts/check-protocol-coverage.py",
+    "tests/conformance/cases.json",
+    "tests/conformance/features.json",
+    "docs/plan/tasks.json"
+  ],
+  "new_export_names": [
+    "WritableTxnMarkerWithVersion",
+    "DescribedShareGroupOffsetsWithLag",
+    "DescribedShareGroupOffsetsTopicWithLag",
+    "DescribedShareGroupOffsetsPartitionWithLag"
+  ],
+  "prior_draft_preservation": [
+    "attempt-01-uncompiled-a80c935a",
+    "attempt-02-uncompiled-4e51e3c0"
+  ],
+  "remaining": [
+    "Actual fail-first403 regression execution followed by candidate socket/codec tests",
+    "Actual independent three-SDK generation + genuine public Admin socket calls",
+    "Rust-emitted-frame reverse parsing",
+    "Exact-source full stable/MSRV default/all-feature client behavioral and strict qualification"
+  ]
+}

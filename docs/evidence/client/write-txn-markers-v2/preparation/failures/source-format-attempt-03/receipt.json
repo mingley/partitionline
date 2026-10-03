@@ -1,0 +1,41 @@
+{
+  "scope": "Formatting-only failure for just-added full-payload capture; no compile/runtime",
+  "first_tool_check": "The preceding tool call returned1 with truncated combined formatting diffs; no original shell log was created. This separate immediate same-byte rerun retains raw formatter outputs.",
+  "cause": "Contextual payload-capture patch had not yet been reformatted.",
+  "commands": [
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/src/admin.rs",
+        "/workspace/partitionline/src/protocol/txn.rs",
+        "/workspace/partitionline/src/protocol/admin.rs",
+        "/workspace/partitionline/tests/write_txn_markers_v2.rs",
+        "/workspace/partitionline/tests/share_offsets_v1.rs",
+        "/workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs"
+      ],
+      "exit_code": 1,
+      "stdout_sha256": "50231530b7af21f5417f272fec3608b978c635540be5d355a538a904ec65a961",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/src/admin.rs",
+        "/workspace/partitionline/src/protocol/txn.rs",
+        "/workspace/partitionline/src/protocol/admin.rs",
+        "/workspace/partitionline/tests/write_txn_markers_v2.rs",
+        "/workspace/partitionline/tests/share_offsets_v1.rs",
+        "/workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs"
+      ],
+      "exit_code": 1,
+      "stdout_sha256": "50231530b7af21f5417f272fec3608b978c635540be5d355a538a904ec65a961",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "scope": "Preserved second uncompiled source correction before adding actual authority8/9 remapping; patch exactly reconstructs three draft files against committed403 base",
+  "patch_sha256": "4e51e3c0bc582d97afdf5a681b626aa81b14b7c909c50c18c3c1366b2a3e73d9",
+  "finding": "Official AbortTransactionHandler remaps BROKER_NOT_AVAILABLE8 and REPLICA_NOT_AVAILABLE9; generic Error.is_retriable excludes both"
+}

@@ -2707,7 +2707,7 @@
 //! OffsetCommit has no TimeoutMs).
 //! [`Admin::delete_share_groups`] is Java `deleteShareGroups` (DeleteGroups).
 //! [`Admin::abort_transaction`] is Java `abortTransaction`
-//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–1;
+//! ([`AbortTransactionSpec`]; WriteTxnMarkers v0–2;
 //! [`TransactionResult::Abort`]). [`AbortTransactionSpec`]
 //! `Display` is Java `AbortTransactionSpec.toString`.
 //! [`protocol::txn::WritableTxnMarker`] `Display` is Java
@@ -3206,13 +3206,15 @@ pub use admin::{
     DescribeTopicPartitionsResponse, DescribeUserScramCredentialsResult, DescribedConsumerGroup,
     DescribedDelegationToken, DescribedDelegationTokenRenewer, DescribedGroup,
     DescribedGroupMember, DescribedShareGroup, DescribedShareGroupOffsets,
-    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsTopic, DescribedTopicPartition,
-    DescribedTopicPartitions, ElectLeadersOptions, ElectLeadersPartitionResult,
-    ElectLeadersResponse, ElectLeadersResult, ElectLeadersTopic, ElectionType, EndpointType,
-    ExpireDelegationTokenRequest, ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate,
-    FeatureUpdateResult, FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse,
-    GroupState, GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup,
-    MemberToRemove, NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetDeleteResult,
+    DescribedShareGroupOffsetsPartition, DescribedShareGroupOffsetsPartitionWithLag,
+    DescribedShareGroupOffsetsTopic, DescribedShareGroupOffsetsTopicWithLag,
+    DescribedShareGroupOffsetsWithLag, DescribedTopicPartition, DescribedTopicPartitions,
+    ElectLeadersOptions, ElectLeadersPartitionResult, ElectLeadersResponse, ElectLeadersResult,
+    ElectLeadersTopic, ElectionType, EndpointType, ExpireDelegationTokenRequest,
+    ExpireDelegationTokenResponse, FeatureMetadata, FeatureUpdate, FeatureUpdateResult,
+    FencedProducer, FinalizedVersionRange, GetTelemetrySubscriptionsResponse, GroupState,
+    GroupType, ListConsumerGroupOffsetsSpec, ListedConfigResource, ListedGroup, MemberToRemove,
+    NewPartitionReassignment, NewPartitions, NewTopic, Node, OffsetDeleteResult,
     OngoingReassignment, PartitionReassignment, ProducerIdBlock, PushTelemetryResponse, QuorumInfo,
     RaftVoterEndpoint, ReassignmentResult, RecordsToDelete, RemoveRaftVoterOptions,
     RemoveRaftVoterResponse, RemovedMember, RenewDelegationTokenRequest,
@@ -3276,7 +3278,7 @@ pub use protocol::records::{
     Compression, ControlRecordType, EndTransactionMarker, Header, Record, RecordBatch,
     TimestampType,
 };
-pub use protocol::txn::TransactionResult;
+pub use protocol::txn::{TransactionResult, WritableTxnMarkerWithVersion};
 pub use share::{
     AcknowledgeType, ShareAcquireMode, ShareGroup, ShareRecord, ShareRecords, ShareRequestMetadata,
     SHARE_ACK_ACCEPT, SHARE_ACK_REJECT, SHARE_ACK_RELEASE, SHARE_ACK_RENEW,

@@ -11703,10 +11703,10 @@ impl DescribeShareGroupOffsetsRequest {
 /// Official Apache JSON (`apiKey: 90`, request `listeners: ["broker"]`,
 /// `validVersions: "0-1"`, `flexibleVersions: "0+"`) and kafka-protocol
 /// 0.18.0 (`DescribeShareGroupOffsetsRequest` /
-/// `DescribeShareGroupOffsetsResponse`, `VERSIONS` min=0 max=0). This
-/// crate targets v0, the version a client encodes (`VERSIONS.max`).
-/// Official trunk v1 adds `Lag` INT64 (KIP-1226); 0.18.0 does not
-/// speak it and this crate does not invent it. Request encode used
+/// `DescribeShareGroupOffsetsResponse`, `VERSIONS` min=0 max=0). The
+/// versionless helpers preserve the independently pinned v0 shape.
+/// Apache 4.2.1/4.3.1 v1 adds `Lag` INT64 (KIP-1226), retained by the
+/// versioned helpers and typed results. Request encode used
 /// `features = ["client"]`; response encode used `broker`.
 /// Official listed errors (`DescribeShareGroupOffsetsResponse.json`):
 /// `GROUP_AUTHORIZATION_FAILED`, `TOPIC_AUTHORIZATION_FAILED`,
@@ -11892,6 +11892,211 @@ pub fn decode_describe_share_group_offsets_response<B: Buf>(
         let error_message = buf::get_compact_string(buf)?;
         buf::skip_tagged_fields(buf)?;
         groups.push(DescribedShareGroupOffsets {
+            group_id,
+            topics,
+            error_code,
+            error_message,
+        });
+    }
+    buf::skip_tagged_fields(buf)?;
+    Ok((groups, throttle_time_ms))
+}
+
+/// A share-offset partition retaining the version1 raw lag field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsetsPartitionWithLag {
+    /// Existing version0 partition fields.
+    pub partition: DescribedShareGroupOffsetsPartition,
+    /// Raw signed Lag; version0 has the schema default minus one.
+    pub raw_lag: i64,
+}
+
+impl DescribedShareGroupOffsetsPartitionWithLag {
+    /// Official Java interpretation: negative is absent, nonnegative present.
+    #[must_use]
+    pub const fn lag(&self) -> Option<i64> {
+        if self.raw_lag < 0 {
+            None
+        } else {
+            Some(self.raw_lag)
+        }
+    }
+}
+
+/// A topic in the typed versioned share-offset result.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsetsTopicWithLag {
+    /// Topic name.
+    pub topic_name: String,
+    /// Topic UUID.
+    pub topic_id: [u8; 16],
+    /// Partition results retaining raw lag values and errors.
+    pub partitions: Vec<DescribedShareGroupOffsetsPartitionWithLag>,
+}
+
+/// A described group retaining version1 lag values (KIP-1226).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescribedShareGroupOffsetsWithLag {
+    /// Group id.
+    pub group_id: String,
+    /// Topic results.
+    pub topics: Vec<DescribedShareGroupOffsetsTopicWithLag>,
+    /// Group-level Kafka error code, after topics in the wire schema.
+    pub error_code: i16,
+    /// Group-level error message.
+    pub error_message: Option<String>,
+}
+
+impl DescribedShareGroupOffsetsWithLag {
+    /// Explicit projection to the unchanged legacy public result shape.
+    #[must_use]
+    pub fn into_legacy(self) -> DescribedShareGroupOffsets {
+        DescribedShareGroupOffsets {
+            group_id: self.group_id,
+            topics: self
+                .topics
+                .into_iter()
+                .map(|topic| DescribedShareGroupOffsetsTopic {
+                    topic_name: topic.topic_name,
+                    topic_id: topic.topic_id,
+                    partitions: topic
+                        .partitions
+                        .into_iter()
+                        .map(|value| value.partition)
+                        .collect(),
+                })
+                .collect(),
+            error_code: self.error_code,
+            error_message: self.error_message,
+        }
+    }
+}
+
+fn share_offsets_version(version: i16) -> Result<()> {
+    if version != 0 && version != 1 {
+        return Err(Error::protocol(
+            "DescribeShareGroupOffsets supports versions0/1",
+        ));
+    }
+    Ok(())
+}
+
+fn share_offsets_count<B: Buf>(buf: &B, count: usize, minimum: usize) -> Result<()> {
+    if count
+        .checked_mul(minimum)
+        .is_none_or(|bytes| bytes > buf.remaining())
+    {
+        return Err(Error::protocol(
+            "DescribeShareGroupOffsets count exceeds remaining input",
+        ));
+    }
+    Ok(())
+}
+
+/// Encode version0/1 requests; both versions have the same body schema.
+pub fn encode_describe_share_group_offsets_request_versioned(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[DescribeShareGroupOffsetsGroup],
+) -> Result<()> {
+    share_offsets_version(version)?;
+    encode_describe_share_group_offsets_request(buf, groups)
+}
+
+/// Encode a typed share-offset response at version0/1 with exact raw lag.
+///
+/// Version0 omits the ignorable lag; existing versionless helpers stay intact.
+pub fn encode_describe_share_group_offsets_response_versioned(
+    buf: &mut BytesMut,
+    version: i16,
+    groups: &[DescribedShareGroupOffsetsWithLag],
+    throttle_time_ms: i32,
+) -> Result<()> {
+    share_offsets_version(version)?;
+    buf.put_i32(throttle_time_ms);
+    buf::put_array_len(buf, true, Some(groups.len()))?;
+    for group in groups {
+        buf::put_compact_string(buf, Some(&group.group_id))?;
+        buf::put_array_len(buf, true, Some(group.topics.len()))?;
+        for topic in &group.topics {
+            buf::put_compact_string(buf, Some(&topic.topic_name))?;
+            buf.extend_from_slice(&topic.topic_id);
+            buf::put_array_len(buf, true, Some(topic.partitions.len()))?;
+            for value in &topic.partitions {
+                let partition = &value.partition;
+                buf.put_i32(partition.partition_index);
+                buf.put_i64(partition.start_offset);
+                buf.put_i32(partition.leader_epoch);
+                if version >= 1 {
+                    buf.put_i64(value.raw_lag);
+                }
+                buf.put_i16(partition.error_code);
+                buf::put_compact_string(buf, partition.error_message.as_deref())?;
+                buf::put_empty_tagged_fields(buf);
+            }
+            buf::put_empty_tagged_fields(buf);
+        }
+        buf.put_i16(group.error_code);
+        buf::put_compact_string(buf, group.error_message.as_deref())?;
+        buf::put_empty_tagged_fields(buf);
+    }
+    buf::put_empty_tagged_fields(buf);
+    Ok(())
+}
+
+/// Decode version0/1 without losing lag or misreading it as an error code.
+///
+/// Counts are checked against minimum remaining wire bytes before allocation.
+pub fn decode_describe_share_group_offsets_response_versioned<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(Vec<DescribedShareGroupOffsetsWithLag>, i32)> {
+    share_offsets_version(version)?;
+    let throttle_time_ms = buf::get_i32(buf)?;
+    let n = buf::get_array_len(buf, true)?.unwrap_or(0);
+    share_offsets_count(buf, n, 6)?;
+    let mut groups = Vec::with_capacity(n);
+    for _ in 0..n {
+        let group_id = buf::get_compact_string(buf)?.unwrap_or_default();
+        let tn = buf::get_array_len(buf, true)?.unwrap_or(0);
+        share_offsets_count(buf, tn, 19)?;
+        let mut topics = Vec::with_capacity(tn);
+        for _ in 0..tn {
+            let topic_name = buf::get_compact_string(buf)?.unwrap_or_default();
+            let topic_id = buf::get_uuid(buf)?;
+            let pn = buf::get_array_len(buf, true)?.unwrap_or(0);
+            share_offsets_count(buf, pn, if version >= 1 { 28 } else { 20 })?;
+            let mut partitions = Vec::with_capacity(pn);
+            for _ in 0..pn {
+                let partition_index = buf::get_i32(buf)?;
+                let start_offset = buf::get_i64(buf)?;
+                let leader_epoch = buf::get_i32(buf)?;
+                let raw_lag = if version >= 1 { buf::get_i64(buf)? } else { -1 };
+                let error_code = buf::get_i16(buf)?;
+                let error_message = buf::get_compact_string(buf)?;
+                buf::skip_tagged_fields(buf)?;
+                partitions.push(DescribedShareGroupOffsetsPartitionWithLag {
+                    partition: DescribedShareGroupOffsetsPartition {
+                        partition_index,
+                        start_offset,
+                        leader_epoch,
+                        error_code,
+                        error_message,
+                    },
+                    raw_lag,
+                });
+            }
+            buf::skip_tagged_fields(buf)?;
+            topics.push(DescribedShareGroupOffsetsTopicWithLag {
+                topic_name,
+                topic_id,
+                partitions,
+            });
+        }
+        let error_code = buf::get_i16(buf)?;
+        let error_message = buf::get_compact_string(buf)?;
+        buf::skip_tagged_fields(buf)?;
+        groups.push(DescribedShareGroupOffsetsWithLag {
             group_id,
             topics,
             error_code,

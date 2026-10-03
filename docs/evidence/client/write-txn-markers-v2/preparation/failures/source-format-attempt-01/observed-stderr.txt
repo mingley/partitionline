@@ -1,0 +1,14 @@
+error: couldn't find file `/workspace/partitionline/docs/evidence/client/write-txn-markers-v2/preparation/fixtures/write-txn-markers-v2/socket_peer.rs`
+ --> /workspace/partitionline/docs/evidence/client/write-txn-markers-v2/preparation/fail-first.rs:5:1
+  |
+5 | mod socket_peer;
+  | ^^^^^^^^^^^^^^^^
+
+Error writing files: failed to resolve mod `socket_peer`: /workspace/partitionline/docs/evidence/client/write-txn-markers-v2/preparation/fixtures/write-txn-markers-v2/socket_peer.rs` does not exist
+error: couldn't find file `/workspace/partitionline/docs/evidence/client/share-offsets-v1/preparation/fixtures/write-txn-markers-v2/socket_peer.rs`
+ --> /workspace/partitionline/docs/evidence/client/share-offsets-v1/preparation/fail-first.rs:5:1
+  |
+5 | mod socket_peer;
+  | ^^^^^^^^^^^^^^^^
+
+Error writing files: failed to resolve mod `socket_peer`: /workspace/partitionline/docs/evidence/client/share-offsets-v1/preparation/fixtures/write-txn-markers-v2/socket_peer.rs` does not exist

@@ -1,0 +1,50 @@
+Diff in /workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs:276:
+                                 let response_written = stream.write_all(&packet).await.is_ok();
+                                 {
+                                     let mut state = state.lock().unwrap();
+-                                    state.observed[observation_index].response_payload = Some(response.to_vec());
+-                                    state.observed[observation_index].response_written = response_written;
++                                    state.observed[observation_index].response_payload =
++                                        Some(response.to_vec());
++                                    state.observed[observation_index].response_written =
++                                        response_written;
+                                 }
+                                 if !response_written {
+                                     break;
+Diff in /workspace/partitionline/tests/write_txn_markers_v2.rs:480:
+             row.correlation,
+             hex(&row.body),
+             hex(&row.request_payload),
+-            row.response_payload.as_ref().map_or_else(String::new, |data| hex(data)),
++            row.response_payload
++                .as_ref()
++                .map_or_else(String::new, |data| hex(data)),
+             row.response_written,
+         )
+         .unwrap();
+Diff in /workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs:276:
+                                 let response_written = stream.write_all(&packet).await.is_ok();
+                                 {
+                                     let mut state = state.lock().unwrap();
+-                                    state.observed[observation_index].response_payload = Some(response.to_vec());
+-                                    state.observed[observation_index].response_written = response_written;
++                                    state.observed[observation_index].response_payload =
++                                        Some(response.to_vec());
++                                    state.observed[observation_index].response_written =
++                                        response_written;
+                                 }
+                                 if !response_written {
+                                     break;
+Diff in /workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs:276:
+                                 let response_written = stream.write_all(&packet).await.is_ok();
+                                 {
+                                     let mut state = state.lock().unwrap();
+-                                    state.observed[observation_index].response_payload = Some(response.to_vec());
+-                                    state.observed[observation_index].response_written = response_written;
++                                    state.observed[observation_index].response_payload =
++                                        Some(response.to_vec());
++                                    state.observed[observation_index].response_written =
++                                        response_written;
+                                 }
+                                 if !response_written {
+                                     break;

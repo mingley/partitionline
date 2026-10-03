@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "base_source": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "scope": "Review-only source draft; no repository edits, claims, compile, tests or fixtures. Existing docs/tests needing narrow update are intentionally not represented as passing.",
+  "files": [
+    {
+      "path": "src/protocol/txn.rs",
+      "base_sha256": "1d6ffe39571f136f33dd9a49eed73920d8c43f8b8ce10351099d37d411196bfc",
+      "draft_sha256": "5a86170578af009722f9b46d21813c6bd13002c21d6f1655ca8f0070b1ad1d31"
+    },
+    {
+      "path": "src/protocol/admin.rs",
+      "base_sha256": "2a3c3b49bc5531734563c4a289a2b34e4dd724224b4331e242fa4c81ab3e6b8b",
+      "draft_sha256": "8f386a5680e6140fcbed5b9d0044a1e22228ea025965a4ed52ca3850b3f8038f"
+    },
+    {
+      "path": "src/admin.rs",
+      "base_sha256": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+      "draft_sha256": "1ba391a05fd465337dbff2ea29d838f5dc549c7b62b3cafca3ddcd8f3a43e5e8"
+    }
+  ],
+  "patch_sha256": "4e51e3c0bc582d97afdf5a681b626aa81b14b7c909c50c18c3c1366b2a3e73d9",
+  "format_commands": [
+    {
+      "command": [
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/protocol/txn.rs",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/protocol/admin.rs",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/admin.rs"
+      ],
+      "exit_code": 0,
+      "scope": "Rust syntax/format only; no Cargo/compiler/type check",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/protocol/txn.rs",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/protocol/admin.rs",
+        "/workspace/work/conformance-reconciliation-14/capability-draft/source/src/admin.rs"
+      ],
+      "exit_code": 0,
+      "scope": "Rust syntax/format only; no Cargo/compiler/type check",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "remaining": [
+    "Actual pinned independent oracle fixtures and public socket/SDK cases",
+    "Narrow stale docs pin updates and additional API-specific regressions after claim",
+    "Root-only public exports/checker/registry/task integration",
+    "Immutable compile/strict default/allfeature stable/MSRV qualification after source push"
+  ]
+}

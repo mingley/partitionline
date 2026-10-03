@@ -1,0 +1,54 @@
+{
+  "scope": "Preserved first uncompiled source draft and source-only formatting receipts before correcting review findings; no compile/runtime result reconstructed",
+  "files": [
+    {
+      "path": "source-review.patch",
+      "sha256": "a80c935a402f91c0e1257c58aec1c1285eaf199afa187472292ac23972cccd8f",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source-review.json",
+      "sha256": "15bd9531819354e8621a40795867897da6aa87435baaffdd9a4ca055c8ad7124",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "format-stable.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "format-stable.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "format-1.85.0.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "format-1.85.0.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/src/admin.rs",
+      "sha256": "967338c651cc07e123356f8be470ab6bf500fe36542fad72e3c981f528f5528f",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/src/protocol/admin.rs",
+      "sha256": "8f386a5680e6140fcbed5b9d0044a1e22228ea025965a4ed52ca3850b3f8038f",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/src/protocol/txn.rs",
+      "sha256": "5a86170578af009722f9b46d21813c6bd13002c21d6f1655ca8f0070b1ad1d31",
+      "full_mode": "0o600"
+    }
+  ],
+  "findings": [
+    "Missing ids binding in typed share-offset Admin method",
+    "Inherited public abort flattened response could falsely succeed for absent or mismatched target"
+  ]
+}
