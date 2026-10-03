@@ -1,0 +1,5 @@
+In file included from /workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c:3:
+/workspace/work/c-peer/source/src/rdkafka.h:9532:1: error: type qualifiers ignored on function return type [-Werror=ignored-qualifiers]
+ 9532 | const int rd_kafka_TopicPartitionInfo_partition(
+      | ^~~~~
+cc1: all warnings being treated as errors

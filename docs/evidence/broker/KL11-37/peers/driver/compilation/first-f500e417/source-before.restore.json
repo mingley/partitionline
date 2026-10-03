@@ -1,0 +1,8 @@
+{
+  "original_path": "source-before.json",
+  "original_bytes": 22838127,
+  "original_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+  "original_mode": "0o600",
+  "compressed_sha256": "1d0a21817a111c4069ee506aab04d1c5e449ba408dba37bfbcb88e5d7dea85d1",
+  "roundtrip_verified": true
+}

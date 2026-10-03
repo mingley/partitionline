@@ -1,0 +1,510 @@
+{
+  "status": "frozen source/preparation publication only; native/Rust compile and all SDK/broker live qualification remain pending",
+  "scope": "KL11-37 delegated native/rust/driver prefixes only; no production edits, commits or pushes",
+  "files": [
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/README.md",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/README.md",
+      "bytes": 6698,
+      "sha256": "c83d369279631377f4c9001430721b4bfd873968e783b43c28e6e46c94dc6c24",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/broker-config.template.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/broker-config.template.json",
+      "bytes": 856,
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/failure-recipe.template.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/failure-recipe.template.json",
+      "bytes": 6631,
+      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/lifecycle-contract.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/lifecycle-contract.json",
+      "bytes": 8323,
+      "sha256": "bdca8862023d9213e18ffc8fb7496b056c2da442e307880e831f14d913a012ef",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-config.template.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/live-config.template.json",
+      "bytes": 9707,
+      "sha256": "fac47b2987a91c5d810f360e04ea43db9fe107cd66258193b9f1c9a620dfeb2b",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/own-live.py",
+      "bytes": 16931,
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-outer-owner.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-outer-owner.py",
+      "bytes": 4957,
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-preparation.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-preparation.py",
+      "bytes": 6287,
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/manifest.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/manifest.json",
+      "bytes": 1251,
+      "sha256": "c5eeccbe5268da6445d8dfe074a45cde4a849c047b01a7f46018fd65512b0f23",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/own-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/own-live.py",
+      "bytes": 12200,
+      "sha256": "ec10adfae42067e9d5c7b964b28358edf4079f518a5eaf23154af18783da6588",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-outer-owner.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/check-outer-owner.py",
+      "bytes": 3615,
+      "sha256": "8055b38ce4e143aa38dcedec69ae064a46e5d1e2c857cf3a7101af42e358e4d4",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-preparation.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/check-preparation.py",
+      "bytes": 4697,
+      "sha256": "8133262abf6c8fa79e29b7bb206f5efdd02805ddf591353c2e44fbbefa44bcfb",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/outer-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/outer-controls.json",
+      "bytes": 5866,
+      "sha256": "220819a569baabb2f05853bd2d520a00fb9e398edeadbffbfcf65e2232e67647",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/preparation-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/preparation-controls.json",
+      "bytes": 638,
+      "sha256": "9a7ef100b61fa443dfa3926a2d03b8daeb2ecef1070ed300004425f5a64623dd",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/run-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/run-live.py",
+      "bytes": 38904,
+      "sha256": "338a27239f7a6234990d4cc0c4ea3952f83108200a838275af98fab20705cce4",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer-controls.json",
+      "bytes": 11196,
+      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer.stdout",
+      "bytes": 118,
+      "sha256": "5b6d457446af15c706ebe3860319aebc2ec8633fcf922d5bbb03fe83e5a0d52f",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation-controls.json",
+      "bytes": 748,
+      "sha256": "f21a9012770a4ee21fe9609529850baaca7b3c1fed801f69bf7699538fc1e904",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation.stdout",
+      "bytes": 118,
+      "sha256": "9f2294b2a3606ae5b383112fcc207a0c37c6a1db94622d4e158afce7b9d8e5bb",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/own-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/own-live.py",
+      "bytes": 16931,
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-outer-owner.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/preparation/check-outer-owner.py",
+      "bytes": 4957,
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-preparation.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/preparation/check-preparation.py",
+      "bytes": 6287,
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/run-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/run-live.py",
+      "bytes": 39317,
+      "sha256": "739569aa6ad9f0ada913e7e91ae395491bdc8de0614d2bcd7534fcba325b08cd",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/validation.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/validation.json",
+      "bytes": 2067,
+      "sha256": "9a385ed5de1be995d0c2e5568fcd8174cab01a85a8de8e93b7e00400431ed171",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/command.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/command.stdout",
+      "bytes": 118,
+      "sha256": "348735e1fbf5327110abdb37a6f68dbf36150da9a4a950724569b32b5b4abec5",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/preparation-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/preparation-controls.json",
+      "bytes": 748,
+      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/preparation/check-preparation.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/source/preparation/check-preparation.py",
+      "bytes": 6287,
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/run-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/source/run-live.py",
+      "bytes": 39676,
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/validation.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/validation.json",
+      "bytes": 730,
+      "sha256": "22a7dd990d11d5990694012acdefa9ba61893c439cbd8e1d86301968075cc414",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-independent-review.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/final-independent-review.json",
+      "bytes": 3550,
+      "sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-preparation-validation.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/final-preparation-validation.json",
+      "bytes": 2764,
+      "sha256": "3e1ef2e1ff8cf6370f93d36918e3d303f84ad5ed4416063c56b4ba033331f5f6",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/initial-controls-retention-limit.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/initial-controls-retention-limit.json",
+      "bytes": 778,
+      "sha256": "057cddb54de0932f264c5b69d1e86ed21e9aee4e9bc35029d95f0407c93710ae",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/outer-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/outer-controls.json",
+      "bytes": 11196,
+      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/preparation-controls.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/preparation-controls.json",
+      "bytes": 748,
+      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/review-history.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/review-history.json",
+      "bytes": 5306,
+      "sha256": "b9c4537edb3764ab8b81a551f0b10f61b11548425bd0cba75a18c4cc21c47eca",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.lock",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/Cargo.lock",
+      "bytes": 18805,
+      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.toml",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/Cargo.toml",
+      "bytes": 635,
+      "sha256": "c8a4cffdfa614ee90b70a898a43458c0bf338ec6bcfeafa10f49e3d880e20b9c",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/command.stderr",
+      "bytes": 56,
+      "sha256": "133b8fce6d2ac862201570f2ad4a71c24a1114ca635c07b948d2af73191340ea",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/command.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/resolution.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/resolution.json",
+      "bytes": 973,
+      "sha256": "a1b5cef66e8e1a725e4a7a17c3d4f9482f05e4bb4323e793453eb6f74cc50b5a",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/rustfmt.stderr",
+      "bytes": 249,
+      "sha256": "f46f9a73097cb30ec2a81937fac11e20622fe5187281d562ec725161d5c6706b",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/rustfmt.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/validation.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/validation.json",
+      "bytes": 3070,
+      "sha256": "bcb12daa9738e2f6bbf994fd85a408f1f8871743f272c83d9c10f53f7b15a39e",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/1.85.0.rustfmt.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/1.85.0.rustfmt.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stderr",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/stable.rustfmt.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stdout",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/stable.rustfmt.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/validation.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/validation.json",
+      "bytes": 3706,
+      "sha256": "455726368aa6ac7ac5936e440a3f214be3bfad037a1e2cc856a80e7b92c72f93",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-1.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-1.json",
+      "bytes": 1695,
+      "sha256": "794447017fcef6d58c13681650209b8ef589e3131ba9bec82bfdca92ae295057",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-2.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-2.json",
+      "bytes": 1900,
+      "sha256": "00fdedaf16ec641e2918b4db60a7a3887122a65aeefb413f0999a76771331aa4",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-3.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-3.json",
+      "bytes": 1977,
+      "sha256": "7c2d2c0156dedf3f1ce7fbaa833fee324abf45d99fe9c1951094335142066348",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/run-live.py",
+      "bytes": 39676,
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/native/README.md",
+      "preparation_source": "/workspace/work/broker-oidc/native-publication-README.md",
+      "bytes": 1222,
+      "sha256": "ef47be2554b64eeb9251e88d9741902f631bd23a16cab3cfd0952e9d34f7a1b4",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/oidc-native-peer.c",
+      "bytes": 11180,
+      "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/native/pins.json",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/native-plan.json",
+      "bytes": 2249,
+      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.lock",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/Cargo.lock",
+      "bytes": 18805,
+      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/Cargo.toml",
+      "bytes": 607,
+      "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/rust/src/main.rs",
+      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/src/main.rs",
+      "bytes": 16233,
+      "sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee",
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    }
+  ],
+  "payload_file_count": 61,
+  "payload_bytes": 404239,
+  "driver_sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+  "outer_sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+  "native_sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5",
+  "rust_main_sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee",
+  "rust_lock_sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+  "independent_review_sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
+  "actual_controls": {
+    "driver": 5,
+    "outer": 6,
+    "scope": "infrastructure only, no OAuth/SDK qualification"
+  },
+  "source_guards": "attempt03 and changed-driver04 before/after source byte/fullmode binding; full immutable Git pathset/Gitblob guard is part of prepared future run and validated on actual tiny Git extra-lock control, no executed full live source claim",
+  "retention_limits": "initial control payloads/source drafts were not copied before first corrections; explicit historical hash-only and overwritten-first-success limits are retained, never reconstructed or promoted to final proof",
+  "excluded": "no private keys/credentials/live bearers, ELF/JAR/classes, target caches or mutable production drafts"
+}

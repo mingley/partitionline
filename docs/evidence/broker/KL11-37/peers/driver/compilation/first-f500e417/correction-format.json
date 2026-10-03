@@ -1,0 +1,32 @@
+{
+  "scope": "new bounded startup source formatting only; no revised compiler/live receipt before sourcepush",
+  "source_sha256": "d90d36b21633dd65dbdf040023c96e5bcf3935d4f9e655624e6fec9abecf6d03",
+  "checks": [
+    {
+      "command": [
+        "rustfmt",
+        "+stable",
+        "--check",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/peers/rust/src/main.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "rustfmt",
+        "+1.85.0",
+        "--check",
+        "--edition",
+        "2021",
+        "/workspace/partitionline/docs/evidence/broker/KL11-37/peers/rust/src/main.rs"
+      ],
+      "exit_code": 0,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

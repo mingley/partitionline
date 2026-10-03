@@ -1,510 +1,666 @@
 {
-  "status": "frozen source/preparation publication only; native/Rust compile and all SDK/broker live qualification remain pending",
-  "scope": "KL11-37 delegated native/rust/driver prefixes only; no production edits, commits or pushes",
+  "revision": 2,
+  "status": "source correction frozen after genuine first compiler failures; revised compiler/live qualification pending new actual pin",
+  "prior_actual_source": "f500e417c715a27ad7442f5c499221f9d25fb14a",
+  "prior_freeze_sha256": "17547f5b4e3ce2522e500fd6f33b30dfba1112c057322bee7677a60a9af655a2",
   "files": [
     {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/README.md",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/README.md",
-      "bytes": 6698,
-      "sha256": "c83d369279631377f4c9001430721b4bfd873968e783b43c28e6e46c94dc6c24",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/broker-config.template.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/broker-config.template.json",
-      "bytes": 856,
-      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/failure-recipe.template.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/failure-recipe.template.json",
-      "bytes": 6631,
-      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/lifecycle-contract.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/lifecycle-contract.json",
-      "bytes": 8323,
-      "sha256": "bdca8862023d9213e18ffc8fb7496b056c2da442e307880e831f14d913a012ef",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/live-config.template.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/live-config.template.json",
-      "bytes": 9707,
-      "sha256": "fac47b2987a91c5d810f360e04ea43db9fe107cd66258193b9f1c9a620dfeb2b",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/own-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/own-live.py",
-      "bytes": 16931,
-      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-outer-owner.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-outer-owner.py",
-      "bytes": 4957,
-      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-preparation.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/check-preparation.py",
-      "bytes": 6287,
-      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/manifest.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/manifest.json",
-      "bytes": 1251,
-      "sha256": "c5eeccbe5268da6445d8dfe074a45cde4a849c047b01a7f46018fd65512b0f23",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/own-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/own-live.py",
-      "bytes": 12200,
-      "sha256": "ec10adfae42067e9d5c7b964b28358edf4079f518a5eaf23154af18783da6588",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-outer-owner.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/check-outer-owner.py",
-      "bytes": 3615,
-      "sha256": "8055b38ce4e143aa38dcedec69ae064a46e5d1e2c857cf3a7101af42e358e4d4",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-preparation.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/check-preparation.py",
-      "bytes": 4697,
-      "sha256": "8133262abf6c8fa79e29b7bb206f5efdd02805ddf591353c2e44fbbefa44bcfb",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/outer-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/outer-controls.json",
-      "bytes": 5866,
-      "sha256": "220819a569baabb2f05853bd2d520a00fb9e398edeadbffbfcf65e2232e67647",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/preparation-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/preparation/preparation-controls.json",
-      "bytes": 638,
-      "sha256": "9a7ef100b61fa443dfa3926a2d03b8daeb2ecef1070ed300004425f5a64623dd",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/run-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-02/run-live.py",
-      "bytes": 38904,
-      "sha256": "338a27239f7a6234990d4cc0c4ea3952f83108200a838275af98fab20705cce4",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer-controls.json",
-      "bytes": 11196,
-      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer.stderr",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/outer.stdout",
-      "bytes": 118,
-      "sha256": "5b6d457446af15c706ebe3860319aebc2ec8633fcf922d5bbb03fe83e5a0d52f",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation-controls.json",
-      "bytes": 748,
-      "sha256": "f21a9012770a4ee21fe9609529850baaca7b3c1fed801f69bf7699538fc1e904",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation.stderr",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/preparation.stdout",
-      "bytes": 118,
-      "sha256": "9f2294b2a3606ae5b383112fcc207a0c37c6a1db94622d4e158afce7b9d8e5bb",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/own-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/own-live.py",
-      "bytes": 16931,
-      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-outer-owner.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/preparation/check-outer-owner.py",
-      "bytes": 4957,
-      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-preparation.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/preparation/check-preparation.py",
-      "bytes": 6287,
-      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/run-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/source/run-live.py",
-      "bytes": 39317,
-      "sha256": "739569aa6ad9f0ada913e7e91ae395491bdc8de0614d2bcd7534fcba325b08cd",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/validation.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/controls-attempt-03/validation.json",
-      "bytes": 2067,
-      "sha256": "9a385ed5de1be995d0c2e5568fcd8174cab01a85a8de8e93b7e00400431ed171",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/command.stderr",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/command.stdout",
-      "bytes": 118,
-      "sha256": "348735e1fbf5327110abdb37a6f68dbf36150da9a4a950724569b32b5b4abec5",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/preparation-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/preparation-controls.json",
-      "bytes": 748,
-      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/preparation/check-preparation.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/source/preparation/check-preparation.py",
-      "bytes": 6287,
-      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/run-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/source/run-live.py",
-      "bytes": 39676,
-      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/validation.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/driver-controls-attempt-04/validation.json",
-      "bytes": 730,
-      "sha256": "22a7dd990d11d5990694012acdefa9ba61893c439cbd8e1d86301968075cc414",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-independent-review.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/final-independent-review.json",
-      "bytes": 3550,
-      "sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-preparation-validation.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/final-preparation-validation.json",
-      "bytes": 2764,
-      "sha256": "3e1ef2e1ff8cf6370f93d36918e3d303f84ad5ed4416063c56b4ba033331f5f6",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/initial-controls-retention-limit.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/initial-controls-retention-limit.json",
-      "bytes": 778,
-      "sha256": "057cddb54de0932f264c5b69d1e86ed21e9aee4e9bc35029d95f0407c93710ae",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/outer-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/outer-controls.json",
-      "bytes": 11196,
-      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/preparation-controls.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/preparation-controls.json",
-      "bytes": 748,
-      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/review-history.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/review-history.json",
-      "bytes": 5306,
-      "sha256": "b9c4537edb3764ab8b81a551f0b10f61b11548425bd0cba75a18c4cc21c47eca",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.lock",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/Cargo.lock",
-      "bytes": 18805,
-      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.toml",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/Cargo.toml",
-      "bytes": 635,
-      "sha256": "c8a4cffdfa614ee90b70a898a43458c0bf338ec6bcfeafa10f49e3d880e20b9c",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/command.stderr",
-      "bytes": 56,
-      "sha256": "133b8fce6d2ac862201570f2ad4a71c24a1114ca635c07b948d2af73191340ea",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/command.stdout",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/resolution.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/rust-lock-resolution/resolution.json",
-      "bytes": 973,
-      "sha256": "a1b5cef66e8e1a725e4a7a17c3d4f9482f05e4bb4323e793453eb6f74cc50b5a",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/rustfmt.stderr",
-      "bytes": 249,
-      "sha256": "f46f9a73097cb30ec2a81937fac11e20622fe5187281d562ec725161d5c6706b",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/rustfmt.stdout",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/validation.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-04/validation.json",
-      "bytes": 3070,
-      "sha256": "bcb12daa9738e2f6bbf994fd85a408f1f8871743f272c83d9c10f53f7b15a39e",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/1.85.0.rustfmt.stderr",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/1.85.0.rustfmt.stdout",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stderr",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/stable.rustfmt.stderr",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stdout",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/stable.rustfmt.stdout",
-      "bytes": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/validation.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-05/validation.json",
-      "bytes": 3706,
-      "sha256": "455726368aa6ac7ac5936e440a3f214be3bfad037a1e2cc856a80e7b92c72f93",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-1.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-1.json",
-      "bytes": 1695,
-      "sha256": "794447017fcef6d58c13681650209b8ef589e3131ba9bec82bfdca92ae295057",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-2.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-2.json",
-      "bytes": 1900,
-      "sha256": "00fdedaf16ec641e2918b4db60a7a3887122a65aeefb413f0999a76771331aa4",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-3.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/preparation/source-parse-attempt-3.json",
-      "bytes": 1977,
-      "sha256": "7c2d2c0156dedf3f1ce7fbaa833fee324abf45d99fe9c1951094335142066348",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
-      "path": "docs/evidence/broker/KL11-37/peers/driver/run-live.py",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/run-live.py",
-      "bytes": 39676,
-      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
-      "full_mode": "0o600",
-      "intended_git_mode": "100644"
-    },
-    {
       "path": "docs/evidence/broker/KL11-37/peers/native/README.md",
-      "preparation_source": "/workspace/work/broker-oidc/native-publication-README.md",
-      "bytes": 1222,
       "sha256": "ef47be2554b64eeb9251e88d9741902f631bd23a16cab3cfd0952e9d34f7a1b4",
+      "bytes": 1222,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     },
     {
       "path": "docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/oidc-native-peer.c",
-      "bytes": 11180,
       "sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5",
+      "bytes": 11180,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     },
     {
       "path": "docs/evidence/broker/KL11-37/peers/native/pins.json",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/native-plan.json",
-      "bytes": 2249,
-      "sha256": "a3bf031324066a7a245badda223ebcf8874de5ce3f47e6a826458bbf634516b7",
+      "sha256": "37bd33334e58e181955a62a3d1b83cfe94b87a023c142140f9932f559900e427",
+      "bytes": 2441,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     },
     {
       "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.lock",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/Cargo.lock",
-      "bytes": 18805,
       "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+      "bytes": 18805,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     },
     {
       "path": "docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/Cargo.toml",
-      "bytes": 607,
       "sha256": "4c2c927bbe0718f6fd9716102cb66bb0b90106f4c5d494d628644b8b006c7fb7",
+      "bytes": 607,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     },
     {
       "path": "docs/evidence/broker/KL11-37/peers/rust/src/main.rs",
-      "preparation_source": "/workspace/work/broker-oidc/live-peer-preparation/rust-peer/src/main.rs",
-      "bytes": 16233,
+      "sha256": "d90d36b21633dd65dbdf040023c96e5bcf3935d4f9e655624e6fec9abecf6d03",
+      "bytes": 16686,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/README.md",
+      "sha256": "c83d369279631377f4c9001430721b4bfd873968e783b43c28e6e46c94dc6c24",
+      "bytes": 6698,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/broker-config.template.json",
+      "sha256": "544b7cae4ed390039e34dc6cbbd2cd34dfe171a4cd4008d7b10e43b843234adc",
+      "bytes": 856,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/correction-format.json",
+      "sha256": "4ff2403c6327013d7cd2b2df33f11abb9954fb6e312fe6982a7020b71286bd7b",
+      "bytes": 1067,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/disposition.json",
+      "sha256": "ab7804b440aef17333276a26e67bb1831dd72ac187dedaa00ff9e27dd7829342",
+      "bytes": 951,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/external-compiler-inputs.json",
+      "sha256": "37016d170bc65fdcbde445f250ce04479274940347cee0c7490c55a79aaa6389",
+      "bytes": 2127,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.1.2-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.1.2-strict-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.1.2-strict-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.2.1-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.2.1-strict-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.2.1-strict-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.3.1-strict/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.3.1-strict-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/java-4.3.1-strict-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-cjson-object/command.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-cjson-object-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-cjson-object-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-cjson-object.restore.json",
+      "sha256": "1ae703dcf5d48f3bf8aa1eae7e6422ac9b3aeeb05103a7eaca55087211b6cb7e",
+      "bytes": 583,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-strict-link/command.log",
+      "sha256": "5dcc7f5f91639b5bbd91bef819d4121d070479b333b861011918cedc9bd2c26e",
+      "bytes": 381,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-strict-link-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/native-strict-link-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/original-rust-main.rs",
       "sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee",
+      "bytes": 16233,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/source-before.json.gz",
+      "sha256": "1d0a21817a111c4069ee506aab04d1c5e449ba408dba37bfbcb88e5d7dea85d1",
+      "bytes": 2485980,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/source-before.restore.json",
+      "sha256": "0f74a6a099f2e85d642476fb6f22c632d1b4509cb4f14b988204e2062609d274",
+      "bytes": 312,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-artifact.json",
+      "sha256": "4c587fd6d611498e3cc56c04631bef6d0f2637f834b2547e1151dc9a7eeaee12",
+      "bytes": 629,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-build/command.log",
+      "sha256": "79f8b98160ce8b1ab0f8ae02f52673e19a05a302979a3f0054c510eeca817dc9",
+      "bytes": 69255,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-build-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-build-before.elf-retention.json",
+      "sha256": "bba6a3dd479b7ec946d8a2707887d573962a3fa753874189a5dd658b60959ae8",
+      "bytes": 47,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-strict/command.log",
+      "sha256": "6eff3fb5bed1909c7f84a0d7c490e530d5f96a3d478193f720e99bb3b316dcf8",
+      "bytes": 2438,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-strict-after.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/stable-rust-strict-before.elf-retention.json",
+      "sha256": "06a6cdcfa168c1bb52f12c6ffba3658311d7692196aa7d80bfcf95a1b4b60229",
+      "bytes": 42925,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/compilation/first-f500e417/validation.json",
+      "sha256": "3fdca00f8557e67f8225b040cdc6b42602bae0f1029ecf30ac7f3004288b5ef3",
+      "bytes": 43802,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/failure-recipe.template.json",
+      "sha256": "2f2fde51bc1b6f646ebb41eacb4e043cd3595ebe429eaaaf68c82f8b293952d9",
+      "bytes": 6631,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/lifecycle-contract.json",
+      "sha256": "bdca8862023d9213e18ffc8fb7496b056c2da442e307880e831f14d913a012ef",
+      "bytes": 8323,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/live-config.template.json",
+      "sha256": "fac47b2987a91c5d810f360e04ea43db9fe107cd66258193b9f1c9a620dfeb2b",
+      "bytes": 9707,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "bytes": 16931,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/SHA256SUMS-01-f500e417",
+      "sha256": "c42b86d66988be3e2274c85f5b2cc29c9cb1b314cf8f1f720aa72b7ee4a3354c",
+      "bytes": 9379,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-outer-owner.py",
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "bytes": 4957,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/check-preparation.py",
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "bytes": 6287,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/manifest.json",
+      "sha256": "c5eeccbe5268da6445d8dfe074a45cde4a849c047b01a7f46018fd65512b0f23",
+      "bytes": 1251,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/own-live.py",
+      "sha256": "ec10adfae42067e9d5c7b964b28358edf4079f518a5eaf23154af18783da6588",
+      "bytes": 12200,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-outer-owner.py",
+      "sha256": "8055b38ce4e143aa38dcedec69ae064a46e5d1e2c857cf3a7101af42e358e4d4",
+      "bytes": 3615,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/check-preparation.py",
+      "sha256": "8133262abf6c8fa79e29b7bb206f5efdd02805ddf591353c2e44fbbefa44bcfb",
+      "bytes": 4697,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/outer-controls.json",
+      "sha256": "220819a569baabb2f05853bd2d520a00fb9e398edeadbffbfcf65e2232e67647",
+      "bytes": 5866,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/preparation/preparation-controls.json",
+      "sha256": "9a7ef100b61fa443dfa3926a2d03b8daeb2ecef1070ed300004425f5a64623dd",
+      "bytes": 638,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-02/run-live.py",
+      "sha256": "338a27239f7a6234990d4cc0c4ea3952f83108200a838275af98fab20705cce4",
+      "bytes": 38904,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer-controls.json",
+      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+      "bytes": 11196,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/outer.stdout",
+      "sha256": "5b6d457446af15c706ebe3860319aebc2ec8633fcf922d5bbb03fe83e5a0d52f",
+      "bytes": 118,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation-controls.json",
+      "sha256": "f21a9012770a4ee21fe9609529850baaca7b3c1fed801f69bf7699538fc1e904",
+      "bytes": 748,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/preparation.stdout",
+      "sha256": "9f2294b2a3606ae5b383112fcc207a0c37c6a1db94622d4e158afce7b9d8e5bb",
+      "bytes": 118,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/own-live.py",
+      "sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
+      "bytes": 16931,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-outer-owner.py",
+      "sha256": "fade646ca6029469eea7735e636eb6264ff230defabb297909d4782da9361d56",
+      "bytes": 4957,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/preparation/check-preparation.py",
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "bytes": 6287,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/source/run-live.py",
+      "sha256": "739569aa6ad9f0ada913e7e91ae395491bdc8de0614d2bcd7534fcba325b08cd",
+      "bytes": 39317,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/controls-attempt-03/validation.json",
+      "sha256": "9a385ed5de1be995d0c2e5568fcd8174cab01a85a8de8e93b7e00400431ed171",
+      "bytes": 2067,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/command.stdout",
+      "sha256": "348735e1fbf5327110abdb37a6f68dbf36150da9a4a950724569b32b5b4abec5",
+      "bytes": 118,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/preparation-controls.json",
+      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+      "bytes": 748,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/preparation/check-preparation.py",
+      "sha256": "2128fd60fd58a49645f07da62d230e7c78d312cc5257d07bde6855bf66229db9",
+      "bytes": 6287,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/source/run-live.py",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "bytes": 39676,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/driver-controls-attempt-04/validation.json",
+      "sha256": "22a7dd990d11d5990694012acdefa9ba61893c439cbd8e1d86301968075cc414",
+      "bytes": 730,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-independent-review.json",
+      "sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
+      "bytes": 3550,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/final-preparation-validation.json",
+      "sha256": "3e1ef2e1ff8cf6370f93d36918e3d303f84ad5ed4416063c56b4ba033331f5f6",
+      "bytes": 2764,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/initial-controls-retention-limit.json",
+      "sha256": "057cddb54de0932f264c5b69d1e86ed21e9aee4e9bc35029d95f0407c93710ae",
+      "bytes": 778,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/outer-controls.json",
+      "sha256": "9bd7f00066fac51ec0747e7baef58bb3cd162b404dd6069614110e98a5857480",
+      "bytes": 11196,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/preparation-controls.json",
+      "sha256": "b66eb394bd4cd4e207c62003dac1ca2872e33287378900fb494560e7518a7c30",
+      "bytes": 748,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/review-history.json",
+      "sha256": "b9c4537edb3764ab8b81a551f0b10f61b11548425bd0cba75a18c4cc21c47eca",
+      "bytes": 5306,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.lock",
+      "sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
+      "bytes": 18805,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/Cargo.toml",
+      "sha256": "c8a4cffdfa614ee90b70a898a43458c0bf338ec6bcfeafa10f49e3d880e20b9c",
+      "bytes": 635,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stderr",
+      "sha256": "133b8fce6d2ac862201570f2ad4a71c24a1114ca635c07b948d2af73191340ea",
+      "bytes": 56,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/command.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/rust-lock-resolution/resolution.json",
+      "sha256": "a1b5cef66e8e1a725e4a7a17c3d4f9482f05e4bb4323e793453eb6f74cc50b5a",
+      "bytes": 973,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-freeze-01-f500e417.json",
+      "sha256": "17547f5b4e3ce2522e500fd6f33b30dfba1112c057322bee7677a60a9af655a2",
+      "bytes": 26564,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stderr",
+      "sha256": "f46f9a73097cb30ec2a81937fac11e20622fe5187281d562ec725161d5c6706b",
+      "bytes": 249,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/rustfmt.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-04/validation.json",
+      "sha256": "bcb12daa9738e2f6bbf994fd85a408f1f8871743f272c83d9c10f53f7b15a39e",
+      "bytes": 3070,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/1.85.0.rustfmt.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stderr",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/stable.rustfmt.stdout",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-05/validation.json",
+      "sha256": "455726368aa6ac7ac5936e440a3f214be3bfad037a1e2cc856a80e7b92c72f93",
+      "bytes": 3706,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-1.json",
+      "sha256": "794447017fcef6d58c13681650209b8ef589e3131ba9bec82bfdca92ae295057",
+      "bytes": 1695,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-2.json",
+      "sha256": "00fdedaf16ec641e2918b4db60a7a3887122a65aeefb413f0999a76771331aa4",
+      "bytes": 1900,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/preparation/source-parse-attempt-3.json",
+      "sha256": "7c2d2c0156dedf3f1ce7fbaa833fee324abf45d99fe9c1951094335142066348",
+      "bytes": 1977,
+      "full_mode": "0o600",
+      "intended_git_mode": "100644"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-37/peers/driver/run-live.py",
+      "sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
+      "bytes": 39676,
       "full_mode": "0o600",
       "intended_git_mode": "100644"
     }
   ],
-  "payload_file_count": 61,
-  "payload_bytes": 404239,
   "driver_sha256": "76213c31b0e87c6f6da5ea5c1537ad1063e64637ec2f2b1c8932dfa11e6146b0",
   "outer_sha256": "1e4898de042eef1900070d626df8129260547a7c81c2aea04b65b73254acd4dc",
-  "native_sha256": "f3477f7098cf327a026fd482612e6fc603e9a91758c1485c0d59a341284d00e5",
-  "rust_main_sha256": "e2b52ddec9c16974577721cd2c5f880dda932a1560c6e6cbeb74fd03fa61ffee",
+  "rust_main_sha256": "d90d36b21633dd65dbdf040023c96e5bcf3935d4f9e655624e6fec9abecf6d03",
   "rust_lock_sha256": "4edbe23c6ca2b40f6da04f8027353891543db61bfc41c93649a31b9dbab60f5f",
-  "independent_review_sha256": "9cbf653a66e174c78d62d67183417cf21e1fa391b0e6c5576dcb1b04c5456115",
-  "actual_controls": {
-    "driver": 5,
-    "outer": 6,
-    "scope": "infrastructure only, no OAuth/SDK qualification"
-  },
-  "source_guards": "attempt03 and changed-driver04 before/after source byte/fullmode binding; full immutable Git pathset/Gitblob guard is part of prepared future run and validated on actual tiny Git extra-lock control, no executed full live source claim",
-  "retention_limits": "initial control payloads/source drafts were not copied before first corrections; explicit historical hash-only and overwritten-first-success limits are retained, never reconstructed or promoted to final proof",
-  "excluded": "no private keys/credentials/live bearers, ELF/JAR/classes, target caches or mutable production drafts"
+  "native_source_unchanged": true,
+  "dependency_or_Cargo_changes": false,
+  "no_live_execution": true
 }

@@ -1,0 +1,10 @@
+{
+  "original_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native/cJSON.o",
+  "bytes": 37112,
+  "full_mode": "0o600",
+  "sha256": "255dd9788857ef0e718fa174c3c7b1bbf1eaadac006c5d520aec7851c2d703a3",
+  "retained_object": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/255dd9788857ef0e718fa174c3c7b1bbf1eaadac006c5d520aec7851c2d703a3.gz",
+  "compressed_sha256": "47df3889a52f878264257d2aabf1fb90ca45961952a8cba3a68f58a018fc863e",
+  "roundtrip_verified": true,
+  "publication": "restore map only; ELF bytes outside repository"
+}

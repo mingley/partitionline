@@ -8,7 +8,7 @@ use partitionline::{
 use serde_json::{json, Value};
 use std::{
     fs,
-    io::{self, BufRead, Read, Write},
+    io::{self, BufRead, Write},
     path::Path,
     time::{Duration, Instant},
 };
@@ -47,12 +47,7 @@ fn bounded_file(path: &Path, maximum: usize) -> Result<Vec<u8>> {
     if !info.is_file() || info.len() > maximum as u64 {
         return Err("bounded regular file");
     }
-    let mut bytes = Vec::new();
-    fs::File::open(path)
-        .map_err(|_| "file open")?
-        .take(maximum as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| "file read")?;
+    let bytes = fs::read(path).map_err(|_| "file read")?;
     if bytes.len() > maximum {
         return Err("file changed beyond bound");
     }
@@ -355,7 +350,12 @@ impl Peer {
     }
 }
 
-async fn run(config: Config) -> Result<()> {
+async fn run() -> Result<()> {
+    let arguments: Vec<_> = std::env::args_os().collect();
+    if arguments.len() != 2 {
+        return Err("one configuration path required");
+    }
+    let config = Config::read(Path::new(arguments.get(1).ok_or("config argument")?))?;
     let deadline = Instant::now() + config.runtime;
     let mut peer = Peer {
         config,
@@ -432,22 +432,9 @@ async fn run(config: Config) -> Result<()> {
     result.and(closed)
 }
 
-fn main() {
-    let result: Result<()> = (|| {
-        let arguments: Vec<_> = std::env::args_os().collect();
-        if arguments.len() != 2 {
-            return Err("one configuration path required");
-        }
-        // Read bounded startup files before creating any runtime worker.
-        let config = Config::read(Path::new(arguments.get(1).ok_or("config argument")?))?;
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(2)
-            .enable_all()
-            .build()
-            .map_err(|_| "runtime startup")?;
-        runtime.block_on(run(config))
-    })();
-    if let Err(label) = result {
+#[tokio::main(flavor = "multi_thread", worker_threads = 2)]
+async fn main() {
+    if let Err(label) = run().await {
         let _result = emit(json!({"event":"fatal","label":label}));
         std::process::exit(1);
     }

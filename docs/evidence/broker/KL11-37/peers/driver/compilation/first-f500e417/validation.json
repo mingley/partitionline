@@ -1,0 +1,1093 @@
+{
+  "source_sha": "f500e417c715a27ad7442f5c499221f9d25fb14a",
+  "source_root": "/workspace/work/broker-merged-source-f500e417",
+  "origin_sha256": "9e79a68a110afebdebb8126ff70eacd94ec833adf00c78cb7f45a0b73fc8a60d",
+  "driver_sha256": "ed4c65519026321250c2cfd6f8687329b65ab2b174f11e61df63f3b6977d1360",
+  "scope": "actual peer compiler qualification only; zero SDK/broker live runs",
+  "commands": [
+    {
+      "name": "stable-rust-build",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "build",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+        "--message-format=json-render-diagnostics"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 0,
+      "elapsed_seconds": 34.53496487400844,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.00043431999802123755,
+          "free_bytes": 3394011136
+        },
+        {
+          "elapsed_seconds": 0.5006033100071363,
+          "free_bytes": 3392679936
+        },
+        {
+          "elapsed_seconds": 1.000767748002545,
+          "free_bytes": 3383205888
+        },
+        {
+          "elapsed_seconds": 1.5031965250091162,
+          "free_bytes": 3382685696
+        },
+        {
+          "elapsed_seconds": 2.0034006019996013,
+          "free_bytes": 3379187712
+        },
+        {
+          "elapsed_seconds": 2.5035423549998086,
+          "free_bytes": 3371139072
+        },
+        {
+          "elapsed_seconds": 3.004864375005127,
+          "free_bytes": 3366461440
+        },
+        {
+          "elapsed_seconds": 3.5050082910020137,
+          "free_bytes": 3364016128
+        },
+        {
+          "elapsed_seconds": 4.005215433004196,
+          "free_bytes": 3362918400
+        },
+        {
+          "elapsed_seconds": 4.505472232995089,
+          "free_bytes": 3358367744
+        },
+        {
+          "elapsed_seconds": 5.005635513996822,
+          "free_bytes": 3355488256
+        },
+        {
+          "elapsed_seconds": 5.5058448080089875,
+          "free_bytes": 3354365952
+        },
+        {
+          "elapsed_seconds": 6.00602094300848,
+          "free_bytes": 3351228416
+        },
+        {
+          "elapsed_seconds": 6.50619413300592,
+          "free_bytes": 3350667264
+        },
+        {
+          "elapsed_seconds": 7.006371559997206,
+          "free_bytes": 3347816448
+        },
+        {
+          "elapsed_seconds": 7.506602121007745,
+          "free_bytes": 3341127680
+        },
+        {
+          "elapsed_seconds": 8.006777689006412,
+          "free_bytes": 3341127680
+        },
+        {
+          "elapsed_seconds": 8.506995917996392,
+          "free_bytes": 3338764288
+        },
+        {
+          "elapsed_seconds": 9.00721354399866,
+          "free_bytes": 3336138752
+        },
+        {
+          "elapsed_seconds": 9.507358116999967,
+          "free_bytes": 3328978944
+        },
+        {
+          "elapsed_seconds": 10.007527125999331,
+          "free_bytes": 3326488576
+        },
+        {
+          "elapsed_seconds": 10.511205214002985,
+          "free_bytes": 3321970688
+        },
+        {
+          "elapsed_seconds": 11.011390126004699,
+          "free_bytes": 3318198272
+        },
+        {
+          "elapsed_seconds": 11.511587497006985,
+          "free_bytes": 3314155520
+        },
+        {
+          "elapsed_seconds": 12.01176755099732,
+          "free_bytes": 3310026752
+        },
+        {
+          "elapsed_seconds": 12.511988126003416,
+          "free_bytes": 3309907968
+        },
+        {
+          "elapsed_seconds": 13.012197193995235,
+          "free_bytes": 3309907968
+        },
+        {
+          "elapsed_seconds": 13.512415777004207,
+          "free_bytes": 3309907968
+        },
+        {
+          "elapsed_seconds": 14.012635370003409,
+          "free_bytes": 3309907968
+        },
+        {
+          "elapsed_seconds": 14.515174012005446,
+          "free_bytes": 3302416384
+        },
+        {
+          "elapsed_seconds": 15.01530156499939,
+          "free_bytes": 3298418688
+        },
+        {
+          "elapsed_seconds": 15.515429674007464,
+          "free_bytes": 3285995520
+        },
+        {
+          "elapsed_seconds": 16.01559589500539,
+          "free_bytes": 3285995520
+        },
+        {
+          "elapsed_seconds": 16.51574074900418,
+          "free_bytes": 3285995520
+        },
+        {
+          "elapsed_seconds": 17.015869734008447,
+          "free_bytes": 3285270528
+        },
+        {
+          "elapsed_seconds": 17.51606288300536,
+          "free_bytes": 3275272192
+        },
+        {
+          "elapsed_seconds": 18.016202453000005,
+          "free_bytes": 3271188480
+        },
+        {
+          "elapsed_seconds": 18.516349309997167,
+          "free_bytes": 3262984192
+        },
+        {
+          "elapsed_seconds": 19.016506080995896,
+          "free_bytes": 3259777024
+        },
+        {
+          "elapsed_seconds": 19.51665082499676,
+          "free_bytes": 3257544704
+        },
+        {
+          "elapsed_seconds": 20.018962802001624,
+          "free_bytes": 3255095296
+        },
+        {
+          "elapsed_seconds": 20.519133524998324,
+          "free_bytes": 3251847168
+        },
+        {
+          "elapsed_seconds": 21.019287230999907,
+          "free_bytes": 3251326976
+        },
+        {
+          "elapsed_seconds": 21.51944191000075,
+          "free_bytes": 3251326976
+        },
+        {
+          "elapsed_seconds": 22.01960290700663,
+          "free_bytes": 3240153088
+        },
+        {
+          "elapsed_seconds": 22.519753740009037,
+          "free_bytes": 3235004416
+        },
+        {
+          "elapsed_seconds": 23.027178111995454,
+          "free_bytes": 3233263616
+        },
+        {
+          "elapsed_seconds": 23.53116830199724,
+          "free_bytes": 3231043584
+        },
+        {
+          "elapsed_seconds": 24.031301046998124,
+          "free_bytes": 3231043584
+        },
+        {
+          "elapsed_seconds": 24.531426818008185,
+          "free_bytes": 3228221440
+        },
+        {
+          "elapsed_seconds": 25.031596539003658,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 25.531763924009283,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 26.031923051996273,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 26.53209155400691,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 27.032270021009026,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 27.53244072700909,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 28.032636339004966,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 28.53281572800188,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 29.033000280003762,
+          "free_bytes": 3227783168
+        },
+        {
+          "elapsed_seconds": 29.533182277009473,
+          "free_bytes": 3215130624
+        },
+        {
+          "elapsed_seconds": 30.033354419007082,
+          "free_bytes": 3215130624
+        },
+        {
+          "elapsed_seconds": 30.53353093699843,
+          "free_bytes": 3211993088
+        },
+        {
+          "elapsed_seconds": 31.033746173998225,
+          "free_bytes": 3207421952
+        },
+        {
+          "elapsed_seconds": 31.533913018007297,
+          "free_bytes": 3204198400
+        },
+        {
+          "elapsed_seconds": 32.03406932699727,
+          "free_bytes": 3199025152
+        },
+        {
+          "elapsed_seconds": 32.5342210480012,
+          "free_bytes": 3193327616
+        },
+        {
+          "elapsed_seconds": 33.03437809699972,
+          "free_bytes": 3173588992
+        },
+        {
+          "elapsed_seconds": 33.5345506050071,
+          "free_bytes": 3170029568
+        },
+        {
+          "elapsed_seconds": 34.03472196000803,
+          "free_bytes": 3165884416
+        }
+      ],
+      "minimum_free_bytes": 3165884416,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/stable-rust-build/command.log",
+      "log_sha256": "79f8b98160ce8b1ab0f8ae02f52673e19a05a302979a3f0054c510eeca817dc9",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "stable-rust-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/rust/Cargo.toml",
+        "--bins",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 101,
+      "elapsed_seconds": 19.512483949001762,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0005268389941193163,
+          "free_bytes": 3126636544
+        },
+        {
+          "elapsed_seconds": 0.5006855740066385,
+          "free_bytes": 3125624832
+        },
+        {
+          "elapsed_seconds": 1.0008436180069111,
+          "free_bytes": 3121242112
+        },
+        {
+          "elapsed_seconds": 1.5009915020054905,
+          "free_bytes": 3115970560
+        },
+        {
+          "elapsed_seconds": 2.001133062003646,
+          "free_bytes": 3113693184
+        },
+        {
+          "elapsed_seconds": 2.5013223179994384,
+          "free_bytes": 3112251392
+        },
+        {
+          "elapsed_seconds": 3.001482299005147,
+          "free_bytes": 3111223296
+        },
+        {
+          "elapsed_seconds": 3.501682898000581,
+          "free_bytes": 3107524608
+        },
+        {
+          "elapsed_seconds": 4.005738015999668,
+          "free_bytes": 3105525760
+        },
+        {
+          "elapsed_seconds": 4.505889845997444,
+          "free_bytes": 3103023104
+        },
+        {
+          "elapsed_seconds": 5.006055381003534,
+          "free_bytes": 3102457856
+        },
+        {
+          "elapsed_seconds": 5.506219119008165,
+          "free_bytes": 3101229056
+        },
+        {
+          "elapsed_seconds": 6.006370148999849,
+          "free_bytes": 3100536832
+        },
+        {
+          "elapsed_seconds": 6.506527170000481,
+          "free_bytes": 3095478272
+        },
+        {
+          "elapsed_seconds": 7.006692612005281,
+          "free_bytes": 3094331392
+        },
+        {
+          "elapsed_seconds": 7.506862006004667,
+          "free_bytes": 3093102592
+        },
+        {
+          "elapsed_seconds": 8.007055060996208,
+          "free_bytes": 3092815872
+        },
+        {
+          "elapsed_seconds": 8.50727555299818,
+          "free_bytes": 3092123648
+        },
+        {
+          "elapsed_seconds": 9.007448388001649,
+          "free_bytes": 3089899520
+        },
+        {
+          "elapsed_seconds": 9.50761623699509,
+          "free_bytes": 3081969664
+        },
+        {
+          "elapsed_seconds": 10.007777560997056,
+          "free_bytes": 3080437760
+        },
+        {
+          "elapsed_seconds": 10.509318771000835,
+          "free_bytes": 3078656000
+        },
+        {
+          "elapsed_seconds": 11.009546258996124,
+          "free_bytes": 3076673536
+        },
+        {
+          "elapsed_seconds": 11.509730282006785,
+          "free_bytes": 3075362816
+        },
+        {
+          "elapsed_seconds": 12.009876698997687,
+          "free_bytes": 3071762432
+        },
+        {
+          "elapsed_seconds": 12.510039418993983,
+          "free_bytes": 3069718528
+        },
+        {
+          "elapsed_seconds": 13.010191105000558,
+          "free_bytes": 3067359232
+        },
+        {
+          "elapsed_seconds": 13.510336909996113,
+          "free_bytes": 3066609664
+        },
+        {
+          "elapsed_seconds": 14.01049232200603,
+          "free_bytes": 3065593856
+        },
+        {
+          "elapsed_seconds": 14.510646586000803,
+          "free_bytes": 3064520704
+        },
+        {
+          "elapsed_seconds": 15.010806143007358,
+          "free_bytes": 3062865920
+        },
+        {
+          "elapsed_seconds": 15.510972768999636,
+          "free_bytes": 3062583296
+        },
+        {
+          "elapsed_seconds": 16.011135420005303,
+          "free_bytes": 3061870592
+        },
+        {
+          "elapsed_seconds": 16.51130552199902,
+          "free_bytes": 3061096448
+        },
+        {
+          "elapsed_seconds": 17.011460630994407,
+          "free_bytes": 3060051968
+        },
+        {
+          "elapsed_seconds": 17.51161917099671,
+          "free_bytes": 3058749440
+        },
+        {
+          "elapsed_seconds": 18.011785067006713,
+          "free_bytes": 3058417664
+        },
+        {
+          "elapsed_seconds": 18.511945980004384,
+          "free_bytes": 3057520640
+        },
+        {
+          "elapsed_seconds": 19.01226112799486,
+          "free_bytes": 3044769792
+        }
+      ],
+      "minimum_free_bytes": 3044769792,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/stable-rust-strict/command.log",
+      "log_sha256": "6eff3fb5bed1909c7f84a0d7c490e530d5f96a3d478193f720e99bb3b316dcf8",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "native-cjson-object",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "gcc",
+        "-std=c11",
+        "-O2",
+        "-I/workspace/work/c-peer/source/src",
+        "-c",
+        "/workspace/work/c-peer/source/src/cJSON.c",
+        "-o",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native/cJSON.o"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5008104139997158,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0005825519911013544,
+          "free_bytes": 3020951552
+        }
+      ],
+      "minimum_free_bytes": 3020951552,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native-cjson-object/command.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "native-strict-link",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "gcc",
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-Werror",
+        "-I/workspace/work/c-peer/source/src",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/native/oidc-native-peer.c",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native/cJSON.o",
+        "-L/workspace/work/c-peer/lib",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-lrdkafka",
+        "-I/usr/include/x86_64-linux-gnu",
+        "-isystem",
+        "/usr/include/mit-krb5",
+        "-I/usr/include/p11-kit-1",
+        "-lcurl",
+        "-lssl",
+        "-lcrypto",
+        "-o",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native/oidc-native-peer"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 1,
+      "elapsed_seconds": 0.5007553939940408,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0004989360022591427,
+          "free_bytes": 3224293376
+        }
+      ],
+      "minimum_free_bytes": 3224293376,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/native-strict-link/command.log",
+      "log_sha256": "5dcc7f5f91639b5bbd91bef819d4121d070479b333b861011918cedc9bd2c26e",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "java-4.1.2-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-annotations-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-core-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jackson-databind-2.19.4.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java/4.1.2/classes",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5011481499968795,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0006315259961411357,
+          "free_bytes": 3146452992
+        },
+        {
+          "elapsed_seconds": 0.5007983760006027,
+          "free_bytes": 3146452992
+        },
+        {
+          "elapsed_seconds": 1.0009498330036877,
+          "free_bytes": 3146448896
+        }
+      ],
+      "minimum_free_bytes": 3146448896,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java-4.1.2-strict/command.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "java-4.2.1-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.2.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java/4.2.1/classes",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 0,
+      "elapsed_seconds": 1.0010578869987512,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0006553210114361718,
+          "free_bytes": 3064848384
+        },
+        {
+          "elapsed_seconds": 0.500804348004749,
+          "free_bytes": 3062358016
+        }
+      ],
+      "minimum_free_bytes": 3062358016,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java-4.2.1-strict/command.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    },
+    {
+      "name": "java-4.3.1-strict",
+      "command": [
+        "taskset",
+        "-c",
+        "0,1",
+        "/usr/bin/java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-core-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-databind-2.21.2.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jose4j-0.9.6.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/slf4j-api-1.7.36.jar:/workspace/work/jwt-oracle/final-837cd317/sdk/jars/4.3.1/jackson-annotations-2.21.jar",
+        "-d",
+        "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java/4.3.1/classes",
+        "/workspace/work/broker-merged-source-f500e417/docs/evidence/broker/KL11-37/peers/java/OAuthMetadataPeer.java"
+      ],
+      "cwd": "/workspace/work/broker-merged-source-f500e417",
+      "exit_code": 0,
+      "elapsed_seconds": 1.0029693969991058,
+      "stopped": null,
+      "disk_samples": [
+        {
+          "elapsed_seconds": 0.0004633539938367903,
+          "free_bytes": 3027390464
+        },
+        {
+          "elapsed_seconds": 0.5027580699970713,
+          "free_bytes": 3027390464
+        }
+      ],
+      "minimum_free_bytes": 3027390464,
+      "log_path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/java-4.3.1-strict/command.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      },
+      "source_after": {
+        "file_count": 72007,
+        "raw_sha256": "fceb985e2121973fcd35a5c5d57f29e2d831f9c4b5ee0101b6886c4b3598490f",
+        "identical_to_before": true,
+        "scope": "every Git blob and exact actual regular/symlink pathset/full07777"
+      }
+    }
+  ],
+  "retained_elf_objects": [
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+      "gzip_sha256": "dfc69c7441fb04edffaba39816349e67687c3d936215c2d956ff636b8a54e52f",
+      "original_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "bytes": 756016,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab.gz",
+      "gzip_sha256": "2bcfcb19fcfa88fcc23dd2be911aa406765a7f8f7bf5b833efccb8c208d5a388",
+      "original_sha256": "255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab",
+      "bytes": 558104,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+      "gzip_sha256": "9fd27270e17788638402d7b70b6f3e5abf38f425f7d8f2f853f6a159a02abba4",
+      "original_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "bytes": 478224,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/47ae19227abcf16cd33e1cc79af52c19483df5fe4bf23e1927a299815e2c1efc.gz",
+      "gzip_sha256": "0ef8859c42f58a61ac10bb520084fced7f0d8d3dcb1c82f038760f1593928abf",
+      "original_sha256": "47ae19227abcf16cd33e1cc79af52c19483df5fe4bf23e1927a299815e2c1efc",
+      "bytes": 681664,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec.gz",
+      "gzip_sha256": "0c71009d8954bc05c7d28959eadd39b8ca285b47757d5e7802912cd372a802e4",
+      "original_sha256": "9b9b991e7c41f244169dc03113496ecde61b80a84ebb0c4cbb4715d6271ceaec",
+      "bytes": 478304,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+      "gzip_sha256": "aab678d92c68b78dcedbb2cdccefc686bb3eb483e91229f799d9401103295cc7",
+      "original_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "bytes": 613824,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+      "gzip_sha256": "d854c8ba14ba922677e7a33f20ec2a87ccf762499ebade9e0b339a9e5299a610",
+      "original_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "bytes": 556632,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+      "gzip_sha256": "223b3396c826a4158d3d4264cf9749cf44adbdfa1f9809949f4bd9add6c91d04",
+      "original_sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+      "bytes": 2028648,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.gz",
+      "gzip_sha256": "a651f435edff25ee312005c112aa7b89c109ba7778ddc3e825f166d05814c310",
+      "original_sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+      "bytes": 85024,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.gz",
+      "gzip_sha256": "94663a70d9ae14267178c8c523bffe1689782bf92b1c890ced52aab6464693c3",
+      "original_sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+      "bytes": 79792,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.gz",
+      "gzip_sha256": "0665d908064cc61af5c812bc177e128d5e56593e81ec4a35069be3914d594155",
+      "original_sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+      "bytes": 124880,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.gz",
+      "gzip_sha256": "0670f017293bbbce4c7475baa983428b2c18c90a4187df3e16843931554eb1f3",
+      "original_sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+      "bytes": 232480,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.gz",
+      "gzip_sha256": "cb3d1c6095b6cbcebeba02dc4acf76dbe3e31a141e8ba1c94fbe945967d57e16",
+      "original_sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+      "bytes": 557112,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.gz",
+      "gzip_sha256": "3ef0236707905f979de82266e044e4d4ed38daf98c2446161c054c66897e6e8a",
+      "original_sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+      "bytes": 79832,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.gz",
+      "gzip_sha256": "deed202ce247818052b212ebfd9bcaf4d4513ef4e9836b0b0cef6fae867db44f",
+      "original_sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+      "bytes": 79392,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.gz",
+      "gzip_sha256": "08af634d9d62b7a68e4a0c291ca4fc10b9d7eb738d98c2212ab00c7d81b4c625",
+      "original_sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+      "bytes": 121248,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.gz",
+      "gzip_sha256": "a3df9f53a42c6240284502f1de9b897c54e202ec43e10e04013bd6aeffde6dd0",
+      "original_sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+      "bytes": 262240,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.gz",
+      "gzip_sha256": "b9c20b438a9a26af36bbfb16028a5889dd09e198ca36c0da158d75c1b0e1b21b",
+      "original_sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+      "bytes": 79824,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.gz",
+      "gzip_sha256": "887d939f35e324ddbb36a701998282b90cd716f437b24fd47bd4995313b5561c",
+      "original_sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+      "bytes": 91208,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.gz",
+      "gzip_sha256": "b57439f9be881723f18cab87f1842c4a1101913d29382b2044746b8d4204245f",
+      "original_sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+      "bytes": 81200,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.gz",
+      "gzip_sha256": "5a0da3c327790765004db80bffd1eacce0592c98db59c9389e1870179a55a5ab",
+      "original_sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+      "bytes": 72296,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.gz",
+      "gzip_sha256": "171ca38ecab4a7c1f31d8fbfc73ac6776a4acc1796f6517c991d2e3138c8c901",
+      "original_sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+      "bytes": 78392,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.gz",
+      "gzip_sha256": "eb167dd8a509bcbb07177f5a48b851d02a72585adbea38055521607d5d44e96d",
+      "original_sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+      "bytes": 102792,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.gz",
+      "gzip_sha256": "ab450103d7f2f2d6f2b3e84e9e39bacc5b2bec0a52490dfb8a5329c1fe743b39",
+      "original_sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+      "bytes": 8904,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.gz",
+      "gzip_sha256": "cd6590541f3ba42207827285d40182ce8d9d9e4f9ab3368a03424c862b6acbaf",
+      "original_sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+      "bytes": 7728,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.gz",
+      "gzip_sha256": "2159c1c1632e709fc7cf7c3bcb021b73580c47ea8cee104c2f67faf92c2bb8ed",
+      "original_sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+      "bytes": 9176,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.gz",
+      "gzip_sha256": "ec5de0964513600f3e3b6ddd41a06577d1224713aa5c7bc3ba90812228b773ee",
+      "original_sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+      "bytes": 11760,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.gz",
+      "gzip_sha256": "124e1c0c383a17420f5a250e75a57be54b1f77e428c96b9cdc3407e9b24da151",
+      "original_sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+      "bytes": 62048,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.gz",
+      "gzip_sha256": "c0e14169abb9a6c6d869aaaf83582beca6f5a048d4a69cc585c815005da46015",
+      "original_sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+      "bytes": 8976,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.gz",
+      "gzip_sha256": "2273fb0b689feba577edefddc9a99096d39bb4fb3ae103c9f221b71e7a579c7a",
+      "original_sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+      "bytes": 29824,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.gz",
+      "gzip_sha256": "a0f0529cb6644d7ac79ee2f58a3f79af422dd2182d6ace351153fde7935e9a26",
+      "original_sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+      "bytes": 21160,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.gz",
+      "gzip_sha256": "e0ff0562c55e2bc1663072a75e23a6f91e6119c08837114317559e90dfb7e3a2",
+      "original_sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+      "bytes": 16328,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.gz",
+      "gzip_sha256": "d6eae96ebb9db9324e74af08b79d758a0e82cea88edf7b15cc5ac81fb7571e97",
+      "original_sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+      "bytes": 7952,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.gz",
+      "gzip_sha256": "890476e50bf78a08ed0653eba8d7b7b23427ab60e2023e5ba18475de149a117d",
+      "original_sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+      "bytes": 8632,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.gz",
+      "gzip_sha256": "ef4c1c1549e1eef4f46498dba4cbc1cf4046a22a288f6c66221bc507a85c5d83",
+      "original_sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+      "bytes": 18816,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.gz",
+      "gzip_sha256": "d8924847c42bda572fc0c4b91c04aedbd6d26ad8f327ab1d673035b341fa74a7",
+      "original_sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+      "bytes": 89096,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.gz",
+      "gzip_sha256": "11b5ff71f358a660da3929f7143c6572f299f38a729d14ca5a52154d0c6e069c",
+      "original_sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+      "bytes": 3680,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.gz",
+      "gzip_sha256": "33bbba44843e3536f898712fd164f2812abe784e9ca6d6f4191da27d235eed8e",
+      "original_sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+      "bytes": 3472,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+      "gzip_sha256": "8691af90ededa6704558296ad902b72a26c385aae30ac9a1c5d307d5b7b80d63",
+      "original_sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+      "bytes": 438184,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/de6707d8e41bc3629bb6999cf25737635b831449a09a696c22749759fd81868e.gz",
+      "gzip_sha256": "7070a2d9b588cefd967410ee2151f5ec2cee700569fa06fd87893f0e3f79a4fa",
+      "original_sha256": "de6707d8e41bc3629bb6999cf25737635b831449a09a696c22749759fd81868e",
+      "bytes": 590864,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+      "gzip_sha256": "7ccf61dc3a22a15ba668b9d2c1bc0d383a16ae1d3e47d94bc00aadee4fc91975",
+      "original_sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+      "bytes": 449968,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.gz",
+      "gzip_sha256": "453fd53dd61e9302e7846d45ce92c9fc7cc16f15d943411646596956f423ef1f",
+      "original_sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+      "bytes": 500648,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+      "gzip_sha256": "3a610bfa5e4edaf82935b3982104d3e562c4a6372b046485d41262d1858aa3b2",
+      "original_sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+      "bytes": 561760,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+      "gzip_sha256": "158f217adfa512dd2d78f067e284e584cb0dd14c7bd4cda62c43694a5665bb8e",
+      "original_sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "bytes": 3482104,
+      "roundtrip_verified": true
+    },
+    {
+      "path": "/workspace/work/broker-oidc/peer-builds-f500e417-attempt-01/retained-elf-objects/8cd237961d2dbe6236cae3207335f5d4f46e6d2942881863a3b7c64470effe9f.gz",
+      "gzip_sha256": "1392f68aa1fdd9d101312f70ec9e71ac03bc1c733ee9e7470c464eb8c26231c3",
+      "original_sha256": "8cd237961d2dbe6236cae3207335f5d4f46e6d2942881863a3b7c64470effe9f",
+      "bytes": 15537760,
+      "roundtrip_verified": true
+    }
+  ],
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/broker-oidc/live-peers-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "passed": false
+}

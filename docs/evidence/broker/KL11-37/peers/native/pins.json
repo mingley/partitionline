@@ -33,5 +33,6 @@
     "Owned request/secret/body buffers are wiped, but no claim all third-party curl/JSON/SDK/TLS allocations are scrubbed.",
     "Network deadlines do not establish forcible cancellation of every operating-system resolver call.",
     "All attempted compile/live failures remain distinct from eventual positive cohorts."
-  ]
+  ],
+  "sdk_header_classification": "-isystem for authentic externally owned SDK headers; own native source remains -Wall -Wextra -Wpedantic -Werror; original ignored-qualifiers failure retained"
 }

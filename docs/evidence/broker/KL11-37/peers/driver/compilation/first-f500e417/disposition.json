@@ -1,0 +1,15 @@
+{
+  "source_sha": "f500e417c715a27ad7442f5c499221f9d25fb14a",
+  "commands_attempted": 7,
+  "passed": 5,
+  "failed": 2,
+  "stable_rust_normal": "passed and retained; strict failed so no runtime qualification",
+  "msrv": "not attempted on unchanged losing source",
+  "rust_strict": "101: committed disallowed-methods rule rejectsstd::fs::read; revised bounded reader runs before creating Tokio runtime, no lint allowance/dependency change",
+  "native_strict": "1: authentic upstreamrdkafka.h9532 const-int ignored-qualifier warning; later command marks SDK include as system, own source remains fully strict",
+  "java_three": "all3 strict recompiled; no actual SDK runtime",
+  "source_guards": "14 whole72007-file/pathset/Gitbyte/full07777 checks pass",
+  "minimum_observed_free_bytes": 3020951552,
+  "normal_server_receipts": "separate actualf500 stable/MSRV normal builds retained by OpenLoop; never relabeled future source",
+  "live_executions": 0
+}

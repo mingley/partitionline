@@ -1,0 +1,63 @@
+{
+  "scope": "actual first compiler inputs only; no SDK/live execution",
+  "files": [
+    {
+      "path": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "bytes": 1162264,
+      "full_mode": "0o755"
+    },
+    {
+      "path": "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "sha256": "6698f6f10143ed8463b06062281c727152d2e0ae2a3569b1716fbb2c6cedf0ba",
+      "bytes": 14384,
+      "full_mode": "0o755"
+    },
+    {
+      "path": "/workspace/work/c-peer/source/src/cJSON.c",
+      "sha256": "fdb11f529efe3ad55b04d3c59c3c2f668cf4b68bd93feed23d51ee89841e0a90",
+      "bytes": 80413,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/c-peer/source/src/cJSON.h",
+      "sha256": "25b0145150d500498e4d209cec69c18c42cf818bffcc54690be3b895a2a16dee",
+      "bytes": 16394,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/c-peer/source/src/rdkafka.h",
+      "sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+      "bytes": 431784,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "/workspace/work/c-peer/lib/librdkafka.so.1",
+      "sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+      "bytes": 14587400,
+      "full_mode": "0o700"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcurl.so.4.8.0",
+      "sha256": "4fdc50a9c87bff66d16ca11c5f9f575239e72ee6081a1f36d7b819b97d69341f",
+      "bytes": 983720,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libssl.so.3",
+      "sha256": "4b34859318555bf96d518131bed5fc4d5e35fefa4e1729f49eaa26bd05263850",
+      "bytes": 1101760,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libcrypto.so.3",
+      "sha256": "8bb5f3fdffe280d4453eb79a4663c2c47af70b7c247fe2e94e2da703cee1fd3d",
+      "bytes": 6517312,
+      "full_mode": "0o644"
+    }
+  ],
+  "libcurl_version": "8.14.1",
+  "openssl_version": "3.5.7",
+  "librdkafka_version": "2.15.0",
+  "build_runner_sha256": "ed4c65519026321250c2cfd6f8687329b65ab2b174f11e61df63f3b6977d1360"
+}
