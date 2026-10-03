@@ -1,0 +1,5 @@
+The first exact immutable e90 Java compiler attempt failed on 4.1.2 with seven missing-class errors: that release returns OffsetAndMetadata, while 4.2.1 and 4.3.1 return SharePartitionOffsetInfo. No fixtures or handlers executed. Original source and raw errors remain here.
+
+The corrected two-source WORK overlay passed strict -Xlint:all -Werror compilation against all three pinned official SDKs. Each accessor now checks the exact release and official returned class; 4.1.2 reads offset()/leaderEpoch() and has no lag accessor, while 4.2.1/4.3.1 read startOffset()/leaderEpoch()/lag(). The byte-checked official classfile signature matrix is retained independently.
+
+These are diagnostic overlay compiles, with the complete 73,304-file immutable e90 tree guarded before/after each command. They are not final-main qualification, serializer/parser/handler execution or public Admin socket evidence. Six actual classfiles and their hashes/full modes remain in WORK, with no class/JAR/ELF payload in Git. Further work awaits the corrected immutable main pin and ROOT execution lease.

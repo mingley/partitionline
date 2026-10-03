@@ -1,0 +1,108 @@
+--- a/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java
++++ b/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java
+@@ -13,7 +13,6 @@
+ import java.util.Set;
+ import org.apache.kafka.clients.admin.AbortTransactionSpec;
+ import org.apache.kafka.clients.admin.ListShareGroupOffsetsSpec;
+-import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
+ import org.apache.kafka.clients.admin.internals.AbortTransactionHandler;
+ import org.apache.kafka.clients.admin.internals.AdminApiHandler;
+ import org.apache.kafka.clients.admin.internals.CoordinatorKey;
+@@ -156,29 +155,82 @@
+         String type = result.failedKeys.isEmpty() ? null : result.failedKeys.get(TARGET).getClass().getName();
+         return "{\"category\":"+quote(category)+",\"failure_type\":"+quote(type)+"}";
+     }
++    private static String officialOffsetAccessor(Object info) {
++        String release = org.apache.kafka.common.utils.AppInfoParser.getVersion();
++        String expectedType;
++        String accessor;
++        switch (release) {
++            case "4.1.2":
++                expectedType = "org.apache.kafka.clients.consumer.OffsetAndMetadata";
++                accessor = "offset";
++                break;
++            case "4.2.1":
++            case "4.3.1":
++                expectedType = "org.apache.kafka.clients.admin.SharePartitionOffsetInfo";
++                accessor = "startOffset";
++                break;
++            default:
++                throw new AssertionError("unqualified official release");
++        }
++        if (!info.getClass().getName().equals(expectedType)) {
++            throw new AssertionError("official public result type differs from pinned release");
++        }
++        return accessor;
++    }
++    private static long officialOffset(Object info) throws Exception {
++        Object value = info.getClass().getMethod(officialOffsetAccessor(info)).invoke(info);
++        if (!(value instanceof Long)) throw new AssertionError("official long offset accessor");
++        return (Long) value;
++    }
++    private static String officialLeaderEpoch(Object info) throws Exception {
++        officialOffsetAccessor(info);
++        Object value = info.getClass().getMethod("leaderEpoch").invoke(info);
++        if (!(value instanceof Optional<?>)) throw new AssertionError("official Optional leader epoch");
++        Optional<?> epoch = (Optional<?>) value;
++        if (epoch.isPresent() && !(epoch.get() instanceof Integer)) {
++            throw new AssertionError("official integer leader epoch");
++        }
++        return epoch.isPresent() ? epoch.get().toString() : "null";
++    }
++    private static String officialLagGetter(Object info) throws Exception {
++        officialOffsetAccessor(info);
++        if (org.apache.kafka.common.utils.AppInfoParser.getVersion().equals("4.1.2")) {
++            try {
++                info.getClass().getMethod("lag");
++            } catch (NoSuchMethodException expectedAbsent) {
++                return "absent-on-this-official-release";
++            }
++            throw new AssertionError("unexpected lag accessor on pinned older public type");
++        }
++        return "actual-official-public-Optional";
++    }
++    private static String officialLag(Object info) throws Exception {
++        if (officialLagGetter(info).equals("absent-on-this-official-release")) return "null";
++        Object value = info.getClass().getMethod("lag").invoke(info);
++        if (!(value instanceof Optional<?>)) throw new AssertionError("official Optional lag");
++        Optional<?> lag = (Optional<?>) value;
++        if (lag.isPresent() && !(lag.get() instanceof Long)) {
++            throw new AssertionError("official long lag");
++        }
++        return lag.isPresent() ? lag.get().toString() : "null";
++    }
+     private static String shareOutcome(DescribeShareGroupOffsetsResponseData response) throws Exception {
+         CoordinatorKey key=CoordinatorKey.byGroupId("g");
+         ListShareGroupOffsetsHandler handler=new ListShareGroupOffsetsHandler(
+             Map.of("g",new ListShareGroupOffsetsSpec()),new LogContext());
+-        AdminApiHandler.ApiResult<CoordinatorKey,Map<TopicPartition,SharePartitionOffsetInfo>> result=
++        AdminApiHandler.ApiResult<CoordinatorKey,? extends Map<TopicPartition,?>> result=
+             handler.handleResponse(new Node(2,"127.0.0.1",19095),Set.of(key),
+                 new DescribeShareGroupOffsetsResponse(response));
+-        Map<TopicPartition,SharePartitionOffsetInfo> values=result.completedKeys.get(key);
+-        SharePartitionOffsetInfo info=values==null ? null : values.get(TARGET);
+-        String lag="null";
+-        String getter="absent-on-this-official-release";
+-        if (info!=null) {
+-            try {
+-                Object returned=info.getClass().getMethod("lag").invoke(info);
+-                if (!(returned instanceof Optional<?>)) throw new AssertionError("official Optional lag");
+-                Optional<?> actual=(Optional<?>) returned;
+-                lag=actual.isPresent() ? actual.get().toString() : "null";
+-                getter="actual-official-public-Optional";
+-            } catch (NoSuchMethodException absent) { }
+-        }
++        Map<TopicPartition,?> values=result.completedKeys.get(key);
++        Object info=values==null ? null : values.get(TARGET);
++        String lag=info==null ? "null" : officialLag(info);
++        String getter=info==null ? "no-public-result" : officialLagGetter(info);
+         return "{\"completed_groups\":"+result.completedKeys.size()+",\"failed_groups\":"+result.failedKeys.size()
+             +",\"unmapped_groups\":"+result.unmappedKeys.size()+",\"returned_partition_count\":"+(values==null ? 0 : values.size())
+-            +",\"start_offset\":"+(info==null ? "null" : Long.toString(info.startOffset()))
++            +",\"start_offset\":"+(info==null ? "null" : Long.toString(officialOffset(info)))
++            +",\"public_result_type\":"+quote(info==null ? null : info.getClass().getName())
++            +",\"offset_getter\":"+quote(info==null ? null : officialOffsetAccessor(info))
++            +",\"leader_epoch\":"+(info==null ? "null" : officialLeaderEpoch(info))
+             +",\"lag\":"+lag+",\"lag_getter_basis\":"+quote(getter)+"}";
+     }
+     private static void emit(String label, ApiKeys api, short version, Message request, Message response) throws Exception {

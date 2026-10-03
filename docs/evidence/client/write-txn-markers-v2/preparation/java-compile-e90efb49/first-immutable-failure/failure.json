@@ -1,0 +1,8 @@
+{
+  "passed": false,
+  "failure_type": "AssertionError",
+  "detail": "('actual Java command failed', '4.1.2-strict-compile', 1, None)",
+  "later_commands_not_launched": true,
+  "retained_actual_classes": {},
+  "scope": "Java-only actual attempt; no Rust/broker claims"
+}

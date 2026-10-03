@@ -1,0 +1,37 @@
+Picked up JAVA_TOOL_OPTIONS: 
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java:16: error: cannot find symbol
+import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
+                                     ^
+  symbol:   class SharePartitionOffsetInfo
+  location: package org.apache.kafka.clients.admin
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java:13: error: cannot find symbol
+import org.apache.kafka.clients.admin.SharePartitionOffsetInfo;
+                                     ^
+  symbol:   class SharePartitionOffsetInfo
+  location: package org.apache.kafka.clients.admin
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java:163: error: cannot find symbol
+        AdminApiHandler.ApiResult<CoordinatorKey,Map<TopicPartition,SharePartitionOffsetInfo>> result=
+                                                                    ^
+  symbol:   class SharePartitionOffsetInfo
+  location: class CapabilityOracle
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java:166: error: cannot find symbol
+        Map<TopicPartition,SharePartitionOffsetInfo> values=result.completedKeys.get(key);
+                           ^
+  symbol:   class SharePartitionOffsetInfo
+  location: class CapabilityOracle
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java:167: error: cannot find symbol
+        SharePartitionOffsetInfo info=values==null ? null : values.get(TARGET);
+        ^
+  symbol:   class SharePartitionOffsetInfo
+  location: class CapabilityOracle
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java:38: error: cannot find symbol
+                Map<TopicPartition,SharePartitionOffsetInfo> values=admin.listShareGroupOffsets(
+                                   ^
+  symbol:   class SharePartitionOffsetInfo
+  location: class PublicAdminProbe
+/workspace/work/client-capabilities-source-e90efb49/docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java:40: error: cannot find symbol
+                SharePartitionOffsetInfo info=values.get(new TopicPartition("t",0));
+                ^
+  symbol:   class SharePartitionOffsetInfo
+  location: class PublicAdminProbe
+7 errors

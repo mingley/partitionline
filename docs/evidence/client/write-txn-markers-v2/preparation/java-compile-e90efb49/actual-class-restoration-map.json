@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "scope": "six actual classfiles from strict diagnostic3SDKcompile only; not final main qualification",
+  "classes": {
+    "classes/4.1.2/CapabilityOracle.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/CapabilityOracle.class",
+      "bytes": 26011,
+      "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    },
+    "classes/4.1.2/PublicAdminProbe.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.1.2/PublicAdminProbe.class",
+      "bytes": 7082,
+      "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    },
+    "classes/4.2.1/CapabilityOracle.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/CapabilityOracle.class",
+      "bytes": 26011,
+      "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    },
+    "classes/4.2.1/PublicAdminProbe.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.2.1/PublicAdminProbe.class",
+      "bytes": 7082,
+      "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    },
+    "classes/4.3.1/CapabilityOracle.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.3.1/CapabilityOracle.class",
+      "bytes": 26011,
+      "sha256": "eb9caded6a9d21bcd7c938c6711c676a042472fc47a1e9e72c5892592896c7b1",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    },
+    "classes/4.3.1/PublicAdminProbe.class": {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/java-diagnostic-overlay-attempt-02/classes/4.3.1/PublicAdminProbe.class",
+      "bytes": 7082,
+      "sha256": "6ce42472e79ee25988e43b7e9f65da3caa4386664ee31be4adf35a93bcee9be9",
+      "full_mode": 384,
+      "source_overlay_sha256": [
+        "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+        "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4"
+      ],
+      "restore": "Preserved original WORK classfile; class payload excluded from Git; verify raw SHA256/bytes/full_mode before any future use. No Java-runtime behavior is inferred."
+    }
+  },
+  "no_class_payload_in_git": true
+}

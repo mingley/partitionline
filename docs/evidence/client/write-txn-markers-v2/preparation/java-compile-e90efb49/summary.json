@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "first_actual_immutable_Java_compile_passed": false,
+  "first_compile_exit_code": 1,
+  "first_compile_errors": 7,
+  "first_actual_receipt_sha256": "af9756d88f5b50485eaa6c670633702110cb9bb1a1b4214ea26e7f8d96068259",
+  "scope_of_correction": "two Java sources: remove4.2-only type imports, use checked wildcard result maps, require exact pinned release/type before exact offset/leaderEpoch/lag accessors",
+  "signature_matrix_sha256": "b4499c2cac921075a7ef3465fc1f400d416242502a9047340af357da512c4fb9",
+  "diagnostic_overlay_compile_all_three_passed": true,
+  "diagnostic_overlay_receipt_sha256": "74b2a23acb975a51a362765aeafa6a0eef4a7eb248ba31bfb96a09dbfb05cb91",
+  "diagnostic_source_policy": "original full immutable e9073304files before/after each command plus exactly two named corrected WORK Java sources; product WORK/repository source never used",
+  "actual_SDK_serializer_parser_handler_controls_executed": 0,
+  "actual_publicSDK_socket_calls": 0,
+  "actual_Rust_emitted_reverse_controls": 0,
+  "no_Cargo_Java_lane": true,
+  "immutable_e90_Java_unchanged": true,
+  "frozen_Java_files": [
+    {
+      "relative_path": "docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java",
+      "before_sha256": "8b5b75b6e911174ab8c903b218b11570cbe83c2e41f4157a7d0627178e76d382",
+      "before_git_blob_sha1": "2be0a6d8c9e425f577ff8f6e60c1875785d9a008",
+      "before_full_mode": 384,
+      "after_sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+      "after_git_blob_sha1": "aa5398bfaab3ed0cf0e255f4912240405e845911",
+      "after_full_mode": 384
+    },
+    {
+      "relative_path": "docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java",
+      "before_sha256": "8965efae2d3b65f7405e8fe705cbc000961c035f285a58b336a62b06bd17ca41",
+      "before_git_blob_sha1": "989c00c4606947f1a716da557d5e056006b84672",
+      "before_full_mode": 384,
+      "after_sha256": "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4",
+      "after_git_blob_sha1": "7460c2635f04f52d99fab177200d2237c9f6f305",
+      "after_full_mode": 384
+    }
+  ],
+  "actual_classes_retained_outside_git": 6,
+  "no_class_JAR_ELF_private_payload_in_git": true,
+  "minimum_sampled_free_bytes": 1380954112,
+  "final_source_complete_guards_match": true,
+  "API_card_acceptance_status": "KL05-29/30 final gates, allfixtures and publicinterop remain pending correctedmainpin/ROOTGO"
+}

@@ -1,0 +1,9 @@
+started java-identity pid=1201599
+closed java-identity exit=0
+started 4.1.2-strict-compile pid=1201622
+closed 4.1.2-strict-compile exit=0
+started 4.2.1-strict-compile pid=1201661
+closed 4.2.1-strict-compile exit=0
+started 4.3.1-strict-compile pid=1201680
+closed 4.3.1-strict-compile exit=0
+diagnostic3SDKstrictjavac closed; no component/runtime work launched

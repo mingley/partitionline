@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "authorization": "ROOT approved exact2Java type/wildcard/release signature correction after4.1.2strictjavac7errors; futurediagnosticjavac only, no component/runtime claim",
+  "source_e90_unchanged": true,
+  "head_before": "3c0e97b2366a82cfd42ee151078b726bf034f9fc",
+  "signature_matrix_sha256": "b4499c2cac921075a7ef3465fc1f400d416242502a9047340af357da512c4fb9",
+  "files": [
+    {
+      "relative_path": "docs/evidence/client/write-txn-markers-v2/oracle/CapabilityOracle.java",
+      "before_sha256": "8b5b75b6e911174ab8c903b218b11570cbe83c2e41f4157a7d0627178e76d382",
+      "before_git_blob_sha1": "2be0a6d8c9e425f577ff8f6e60c1875785d9a008",
+      "before_full_mode": 384,
+      "after_sha256": "bba1a3c3c005ff40149096c628edc81937a683373b87a3d757bb7eb9c7f795ca",
+      "after_git_blob_sha1": "aa5398bfaab3ed0cf0e255f4912240405e845911",
+      "after_full_mode": 384
+    },
+    {
+      "relative_path": "docs/evidence/client/write-txn-markers-v2/oracle/PublicAdminProbe.java",
+      "before_sha256": "8965efae2d3b65f7405e8fe705cbc000961c035f285a58b336a62b06bd17ca41",
+      "before_git_blob_sha1": "989c00c4606947f1a716da557d5e056006b84672",
+      "before_full_mode": 384,
+      "after_sha256": "8e5278003fcb91fe0ad5418b0807505360a62465edd133ae19542cd8990e13c4",
+      "after_git_blob_sha1": "7460c2635f04f52d99fab177200d2237c9f6f305",
+      "after_full_mode": 384
+    }
+  ],
+  "predeclared_at_unix": 1791044605.5774183
+}

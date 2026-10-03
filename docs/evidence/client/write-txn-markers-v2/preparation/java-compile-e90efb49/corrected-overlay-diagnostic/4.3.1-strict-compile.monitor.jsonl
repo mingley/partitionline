@@ -1,0 +1,7 @@
+{"elapsed_seconds": 0.0035109589953208342, "free_bytes": 1380999168, "output_tree_bytes": 79377, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 0.20475353300571442, "free_bytes": 1380990976, "output_tree_bytes": 79549, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 0.40524251900205854, "free_bytes": 1380990976, "output_tree_bytes": 79689, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 0.6065359899948817, "free_bytes": 1380990976, "output_tree_bytes": 79829, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 0.8070941299956758, "free_bytes": 1380990976, "output_tree_bytes": 79968, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 1.010907464005868, "free_bytes": 1380962304, "output_tree_bytes": 106118, "process_group": 1201680, "exit_code": null}
+{"elapsed_seconds": 1.2116662229964277, "free_bytes": 1380954112, "output_tree_bytes": 113339, "process_group": 1201680, "exit_code": 0}
