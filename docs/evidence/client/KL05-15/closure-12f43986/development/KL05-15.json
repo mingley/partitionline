@@ -1,0 +1,1358 @@
+{
+  "id": "KL05-15",
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "status_proposal_only": true,
+  "acceptance_met": true,
+  "proposed_status": "done",
+  "closure_authority": "Root independently reviews and publishes frozen proof, then updates/ closes shared task/case/feature registries. Worker changed no shared registry or task status.",
+  "frozen_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4",
+    "tests/protocol_oracles.rs": "0bbe21185275a6eec21f34cb088737cb41e194bfba64bc966dd02a4afcc5794f"
+  },
+  "full_client_qa": {
+    "stable-default": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "stable",
+      "features": "default",
+      "all_target_counts": {
+        "passed": 1835,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "stable-all": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "stable",
+      "features": "all",
+      "all_target_counts": {
+        "passed": 1836,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "msrv-default": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "1.85.0",
+      "features": "default",
+      "all_target_counts": {
+        "passed": 1835,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    },
+    "msrv-all": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "verified_source_files": 69144,
+      "toolchain": "1.85.0",
+      "features": "all",
+      "all_target_counts": {
+        "passed": 1836,
+        "failed": 0,
+        "ignored": 5
+      },
+      "doctest_counts": {
+        "passed": 4,
+        "failed": 0,
+        "ignored": 0
+      },
+      "command_receipts": 9,
+      "source_before_after_receipts": 18,
+      "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets."
+    }
+  },
+  "full_client_qa_totals": {
+    "passed_tests": 7342,
+    "passed_doctests": 16,
+    "commands": 36,
+    "whole_source_before_after_checks": 72,
+    "failed": 0,
+    "distinct_live_cases_ignored_per_unit_lane": 5
+  },
+  "exact_executed_full_qa_commands": {
+    "stable-default": [
+      {
+        "phase": "all-target-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "test",
+          "--offline",
+          "--locked",
+          "--all-targets"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "cargo",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "-V"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "doc-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "test",
+          "--offline",
+          "--locked",
+          "--doc"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-metadata",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "metadata",
+          "--offline",
+          "--locked",
+          "--format-version=1",
+          "--filter-platform",
+          "x86_64-unknown-linux-gnu"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-tree",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "tree",
+          "--offline",
+          "--locked",
+          "-e",
+          "features",
+          "-p",
+          "partitionline"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "format",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "required-standalone-examples",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "build",
+          "--offline",
+          "--locked",
+          "--example",
+          "verifiable_producer",
+          "--example",
+          "verifiable_consumer"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "rustc",
+        "exit_code": 0,
+        "argv": [
+          "rustc",
+          "+stable",
+          "-Vv"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "strict-clippy",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cpuset": "0,1"
+      }
+    ],
+    "stable-all": [
+      {
+        "phase": "all-target-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "test",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "cargo",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "-V"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "doc-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "test",
+          "--offline",
+          "--locked",
+          "--doc",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-metadata",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "metadata",
+          "--offline",
+          "--locked",
+          "--format-version=1",
+          "--filter-platform",
+          "x86_64-unknown-linux-gnu",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-tree",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "tree",
+          "--offline",
+          "--locked",
+          "-e",
+          "features",
+          "-p",
+          "partitionline",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "format",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "required-standalone-examples",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "build",
+          "--offline",
+          "--locked",
+          "--example",
+          "verifiable_producer",
+          "--example",
+          "verifiable_consumer",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "rustc",
+        "exit_code": 0,
+        "argv": [
+          "rustc",
+          "+stable",
+          "-Vv"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "strict-clippy",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+stable",
+          "clippy",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cpuset": "0,1"
+      }
+    ],
+    "msrv-default": [
+      {
+        "phase": "all-target-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--offline",
+          "--locked",
+          "--all-targets"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "cargo",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "-V"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "doc-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--offline",
+          "--locked",
+          "--doc"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-metadata",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "metadata",
+          "--offline",
+          "--locked",
+          "--format-version=1",
+          "--filter-platform",
+          "x86_64-unknown-linux-gnu"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-tree",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "tree",
+          "--offline",
+          "--locked",
+          "-e",
+          "features",
+          "-p",
+          "partitionline"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "format",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "required-standalone-examples",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "build",
+          "--offline",
+          "--locked",
+          "--example",
+          "verifiable_producer",
+          "--example",
+          "verifiable_consumer"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "rustc",
+        "exit_code": 0,
+        "argv": [
+          "rustc",
+          "+1.85.0",
+          "-Vv"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "strict-clippy",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "clippy",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cpuset": "0,1"
+      }
+    ],
+    "msrv-all": [
+      {
+        "phase": "all-target-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "cargo",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "-V"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "doc-tests",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "test",
+          "--offline",
+          "--locked",
+          "--doc",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-metadata",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "metadata",
+          "--offline",
+          "--locked",
+          "--format-version=1",
+          "--filter-platform",
+          "x86_64-unknown-linux-gnu",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "feature-tree",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "tree",
+          "--offline",
+          "--locked",
+          "-e",
+          "features",
+          "-p",
+          "partitionline",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "format",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "fmt",
+          "--all",
+          "--",
+          "--check"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "required-standalone-examples",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "build",
+          "--offline",
+          "--locked",
+          "--example",
+          "verifiable_producer",
+          "--example",
+          "verifiable_consumer",
+          "--all-features"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "rustc",
+        "exit_code": 0,
+        "argv": [
+          "rustc",
+          "+1.85.0",
+          "-Vv"
+        ],
+        "cpuset": "0,1"
+      },
+      {
+        "phase": "strict-clippy",
+        "exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.85.0",
+          "clippy",
+          "--offline",
+          "--locked",
+          "--all-targets",
+          "--all-features",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "cpuset": "0,1"
+      }
+    ]
+  },
+  "full_source_scope": "69,144 expected Gitblobs/logicalGitmodes before/after36fullQAcommands; SDK followup strengthened exactpathset/full600700/Gittree/index as separately described in wholecompat qualification. No stronger historical72check claim.",
+  "artifacts": [
+    "docs/evidence/client/KL05-15/final-12f43986/qualification.json",
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json",
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/proof-freeze.json"
+  ],
+  "three_release_complete_sdk_cells": {
+    "4.1.2": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          1
+        ],
+        "79": [
+          1,
+          1
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          27,
+          27
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.1.2/report.json",
+      "report_sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8",
+      "cleanup_verified": true
+    },
+    "4.2.1": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          2
+        ],
+        "79": [
+          1,
+          2
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          29,
+          29
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.2.1/report.json",
+      "report_sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3",
+      "cleanup_verified": true
+    },
+    "4.3.1": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          2
+        ],
+        "79": [
+          1,
+          2
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          30,
+          30
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.3.1/report.json",
+      "report_sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe",
+      "cleanup_verified": true
+    }
+  },
+  "new_sdk_stage_manifest_sha256": "f748c94f3b35b1f8064a48d52e681e7e9dcf340594bf58957dfff578aa0b05de",
+  "controlled_socket_count_per_full_qa_cell": 19,
+  "share_protocol_lib_test_count_per_full_qa_cell": 52,
+  "share_oracle_named_test_count_per_full_qa_cell": 8,
+  "all_proposed_registry_case_ids_are_new_review_drafts": true,
+  "limits": [
+    "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
+    "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
+    "No Share semantics claim is made for the ordinary single-node product broker.",
+    "Decoded/acquisition logical storage budget is not an RSS or decoder-scratch RSS bound.",
+    "The three-release Java SDK byte fixtures remain separately published wire evidence; forced4.1 out-of-range v2 serialization remains unsupported/quarantined.",
+    "Historical cell metadata qualifying_source_sha8bec... and verifiable audited_sourcece24... identify original earlier baselines; current report source_sha/candidate_source_sha12f4 and fresh execution identify this qualification."
+  ],
+  "preserved_first_failures": [
+    "4.3 original full CI passed; original wrapper postguard failed only on optional HTTPS Git credential metadata. Original helper/log preserved, local recoveries separately recorded.",
+    "First genuine4.1 image pull exceeded the350MiB floor because the initial logical-image forecast missed cumulative VFS tree storage. Own client was cancelled143, image not registered, partial temporary state automatically released by daemon; raw monitor includes the actual zero-space observation. No Rust/Kafka test passed in that attempt.",
+    "First4.3 image-save verifier correctly compared complete gzip tarstream bytes/hash, then failed detecting suffixless OCI config blob. Failed helper/log/archive retained; corrected existing-archive verification independently proves config-ID and every RootFS diffID before exact image deletion.",
+    "4.2 original dependency build was briefly SIGSTOP/SIGCONT paused at root resource coordination; runtime tests had not started. Exact pause/resume timing and cleanup receipt preserved."
+  ],
+  "title": "Wire current Share protocol into high-level client",
+  "acceptance_map": [
+    {
+      "criterion": "Apply supported new fields and preserve explicit older-peer fallbacks.",
+      "evidence_case_ids": [
+        "share-v2-per-leader-version",
+        "share-v2-bootstrap-version-isolation",
+        "share-delivery-live-4-1-2",
+        "share-delivery-live-4-2-1",
+        "share-delivery-live-4-3-1"
+      ],
+      "result": "Per-leader negotiated0..2cap; currentleader2 not capped by oldbootstrap; genuine4.1 wire1 Share16delivery/accept;4.2 and4.3 wire2 Share16delivery/accept. Renew below2 Unsupported."
+    },
+    {
+      "criterion": "Repeat expiry/partialack/sessionreset/coordinator movement on newversion.",
+      "evidence_case_ids": [
+        "share-v2-lock-expiry-stale-ack",
+        "share-v2-ack-partial-terminal",
+        "share-v2-ack-partial-retry",
+        "share-v2-fetch-session-reset",
+        "share-v2-ack-session-reset",
+        "share-v2-cancel-stale-reply",
+        "share-v2-coordinator-movement",
+        "share-v2-lock-lifecycle-live-4-3-1"
+      ],
+      "scope": "Expiry/Renew/release/count/accept genuine4.3; partialack/reset/coordinator/leader/cancel controlledrealTCPtests at2 with pinnedsourcecomparisons."
+    },
+    {
+      "criterion": "Record broker feature levels; successful heartbeat is not proof of delivery.",
+      "evidence": [
+        {
+          "proposed_registry_case_id": "share-delivery-live-4-1-2",
+          "registry_already_updated": false,
+          "recommended_disposition": "independent_pass",
+          "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+          "api_version": 1,
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "peer_pin": "4.1.2",
+          "peer_identity": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "records": 16,
+          "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json"
+        },
+        {
+          "proposed_registry_case_id": "share-delivery-live-4-2-1",
+          "registry_already_updated": false,
+          "recommended_disposition": "independent_pass",
+          "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+          "api_version": 2,
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "peer_pin": "4.2.1",
+          "peer_identity": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "records": 16,
+          "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json"
+        },
+        {
+          "proposed_registry_case_id": "share-delivery-live-4-3-1",
+          "registry_already_updated": false,
+          "recommended_disposition": "independent_pass",
+          "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+          "api_version": 2,
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "peer_pin": "4.3.1",
+          "peer_identity": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "records": 16,
+          "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json"
+        },
+        {
+          "proposed_registry_case_id": "share-v2-lock-lifecycle-live-4-3-1",
+          "registry_already_updated": false,
+          "recommended_disposition": "independent_pass",
+          "adapter_scope": "Genuine pinned current single Apache broker with actual one persisted four-record batch and independent Java4IDs.",
+          "test": "tests/share_semantics.rs::live_current_v2_share_delivery_renew_release_expiry_accept",
+          "peer_pin": "4.3.1",
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "report": "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json",
+          "asserted_behavior": "RecordLimit v2 acquisition; brokerTTL15000ms; Renew; real expiry delivery2; Release delivery3; accepts exactly offsets0..3."
+        }
+      ],
+      "feature_levels": {
+        "4.1.2": {
+          "status": "passed",
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+          "image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+          "cpuset": "0,1",
+          "original_runner_exit_code": 0,
+          "runtime_case": "live_compatibility_required",
+          "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+          "scenario_count": 8,
+          "records_per_data_scenario": 16,
+          "share_accepted": 16,
+          "share_api_ranges": {
+            "78": [
+              1,
+              1
+            ],
+            "79": [
+              1,
+              1
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              27,
+              27
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "report": "4.1.2/report.json",
+          "report_sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8",
+          "cleanup_verified": true
+        },
+        "4.2.1": {
+          "status": "passed",
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+          "image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+          "cpuset": "0,1",
+          "original_runner_exit_code": 0,
+          "runtime_case": "live_compatibility_required",
+          "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+          "scenario_count": 8,
+          "records_per_data_scenario": 16,
+          "share_accepted": 16,
+          "share_api_ranges": {
+            "78": [
+              1,
+              2
+            ],
+            "79": [
+              1,
+              2
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              29,
+              29
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "streams.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "report": "4.2.1/report.json",
+          "report_sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3",
+          "cleanup_verified": true
+        },
+        "4.3.1": {
+          "status": "passed",
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+          "cpuset": "0,1",
+          "original_runner_exit_code": 0,
+          "runtime_case": "live_compatibility_required",
+          "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+          "scenario_count": 8,
+          "records_per_data_scenario": 16,
+          "share_accepted": 16,
+          "share_api_ranges": {
+            "78": [
+              1,
+              2
+            ],
+            "79": [
+              1,
+              2
+            ]
+          },
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              30,
+              30
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "streams.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "report": "4.3.1/report.json",
+          "report_sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe",
+          "cleanup_verified": true
+        }
+      },
+      "genuine_current": {
+        "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+        "runtime": {
+          "schema_version": 1,
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+          "finalized_features": {
+            "eligible.leader.replicas.version": [
+              1,
+              1
+            ],
+            "group.version": [
+              1,
+              1
+            ],
+            "metadata.version": [
+              30,
+              30
+            ],
+            "share.version": [
+              1,
+              1
+            ],
+            "streams.version": [
+              1,
+              1
+            ],
+            "transaction.version": [
+              2,
+              2
+            ]
+          },
+          "runtime_version": 2,
+          "acquire_mode": "record_limit",
+          "lock_ms": 15000,
+          "accepted_offsets": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "release_delivery_count": 3,
+          "expiry_delivery_count": 2,
+          "renew": "successful",
+          "disposition": "supported"
+        },
+        "independent_java_records": 4,
+        "independent_persisted_batches": 1,
+        "source_before_after_checks": 2,
+        "cpu_affinity": "0,1",
+        "original_helper_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+        "executed_helper_sha256": "edb27abbb161b8bec2308774649780b02cf6c69b913579691a21c57073598f73",
+        "helper_overlay_scope": "Exactly three CPU affinity substitutions only; the real Cargo command and all identity, runtime, Java, and persisted-batch assertions remain unchanged. No Cargo shim.",
+        "cleanup": "The owned container was removed and its absence was independently verified."
+      },
+      "result": "Actualacquisition/delivery/Accept onallthree; currentonepersistedbatch4IDsJava crosscheck; share.version1 and currentmetadata.version30 captured."
+    }
+  ],
+  "case_maps": [
+    {
+      "proposed_registry_case_id": "share-v2-acquired-subset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Only Java fixture acquired offsets1/2 of actual batch0..3 delivered with count3; local poll cap buffers second acquired record without another Fetch; leave clears acquisitions.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-lock-expiry-stale-ack",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Unexpired lock excludes second member; controlled expiry increments delivery1\u21922; stale accept121; Release leads count3; Reject consumes lock; separate group independent.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-renew-selected-lock",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::renew_v2_extends_only_selected_record_and_preserves_delivery_count",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Type4/IsRenewAck2 extends selected local/server lock, preserves count and acknowledgement metric; unrelated lock expires/reacquires count2.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-partial-terminal",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Terminal121 fails attempted offset only; successful neighbour remains accepted once; unrelated same-partition acquisition survives and can be accepted.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-partial-retry",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::partial_retriable_ack_retries_only_failed_partition",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Partition REQUEST_TIMED_OUT7 retries only failing partition; successful neighbour is sent once; acknowledgements metric equals actual two successes.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-leader-movement-ack",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Leader change6 invalidates old lock without replay; successful neighbour retained; new leader fetch reacquires with count2 and stale metadata121.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-fetch-session-reset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Fetch122/123/133 resets initial epoch0; repeated session failures obey original operation timeout/attempt bounds.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-session-reset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::acknowledge_session_error_clears_old_acquisition_without_replaying_accept",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Ack122/123 clears old acquisitions, preserves ambiguous/error outcome without replay, next fetch epoch0 reacquires higher delivery count.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-startup-retry",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_join_retries_only_typed_coordinator_startup_errors",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "FindCoordinator14/15/16 only are retried; terminal authorization30 and timeout7 remain errors.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-startup-deadline",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "All discovery/connection/request/backoff use one absolute request_timeout deadline, typed attempts and bounded backoff; no reset-timeout retry loop.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-top-error-epoch",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::acknowledge_top_level_retry_advances_epoch_without_duplicate_accept",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Non-session top-level Ack retry consumes epoch, retry uses next epoch without duplicating accepted offsets.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-fetch-top-error-epoch",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Non-session Fetch top error advances epoch and preserves prior unrelated acquisition.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-cancel-stale-reply",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Outer cancellation poisons connection; stale delayed Fetch/Ack replies cannot satisfy new roundtrip; ambiguous accept is not counted/replayed; next initial session clears old metadata.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-movement",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::coordinator_move_preserves_delivery_and_partition_leader_session",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Heartbeat rediscovers coordinator on second controlled TCP node; delivery/accept works while partition Fetch session advances existing epoch.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-per-leader-version",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::each_partition_leader_negotiates_its_own_share_version_and_v2_gate",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Every partition leader negotiates Fetch/Ack independently; legacy peer fallback and unsupported Renew2 gate explicit.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-bootstrap-version-isolation",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::older_bootstrap_does_not_cap_current_partition_leader_fields",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Older bootstrap does not cap a current leader; current leader receives v2 acquire mode/renew fields.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-unsubscribe-lock-release",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Final session epoch-1/leave clear buffers and lock metadata; resubscribe resumes heartbeat/delivery.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-decoded-budget-overlap",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::decoded_budget_and_overlapping_acquisitions_fail_before_delivery",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Over-budget decoded records and overlapping acquisition descriptors fail before returning records.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-outstanding-acquisition-budget",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::outstanding_acquisitions_consume_budget_across_successive_polls",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Outstanding acquisitions share the aggregate budget across polls; successful acknowledgements/freeing permits later acquisition.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-1-2",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.1.2",
+      "peer_identity": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-2-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 2,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.2.1",
+      "peer_identity": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-3-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 2,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.3.1",
+      "peer_identity": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-v2-lock-lifecycle-live-4-3-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine pinned current single Apache broker with actual one persisted four-record batch and independent Java4IDs.",
+      "test": "tests/share_semantics.rs::live_current_v2_share_delivery_renew_release_expiry_accept",
+      "peer_pin": "4.3.1",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "report": "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json",
+      "asserted_behavior": "RecordLimit v2 acquisition; brokerTTL15000ms; Renew; real expiry delivery2; Release delivery3; accepts exactly offsets0..3."
+    }
+  ],
+  "runtime_api_changes": [
+    "ShareAcquireMode::BatchOptimized/RecordLimit",
+    "ShareGroup::set_acquire_mode",
+    "ShareGroup::renew",
+    "ShareGroup::acquisition_lock_timeout_ms",
+    "ShareGroup::acquired_record_count",
+    "AcknowledgeType::Renew and SHARE_ACK_RENEW"
+  ]
+}

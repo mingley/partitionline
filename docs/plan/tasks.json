@@ -1435,46 +1435,386 @@
       ]
     },
     {
-  "id": "KL03-16",
-  "title": "Prove share lock expiry and partial acknowledgments",
-  "priority": "P1",
-  "kind": "implementation",
-  "status": "in_progress",
-  "owner": "codex-client-share-20261003",
-  "depends_on": [
-    "KL03-13"
-  ],
-  "files": [
-    "src/share.rs",
-    "tests/full_surface.rs",
-    "tests/common/mod.rs"
-  ],
-  "deliverable": "Focused share-group acquisition/accept/release/reject histories with clock and fault controls.",
-  "acceptance": [
-    "Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.",
-    "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.",
-    "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."
-  ],
-  "validation": [
-    "cargo test --locked --test full_surface share",
-    "Compare the case dispositions with pinned Apache share-consumer tests."
-  ],
-  "evidence": [],
-  "write_set": [
-    "src/share.rs",
-    "tests/full_surface.rs",
-    "tests/common/mod.rs",
-    "tests/share_semantics.rs",
-    "docs/evidence/client/KL03-16/",
-    "docs/plan/evidence/KL03-16.json"
-  ],
-  "delegated_write_sets": {
-    "codex-coordinator-20261003": [
-      "src/consumer.rs"
-    ]
-  },
-  "delegation_note": "Root removes only obsolete crate-private Consumer::roundtrip_node after share runtime moves to per-node negotiated sockets. Removal and runtime source must commit together; public Consumer API and held record codecs remain unchanged."
-},
+      "id": "KL03-16",
+      "title": "Prove share lock expiry and partial acknowledgments",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "done",
+      "owner": "codex-client-share-20261003",
+      "depends_on": [
+        "KL03-13"
+      ],
+      "files": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs"
+      ],
+      "deliverable": "Focused share-group acquisition/accept/release/reject histories with clock and fault controls.",
+      "acceptance": [
+        "Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.",
+        "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.",
+        "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface share",
+        "Compare the case dispositions with pinned Apache share-consumer tests."
+      ],
+      "evidence": [
+        {
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "commands": [
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ]
+          ],
+          "results": "7342 actual test executions and16 doctests across stable/MSRV default/all; 19 controlled share socket cases per lane, 32 supported official SDK wire bodies, genuine current lock lifecycle and three full pinned Docker compatibility cells.",
+          "artifacts": [
+            "docs/plan/evidence/KL03-16.json",
+            "docs/evidence/client/KL05-15/final-12f43986/qualification.json",
+            "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json"
+          ],
+          "limits": [
+            "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
+            "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
+            "No Share semantics claim is made for the ordinary single-node product broker.",
+            "Decoded/acquisition logical storage budget is not an RSS or decoder-scratch RSS bound.",
+            "The three-release Java SDK byte fixtures remain separately published wire evidence; forced4.1 out-of-range v2 serialization remains unsupported/quarantined.",
+            "Historical cell metadata qualifying_source_sha8bec... and verifiable audited_sourcece24... identify original earlier baselines; current report source_sha/candidate_source_sha12f4 and fresh execution identify this qualification."
+          ]
+        }
+      ],
+      "write_set": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/share_semantics.rs",
+        "docs/evidence/client/KL03-16/",
+        "docs/plan/evidence/KL03-16.json"
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "src/consumer.rs"
+        ]
+      },
+      "delegation_note": "Root removes only obsolete crate-private Consumer::roundtrip_node after share runtime moves to per-node negotiated sockets. Removal and runtime source must commit together; public Consumer API and held record codecs remain unchanged."
+    },
     {
       "id": "KL03-17",
       "title": "Create an isolated three-broker fault topology",
@@ -7023,7 +7363,7 @@
       "title": "Implement share Fetch/Acknowledge v2 wire deltas",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-client-share-20261003",
       "depends_on": [
         "KL05-01",
@@ -7072,7 +7412,347 @@
           ]
         }
       ],
-      "evidence": [],
+      "evidence": [
+        {
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "commands": [
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ]
+          ],
+          "results": "7342 actual test executions and16 doctests across stable/MSRV default/all; 19 controlled share socket cases per lane, 32 supported official SDK wire bodies, genuine current lock lifecycle and three full pinned Docker compatibility cells.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-14.json",
+            "docs/evidence/client/KL05-15/final-12f43986/qualification.json",
+            "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json"
+          ],
+          "limits": [
+            "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
+            "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
+            "No Share semantics claim is made for the ordinary single-node product broker.",
+            "Decoded/acquisition logical storage budget is not an RSS or decoder-scratch RSS bound.",
+            "The three-release Java SDK byte fixtures remain separately published wire evidence; forced4.1 out-of-range v2 serialization remains unsupported/quarantined.",
+            "Historical cell metadata qualifying_source_sha8bec... and verifiable audited_sourcece24... identify original earlier baselines; current report source_sha/candidate_source_sha12f4 and fresh execution identify this qualification."
+          ]
+        }
+      ],
       "write_set": [
         "src/protocol/share.rs",
         "tests/protocol_oracles.rs",
@@ -7084,51 +7764,391 @@
       "reopened_reason": "Independent current Apache4.3.1 schema inspection finds both ShareFetch and ShareAcknowledge versions1-2; previous evidence rejected Fetch2 and incorrectly stated Ack2 absent. Retain that scoped/stale proof as superseded, implement and independently qualify real current version2 codecs before high-level advertisement."
     },
     {
-  "id": "KL05-15",
-  "title": "Wire current share protocol into the high-level client",
-  "priority": "P1",
-  "kind": "implementation",
-  "status": "in_progress",
-  "owner": "codex-client-share-20261003",
-  "depends_on": [
-    "KL05-14",
-    "KL03-16"
-  ],
-  "files": [
-    "src/share.rs",
-    "tests/full_surface.rs",
-    "tests/conformance/cases.json"
-  ],
-  "deliverable": "Negotiated runtime behavior for the new share fields and response outcomes.",
-  "acceptance": [
-    "Apply new fields only where supported and retain explicit older-peer fallbacks.",
-    "Repeat lock expiry, partial ack, session reset and coordinator movement cases on the new version.",
-    "Record broker feature levels; a successful heartbeat is not proof of share delivery semantics."
-  ],
-  "validation": [
-    "cargo test --locked --test full_surface share",
-    "Run a current-broker share cell and validate its case report."
-  ],
-  "evidence": [],
-  "write_set": [
-    "src/share.rs",
-    "tests/full_surface.rs",
-    "tests/share_semantics.rs",
-    "docs/evidence/client/KL05-15/",
-    "docs/plan/evidence/KL05-15.json"
-  ],
-  "integration_coordinator": "Shared runtime files owned by the same share worker under03-16; root owns conformance registry/case changes and release gates. Native current-broker proof is supplemental until required pinned Docker delivery cell passes; no unsupported or heartbeat-only closure.",
-  "delegated_write_sets": {
-    "codex-coordinator-20261003": [
-      "src/lib.rs",
-      "tests/conformance/features.json",
-      "tests/conformance/cases.json",
-      "scripts/check-protocol-coverage.py",
-      "tests/conformance/test_check_protocol_coverage.py"
-    ]
-  },
-  "delegation_note": "Root integrates additive top-level ShareAcquireMode/SHARE_ACK_RENEW reexports and truthful runtime/case coverage gates after qualified stage source freeze; exports commit with runtime definitions."
-},
+      "id": "KL05-15",
+      "title": "Wire current share protocol into the high-level client",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "done",
+      "owner": "codex-client-share-20261003",
+      "depends_on": [
+        "KL05-14",
+        "KL03-16"
+      ],
+      "files": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/conformance/cases.json"
+      ],
+      "deliverable": "Negotiated runtime behavior for the new share fields and response outcomes.",
+      "acceptance": [
+        "Apply new fields only where supported and retain explicit older-peer fallbacks.",
+        "Repeat lock expiry, partial ack, session reset and coordinator movement cases on the new version.",
+        "Record broker feature levels; a successful heartbeat is not proof of share delivery semantics."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface share",
+        "Run a current-broker share cell and validate its case report."
+      ],
+      "evidence": [
+        {
+          "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+          "commands": [
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+stable",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+stable",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--",
+              "-D",
+              "warnings"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "-V"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "test",
+              "--offline",
+              "--locked",
+              "--doc",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "metadata",
+              "--offline",
+              "--locked",
+              "--format-version=1",
+              "--filter-platform",
+              "x86_64-unknown-linux-gnu",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "tree",
+              "--offline",
+              "--locked",
+              "-e",
+              "features",
+              "-p",
+              "partitionline",
+              "--all-features"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "fmt",
+              "--all",
+              "--",
+              "--check"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "build",
+              "--offline",
+              "--locked",
+              "--example",
+              "verifiable_producer",
+              "--example",
+              "verifiable_consumer",
+              "--all-features"
+            ],
+            [
+              "rustc",
+              "+1.85.0",
+              "-Vv"
+            ],
+            [
+              "cargo",
+              "+1.85.0",
+              "clippy",
+              "--offline",
+              "--locked",
+              "--all-targets",
+              "--all-features",
+              "--",
+              "-D",
+              "warnings"
+            ]
+          ],
+          "results": "7342 actual test executions and16 doctests across stable/MSRV default/all; 19 controlled share socket cases per lane, 32 supported official SDK wire bodies, genuine current lock lifecycle and three full pinned Docker compatibility cells.",
+          "artifacts": [
+            "docs/plan/evidence/KL05-15.json",
+            "docs/evidence/client/KL05-15/final-12f43986/qualification.json",
+            "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json"
+          ],
+          "limits": [
+            "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
+            "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
+            "No Share semantics claim is made for the ordinary single-node product broker.",
+            "Decoded/acquisition logical storage budget is not an RSS or decoder-scratch RSS bound.",
+            "The three-release Java SDK byte fixtures remain separately published wire evidence; forced4.1 out-of-range v2 serialization remains unsupported/quarantined.",
+            "Historical cell metadata qualifying_source_sha8bec... and verifiable audited_sourcece24... identify original earlier baselines; current report source_sha/candidate_source_sha12f4 and fresh execution identify this qualification."
+          ]
+        }
+      ],
+      "write_set": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/share_semantics.rs",
+        "docs/evidence/client/KL05-15/",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "integration_coordinator": "Shared runtime files owned by the same share worker under03-16; root owns conformance registry/case changes and release gates. Native current-broker proof is supplemental until required pinned Docker delivery cell passes; no unsupported or heartbeat-only closure.",
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "src/lib.rs",
+          "tests/conformance/features.json",
+          "tests/conformance/cases.json",
+          "scripts/check-protocol-coverage.py",
+          "tests/conformance/test_check_protocol_coverage.py"
+        ]
+      },
+      "delegation_note": "Root integrates additive top-level ShareAcquireMode/SHARE_ACK_RENEW reexports and truthful runtime/case coverage gates after qualified stage source freeze; exports commit with runtime definitions."
+    },
     {
       "id": "KL05-16",
       "title": "Add ElectLeaders request/response codecs",
@@ -32816,8 +33836,9 @@
       "docs/evidence/broker/KL11-37/oracle/jwt/",
       "partitionline-broker/tests/fixtures/oidc/"
     ],
-    "codex-avro-adapter-20261003": [
-      "docs/evidence/broker/KL11-37/peers/java/"
+        "codex-avro-adapter-20261003": [
+          "docs/evidence/broker/KL11-37/peers/java/",
+          "docs/evidence/broker/KL11-37/oracle/https/live-issuer/"
     ],
     "codex-consumer-lookups-20261003": [
       "docs/evidence/broker/KL11-37/peers/native/",

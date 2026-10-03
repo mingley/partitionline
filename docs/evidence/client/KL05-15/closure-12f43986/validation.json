@@ -1,0 +1,57 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "registry_integration_base": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "actual_python_unit_tests": 45,
+  "unit_tests_exit": 0,
+  "protocol_inventory_exit": 0,
+  "protocol_inventory_meaning": "all API/version differences classified; missing features remain reported",
+  "global_conformance_exit": 1,
+  "global_total_cases": 138,
+  "global_denominator_cases": 118,
+  "global_excluded_cases": 20,
+  "global_remaining_nonpassing_status_counts": {
+    "failed": 5,
+    "unsupported": 8,
+    "not_run": 2,
+    "blocked": 4
+  },
+  "raw_artifacts": {
+    "protocol-coverage.json": {
+      "sha256": "aff8ab901e6b162c8dfb2ab1dc8a314bcf94fae9980d17738c28dd3879ceac54",
+      "bytes": 31306
+    },
+    "conformance.log": {
+      "sha256": "663c339bc401a30463c31f0ca5c8552baa7a5b674132806aa87db589eb12660a",
+      "bytes": 2160
+    },
+    "conformance-summary.json": {
+      "sha256": "58aa3e9b48b99c4c25ea268d1a3cf99ebb64d38965b420eca92a6686477b01aa",
+      "bytes": 215740
+    },
+    "unit-tests.log": {
+      "sha256": "7fcfd2998db0f4862f7166d322d8903a90d79c561abc94b12b4ade36504bf3c7",
+      "bytes": 144
+    },
+    "coordinator-review.json": {
+      "sha256": "141951f23474ee09d4cf09d569f2d431af0ef8e5e1626a046f3fa50912cdcba7",
+      "bytes": 424
+    }
+  },
+  "earlier_root_test_attempts": [
+    {
+      "exit": 1,
+      "limits": "Raw output is in session tool records only; no invented file-backed log.",
+      "causes": [
+        "initial cross-check used wrong report field names",
+        "outdated Share v2 gap expectations",
+        "old fixed106-case synthetic reporter expectation",
+        "temporary undefined variable while updating expectation"
+      ]
+    }
+  ],
+  "task_status_counts": {
+    "done": 174,
+    "pending": 120,
+    "in_progress": 8
+  }
+}

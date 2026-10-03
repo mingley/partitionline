@@ -80,16 +80,33 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 22)
         self.assertEqual(results["gap_counts"]["unclassified_drift"], 0)
 
-    def test_share_v2_wire_does_not_advertise_unqualified_runtime(self):
+    def test_share_v2_coverage_matches_official_sdk_ranges_and_qualified_runtime(self):
+        repo = FEATURES_PATH.parents[2]
+        sdk = json.loads((repo / "docs/evidence/client/KL05-14/three-sdk/manifest.json").read_text())
+        for peer, release in sdk["sdk_releases"].items():
+            self.assertEqual(len(release["ranges"]), 4)
+            for line in release["ranges"]:
+                marker, message, first, last = line.split()
+                self.assertEqual(marker, "RANGE")
+                key = 79 if message.startswith("ShareAcknowledge") else 78
+                self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"][peer], [int(first), int(last)])
         for key in (78, 79):
-            self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"]["4.3.1"], [1, 2])
-            self.assertEqual(cpc.PINNED_APACHE_APIS[key]["versions"]["4.2.1"], [1, 1])
-            self.assertEqual(cpc.CLIENT_SPOKEN_VERSIONS[key], [0, 1])
+            self.assertEqual(cpc.CLIENT_SPOKEN_VERSIONS[key], [0, 1, 2])
         results = cpc.evaluate_protocol_coverage()
         for key in (78, 79):
             gaps = [g for g in results["version_gaps"] if g["api_key"] == key and g["version"] == 2]
-            self.assertEqual(len(gaps), 1)
-            self.assertIn("runtime remains capped at v1", gaps[0]["reason"])
+            self.assertEqual(gaps, [])
+        qualification = json.loads((repo / "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json").read_text())
+        for peer, cell in qualification["cells"].items():
+            report = json.loads((repo / "docs/evidence/client/KL05-15/whole-compat-12f43986" / cell["report"]).read_text())
+            self.assertEqual(report["source_sha"], qualification["source_sha"])
+            self.assertEqual(report["runtime"]["source_sha"], qualification["source_sha"])
+            self.assertEqual(report["runtime"]["scenarios"]["share"], {
+                "records": 16, "duplicates": 0, "missing": 0, "corrupt": 0, "status": "passed",
+            })
+            self.assertEqual(report["runtime"]["share_accepted"], 16)
+            for key in (78, 79):
+                self.assertEqual(report["runtime"]["api_ranges"][str(key)], cpc.PINNED_APACHE_APIS[key]["versions"][peer])
 
     def test_deterministic_results(self):
         """
@@ -213,12 +230,12 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         # 1. Version gaps
         self.assertIn("version_gaps", results)
         version_gaps = results["version_gaps"]
-        self.assertEqual(len(version_gaps), 39)
+        self.assertEqual(len(version_gaps), 37)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13 vs Apache3.9.1 max11
         self.assertFalse(any(g["api_key"] == 1 and g["version"] == 18 and g.get("direction") == "upstream_cap" for g in version_gaps))  # Fetch18 is implemented; old peer difference stays classified
         self.assertFalse(any(g["api_key"] == 2 and g["version"] == 11 for g in version_gaps))  # ListOffsets v11 implemented
-        self.assertTrue(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2 runtime still pending
+        self.assertFalse(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2 qualified in KL05-15
         self.assertFalse(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5 implemented
 
         # 2. Missing runtime wiring
@@ -266,7 +283,11 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertNotIn("manual_consumer.incremental_fetch_runtime", missing_features)
         incremental = next(f for f in json.loads(FEATURES_PATH.read_text()) if f["id"] == "manual_consumer.incremental_fetch_runtime")
         self.assertEqual(incremental["disposition"], "present")
-        self.assertIn("share.v2_runtime", missing_features)
+        self.assertNotIn("share.v2_runtime", missing_features)
+        self.assertNotIn("share.v2_runtime", partial_features)
+        share = next(f for f in json.loads(FEATURES_PATH.read_text()) if f["id"] == "share.v2_runtime")
+        self.assertEqual(share["disposition"], "present")
+        self.assertTrue((FEATURES_PATH.parents[2] / share["evidence"]).is_file())
 
     def test_cli_execution_clean_exit_0(self):
         """
@@ -300,7 +321,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         res = self.run_cli(["--diff-only"])
         self.assertEqual(res.returncode, 0)
         self.assertNotIn("Implemented Client APIs (66):", res.stdout)
-        self.assertIn("Version Gaps (39):", res.stdout)
+        self.assertIn("Version Gaps (37):", res.stdout)
 
     def test_cli_self_test_flag(self):
         """

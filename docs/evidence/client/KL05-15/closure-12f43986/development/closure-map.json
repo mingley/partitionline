@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "all_acceptance_proofs_complete": true,
+  "review_and_publication_pending": true,
+  "cards": [
+    "KL03-16",
+    "KL05-14",
+    "KL05-15"
+  ],
+  "drafts": {
+    "KL03-16": "/workspace/work/client-share-assessment/closure-12f43986/KL03-16.json",
+    "KL05-14": "/workspace/work/client-share-assessment/closure-12f43986/KL05-14.json",
+    "KL05-15": "/workspace/work/client-share-assessment/closure-12f43986/KL05-15.json"
+  },
+  "proposed_cases": [
+    {
+      "proposed_registry_case_id": "share-v2-acquired-subset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Only Java fixture acquired offsets1/2 of actual batch0..3 delivered with count3; local poll cap buffers second acquired record without another Fetch; leave clears acquisitions.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-lock-expiry-stale-ack",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Unexpired lock excludes second member; controlled expiry increments delivery1\u21922; stale accept121; Release leads count3; Reject consumes lock; separate group independent.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-renew-selected-lock",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::renew_v2_extends_only_selected_record_and_preserves_delivery_count",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Type4/IsRenewAck2 extends selected local/server lock, preserves count and acknowledgement metric; unrelated lock expires/reacquires count2.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-partial-terminal",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Terminal121 fails attempted offset only; successful neighbour remains accepted once; unrelated same-partition acquisition survives and can be accepted.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-partial-retry",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::partial_retriable_ack_retries_only_failed_partition",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Partition REQUEST_TIMED_OUT7 retries only failing partition; successful neighbour is sent once; acknowledgements metric equals actual two successes.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-leader-movement-ack",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Leader change6 invalidates old lock without replay; successful neighbour retained; new leader fetch reacquires with count2 and stale metadata121.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-fetch-session-reset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Fetch122/123/133 resets initial epoch0; repeated session failures obey original operation timeout/attempt bounds.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-session-reset",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::acknowledge_session_error_clears_old_acquisition_without_replaying_accept",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Ack122/123 clears old acquisitions, preserves ambiguous/error outcome without replay, next fetch epoch0 reacquires higher delivery count.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-startup-retry",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_join_retries_only_typed_coordinator_startup_errors",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "FindCoordinator14/15/16 only are retried; terminal authorization30 and timeout7 remain errors.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-startup-deadline",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "All discovery/connection/request/backoff use one absolute request_timeout deadline, typed attempts and bounded backoff; no reset-timeout retry loop.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-ack-top-error-epoch",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::acknowledge_top_level_retry_advances_epoch_without_duplicate_accept",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Non-session top-level Ack retry consumes epoch, retry uses next epoch without duplicating accepted offsets.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-fetch-top-error-epoch",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Non-session Fetch top error advances epoch and preserves prior unrelated acquisition.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-cancel-stale-reply",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Outer cancellation poisons connection; stale delayed Fetch/Ack replies cannot satisfy new roundtrip; ambiguous accept is not counted/replayed; next initial session clears old metadata.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-coordinator-movement",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::coordinator_move_preserves_delivery_and_partition_leader_session",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Heartbeat rediscovers coordinator on second controlled TCP node; delivery/accept works while partition Fetch session advances existing epoch.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-per-leader-version",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::each_partition_leader_negotiates_its_own_share_version_and_v2_gate",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Every partition leader negotiates Fetch/Ack independently; legacy peer fallback and unsupported Renew2 gate explicit.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-bootstrap-version-isolation",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::older_bootstrap_does_not_cap_current_partition_leader_fields",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Older bootstrap does not cap a current leader; current leader receives v2 acquire mode/renew fields.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-unsubscribe-lock-release",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Final session epoch-1/leave clear buffers and lock metadata; resubscribe resumes heartbeat/delivery.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-decoded-budget-overlap",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::decoded_budget_and_overlapping_acquisitions_fail_before_delivery",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Over-budget decoded records and overlapping acquisition descriptors fail before returning records.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-v2-outstanding-acquisition-budget",
+      "registry_already_updated": false,
+      "test": "tests/share_semantics.rs::outstanding_acquisitions_consume_budget_across_successive_polls",
+      "recommended_disposition": "local_consistency",
+      "adapter_scope": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim.",
+      "asserted_behavior": "Outstanding acquisitions share the aggregate budget across polls; successful acknowledgements/freeing permits later acquisition.",
+      "upstream_comparison": "docs/evidence/client/KL03-16/source-comparison.md",
+      "raw_pass_log": "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log",
+      "passed_in_all_four_toolchain_feature_cells": true
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-1-2",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.1.2",
+      "peer_identity": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-2-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 2,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.2.1",
+      "peer_identity": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-delivery-live-4-3-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories.",
+      "api_version": 2,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_pin": "4.3.1",
+      "peer_identity": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "records": 16,
+      "report": "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json"
+    },
+    {
+      "proposed_registry_case_id": "share-v2-lock-lifecycle-live-4-3-1",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Genuine pinned current single Apache broker with actual one persisted four-record batch and independent Java4IDs.",
+      "test": "tests/share_semantics.rs::live_current_v2_share_delivery_renew_release_expiry_accept",
+      "peer_pin": "4.3.1",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "report": "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json",
+      "asserted_behavior": "RecordLimit v2 acquisition; brokerTTL15000ms; Renew; real expiry delivery2; Release delivery3; accepts exactly offsets0..3."
+    },
+    {
+      "proposed_registry_case_id": "share-wire-java-three-sdk-supported-bodies",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
+      "adapter_scope": "Exact32official Java SDK-generated supported wire bodies:4in4.1.2(version1),14each4.2.1/4.3.1(version1/2). Forced4.1 version2 remains quarantined unsupported.",
+      "report": "docs/evidence/client/KL05-14/three-sdk/manifest.json",
+      "tests": [
+        "tests/protocol_oracles.rs::share_v2_apache_schema_pin",
+        "tests/protocol_oracles.rs::share_v2_apache_request_bytes_and_older_renew_rejection",
+        "tests/protocol_oracles.rs::share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+        "tests/protocol_oracles.rs::share_v2_apache_truncation_and_unknown_version_fail_closed"
+      ]
+    }
+  ],
+  "root_registry_updates_needed": [
+    "tasks/status/evidence links forKL03-16,KL05-14,KL05-15",
+    "CLIENT_SPOKEN[78]/[79] actualqualified[0,1,2]; wire-support and runtime-support notes accurately separate",
+    "Remove v2 runtime upstream-cap exceptions after qualification review; preserve actualreleasevalid ranges min1/currentmax2.",
+    "Update staleShare feature notes: wire/runtime2, acknowledgement outcomes/Renew, broker-directed heartbeat interval; no blanket full-share/ducktape/multibroker claim.",
+    "Add reviewed finite proposedcaseIDs with correct local_consistency vsindependent_pass scope; do not reinterpret32SDKbodies as live proof."
+  ],
+  "held_files_unchanged": [
+    "src/protocol/records.rs",
+    "src/protocol/buf.rs",
+    "src/group.rs",
+    "src/net.rs"
+  ]
+}

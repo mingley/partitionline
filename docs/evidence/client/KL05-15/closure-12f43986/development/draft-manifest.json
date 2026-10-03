@@ -1,0 +1,21 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "files": {
+    "/workspace/work/client-share-assessment/closure-12f43986/KL03-16.json": {
+      "sha256": "82ac2ce5051fe2a78a591f20bb3951a458ea6a01bba6444169be2a3d8a5aa7ee",
+      "bytes": 40550
+    },
+    "/workspace/work/client-share-assessment/closure-12f43986/KL05-14.json": {
+      "sha256": "5f519e95135902c401f338b7dd4c4f4c9875b630eb42ad21ac96b80efe4baa95",
+      "bytes": 25169
+    },
+    "/workspace/work/client-share-assessment/closure-12f43986/KL05-15.json": {
+      "sha256": "0ccd3c326913d64f91c6d457d4fd9775b39b0018e5f3611cc5ee1113db41da05",
+      "bytes": 51705
+    },
+    "/workspace/work/client-share-assessment/closure-12f43986/closure-map.json": {
+      "sha256": "9ebd496f4d061f27cf8576ebc106eee8ca8c4ad9f87da196f6845ca51d1ac73d",
+      "bytes": 20771
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "cards_closed": [
+    "KL03-16",
+    "KL05-14",
+    "KL05-15"
+  ],
+  "new_cases": 24,
+  "controlled_cases": 19,
+  "independent_cases": 5,
+  "whole_target_cases_updated": 3,
+  "original_case_count": 114,
+  "final_case_count": 138,
+  "held_records_and_buf_source_hashes_unchanged": true,
+  "production_Rust_changes": 0,
+  "remaining_goal_work_preserved": true
+}

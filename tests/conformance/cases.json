@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated": "2026-10-02",
+  "updated": "2026-10-03",
   "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
   "plan_source": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
   "description": "Versioned conformance case registry mapping advertised Kafka APIs, versions, broker qualification cells, and behavioral regressions to immutable source pins and honest dispositions.",
@@ -1227,13 +1227,31 @@
       "api_version": null,
       "profile": "core",
       "adapter": "live-broker",
-      "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
-      "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
       "peer_version_pin": "4.1.2",
       "peer_pin": "4.1.2",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Target Apache Kafka broker cell (current 4.1.x maintenance release). Planned compatibility target in KL01-10; not yet executed in CI."
+      "reason": "Exact digest-pinned Apache broker passed the original complete eight-scenario client compatibility script (admin, produce, manual, classic, cooperative, KIP-848, share, transaction), with 16 records per data scenario and independent Java histories/offsets. Finite local Docker qualification; remaining conformance and production gates stay open.",
+      "peer_identity": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json"
+      ],
+      "superseded_registry_classification": {
+        "id": "broker-cell-target-apache-4-1-2",
+        "api_family": null,
+        "api_version": null,
+        "profile": "core",
+        "adapter": "live-broker",
+        "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "peer_version_pin": "4.1.2",
+        "peer_pin": "4.1.2",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Target Apache Kafka broker cell (current 4.1.x maintenance release). Planned compatibility target in KL01-10; not yet executed in CI."
+      }
     },
     {
       "id": "broker-cell-target-apache-4-2-1",
@@ -1241,13 +1259,31 @@
       "api_version": null,
       "profile": "core",
       "adapter": "live-broker",
-      "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
-      "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
       "peer_version_pin": "4.2.1",
       "peer_pin": "4.2.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Target Apache Kafka broker cell (current 4.2.x release). Planned compatibility target in KL01-10; not yet executed in CI."
+      "reason": "Exact digest-pinned Apache broker passed the original complete eight-scenario client compatibility script (admin, produce, manual, classic, cooperative, KIP-848, share, transaction), with 16 records per data scenario and independent Java histories/offsets. Finite local Docker qualification; remaining conformance and production gates stay open.",
+      "peer_identity": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json"
+      ],
+      "superseded_registry_classification": {
+        "id": "broker-cell-target-apache-4-2-1",
+        "api_family": null,
+        "api_version": null,
+        "profile": "core",
+        "adapter": "live-broker",
+        "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "peer_version_pin": "4.2.1",
+        "peer_pin": "4.2.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Target Apache Kafka broker cell (current 4.2.x release). Planned compatibility target in KL01-10; not yet executed in CI."
+      }
     },
     {
       "id": "broker-cell-target-apache-4-3-1",
@@ -1255,13 +1291,31 @@
       "api_version": null,
       "profile": "core",
       "adapter": "live-broker",
-      "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
-      "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
       "peer_version_pin": "4.3.1",
       "peer_pin": "4.3.1",
-      "disposition": "not_run",
+      "disposition": "independent_pass",
       "denominator": true,
-      "reason": "Target Apache Kafka broker cell (current 4.3.x release; exposes Produce 13, Fetch 18, ListOffsets 11, ShareFetch 2). Planned compatibility target in KL01-10; not yet executed in CI."
+      "reason": "Exact digest-pinned Apache broker passed the original complete eight-scenario client compatibility script (admin, produce, manual, classic, cooperative, KIP-848, share, transaction), with 16 records per data scenario and independent Java histories/offsets. Finite local Docker qualification; remaining conformance and production gates stay open.",
+      "peer_identity": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json"
+      ],
+      "superseded_registry_classification": {
+        "id": "broker-cell-target-apache-4-3-1",
+        "api_family": null,
+        "api_version": null,
+        "profile": "core",
+        "adapter": "live-broker",
+        "source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "immutable_source_pin": "bed63aeb7bf9c4d626ef25ec7d57dec9f5fd2000",
+        "peer_version_pin": "4.3.1",
+        "peer_pin": "4.3.1",
+        "disposition": "not_run",
+        "denominator": true,
+        "reason": "Target Apache Kafka broker cell (current 4.3.x release; exposes Produce 13, Fetch 18, ListOffsets 11, ShareFetch 2). Planned compatibility target in KL01-10; not yet executed in CI."
+      }
     },
     {
       "id": "api-broker-internal-004-leader-and-isr",
@@ -1863,6 +1917,563 @@
         "docs/evidence/client/KL05-12/final/validation.json"
       ],
       "tested_source_sha": "7bae3e34b5acedb6cac8b8232c9878f83fd7be30"
+    },
+    {
+      "id": "share-v2-acquired-subset",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Only Java fixture acquired offsets1/2 of actual batch0..3 delivered with count3; local poll cap buffers second acquired record without another Fetch; leave clears acquisitions.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit"
+    },
+    {
+      "id": "share-v2-lock-expiry-stale-ack",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Unexpired lock excludes second member; controlled expiry increments delivery1\u21922; stale accept121; Release leads count3; Reject consumes lock; separate group independent.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation"
+    },
+    {
+      "id": "share-v2-renew-selected-lock",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Type4/IsRenewAck2 extends selected local/server lock, preserves count and acknowledgement metric; unrelated lock expires/reacquires count2.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::renew_v2_extends_only_selected_record_and_preserves_delivery_count"
+    },
+    {
+      "id": "share-v2-ack-partial-terminal",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Terminal121 fails attempted offset only; successful neighbour remains accepted once; unrelated same-partition acquisition survives and can be accepted.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record"
+    },
+    {
+      "id": "share-v2-ack-partial-retry",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Partition REQUEST_TIMED_OUT7 retries only failing partition; successful neighbour is sent once; acknowledgements metric equals actual two successes.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::partial_retriable_ack_retries_only_failed_partition"
+    },
+    {
+      "id": "share-v2-leader-movement-ack",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Leader change6 invalidates old lock without replay; successful neighbour retained; new leader fetch reacquires with count2 and stale metadata121.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader"
+    },
+    {
+      "id": "share-v2-fetch-session-reset",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Fetch122/123/133 resets initial epoch0; repeated session failures obey original operation timeout/attempt bounds.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded"
+    },
+    {
+      "id": "share-v2-ack-session-reset",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Ack122/123 clears old acquisitions, preserves ambiguous/error outcome without replay, next fetch epoch0 reacquires higher delivery count.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::acknowledge_session_error_clears_old_acquisition_without_replaying_accept"
+    },
+    {
+      "id": "share-v2-coordinator-startup-retry",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. FindCoordinator14/15/16 only are retried; terminal authorization30 and timeout7 remain errors.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::share_join_retries_only_typed_coordinator_startup_errors"
+    },
+    {
+      "id": "share-v2-coordinator-startup-deadline",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. All discovery/connection/request/backoff use one absolute request_timeout deadline, typed attempts and bounded backoff; no reset-timeout retry loop.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff"
+    },
+    {
+      "id": "share-v2-ack-top-error-epoch",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Non-session top-level Ack retry consumes epoch, retry uses next epoch without duplicating accepted offsets.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::acknowledge_top_level_retry_advances_epoch_without_duplicate_accept"
+    },
+    {
+      "id": "share-v2-fetch-top-error-epoch",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Non-session Fetch top error advances epoch and preserves prior unrelated acquisition.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition"
+    },
+    {
+      "id": "share-v2-cancel-stale-reply",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Outer cancellation poisons connection; stale delayed Fetch/Ack replies cannot satisfy new roundtrip; ambiguous accept is not counted/replayed; next initial session clears old metadata.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests"
+    },
+    {
+      "id": "share-v2-coordinator-movement",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Heartbeat rediscovers coordinator on second controlled TCP node; delivery/accept works while partition Fetch session advances existing epoch.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::coordinator_move_preserves_delivery_and_partition_leader_session"
+    },
+    {
+      "id": "share-v2-per-leader-version",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Every partition leader negotiates Fetch/Ack independently; legacy peer fallback and unsupported Renew2 gate explicit.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::each_partition_leader_negotiates_its_own_share_version_and_v2_gate"
+    },
+    {
+      "id": "share-v2-bootstrap-version-isolation",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Older bootstrap does not cap a current leader; current leader receives v2 acquire mode/renew fields.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::older_bootstrap_does_not_cap_current_partition_leader_fields"
+    },
+    {
+      "id": "share-v2-unsubscribe-lock-release",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Final session epoch-1/leave clear buffers and lock metadata; resubscribe resumes heartbeat/delivery.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats"
+    },
+    {
+      "id": "share-v2-decoded-budget-overlap",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Over-budget decoded records and overlapping acquisition descriptors fail before returning records.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::decoded_budget_and_overlapping_acquisitions_fail_before_delivery"
+    },
+    {
+      "id": "share-v2-outstanding-acquisition-budget",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "audit-probe",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "local_consistency",
+      "denominator": true,
+      "reason": "Controlled realTCP peer/fault history, compared with pinned Apache4.3.1 source; no genuine multi-broker fault claim. Outstanding acquisitions share the aggregate budget across polls; successful acknowledgements/freeing permits later acquisition.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/stable-default/all-target-tests.log"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::outstanding_acquisitions_consume_budget_across_successive_polls"
+    },
+    {
+      "id": "share-delivery-live-4-1-2",
+      "api_family": null,
+      "api_version": 1,
+      "profile": "share",
+      "adapter": "live-broker",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.1.2",
+      "peer_pin": "4.1.2",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories. ",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "peer_identity": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+    },
+    {
+      "id": "share-delivery-live-4-2-1",
+      "api_family": null,
+      "api_version": 2,
+      "profile": "share",
+      "adapter": "live-broker",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.2.1",
+      "peer_pin": "4.2.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories. ",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "peer_identity": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0"
+    },
+    {
+      "id": "share-delivery-live-4-3-1",
+      "api_family": null,
+      "api_version": 2,
+      "profile": "share",
+      "adapter": "live-broker",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Genuine digest-pinned Apache broker, original whole-client compatibility script and Java record/offset histories. ",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "peer_identity": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837"
+    },
+    {
+      "id": "share-v2-lock-lifecycle-live-4-3-1",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "live-broker",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.3.1",
+      "peer_pin": "4.3.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Genuine pinned current single Apache broker with actual one persisted four-record batch and independent Java4IDs. RecordLimit v2 acquisition; brokerTTL15000ms; Renew; real expiry delivery2; Release delivery3; accepts exactly offsets0..3.",
+      "artifacts": [
+        "docs/evidence/client/KL05-15/final-12f43986/current-docker/report.json"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "test": "tests/share_semantics.rs::live_current_v2_share_delivery_renew_release_expiry_accept"
+    },
+    {
+      "id": "share-wire-java-three-sdk-supported-bodies",
+      "api_family": null,
+      "api_version": null,
+      "profile": "share",
+      "adapter": "apache-java",
+      "source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "immutable_source_pin": "12f4398662044947ae653f07923290127457f2ef",
+      "peer_version_pin": "4.1.2/4.2.1/4.3.1",
+      "peer_pin": "4.1.2/4.2.1/4.3.1",
+      "disposition": "independent_pass",
+      "denominator": true,
+      "reason": "Exact32official Java SDK-generated supported wire bodies:4in4.1.2(version1),14each4.2.1/4.3.1(version1/2). Forced4.1 version2 remains quarantined unsupported. ",
+      "artifacts": [
+        "docs/evidence/client/KL05-14/three-sdk/manifest.json"
+      ],
+      "evidence": [
+        "docs/plan/evidence/KL03-16.json",
+        "docs/plan/evidence/KL05-14.json",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "tests": [
+        "tests/protocol_oracles.rs::share_v2_apache_schema_pin",
+        "tests/protocol_oracles.rs::share_v2_apache_request_bytes_and_older_renew_rejection",
+        "tests/protocol_oracles.rs::share_v2_apache_response_bytes_lock_timeout_partial_errors_and_acquisition",
+        "tests/protocol_oracles.rs::share_v2_apache_truncation_and_unknown_version_fail_closed"
+      ]
     }
   ]
 }

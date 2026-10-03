@@ -1,0 +1,1331 @@
+{
+  "schema_version": 1,
+  "audited_source": "cb7e97d3b92a8555aea34d59266a2990c206395f",
+  "frozen_pins": [
+    "3.9.1",
+    "4.1.0",
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "summary": {
+    "total_pinned_apis": 88,
+    "total_catalog_keys": 91,
+    "implemented_client_apis_count": 66,
+    "version_gaps_count": 37,
+    "missing_runtime_wiring_count": 7,
+    "excluded_broker_internal_count": 22,
+    "unclassified_drift_count": 0,
+    "drift_detected": false,
+    "status": "PASS (all APIs and versions classified)",
+    "exit_code": 0
+  },
+  "gap_counts": {
+    "version_gaps": 37,
+    "missing_runtime_wiring_apis": 0,
+    "missing_runtime_features": 7,
+    "partial_runtime_features": 2,
+    "excluded_broker_internal_apis": 22,
+    "excluded_frameworks": 3,
+    "implemented_client_apis": 66,
+    "unclassified_drift": 0
+  },
+  "implemented_client_operations": [
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "spoken_versions": [
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "client_advertised_min": 3,
+      "client_advertised_max": 13
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "spoken_versions": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "client_advertised_min": 4,
+      "client_advertised_max": 18
+    },
+    {
+      "api_key": 2,
+      "name": "ListOffsets",
+      "spoken_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 11
+    },
+    {
+      "api_key": 3,
+      "name": "Metadata",
+      "spoken_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 13
+    },
+    {
+      "api_key": 8,
+      "name": "OffsetCommit",
+      "spoken_versions": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_advertised_min": 2,
+      "client_advertised_max": 9
+    },
+    {
+      "api_key": 9,
+      "name": "OffsetFetch",
+      "spoken_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 9
+    },
+    {
+      "api_key": 10,
+      "name": "FindCoordinator",
+      "spoken_versions": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 6
+    },
+    {
+      "api_key": 11,
+      "name": "JoinGroup",
+      "spoken_versions": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "client_advertised_min": 2,
+      "client_advertised_max": 9
+    },
+    {
+      "api_key": 12,
+      "name": "Heartbeat",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 4
+    },
+    {
+      "api_key": 13,
+      "name": "LeaveGroup",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 14,
+      "name": "SyncGroup",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 15,
+      "name": "DescribeGroups",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 6
+    },
+    {
+      "api_key": 16,
+      "name": "ListGroups",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 17,
+      "name": "SaslHandshake",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 18,
+      "name": "ApiVersions",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 4
+    },
+    {
+      "api_key": 19,
+      "name": "CreateTopics",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 7
+    },
+    {
+      "api_key": 20,
+      "name": "DeleteTopics",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 6
+    },
+    {
+      "api_key": 21,
+      "name": "DeleteRecords",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 22,
+      "name": "InitProducerId",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 23,
+      "name": "OffsetForLeaderEpoch",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 4
+    },
+    {
+      "api_key": 24,
+      "name": "AddPartitionsToTxn",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 25,
+      "name": "AddOffsetsToTxn",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 4
+    },
+    {
+      "api_key": 26,
+      "name": "EndTxn",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 28,
+      "name": "TxnOffsetCommit",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 29,
+      "name": "DescribeAcls",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 30,
+      "name": "CreateAcls",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 31,
+      "name": "DeleteAcls",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 32,
+      "name": "DescribeConfigs",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 4
+    },
+    {
+      "api_key": 33,
+      "name": "AlterConfigs",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 34,
+      "name": "AlterReplicaLogDirs",
+      "spoken_versions": [
+        1,
+        2
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 35,
+      "name": "DescribeLogDirs",
+      "spoken_versions": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 5
+    },
+    {
+      "api_key": 36,
+      "name": "SaslAuthenticate",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 37,
+      "name": "CreatePartitions",
+      "spoken_versions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 38,
+      "name": "CreateDelegationToken",
+      "spoken_versions": [
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 39,
+      "name": "RenewDelegationToken",
+      "spoken_versions": [
+        1,
+        2
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 40,
+      "name": "ExpireDelegationToken",
+      "spoken_versions": [
+        1,
+        2
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 41,
+      "name": "DescribeDelegationToken",
+      "spoken_versions": [
+        1,
+        2,
+        3
+      ],
+      "client_advertised_min": 1,
+      "client_advertised_max": 3
+    },
+    {
+      "api_key": 42,
+      "name": "DeleteGroups",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 43,
+      "name": "ElectLeaders",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 44,
+      "name": "IncrementalAlterConfigs",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 45,
+      "name": "AlterPartitionReassignments",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 46,
+      "name": "ListPartitionReassignments",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 47,
+      "name": "OffsetDelete",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 48,
+      "name": "DescribeClientQuotas",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 49,
+      "name": "AlterClientQuotas",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 50,
+      "name": "DescribeUserScramCredentials",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 51,
+      "name": "AlterUserScramCredentials",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 55,
+      "name": "DescribeQuorum",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 60,
+      "name": "DescribeCluster",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 61,
+      "name": "DescribeProducers",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 64,
+      "name": "UnregisterBroker",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 65,
+      "name": "DescribeTransactions",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 66,
+      "name": "ListTransactions",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 68,
+      "name": "ConsumerGroupHeartbeat",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 69,
+      "name": "ConsumerGroupDescribe",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 71,
+      "name": "GetTelemetrySubscriptions",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 72,
+      "name": "PushTelemetry",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 73,
+      "name": "AssignReplicasToDirs",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 74,
+      "name": "ListClientMetricsResources",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 75,
+      "name": "DescribeTopicPartitions",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 76,
+      "name": "ShareGroupHeartbeat",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 77,
+      "name": "ShareGroupDescribe",
+      "spoken_versions": [
+        0,
+        1
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 1
+    },
+    {
+      "api_key": 78,
+      "name": "ShareFetch",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 79,
+      "name": "ShareAcknowledge",
+      "spoken_versions": [
+        0,
+        1,
+        2
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 2
+    },
+    {
+      "api_key": 80,
+      "name": "AddRaftVoter",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    },
+    {
+      "api_key": 81,
+      "name": "RemoveRaftVoter",
+      "spoken_versions": [
+        0
+      ],
+      "client_advertised_min": 0,
+      "client_advertised_max": 0
+    }
+  ],
+  "version_gaps": [
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"
+    },
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "version": 1,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"
+    },
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "version": 2,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Produce v0-v2 classic format removed in Kafka 4.0; client starts at v3"
+    },
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "version": 12,
+      "pin": "all",
+      "direction": "client_only",
+      "reason": "Produce v12 is KIP-890 Part 2 txn V2; Kafka 3.9.1 max is v11 (Kafka 4.0+ only, cases.json)"
+    },
+    {
+      "api_key": 0,
+      "name": "Produce",
+      "version": 13,
+      "pin": "all",
+      "direction": "client_only",
+      "reason": "Produce v13 uses topic IDs (KIP-516); Kafka 3.9.1 max is v11. Implemented against Apache 4.1.2/4.2.1/4.3.1 fixtures with Metadata identity and request-snapshot response mapping (KL05-11)."
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "version": 1,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "version": 2,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "version": 3,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"
+    },
+    {
+      "api_key": 1,
+      "name": "Fetch",
+      "version": 18,
+      "pin": "all",
+      "direction": "client_only",
+      "reason": "Fetch18 HighWatermark (KIP-1166) is implemented against Apache4.1 and current SDKs; Apache3.9.1 supports through17."
+    },
+    {
+      "api_key": 2,
+      "name": "ListOffsets",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "ListOffsets v0 legacy format removed in Kafka 4.0; client starts at v1"
+    },
+    {
+      "api_key": 2,
+      "name": "ListOffsets",
+      "version": 10,
+      "pin": "all",
+      "direction": "client_only",
+      "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Kafka 3.9.1 max is v9 (Kafka 4.0+ only, cases.json)"
+    },
+    {
+      "api_key": 3,
+      "name": "Metadata",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "Metadata v0 legacy format; client starts at v1 (v0 rejected by builder)"
+    },
+    {
+      "api_key": 3,
+      "name": "Metadata",
+      "version": 13,
+      "pin": "all",
+      "direction": "client_only",
+      "reason": "Metadata v13 adds top-level ErrorCode; Kafka 3.9.1 max is v12 (Kafka 4.0+ only, cases.json)"
+    },
+    {
+      "api_key": 8,
+      "name": "OffsetCommit",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "OffsetCommit v0 removed in Kafka 4.0; client speaks 2-9"
+    },
+    {
+      "api_key": 8,
+      "name": "OffsetCommit",
+      "version": 1,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "OffsetCommit v1 removed in Kafka 4.0; client speaks 2-9"
+    },
+    {
+      "api_key": 9,
+      "name": "OffsetFetch",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "OffsetFetch v0 removed in Kafka 4.0; client speaks 1-9"
+    },
+    {
+      "api_key": 10,
+      "name": "FindCoordinator",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "FindCoordinator v0 is legacy GroupCoordinator without key type; client speaks 1-6"
+    },
+    {
+      "api_key": 11,
+      "name": "JoinGroup",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "JoinGroup v0 removed in Kafka 4.0; client speaks 2-9"
+    },
+    {
+      "api_key": 11,
+      "name": "JoinGroup",
+      "version": 1,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "JoinGroup v1 removed in Kafka 4.0; client speaks 2-9"
+    },
+    {
+      "api_key": 19,
+      "name": "CreateTopics",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "CreateTopics v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 19,
+      "name": "CreateTopics",
+      "version": 1,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "CreateTopics v1 removed in Kafka 4.0; client still supports legacy v1"
+    },
+    {
+      "api_key": 20,
+      "name": "DeleteTopics",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "DeleteTopics v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 23,
+      "name": "OffsetForLeaderEpoch",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "OffsetForLeaderEpoch v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 23,
+      "name": "OffsetForLeaderEpoch",
+      "version": 1,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "OffsetForLeaderEpoch v1 removed in Kafka 4.0; client still supports legacy v1"
+    },
+    {
+      "api_key": 24,
+      "name": "AddPartitionsToTxn",
+      "version": 4,
+      "pin": "3.9.1",
+      "direction": "upstream_cap",
+      "reason": "AddPartitionsToTxn v4 adds batched transactions; client capped at v3 (src/protocol/header.rs)"
+    },
+    {
+      "api_key": 24,
+      "name": "AddPartitionsToTxn",
+      "version": 5,
+      "pin": "3.9.1",
+      "direction": "upstream_cap",
+      "reason": "AddPartitionsToTxn v5 adds batched transactions; client capped at v3 (src/protocol/header.rs)"
+    },
+    {
+      "api_key": 29,
+      "name": "DescribeAcls",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "DescribeAcls v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 30,
+      "name": "CreateAcls",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "CreateAcls v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 31,
+      "name": "DeleteAcls",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "DeleteAcls v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 32,
+      "name": "DescribeConfigs",
+      "version": 0,
+      "pin": "all",
+      "direction": "legacy_spoken",
+      "reason": "DescribeConfigs v0 removed in Kafka 4.0; client still supports legacy v0"
+    },
+    {
+      "api_key": 34,
+      "name": "AlterReplicaLogDirs",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "AlterReplicaLogDirs v0 removed in Kafka 4.0; client speaks 1-2"
+    },
+    {
+      "api_key": 35,
+      "name": "DescribeLogDirs",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "DescribeLogDirs v0 removed in Kafka 4.0; client starts at v1"
+    },
+    {
+      "api_key": 38,
+      "name": "CreateDelegationToken",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "CreateDelegationToken v0 removed in Kafka 4.0; client speaks 1-3"
+    },
+    {
+      "api_key": 39,
+      "name": "RenewDelegationToken",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "RenewDelegationToken v0 removed in Kafka 4.0; client speaks 1-2"
+    },
+    {
+      "api_key": 40,
+      "name": "ExpireDelegationToken",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "ExpireDelegationToken v0 removed in Kafka 4.0; client speaks 1-2"
+    },
+    {
+      "api_key": 41,
+      "name": "DescribeDelegationToken",
+      "version": 0,
+      "pin": "3.9.1",
+      "direction": "pin_only",
+      "reason": "DescribeDelegationToken v0 removed in Kafka 4.0; client speaks 1-3"
+    }
+  ],
+  "missing_runtime_wiring": {
+    "unimplemented_apis": [],
+    "missing_features": [
+      {
+        "feature_id": "producer.sticky_partitioner",
+        "profile": "producer",
+        "disposition": "missing",
+        "notes": "Opt-in sticky unkeyed batching partitioner is not implemented; tracked in KL05-10."
+      },
+      {
+        "feature_id": "codecs.zstd.decode",
+        "profile": "codecs",
+        "disposition": "missing",
+        "notes": "Compression ID 4 decoding is unsupported in src/protocol/records.rs. Explicit missing feature of complete codec profile (KL05-02, KL05-03)."
+      },
+      {
+        "feature_id": "codecs.zstd.encode",
+        "profile": "codecs",
+        "disposition": "missing",
+        "notes": "Zstd encoding is not implemented; deny.toml bans zstd-sys. Explicit missing feature of complete codec profile (KL05-02, KL05-04)."
+      },
+      {
+        "feature_id": "auth.sasl_oidc_refresh",
+        "profile": "auth",
+        "disposition": "missing",
+        "notes": "Proactive token refresh before expiry and broker session_lifetime_ms reauth are missing; tracked in KL06-01 to KL06-04."
+      },
+      {
+        "feature_id": "auth.sasl_gssapi",
+        "profile": "auth",
+        "disposition": "missing",
+        "notes": "Kerberos GSSAPI authentication is not implemented (requires Cyrus SASL C library). Explicit missing feature of enterprise auth profile (KL06-08 to KL06-10)."
+      },
+      {
+        "feature_id": "schema_ecosystem.avro",
+        "profile": "schema ecosystem",
+        "disposition": "missing",
+        "notes": "Opt-in Avro serialization/deserialization adapter; companion crate, tracked in KL05-25."
+      },
+      {
+        "feature_id": "schema_ecosystem.json_schema",
+        "profile": "schema ecosystem",
+        "disposition": "missing",
+        "notes": "JSON Schema validation and serialization adapter; companion crate, tracked in KL05-27."
+      }
+    ],
+    "partial_features": [
+      {
+        "feature_id": "producer.buffer_memory",
+        "profile": "producer",
+        "disposition": "partial",
+        "notes": "Caps queued key+value bytes; partial because headers, metadata, encoded buffers, and socket memory are uncounted (audit A08)."
+      },
+      {
+        "feature_id": "group.kip848_heartbeat_scheduling",
+        "profile": "group",
+        "disposition": "partial",
+        "notes": "Partial because heartbeat loop uses fixed 150ms interval rather than broker response interval (audit A07, KL03-12)."
+      }
+    ]
+  },
+  "excluded_broker_internal": {
+    "broker_internal_apis": [
+      {
+        "api_key": 4,
+        "name": "LeaderAndIsr",
+        "cluster_action": true,
+        "reason": "LeaderAndIsr: inter-broker replica state propagation (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 5,
+        "name": "StopReplica",
+        "cluster_action": true,
+        "reason": "StopReplica: controller-to-broker replica deletion (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 6,
+        "name": "UpdateMetadata",
+        "cluster_action": true,
+        "reason": "UpdateMetadata: controller-to-broker cluster state broadcast (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 7,
+        "name": "ControlledShutdown",
+        "cluster_action": true,
+        "reason": "ControlledShutdown: broker-to-controller graceful shutdown (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 27,
+        "name": "WriteTxnMarkers",
+        "cluster_action": true,
+        "reason": "WriteTxnMarkers: inter-broker transaction marker propagation (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 52,
+        "name": "Vote",
+        "cluster_action": true,
+        "reason": "Vote: KRaft consensus leader voting (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 53,
+        "name": "BeginQuorumEpoch",
+        "cluster_action": true,
+        "reason": "BeginQuorumEpoch: KRaft consensus leader epoch transition (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 54,
+        "name": "EndQuorumEpoch",
+        "cluster_action": true,
+        "reason": "EndQuorumEpoch: KRaft consensus leader resign (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 56,
+        "name": "AlterPartition",
+        "cluster_action": true,
+        "reason": "AlterPartition: broker leader ISR state update to controller (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 57,
+        "name": "UpdateFeatures",
+        "cluster_action": true,
+        "reason": "UpdateFeatures: cluster feature flag update (clusterAction, cases.json; Admin wrapper exists)"
+      },
+      {
+        "api_key": 58,
+        "name": "Envelope",
+        "cluster_action": true,
+        "reason": "Envelope: inter-broker request forwarding wrapper (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 59,
+        "name": "FetchSnapshot",
+        "cluster_action": false,
+        "reason": "FetchSnapshot: KRaft controller state machine snapshot replication (features.json)"
+      },
+      {
+        "api_key": 62,
+        "name": "BrokerRegistration",
+        "cluster_action": true,
+        "reason": "BrokerRegistration: KRaft broker bootstrap registration (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 63,
+        "name": "BrokerHeartbeat",
+        "cluster_action": true,
+        "reason": "BrokerHeartbeat: KRaft broker liveness heartbeat to controller (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 67,
+        "name": "AllocateProducerIds",
+        "cluster_action": true,
+        "reason": "AllocateProducerIds: inter-broker transactional PID block allocation (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 70,
+        "name": "ControllerRegistration",
+        "cluster_action": false,
+        "reason": "ControllerRegistration: KRaft controller registration (features.json)"
+      },
+      {
+        "api_key": 82,
+        "name": "UpdateRaftVoter",
+        "cluster_action": false,
+        "reason": "UpdateRaftVoter: KRaft voter membership reconfig (features.json)"
+      },
+      {
+        "api_key": 83,
+        "name": "InitializeShareGroupState",
+        "cluster_action": true,
+        "reason": "InitializeShareGroupState: broker-to-persister share state storage (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 84,
+        "name": "ReadShareGroupState",
+        "cluster_action": true,
+        "reason": "ReadShareGroupState: broker-to-persister share state read (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 85,
+        "name": "WriteShareGroupState",
+        "cluster_action": true,
+        "reason": "WriteShareGroupState: broker-to-persister share state write (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 86,
+        "name": "DeleteShareGroupState",
+        "cluster_action": true,
+        "reason": "DeleteShareGroupState: broker-to-persister share state deletion (clusterAction, cases.json)"
+      },
+      {
+        "api_key": 87,
+        "name": "ReadShareGroupStateSummary",
+        "cluster_action": true,
+        "reason": "ReadShareGroupStateSummary: broker-to-persister share state summary (clusterAction, cases.json)"
+      }
+    ],
+    "out_of_scope_frameworks": {
+      "streams.runtime": "Kafka Streams stream processing library out of client SDK scope (features.json)",
+      "connect.framework": "Kafka Connect connector runtime framework out of client SDK scope (features.json)",
+      "c_abi.librdkafka": "C rd_kafka_* ABI symbols out of pure-Rust scope (features.json)"
+    }
+  },
+  "unclassified_drift": [],
+  "conformance_cases_summary": {
+    "total_cases": 138,
+    "denominator_cases": 118,
+    "excluded_cases": 20
+  }
+}

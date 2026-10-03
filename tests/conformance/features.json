@@ -527,8 +527,8 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::share::ShareGroup::poll",
-    "evidence": "tests/full_surface.rs:test_share_fetch",
-    "notes": "Fetches records with record acquisition locks via ShareFetch api 78 v0-v1."
+    "evidence": "docs/plan/evidence/KL05-15.json",
+    "notes": "Negotiates ShareFetch0..2 per partition leader; delivers only acquired offsets within the aggregate logical acquisition budget."
   },
   {
     "id": "share.acknowledge",
@@ -536,35 +536,35 @@
     "layer": "runtime",
     "disposition": "present",
     "entrypoint": "partitionline::share::ShareGroup::accept",
-    "evidence": "tests/full_surface.rs:test_share_acknowledge",
-    "notes": "Acknowledges acquired records (ACCEPT, RELEASE, REJECT) via ShareAcknowledge api 79 v0-v1."
+    "evidence": "docs/plan/evidence/KL03-16.json",
+    "notes": "Negotiates ShareAcknowledge0..2; Accept/Release/Reject, version2 Renew, partial outcomes and ambiguity are qualified by the finite named histories."
   },
   {
     "id": "share.heartbeat_scheduling",
     "profile": "share",
     "layer": "runtime",
-    "disposition": "partial",
-    "entrypoint": "partitionline::share::ShareGroup",
-    "evidence": "docs/audits/2026-09-21.md:A07",
-    "notes": "Partial because share heartbeat interval is hard-coded to 150ms (audit A07, KL03-13)."
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup::heartbeat_interval",
+    "evidence": "docs/plan/evidence/KL03-13.json",
+    "notes": "Uses the positive broker-provided interval and original request deadlines. Joined leave and coordinator movement retain bounded scheduling."
   },
   {
     "id": "share.v2_wire_delta",
     "profile": "share",
     "layer": "wire_helper",
-    "disposition": "partial",
+    "disposition": "present",
     "entrypoint": "partitionline::protocol::share",
-    "evidence": "docs/evidence/client/KL05-14/wire-v2/evidence.json",
-    "notes": "ShareFetch2 and ShareAcknowledge2 codecs have independent official Apache4.3.1 request/response fixtures and focused Rust checks. Full immutable source/MSRV and three-release classification remain KL05-14 work; high-level runtime stays capped at v1 pending KL05-15."
+    "evidence": "docs/plan/evidence/KL05-14.json",
+    "notes": "32 supported bodies from official4.1.2/4.2.1/4.3.1 SDKs; 4.1.2 is version1, 4.2.1/4.3.1 are versions1..2. Forced out-of-range4.1 version2 bodies remain unsupported."
   },
   {
     "id": "share.v2_runtime",
     "profile": "share",
     "layer": "runtime",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "Share protocol v2 negotiated runtime behavior is not implemented; tracked in KL05-15."
+    "disposition": "present",
+    "entrypoint": "partitionline::share::ShareGroup",
+    "evidence": "docs/plan/evidence/KL05-15.json",
+    "notes": "Per-leader version2 acquisition modes and Renew, bounded lock tracking and partial acknowledgements; genuine4.2/4.3 delivery and4.1 fallback plus19 controlled socket fault cases."
   },
   {
     "id": "share.leave",

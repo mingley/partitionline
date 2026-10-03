@@ -1,0 +1,45 @@
+============================================================
+               CONFORMANCE REPORT SUMMARY
+============================================================
+Peer Identity:             apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e, apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0, apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837, docker:apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+Negotiated API Versions:   {}
+Total Registry Cases:      138
+Denominator Cases:         118
+Excluded Cases:            20
+Total Preserved Attempts:  138
+------------------------------------------------------------
+Dispositions / Status Counts:
+  blocked                  : 4
+  failed                   : 5
+  independent_pass         : 16
+  local_consistency        : 83
+  not_applicable           : 20
+  not_run                  : 2
+  unsupported              : 8
+------------------------------------------------------------
+Failing Cases (5):
+  * audit-regression-a01-offset-filter
+  * audit-regression-a02-abort-interval
+  * audit-regression-a03-partial-failure
+  * audit-regression-a04-offset-out-of-range
+  * audit-regression-a05-cursor-commit
+Not Run Cases (2):
+  * feature-fetch-incremental-session-runtime
+  * feature-produce-fetch-quota-throttle-runtime
+Blocked Cases (4):
+  * proto-differential-fetch-apache-java
+  * proto-differential-list-offsets-apache-java
+  * proto-differential-metadata-apache-java
+  * proto-differential-produce-apache-java
+Unsupported Cases (8):
+  * feature-auth-gssapi-kerberos
+  * feature-compression-zstd-decode-encode
+  * proto-diff-fetch-v18-apache-3-9-1
+  * proto-diff-list-offsets-v10-apache-3-9-1
+  * proto-diff-metadata-v13-apache-3-9-1
+  * proto-diff-produce-v12-apache-3-9-1
+  * proto-diff-produce-v13-apache-3-9-1
+  * proto-unsupported-list-offsets-v11-client-cap
+============================================================
+Final Verdict: FAIL (incomplete or non-passing cases) [exit=1]
+============================================================

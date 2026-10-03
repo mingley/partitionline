@@ -2,8 +2,10 @@
   "id": "KL05-14",
   "schema_version": 1,
   "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "status_proposal_only": true,
   "acceptance_met": true,
-  "closure_authority": "Coordinator reviewed frozen source, actual logs, independent SDK fixtures and genuine delivery histories; registries and task state close together.",
+  "proposed_status": "done",
+  "closure_authority": "Root independently reviews and publishes frozen proof, then updates/ closes shared task/case/feature registries. Worker changed no shared registry or task status.",
   "frozen_source_sha256": {
     "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
     "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
@@ -782,6 +784,7 @@
   "controlled_socket_count_per_full_qa_cell": 19,
   "share_protocol_lib_test_count_per_full_qa_cell": 52,
   "share_oracle_named_test_count_per_full_qa_cell": 8,
+  "all_proposed_registry_case_ids_are_new_review_drafts": true,
   "limits": [
     "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
     "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
@@ -840,9 +843,9 @@
   ],
   "case_maps": [
     {
-      "registry_case_id": "share-wire-java-three-sdk-supported-bodies",
-      "registry_already_updated": true,
-      "disposition": "independent_pass",
+      "proposed_registry_case_id": "share-wire-java-three-sdk-supported-bodies",
+      "registry_already_updated": false,
+      "recommended_disposition": "independent_pass",
       "adapter_scope": "Exact32official Java SDK-generated supported wire bodies:4in4.1.2(version1),14each4.2.1/4.3.1(version1/2). Forced4.1 version2 remains quarantined unsupported.",
       "report": "docs/evidence/client/KL05-14/three-sdk/manifest.json",
       "tests": [
@@ -853,54 +856,5 @@
       ]
     }
   ],
-  "superseded_pin_preserved": "Prior false v2-rejection/no-Ack2 pin/evidence remain superseded artifacts; livepin corrected to official source/SDK facts.",
-  "status": "done",
-  "registered_case_ids": [
-    "share-v2-acquired-subset",
-    "share-v2-lock-expiry-stale-ack",
-    "share-v2-renew-selected-lock",
-    "share-v2-ack-partial-terminal",
-    "share-v2-ack-partial-retry",
-    "share-v2-leader-movement-ack",
-    "share-v2-fetch-session-reset",
-    "share-v2-ack-session-reset",
-    "share-v2-coordinator-startup-retry",
-    "share-v2-coordinator-startup-deadline",
-    "share-v2-ack-top-error-epoch",
-    "share-v2-fetch-top-error-epoch",
-    "share-v2-cancel-stale-reply",
-    "share-v2-coordinator-movement",
-    "share-v2-per-leader-version",
-    "share-v2-bootstrap-version-isolation",
-    "share-v2-unsubscribe-lock-release",
-    "share-v2-decoded-budget-overlap",
-    "share-v2-outstanding-acquisition-budget",
-    "share-delivery-live-4-1-2",
-    "share-delivery-live-4-2-1",
-    "share-delivery-live-4-3-1",
-    "share-v2-lock-lifecycle-live-4-3-1",
-    "share-wire-java-three-sdk-supported-bodies"
-  ],
-  "coordinator_review": {
-    "draft_manifest_sha256": "9f986d10144871e01999d88eb30297711e1e7b6e3e6a388d995b6837a102420d",
-    "source_hashes_unchanged": true,
-    "all_19_named_socket_cases_found_in_each_of_four_actual_logs": true,
-    "official_SDK_share_ranges": {
-      "4.1.2": [
-        1,
-        1
-      ],
-      "4.2.1": [
-        1,
-        2
-      ],
-      "4.3.1": [
-        1,
-        2
-      ]
-    },
-    "whole_client_cells": 3,
-    "case_classification_scope": "19 local controlled socket cases, five finite independent cases",
-    "full_Kafka_production_or_performance_claim": false
-  }
+  "superseded_pin_preserved": "Prior false v2-rejection/no-Ack2 pin/evidence remain superseded artifacts; livepin corrected to official source/SDK facts."
 }
