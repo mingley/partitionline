@@ -3387,12 +3387,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3406,12 +3406,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3425,12 +3425,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3444,12 +3444,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3463,12 +3463,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3482,12 +3482,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3501,12 +3501,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3520,12 +3520,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3539,12 +3539,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-30"
       ]
@@ -3558,12 +3558,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-31"
       ]
@@ -3577,12 +3577,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-31"
       ]
@@ -3596,12 +3596,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-31"
       ]
@@ -3615,12 +3615,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-32"
       ]
@@ -3634,12 +3634,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-32"
       ]
@@ -3653,12 +3653,12 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "backlog_tasks": [
         "KL01-32"
       ]

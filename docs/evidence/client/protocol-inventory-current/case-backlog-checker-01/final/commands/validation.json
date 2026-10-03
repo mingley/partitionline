@@ -1,0 +1,202 @@
+{
+  "WORK_only_actual_assigned_taskbook": true,
+  "candidate_four_path_freeze_sha256": "5d0403c2d2dd371539638f1aed78e838752095c3104666353d0609da96c70c8d",
+  "no_sdk_cargo_jvm_product_runtime": true,
+  "passed": true,
+  "results": [
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "-v"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "unit-tests",
+      "ordinal": 1,
+      "passed": true,
+      "seconds": 7.668363332748413,
+      "stderr_sha256": "c9f117f184ea702e311a01bd944eac001e0d95db3d9d237e811a27d0600e25fd",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests": 53
+    },
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--self-test"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "name": "self-test",
+      "ordinal": 2,
+      "passed": true,
+      "seconds": 0.43614864349365234,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "04e7314da3a30153f745376cc82de6e9eecab7cec3997cc5caa37f75f8e475fb"
+    },
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "classification",
+        "--json"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "independent_cases": 16,
+      "issues": 0,
+      "name": "classification",
+      "ordinal": 3,
+      "passed": true,
+      "required_cases": 164,
+      "seconds": 0.3166625499725342,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "7bf46dae3d7333dd3fb2027a0313d92b572f54cd6e8b2cffd3d4895299a97db7",
+      "unqualified_cases": 148
+    },
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "backlog",
+        "--json"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "independent_cases": 16,
+      "issues": 0,
+      "name": "backlog",
+      "ordinal": 4,
+      "passed": true,
+      "required_cases": 164,
+      "seconds": 0.33248043060302734,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "90eaa7b6e9e76b8cd7da57acad098588a430c1cf5828d4471c6f9ce83f44422a",
+      "unqualified_cases": 148
+    },
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "core",
+        "--json"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "independent_cases": 16,
+      "issues": 0,
+      "name": "core",
+      "ordinal": 5,
+      "passed": true,
+      "required_cases": 164,
+      "seconds": 0.3233809471130371,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "0d3ef9886c581882e26d794ca12ed102c3ed3f06211a0493ba3b8f895de5a301",
+      "unqualified_cases": 148
+    },
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "scripts/check-protocol-coverage.py",
+        "--mode",
+        "full",
+        "--json"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "independent_cases": 16,
+      "issues": 0,
+      "name": "full",
+      "ordinal": 6,
+      "passed": true,
+      "required_cases": 164,
+      "seconds": 0.31879329681396484,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "6a136daa4f405adca4abc7d61d6a15a290c7f75371240f6474a72daf09c60795",
+      "unqualified_cases": 148
+    }
+  ],
+  "source_input_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae"
+}

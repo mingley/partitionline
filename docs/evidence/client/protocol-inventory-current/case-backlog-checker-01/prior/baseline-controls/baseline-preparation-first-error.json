@@ -1,0 +1,7 @@
+{
+  "stage": "baseline prepare launch",
+  "executed": false,
+  "requested_workdir": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-source",
+  "tool_error": "CreateProcess rejected: No such file or directory (workdir had not yet been created)",
+  "corrected_by": "Prepare from existing parent before test launch"
+}

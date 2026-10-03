@@ -1,0 +1,1190 @@
+{
+  "all_original169_and175_fields_unchanged": true,
+  "installed_annotations": [
+    {
+      "id": "matrix-cell-produce-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "matrix-cell-produce-4-1-0",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "matrix-cell-fetch-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "matrix-cell-fetch-4-1-0",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "matrix-cell-metadata-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "matrix-cell-metadata-4-1-0",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "matrix-cell-listoffsets-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "matrix-cell-listoffsets-4-1-0",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-produce-v03-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v04-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v05-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v06-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v07-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v08-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v09-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v10-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v11-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-produce-v12-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-fetch-v04-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v05-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v06-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v07-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v08-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v09-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v10-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v11-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v12-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v13-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v14-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v15-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v16-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-fetch-v17-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-metadata-v01-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v02-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v03-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v04-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v05-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v06-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v07-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v08-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v09-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v10-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v11-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v12-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-metadata-v13-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v01-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v02-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v03-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v04-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v05-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v06-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v07-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v08-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v09-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-list-offsets-v10-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-diff-produce-v12-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-diff-metadata-v13-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-diff-list-offsets-v10-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-diff-produce-v13-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-diff-fetch-v18-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-unsupported-list-offsets-v11-client-cap",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "proto-differential-produce-apache-java",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ProduceWire"
+      ],
+      "task_ids": [
+        "KL01-18"
+      ]
+    },
+    {
+      "id": "proto-differential-fetch-apache-java",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "proto-differential-metadata-apache-java",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-MetadataWire"
+      ],
+      "task_ids": [
+        "KL01-20"
+      ]
+    },
+    {
+      "id": "proto-differential-list-offsets-apache-java",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ListOffsetsWire"
+      ],
+      "task_ids": [
+        "KL01-21"
+      ]
+    },
+    {
+      "id": "audit-regression-a01-offset-filter",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "task_ids": [
+        "KL01-22"
+      ]
+    },
+    {
+      "id": "audit-regression-a02-abort-interval",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "task_ids": [
+        "KL01-22"
+      ]
+    },
+    {
+      "id": "audit-regression-a03-partial-failure",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "task_ids": [
+        "KL01-22"
+      ]
+    },
+    {
+      "id": "audit-regression-a04-offset-out-of-range",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "task_ids": [
+        "KL01-22"
+      ]
+    },
+    {
+      "id": "audit-regression-a05-cursor-commit",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
+      ],
+      "task_ids": [
+        "KL01-22"
+      ]
+    },
+    {
+      "id": "broker-cell-historical-apache-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "task_ids": [
+        "KL01-23"
+      ]
+    },
+    {
+      "id": "broker-cell-historical-apache-4-1-0",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "task_ids": [
+        "KL01-23"
+      ]
+    },
+    {
+      "id": "feature-fetch-incremental-session-runtime",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchSessionRuntime"
+      ],
+      "task_ids": [
+        "KL01-24"
+      ]
+    },
+    {
+      "id": "feature-produce-fetch-quota-throttle-runtime",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-QuotaThrottleRuntime"
+      ],
+      "task_ids": [
+        "KL01-25"
+      ]
+    },
+    {
+      "id": "verifiable-produce-consume-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-HistoricalOrdinary"
+      ],
+      "task_ids": [
+        "KL01-23"
+      ]
+    },
+    {
+      "id": "verifiable-producer-options-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-VerifiableProducerOptions"
+      ],
+      "task_ids": [
+        "KL01-26"
+      ]
+    },
+    {
+      "id": "verifiable-consumer-reset-policies-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-VerifiableConsumerOffsets"
+      ],
+      "task_ids": [
+        "KL01-27"
+      ]
+    },
+    {
+      "id": "verifiable-consumer-autocommit-3-9-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-VerifiableConsumerOffsets"
+      ],
+      "task_ids": [
+        "KL01-27"
+      ]
+    },
+    {
+      "id": "proto-fetch-v18-local",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-FetchWire"
+      ],
+      "task_ids": [
+        "KL01-19"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v1-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v2-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v1-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v2-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v1-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-057-v2-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-UpdateFeatures"
+      ],
+      "task_ids": [
+        "KL01-28"
+      ]
+    },
+    {
+      "id": "current-public-api-091-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-public-api-091-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-public-api-091-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-public-api-092-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-public-api-092-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-public-api-092-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-ShareOffsetMutations"
+      ],
+      "task_ids": [
+        "KL01-29"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v1-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v2-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v1-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v2-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v1-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-055-v2-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "task_ids": [
+        "KL01-30"
+      ]
+    },
+    {
+      "id": "current-claimed-api-067-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "task_ids": [
+        "KL01-31"
+      ]
+    },
+    {
+      "id": "current-claimed-api-067-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "task_ids": [
+        "KL01-31"
+      ]
+    },
+    {
+      "id": "current-claimed-api-067-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "task_ids": [
+        "KL01-31"
+      ]
+    },
+    {
+      "id": "current-claimed-api-073-v0-4-1-2",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "task_ids": [
+        "KL01-32"
+      ]
+    },
+    {
+      "id": "current-claimed-api-073-v0-4-2-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "task_ids": [
+        "KL01-32"
+      ]
+    },
+    {
+      "id": "current-claimed-api-073-v0-4-3-1",
+      "kind": "case",
+      "proposal_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "task_ids": [
+        "KL01-32"
+      ]
+    },
+    {
+      "id": "producer.buffer_memory",
+      "kind": "feature",
+      "proposal_keys": [
+        "Q-IMPL-ProducerBacking"
+      ],
+      "task_ids": [
+        "KL02-09",
+        "KL02-10",
+        "KL02-11"
+      ]
+    },
+    {
+      "id": "auth.sasl_oidc_refresh",
+      "kind": "feature",
+      "proposal_keys": [
+        "Q-IMPL-OidcManagerOwnership",
+        "Q-IMPL-ProducerReauth",
+        "Q-IMPL-RpcReauth"
+      ],
+      "task_ids": [
+        "KL06-06",
+        "KL06-11",
+        "KL06-12",
+        "KL06-13"
+      ]
+    },
+    {
+      "id": "schema_ecosystem.wire_framing",
+      "kind": "feature",
+      "proposal_keys": [
+        "Q-CONF-GenericSchemaHeader"
+      ],
+      "task_ids": [
+        "KL05-45"
+      ]
+    },
+    {
+      "id": "schema_ecosystem.avro",
+      "kind": "feature",
+      "proposal_keys": [
+        "Q-CONF-AvroBackend"
+      ],
+      "task_ids": [
+        "KL05-43"
+      ]
+    },
+    {
+      "id": "schema_ecosystem.json_schema",
+      "kind": "feature",
+      "proposal_keys": [
+        "Q-CONF-JsonSchemaBackend"
+      ],
+      "task_ids": [
+        "KL05-44"
+      ]
+    }
+  ],
+  "no_planned_backlog_keys_remain": true,
+  "origin": {
+    "all22_assigned_pending": true,
+    "base_source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693",
+    "id_binding_origin": "/workspace/work/integration/case-gap-cards-01/id-bindings.json",
+    "id_binding_sha256": "59fe8d5d36f45768b1652474f2f7f1fdceb8e0cdc29c3b2357e2bf8f21f5af13",
+    "remote_source_qualification_claimed": false,
+    "task_count": 338,
+    "taskbook_bytes": 3502219,
+    "taskbook_full_mode": "0o600",
+    "taskbook_index_entry": "100644 ca6dd134d4033453485effcbf15c8740591f2525 0\tdocs/plan/tasks.json",
+    "taskbook_observed_local_HEAD": "9a18abbf9ba343b4e20f52fdd102442ee178835d",
+    "taskbook_sha256": "a18d825d256a3ecd3d0fe210e862789025e33b208583e9e47ad438accba03e8a"
+  },
+  "proposal_task_bindings": {
+    "Q-CONF-AllocateProducerIdsRaw": "KL01-31",
+    "Q-CONF-AssignReplicasToDirsRaw": "KL01-32",
+    "Q-CONF-AvroBackend": "KL05-43",
+    "Q-CONF-DescribeQuorum": "KL01-30",
+    "Q-CONF-FetchDeliveryRegressions": "KL01-22",
+    "Q-CONF-FetchSessionRuntime": "KL01-24",
+    "Q-CONF-FetchWire": "KL01-19",
+    "Q-CONF-GenericSchemaHeader": "KL05-45",
+    "Q-CONF-HistoricalOrdinary": "KL01-23",
+    "Q-CONF-JsonSchemaBackend": "KL05-44",
+    "Q-CONF-ListOffsetsWire": "KL01-21",
+    "Q-CONF-MetadataWire": "KL01-20",
+    "Q-CONF-ProduceWire": "KL01-18",
+    "Q-CONF-QuotaThrottleRuntime": "KL01-25",
+    "Q-CONF-ShareOffsetMutations": "KL01-29",
+    "Q-CONF-UpdateFeatures": "KL01-28",
+    "Q-CONF-VerifiableConsumerOffsets": "KL01-27",
+    "Q-CONF-VerifiableProducerOptions": "KL01-26",
+    "Q-IMPL-OidcManagerOwnership": "KL06-13",
+    "Q-IMPL-ProducerBacking": "KL02-11",
+    "Q-IMPL-ProducerReauth": "KL06-11",
+    "Q-IMPL-RpcReauth": "KL06-12"
+  }
+}

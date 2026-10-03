@@ -1,0 +1,47 @@
+{
+  "all83_baseline_inputs_unchanged": true,
+  "canonical4_inputs_unchanged_from_original_source": true,
+  "phase": "WORK only, root-assigned22 actual pending task IDs",
+  "rows": [
+    {
+      "bytes": 80307,
+      "full_mode": "0o755",
+      "path": "scripts/check-protocol-coverage.py",
+      "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6"
+    },
+    {
+      "bytes": 176992,
+      "full_mode": "0o644",
+      "path": "tests/conformance/cases.json",
+      "sha256": "6d2a41151a69df7cd9643eb9e3bef5f036f326f4216fb29f6566a5471e4d37c2"
+    },
+    {
+      "bytes": 83674,
+      "full_mode": "0o644",
+      "path": "tests/conformance/features.json",
+      "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67"
+    },
+    {
+      "bytes": 39373,
+      "full_mode": "0o644",
+      "path": "tests/conformance/test_check_protocol_coverage.py",
+      "sha256": "e9823d1213b6a238cfcebc6a00da87a52aaef48230ef00f21ca547ab8612e809"
+    }
+  ],
+  "scope": "No full archive or upstream runtime qualification claimed",
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693",
+  "taskbook_origin": {
+    "all22_assigned_pending": true,
+    "base_source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693",
+    "id_binding_origin": "/workspace/work/integration/case-gap-cards-01/id-bindings.json",
+    "id_binding_sha256": "59fe8d5d36f45768b1652474f2f7f1fdceb8e0cdc29c3b2357e2bf8f21f5af13",
+    "remote_source_qualification_claimed": false,
+    "task_count": 338,
+    "taskbook_bytes": 3500058,
+    "taskbook_full_mode": "0o600",
+    "taskbook_index_entry": "100644 a27554137a148db6d178f29536d4021a2c125441 0\tdocs/plan/tasks.json",
+    "taskbook_observed_local_HEAD": "307a1190007704df29c3288be545795f85cb8d55",
+    "taskbook_sha256": "dc5b60af3a622ccb483be7ace1043d8573e65a6833b0b88c7c1d2ceba115660c"
+  },
+  "unchanged_supporting_inputs": 79
+}

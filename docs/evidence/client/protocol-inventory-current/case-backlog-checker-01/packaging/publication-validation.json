@@ -1,0 +1,20 @@
+{
+  "all_selected_artifacts_bytes_full_modes_verified": true,
+  "canonical_four_paths_unchanged": true,
+  "inventory": {
+    "bytes": 38284,
+    "full_mode": "0o644",
+    "sha256": "e18653264ef0288761cb25ee649b56f1a86d271a17d2590c984b4acf2fcfce0d",
+    "source": "/workspace/work/consumer-protocol-checker-publication-01/publication-inventory.json"
+  },
+  "no_test_or_runtime_rerun": true,
+  "passed": true,
+  "proof_bytes": 6029145,
+  "proof_files": 76,
+  "proof_plus_candidate_bytes": 6409491,
+  "source_guard_before_and_after": {
+    "byte_full_mode_pathset_equal": true,
+    "files": 83,
+    "scope": "83 minimal static inputs, not whole product archive"
+  }
+}

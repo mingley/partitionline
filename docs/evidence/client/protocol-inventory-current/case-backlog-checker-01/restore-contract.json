@@ -1,0 +1,92 @@
+{
+  "coordinator_only_canonical_install_commit_push": true,
+  "core_protocol_complete": false,
+  "default_classification_compatibility_retained": true,
+  "excluded_cases": 20,
+  "expected_exits": {
+    "backlog": 0,
+    "classification": 0,
+    "core": 1,
+    "full": 1,
+    "self-test": 0,
+    "unit-tests": 0
+  },
+  "final_commands": 6,
+  "full_current_protocol_complete": false,
+  "independent_cases": 16,
+  "intermediate_taskbooks": "Exact WORK originals remain intact and hash-bound; final taskbook is Git5cd cb464cc48b434379b90e4ca7638010ec2d0d4b0c",
+  "no_original_source_log_or_mode_mutations": true,
+  "no_sdk_cargo_jvm_or_product_runtime": true,
+  "python_tests": 53,
+  "registered_cases": 184,
+  "required_cases": 164,
+  "restore_final_candidate": [
+    {
+      "before": {
+        "bytes": 62971,
+        "full_mode": "0o700",
+        "sha256": "b8f2aa585fa35f2d464d801d2b24fd80ce730050b6f60e05cc9c5403edb42e57",
+        "source": "/workspace/partitionline/scripts/check-protocol-coverage.py"
+      },
+      "candidate": {
+        "bytes": 80307,
+        "full_mode": "0o755",
+        "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/scripts/check-protocol-coverage.py"
+      },
+      "target": "scripts/check-protocol-coverage.py"
+    },
+    {
+      "before": {
+        "bytes": 132894,
+        "full_mode": "0o600",
+        "sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58",
+        "source": "/workspace/partitionline/tests/conformance/cases.json"
+      },
+      "candidate": {
+        "bytes": 176992,
+        "full_mode": "0o644",
+        "sha256": "c85fa2e7bd83f641e561f27334484c8ed9a62666d7d253bef67ff6c6a57f4c15",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/cases.json"
+      },
+      "target": "tests/conformance/cases.json"
+    },
+    {
+      "before": {
+        "bytes": 65145,
+        "full_mode": "0o600",
+        "sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+        "source": "/workspace/partitionline/tests/conformance/features.json"
+      },
+      "candidate": {
+        "bytes": 83674,
+        "full_mode": "0o644",
+        "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/features.json"
+      },
+      "target": "tests/conformance/features.json"
+    },
+    {
+      "before": {
+        "bytes": 27217,
+        "full_mode": "0o600",
+        "sha256": "672fcd157acb591f5a3dc074a94b68c2ad7a4c52883db3715dc2a7461d5327ba",
+        "source": "/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py"
+      },
+      "candidate": {
+        "bytes": 39373,
+        "full_mode": "0o644",
+        "sha256": "e9823d1213b6a238cfcebc6a00da87a52aaef48230ef00f21ca547ab8612e809",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/test_check_protocol_coverage.py"
+      },
+      "target": "tests/conformance/test_check_protocol_coverage.py"
+    }
+  ],
+  "restore_originals": "Git source_sha plus final/immutable-inputs.json; no 83-file tree copies published",
+  "restore_prior_candidates": "Use prior source-only snapshots and each 83-input manifest; original supporting files come from the named Git base",
+  "scope": "Static conformance checker qualification only",
+  "source_sha": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+  "task14_must_remain_in_progress": true,
+  "unqualified_cases": 148,
+  "upstream_applicability_complete": false
+}

@@ -1,0 +1,697 @@
+{
+  "all_blobs_below_12MB": true,
+  "candidate_source_bytes_separately_installed": 380346,
+  "canonical_candidate_install_rows": [
+    {
+      "before": {
+        "bytes": 62971,
+        "full_mode": "0o700",
+        "sha256": "b8f2aa585fa35f2d464d801d2b24fd80ce730050b6f60e05cc9c5403edb42e57",
+        "source": "/workspace/partitionline/scripts/check-protocol-coverage.py"
+      },
+      "candidate": {
+        "bytes": 80307,
+        "full_mode": "0o755",
+        "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/scripts/check-protocol-coverage.py"
+      },
+      "target": "scripts/check-protocol-coverage.py"
+    },
+    {
+      "before": {
+        "bytes": 132894,
+        "full_mode": "0o600",
+        "sha256": "f67807218ae9993740eabe7f58547d6cbae92c0c4b6e0d9a65a929b869d09d58",
+        "source": "/workspace/partitionline/tests/conformance/cases.json"
+      },
+      "candidate": {
+        "bytes": 176992,
+        "full_mode": "0o644",
+        "sha256": "c85fa2e7bd83f641e561f27334484c8ed9a62666d7d253bef67ff6c6a57f4c15",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/cases.json"
+      },
+      "target": "tests/conformance/cases.json"
+    },
+    {
+      "before": {
+        "bytes": 65145,
+        "full_mode": "0o600",
+        "sha256": "d3ff2d4f008322195fe40a7ef6060e9c4a52177879d196f14c0f7d36e3d9a151",
+        "source": "/workspace/partitionline/tests/conformance/features.json"
+      },
+      "candidate": {
+        "bytes": 83674,
+        "full_mode": "0o644",
+        "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/features.json"
+      },
+      "target": "tests/conformance/features.json"
+    },
+    {
+      "before": {
+        "bytes": 27217,
+        "full_mode": "0o600",
+        "sha256": "672fcd157acb591f5a3dc074a94b68c2ad7a4c52883db3715dc2a7461d5327ba",
+        "source": "/workspace/partitionline/tests/conformance/test_check_protocol_coverage.py"
+      },
+      "candidate": {
+        "bytes": 39373,
+        "full_mode": "0o644",
+        "sha256": "e9823d1213b6a238cfcebc6a00da87a52aaef48230ef00f21ca547ab8612e809",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-03/source/tests/conformance/test_check_protocol_coverage.py"
+      },
+      "target": "tests/conformance/test_check_protocol_coverage.py"
+    }
+  ],
+  "canonical_files_unchanged": true,
+  "excluded_from_publication": [
+    "83-input source copies",
+    "duplicate intermediate full raw JSON outputs",
+    "duplicate taskbooks",
+    "ELF/JAR/class/cache/archive payloads"
+  ],
+  "logical_proof_budget_7MB_passed": true,
+  "logical_proof_bytes": 6029145,
+  "max_proof_blob_bytes": 619391,
+  "proof_file_count": 76,
+  "proof_prefix": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01",
+  "rows": [
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/backlog.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/backlog.stderr"
+    },
+    {
+      "bytes": 598693,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "90eaa7b6e9e76b8cd7da57acad098588a430c1cf5828d4471c6f9ce83f44422a",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/backlog.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/backlog.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/classification.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/classification.stderr"
+    },
+    {
+      "bytes": 598711,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "7bf46dae3d7333dd3fb2027a0313d92b572f54cd6e8b2cffd3d4895299a97db7",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/classification.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/classification.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/core.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/core.stderr"
+    },
+    {
+      "bytes": 598687,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "0d3ef9886c581882e26d794ca12ed102c3ed3f06211a0493ba3b8f895de5a301",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/core.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/core.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/full.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/full.stderr"
+    },
+    {
+      "bytes": 598687,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "6a136daa4f405adca4abc7d61d6a15a290c7f75371240f6474a72daf09c60795",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/full.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/full.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/self-test.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/self-test.stderr"
+    },
+    {
+      "bytes": 468,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "04e7314da3a30153f745376cc82de6e9eecab7cec3997cc5caa37f75f8e475fb",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/self-test.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/self-test.stdout"
+    },
+    {
+      "bytes": 9060,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "c9f117f184ea702e311a01bd944eac001e0d95db3d9d237e811a27d0600e25fd",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/unit-tests.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/unit-tests.stderr"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/unit-tests.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/unit-tests.stdout"
+    },
+    {
+      "bytes": 6189,
+      "full_mode": "0o600",
+      "role": "actual final six-command raw receipt",
+      "sha256": "e62659137dae216dbd4d30582831224f3eedc352a2fdc815eafb407e3085fceb",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/guarded-final-work/validation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/commands/validation.json"
+    },
+    {
+      "bytes": 2133,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "ea2b015562a73d0260b3bc28b0cf0bd4aabe9b7cdb23aa230c9982dc0168fe86",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/FINAL-WORK-HANDOFF.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/FINAL-WORK-HANDOFF.json"
+    },
+    {
+      "bytes": 23935,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "16283fb04654d3fb89721a1c61badac9d480f0eee8bd662998ac4a0eb896e373",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/authoritative-install-map.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/authoritative-install-map.json"
+    },
+    {
+      "bytes": 1952,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "5d0403c2d2dd371539638f1aed78e838752095c3104666353d0609da96c70c8d",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/candidate-source-freeze-work.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/candidate-source-freeze-work.json"
+    },
+    {
+      "bytes": 30329,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "ddb65b6e84f8e651753e8294af9f4f9df23f11890304cbe7556bee1dfddf34cc",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/immutable-inputs.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/immutable-inputs.json"
+    },
+    {
+      "bytes": 712,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "0ccf08a19de35d68ac237ca70a75594801937e82eef7da158bd73f796ce270a6",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/prior-cohort-preservation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/prior-cohort-preservation.json"
+    },
+    {
+      "bytes": 3174,
+      "full_mode": "0o600",
+      "role": "final source/input/installation contract",
+      "sha256": "377826d4bda216c2dc2129d07a62b42f6172dee626cb99a767b879469e97084b",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-03/run-guarded-work.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/final/run-guarded-work.py"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/backlog.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/backlog.stderr"
+    },
+    {
+      "bytes": 619373,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "3dd39de5ad256371a2972b189d39af88157678840789a50133850fcc436763a3",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/backlog.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/backlog.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/classification.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/classification.stderr"
+    },
+    {
+      "bytes": 619391,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "13f3a1e5e1767c6df47363bdf3f479df855d9afb77e92e570d2eb63d4f000be1",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/classification.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/classification.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/core.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/core.stderr"
+    },
+    {
+      "bytes": 619367,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "9349c9b02bb993cf2ccc71896c2e0f0bde36ea311cdc3e5e15f6ffb093e3959f",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/core.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/core.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/full.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/full.stderr"
+    },
+    {
+      "bytes": 619367,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "c045d1ffc12679ace1288d411eb53908f237c08ddb47d375a9a096153036fa01",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/full.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/full.stdout"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/self-test.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/self-test.stderr"
+    },
+    {
+      "bytes": 468,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "04e7314da3a30153f745376cc82de6e9eecab7cec3997cc5caa37f75f8e475fb",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/self-test.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/self-test.stdout"
+    },
+    {
+      "bytes": 9072,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "b20ba78d854039fff4352c09ecc64fe4426bc127df53984188558c1e1fbc1591",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/unit-tests.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/unit-tests.stderr"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/unit-tests.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/unit-tests.stdout"
+    },
+    {
+      "bytes": 6186,
+      "full_mode": "0o600",
+      "role": "actual unassigned six-command raw receipt",
+      "sha256": "0d9a43dca97357b8e37c79070f227b44c641df4f1b343d04b4da9e8d2dd5ecb4",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/guarded-final-work/validation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/commands/validation.json"
+    },
+    {
+      "bytes": 1141,
+      "full_mode": "0o600",
+      "role": "unassigned source/input contract",
+      "sha256": "3c7989e6d210a8078fc68cd295cdc3101e3f8db9bb67186e532f683a72210cb9",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-source-freeze-work.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/candidate-source-freeze-work.json"
+    },
+    {
+      "bytes": 24175,
+      "full_mode": "0o600",
+      "role": "unassigned source/input contract",
+      "sha256": "f50d3912fdfb456c70b7317f6ae1f764e00c43b51fdb0e7442f6c2aaea58582f",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/immutable-inputs.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/immutable-inputs.json"
+    },
+    {
+      "bytes": 3146,
+      "full_mode": "0o600",
+      "role": "unassigned source/input contract",
+      "sha256": "4f28c5c86ed30c63facddd54709dbd9e5c948a23e67288fe8c6934213b79e36a",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/run-guarded-work.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/run-guarded-work.py"
+    },
+    {
+      "bytes": 80307,
+      "full_mode": "0o755",
+      "role": "four-file source-only unassigned snapshot; no 83-input duplicate",
+      "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/source/scripts/check-protocol-coverage.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/source/scripts/check-protocol-coverage.py"
+    },
+    {
+      "bytes": 182302,
+      "full_mode": "0o644",
+      "role": "four-file source-only unassigned snapshot; no 83-input duplicate",
+      "sha256": "6fe47f57d73198b7e18f40d496a35d5b4607ce7434156c451b0cd8305386afb3",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/cases.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/source/tests/conformance/cases.json"
+    },
+    {
+      "bytes": 83947,
+      "full_mode": "0o644",
+      "role": "four-file source-only unassigned snapshot; no 83-input duplicate",
+      "sha256": "8b2f48daf9a7aab6d25771a6d59fa606d02d578fcba6c78fb5deaa3136c7e732",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/features.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/source/tests/conformance/features.json"
+    },
+    {
+      "bytes": 38943,
+      "full_mode": "0o644",
+      "role": "four-file source-only unassigned snapshot; no 83-input duplicate",
+      "sha256": "3e1d2464f8e21e8764e2a4d1eb653c829814e7fcaaf6255e689761dc7e3b7bf8",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned/source/tests/conformance/test_check_protocol_coverage.py"
+    },
+    {
+      "bytes": 9928,
+      "full_mode": "0o600",
+      "role": "actual first assigned stale-expectation failure",
+      "sha256": "06298efb1a6267cd323e11b0758063073011ba547fb1d249504d85930fd3c4ed",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-first-failure/unit-tests.stderr",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/commands/unit-tests.stderr"
+    },
+    {
+      "bytes": 0,
+      "full_mode": "0o600",
+      "role": "actual first assigned stale-expectation failure",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-first-failure/unit-tests.stdout",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/commands/unit-tests.stdout"
+    },
+    {
+      "bytes": 1212,
+      "full_mode": "0o600",
+      "role": "actual first assigned stale-expectation failure",
+      "sha256": "7457631cf9d666209c4c97d15f8f5e7ed81b806364e3c0fa068e983320325e75",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-first-failure/validation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/commands/validation.json"
+    },
+    {
+      "bytes": 1882,
+      "full_mode": "0o600",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "fc28022a2e23111e237bd8e47caa6f17c1fcbcdfafb3d92dcb92687d198d90f3",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/candidate-source-freeze-work.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/candidate-source-freeze-work.json"
+    },
+    {
+      "bytes": 24967,
+      "full_mode": "0o600",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "4ff24d72da0aad3727fe969a7dfdcec4b500eef52d6d654453eac0ad2efa5406",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/immutable-inputs.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/immutable-inputs.json"
+    },
+    {
+      "bytes": 3174,
+      "full_mode": "0o600",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "30ca8a0b3afdf3f581ca9e74a9f46468248d8cb11af2c3b64d794500d5d12935",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/run-guarded-work.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/run-guarded-work.py"
+    },
+    {
+      "bytes": 80307,
+      "full_mode": "0o755",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/scripts/check-protocol-coverage.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/scripts/check-protocol-coverage.py"
+    },
+    {
+      "bytes": 176992,
+      "full_mode": "0o644",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "6d2a41151a69df7cd9643eb9e3bef5f036f326f4216fb29f6566a5471e4d37c2",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/tests/conformance/cases.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/tests/conformance/cases.json"
+    },
+    {
+      "bytes": 83674,
+      "full_mode": "0o644",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/tests/conformance/features.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/tests/conformance/features.json"
+    },
+    {
+      "bytes": 38943,
+      "full_mode": "0o644",
+      "role": "four candidate files and three metadata files only",
+      "sha256": "3e1d2464f8e21e8764e2a4d1eb653c829814e7fcaaf6255e689761dc7e3b7bf8",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-first/tests/conformance/test_check_protocol_coverage.py",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/source-snapshot/tests/conformance/test_check_protocol_coverage.py"
+    },
+    {
+      "bytes": 328,
+      "full_mode": "0o600",
+      "role": "explicit failure disposition; not product/runtime failure",
+      "sha256": "0151cdff020c5b3c9f72f7115bc6f8a01209c3dd55638a78d2198b233f034f42",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/assigned-first-failure-reason.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/assigned-first-failure/reason.json"
+    },
+    {
+      "bytes": 5682,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "5848fd5ee219a03134f62c66ed126509de7e986243956c8b199b8e8f475c0d43",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-existing-suite.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/baseline-existing-suite.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-existing-suite.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/baseline-existing-suite.exit"
+    },
+    {
+      "bytes": 40411,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "ee1897d5185514932a501a8c01523914e4b3dc2ca12745b257609838faedf576",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-new-controls.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/baseline-new-controls.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-new-controls.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/baseline-new-controls.exit"
+    },
+    {
+      "bytes": 337,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "86ad8ea26e840135fdcb2b35870288e7181c6f344168418045ec599e6353b468",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/baseline-preparation-first-error.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/baseline-preparation-first-error.json"
+    },
+    {
+      "bytes": 9974,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "a905aff00020f9188111eeb62ab614b8bc47d4f111a799113bf629ff4b6febb7",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/new-tests.txt",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/new-tests.txt"
+    },
+    {
+      "bytes": 2995,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "a1d88f7103da497d9b08185989d86ef9bea713f4d7c0e6d772164d811e43d8db",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-controls-01.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-controls-01.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-controls-01.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-controls-01.exit"
+    },
+    {
+      "bytes": 8926,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "b4f9f7e8e6c7c09c608f4ae68ed57bfdcff68edb0551094351a60fba4083788c",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-full-suite-02.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-full-suite-02.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-full-suite-02.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-full-suite-02.exit"
+    },
+    {
+      "bytes": 8926,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "f9f7ad6865a7a8f6644c28a0db81366cb2aa936befdf35cead5f33f3f69929cc",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-annotated-suite-03.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-annotated-suite-03.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-annotated-suite-03.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-annotated-suite-03.exit"
+    },
+    {
+      "bytes": 9072,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "660be972b6cbcb71a7cbc1d37d2d97bbac3b3920a664ae563bedcb11ececedcc",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-full-suite-04.log",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-full-suite-04.log"
+    },
+    {
+      "bytes": 2,
+      "full_mode": "0o600",
+      "role": "actual static control/baseline history",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-01/candidate-full-suite-04.exit",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/baseline-controls/candidate-full-suite-04.exit"
+    },
+    {
+      "bytes": 15086,
+      "full_mode": "0o600",
+      "role": "earlier cohort identity/provenance bridge",
+      "sha256": "e6e28ebeb0074b30af612ad8d4dd18b8bd4e2ef40b7fda64543fd90fbfc5a73b",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/unassigned-preservation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/unassigned-preservation.json"
+    },
+    {
+      "bytes": 382,
+      "full_mode": "0o600",
+      "role": "earlier cohort identity/provenance bridge",
+      "sha256": "6c637c8df9aa455f012bc8ff6c045527259728e19d93b6ccc60e78632b4ff78d",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/taskbook-evidence-only-bridge.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/taskbook-evidence-only-bridge.json"
+    },
+    {
+      "bytes": 6185,
+      "full_mode": "0o600",
+      "role": "intermediate assigned validation; raw originals retained by checksum reference",
+      "sha256": "a9e4b0ef791ca6a56205e990c123127a88d8896aeae7c9bcde68bc9730737107",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/validation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/guarded-assigned-dc5-pass/validation.json"
+    },
+    {
+      "bytes": 6187,
+      "full_mode": "0o600",
+      "role": "intermediate assigned validation; raw originals retained by checksum reference",
+      "sha256": "6e156bda352b207adb43c68e81da32a89e67dcbb35fde1fbb37d744a7c60bc6c",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/validation.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/guarded-final-work/validation.json"
+    },
+    {
+      "bytes": 1882,
+      "full_mode": "0o600",
+      "role": "prior assigned input/source/install contract",
+      "sha256": "e2f7857d25709e4de82317bd8c23e245a876744a76badd36a0940046388c1382",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/candidate-source-freeze-work.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/candidate-source-freeze-work.json"
+    },
+    {
+      "bytes": 23893,
+      "full_mode": "0o600",
+      "role": "prior assigned input/source/install contract",
+      "sha256": "246198a984369527e1b76f5a0f1a9e5b903882e820bb2f0044335ad8799e7b5c",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/authoritative-install-map.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/authoritative-install-map.json"
+    },
+    {
+      "bytes": 24967,
+      "full_mode": "0o600",
+      "role": "prior assigned input/source/install contract",
+      "sha256": "d2e0b08e3c88c4e085feed9edf36ab25ff079eea2869ff3be9374fd8d6155c92",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/immutable-inputs.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/immutable-inputs.json"
+    },
+    {
+      "bytes": 1882,
+      "full_mode": "0o600",
+      "role": "dc5 taskbook provenance retained",
+      "sha256": "69f2d5d01c47e9ab5f688f20398bf578a6acd3b16d917f6321080753764c0760",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-dc5-pass/candidate-source-freeze-work.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/dc5-source/candidate-source-freeze-work.json"
+    },
+    {
+      "bytes": 23893,
+      "full_mode": "0o600",
+      "role": "dc5 taskbook provenance retained",
+      "sha256": "14871ffa7104ddb087c8541e2ec45582fbc095adad17a7dc9e20ea0240605255",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-dc5-pass/authoritative-install-map.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/dc5-source/authoritative-install-map.json"
+    },
+    {
+      "bytes": 24967,
+      "full_mode": "0o600",
+      "role": "dc5 taskbook provenance retained",
+      "sha256": "4ff24d72da0aad3727fe969a7dfdcec4b500eef52d6d654453eac0ad2efa5406",
+      "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-dc5-pass/immutable-inputs.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/intermediate-success/dc5-source/immutable-inputs.json"
+    },
+    {
+      "bytes": 8468,
+      "full_mode": "0o644",
+      "role": "all earlier raw successes and taskbook retention hashes",
+      "sha256": "4455a6e6f23e6b8af9bda34edd07d88141262f1907f48028c62a2e9697f85949",
+      "source": "/workspace/work/consumer-protocol-checker-publication-01/retained-intermediate-references.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/prior/retained-intermediate-references.json"
+    },
+    {
+      "bytes": 3696,
+      "full_mode": "0o644",
+      "role": "restoration scope and non-promotion policy",
+      "sha256": "dde6f11cf6a3a51636c96166eb5a1f9d49c1051bedffbc9e9114027981c436e8",
+      "source": "/workspace/work/consumer-protocol-checker-publication-01/restore-contract.json",
+      "target": "docs/evidence/client/protocol-inventory-current/case-backlog-checker-01/restore-contract.json"
+    }
+  ],
+  "schema": 1,
+  "source_guard_before_and_after": {
+    "byte_full_mode_pathset_equal": true,
+    "files": 83,
+    "scope": "83 minimal static inputs, not whole product archive"
+  },
+  "source_sha": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+  "total_proof_plus_four_candidate_sources": 6409491,
+  "zero_copy_existing_artifact_inventory": true
+}

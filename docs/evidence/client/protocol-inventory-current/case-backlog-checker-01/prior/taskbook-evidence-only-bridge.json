@@ -1,0 +1,14 @@
+{
+  "all338_ID_status_pairs_identical": true,
+  "all_original_cohort_files_preserved": true,
+  "changed_task_fields": [
+    {
+      "fields": [
+        "evidence"
+      ],
+      "task_id": "KL05-31"
+    }
+  ],
+  "latest_sha256": "a18d825d256a3ecd3d0fe210e862789025e33b208583e9e47ad438accba03e8a",
+  "old_sha256": "dc5b60af3a622ccb483be7ace1043d8573e65a6833b0b88c7c1d2ceba115660c"
+}

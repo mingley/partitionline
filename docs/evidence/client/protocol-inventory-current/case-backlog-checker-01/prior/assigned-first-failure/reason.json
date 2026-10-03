@@ -1,0 +1,6 @@
+{
+  "reason": "Old test explicitly expected unassigned backlog to fail; assigning genuine pending IDs changes that expected result to pass.",
+  "product_checker_change": false,
+  "retained_validation_sha256": "7457631cf9d666209c4c97d15f8f5e7ed81b806364e3c0fa068e983320325e75",
+  "preserved_four_paths_and_input_origins": true
+}

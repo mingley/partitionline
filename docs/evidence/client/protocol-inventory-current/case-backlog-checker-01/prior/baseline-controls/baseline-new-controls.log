@@ -1,0 +1,460 @@
+test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) ... 
+  test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='failed') ... ERROR
+  test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='local_consistency') ... ERROR
+  test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='unsupported') ... ERROR
+  test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='blocked') ... ERROR
+  test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='not_run') ... ERROR
+test_declared_registered_ids_cannot_be_truncated_or_empty (__main__.TestConformanceBacklogModes.test_declared_registered_ids_cannot_be_truncated_or_empty) ... ERROR
+test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) ... 
+  test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value='false') ... ERROR
+  test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=0) ... ERROR
+  test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=1) ... ERROR
+  test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=None) ... ERROR
+test_done_implementation_and_rust_test_path_do_not_qualify_feature (__main__.TestConformanceBacklogModes.test_done_implementation_and_rust_test_path_do_not_qualify_feature) ... ERROR
+test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) ... 
+  test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='failed') ... ERROR
+  test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='local_consistency') ... ERROR
+  test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='unsupported') ... ERROR
+  test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='blocked') ... ERROR
+  test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='not_run') ... ERROR
+test_feature_out_of_scope_needs_specific_role (__main__.TestConformanceBacklogModes.test_feature_out_of_scope_needs_specific_role) ... ERROR
+test_historical_public_exclusion_requires_parallel_current_cell (__main__.TestConformanceBacklogModes.test_historical_public_exclusion_requires_parallel_current_cell) ... ERROR
+test_independent_requires_local_regular_artifact_not_directory_or_escape (__main__.TestConformanceBacklogModes.test_independent_requires_local_regular_artifact_not_directory_or_escape) ... ERROR
+test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) ... 
+  test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) (status='missing') ... ERROR
+  test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) (status='partial') ... ERROR
+test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) ... 
+  test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=[]) ... ERROR
+  test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['TEST-done']) ... ERROR
+  test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['unknown']) ... ERROR
+  test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['TEST-open', 'TEST-open']) ... ERROR
+test_nonindependent_or_missing_case_cannot_qualify_present_feature (__main__.TestConformanceBacklogModes.test_nonindependent_or_missing_case_cannot_qualify_present_feature) ... ERROR
+test_open_tasks_track_a_gap_but_cannot_qualify_it (__main__.TestConformanceBacklogModes.test_open_tasks_track_a_gap_but_cannot_qualify_it) ... ERROR
+test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) ... 
+  test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) (key=67) ... ERROR
+  test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) (key=73) ... ERROR
+test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) ... 
+  test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='backlog') ... ERROR
+  test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='core') ... ERROR
+  test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='full') ... ERROR
+test_unknown_classification_intent_and_public55_mask_failclosed (__main__.TestConformanceBacklogModes.test_unknown_classification_intent_and_public55_mask_failclosed) ... FAIL
+test_unknown_disposition_profile_and_duplicate_case_id_fail (__main__.TestConformanceBacklogModes.test_unknown_disposition_profile_and_duplicate_case_id_fail) ... ERROR
+test_unknown_mode_is_explicit_input_error (__main__.TestConformanceBacklogModes.test_unknown_mode_is_explicit_input_error) ... ERROR
+test_unknown_or_duplicate_task_status_is_malformed (__main__.TestConformanceBacklogModes.test_unknown_or_duplicate_task_status_is_malformed) ... ERROR
+
+======================================================================
+ERROR: test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='failed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 566, in test_closing_task_does_not_close_failed_or_local_case
+    self.issue(self.audit(), 'untracked_case')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='local_consistency')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 566, in test_closing_task_does_not_close_failed_or_local_case
+    self.issue(self.audit(), 'untracked_case')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='unsupported')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 566, in test_closing_task_does_not_close_failed_or_local_case
+    self.issue(self.audit(), 'untracked_case')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='blocked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 566, in test_closing_task_does_not_close_failed_or_local_case
+    self.issue(self.audit(), 'untracked_case')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) (status='not_run')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 566, in test_closing_task_does_not_close_failed_or_local_case
+    self.issue(self.audit(), 'untracked_case')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_declared_registered_ids_cannot_be_truncated_or_empty (__main__.TestConformanceBacklogModes.test_declared_registered_ids_cannot_be_truncated_or_empty)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 592, in test_declared_registered_ids_cannot_be_truncated_or_empty
+    result = cpc.evaluate_conformance_backlog(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value='false')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 580, in test_denominator_must_be_an_actual_boolean
+    self.issue(self.audit(), 'invalid_denominator')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 580, in test_denominator_must_be_an_actual_boolean
+    self.issue(self.audit(), 'invalid_denominator')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=1)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 580, in test_denominator_must_be_an_actual_boolean
+    self.issue(self.audit(), 'invalid_denominator')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) (value=None)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 580, in test_denominator_must_be_an_actual_boolean
+    self.issue(self.audit(), 'invalid_denominator')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_done_implementation_and_rust_test_path_do_not_qualify_feature (__main__.TestConformanceBacklogModes.test_done_implementation_and_rust_test_path_do_not_qualify_feature)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 615, in test_done_implementation_and_rust_test_path_do_not_qualify_feature
+    result = self.audit()
+             ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='failed')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 574, in test_every_nonindependent_disposition_stays_in_denominator
+    self.issue(self.audit(), 'invalid_case_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='local_consistency')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 574, in test_every_nonindependent_disposition_stays_in_denominator
+    self.issue(self.audit(), 'invalid_case_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='unsupported')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 574, in test_every_nonindependent_disposition_stays_in_denominator
+    self.issue(self.audit(), 'invalid_case_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='blocked')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 574, in test_every_nonindependent_disposition_stays_in_denominator
+    self.issue(self.audit(), 'invalid_case_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) (status='not_run')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 574, in test_every_nonindependent_disposition_stays_in_denominator
+    self.issue(self.audit(), 'invalid_case_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_feature_out_of_scope_needs_specific_role (__main__.TestConformanceBacklogModes.test_feature_out_of_scope_needs_specific_role)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 636, in test_feature_out_of_scope_needs_specific_role
+    self.issue(self.audit(), 'invalid_feature_exclusion')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_historical_public_exclusion_requires_parallel_current_cell (__main__.TestConformanceBacklogModes.test_historical_public_exclusion_requires_parallel_current_cell)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 646, in test_historical_public_exclusion_requires_parallel_current_cell
+    self.issue(self.audit(cases=[old]), 'missing_current_claimed_cases')
+               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_independent_requires_local_regular_artifact_not_directory_or_escape (__main__.TestConformanceBacklogModes.test_independent_requires_local_regular_artifact_not_directory_or_escape)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 602, in test_independent_requires_local_regular_artifact_not_directory_or_escape
+    result = self.audit()
+             ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) (status='missing')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 632, in test_missing_and_partial_features_need_real_open_task
+    self.issue(self.audit(), 'untracked_feature')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) (status='partial')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 632, in test_missing_and_partial_features_need_real_open_task
+    self.issue(self.audit(), 'untracked_feature')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=[])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 559, in test_missing_done_only_unknown_and_duplicate_bindings_fail
+    self.issue(self.audit(), kind)
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['TEST-done'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 559, in test_missing_done_only_unknown_and_duplicate_bindings_fail
+    self.issue(self.audit(), kind)
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['unknown'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 559, in test_missing_done_only_unknown_and_duplicate_bindings_fail
+    self.issue(self.audit(), kind)
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) (value=['TEST-open', 'TEST-open'])
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 559, in test_missing_done_only_unknown_and_duplicate_bindings_fail
+    self.issue(self.audit(), kind)
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_nonindependent_or_missing_case_cannot_qualify_present_feature (__main__.TestConformanceBacklogModes.test_nonindependent_or_missing_case_cannot_qualify_present_feature)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 622, in test_nonindependent_or_missing_case_cannot_qualify_present_feature
+    result = self.audit()
+             ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_open_tasks_track_a_gap_but_cannot_qualify_it (__main__.TestConformanceBacklogModes.test_open_tasks_track_a_gap_but_cannot_qualify_it)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 546, in test_open_tasks_track_a_gap_but_cannot_qualify_it
+    result = self.audit()
+             ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) (key=67)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 658, in test_raw_extension_does_not_invent_public_java_admin_method
+    self.issue(self.audit(), 'invalid_raw_extension_role')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) (key=73)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 658, in test_raw_extension_does_not_invent_public_java_admin_method
+    self.issue(self.audit(), 'invalid_raw_extension_role')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='backlog')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 674, in test_real_registry_classification_compatible_strict_modes_fail
+    report = cpc.evaluate_protocol_coverage(mode=mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: evaluate_protocol_coverage() got an unexpected keyword argument 'mode'
+
+======================================================================
+ERROR: test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='core')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 674, in test_real_registry_classification_compatible_strict_modes_fail
+    report = cpc.evaluate_protocol_coverage(mode=mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: evaluate_protocol_coverage() got an unexpected keyword argument 'mode'
+
+======================================================================
+ERROR: test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) (mode='full')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 674, in test_real_registry_classification_compatible_strict_modes_fail
+    report = cpc.evaluate_protocol_coverage(mode=mode)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: evaluate_protocol_coverage() got an unexpected keyword argument 'mode'
+
+======================================================================
+ERROR: test_unknown_disposition_profile_and_duplicate_case_id_fail (__main__.TestConformanceBacklogModes.test_unknown_disposition_profile_and_duplicate_case_id_fail)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 584, in test_unknown_disposition_profile_and_duplicate_case_id_fail
+    self.issue(self.audit(), 'invalid_case_disposition')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+ERROR: test_unknown_mode_is_explicit_input_error (__main__.TestConformanceBacklogModes.test_unknown_mode_is_explicit_input_error)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 681, in test_unknown_mode_is_explicit_input_error
+    cpc.evaluate_protocol_coverage(mode='schema_is_full')
+TypeError: evaluate_protocol_coverage() got an unexpected keyword argument 'mode'
+
+======================================================================
+ERROR: test_unknown_or_duplicate_task_status_is_malformed (__main__.TestConformanceBacklogModes.test_unknown_or_duplicate_task_status_is_malformed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 664, in test_unknown_or_duplicate_task_status_is_malformed
+    self.issue(self.audit(), 'invalid_task_status')
+               ^^^^^^^^^^^^
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 536, in audit
+    return cpc.evaluate_conformance_backlog(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: module 'check_protocol_coverage' has no attribute 'evaluate_conformance_backlog'
+
+======================================================================
+FAIL: test_unknown_classification_intent_and_public55_mask_failclosed (__main__.TestConformanceBacklogModes.test_unknown_classification_intent_and_public55_mask_failclosed)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/consumer-protocol-checker-implementation-01/source/tests/conformance/test_check_protocol_coverage.py", line 688, in test_unknown_classification_intent_and_public55_mask_failclosed
+    self.assertEqual(report['summary']['exit_code'], 1)
+AssertionError: 0 != 1
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.070s
+
+FAILED (failures=1, errors=35)

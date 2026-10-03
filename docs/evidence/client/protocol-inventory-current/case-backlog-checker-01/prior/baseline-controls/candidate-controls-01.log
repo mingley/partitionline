@@ -1,0 +1,23 @@
+test_closing_task_does_not_close_failed_or_local_case (__main__.TestConformanceBacklogModes.test_closing_task_does_not_close_failed_or_local_case) ... ok
+test_declared_registered_ids_cannot_be_truncated_or_empty (__main__.TestConformanceBacklogModes.test_declared_registered_ids_cannot_be_truncated_or_empty) ... ok
+test_denominator_must_be_an_actual_boolean (__main__.TestConformanceBacklogModes.test_denominator_must_be_an_actual_boolean) ... ok
+test_done_implementation_and_rust_test_path_do_not_qualify_feature (__main__.TestConformanceBacklogModes.test_done_implementation_and_rust_test_path_do_not_qualify_feature) ... ok
+test_every_nonindependent_disposition_stays_in_denominator (__main__.TestConformanceBacklogModes.test_every_nonindependent_disposition_stays_in_denominator) ... ok
+test_feature_out_of_scope_needs_specific_role (__main__.TestConformanceBacklogModes.test_feature_out_of_scope_needs_specific_role) ... ok
+test_historical_public_exclusion_requires_parallel_current_cell (__main__.TestConformanceBacklogModes.test_historical_public_exclusion_requires_parallel_current_cell) ... ok
+test_independent_requires_local_regular_artifact_not_directory_or_escape (__main__.TestConformanceBacklogModes.test_independent_requires_local_regular_artifact_not_directory_or_escape) ... ok
+test_missing_and_partial_features_need_real_open_task (__main__.TestConformanceBacklogModes.test_missing_and_partial_features_need_real_open_task) ... ok
+test_missing_done_only_unknown_and_duplicate_bindings_fail (__main__.TestConformanceBacklogModes.test_missing_done_only_unknown_and_duplicate_bindings_fail) ... ok
+test_nonindependent_or_missing_case_cannot_qualify_present_feature (__main__.TestConformanceBacklogModes.test_nonindependent_or_missing_case_cannot_qualify_present_feature) ... ok
+test_open_tasks_track_a_gap_but_cannot_qualify_it (__main__.TestConformanceBacklogModes.test_open_tasks_track_a_gap_but_cannot_qualify_it) ... ok
+test_raw_extension_does_not_invent_public_java_admin_method (__main__.TestConformanceBacklogModes.test_raw_extension_does_not_invent_public_java_admin_method) ... ok
+test_real_registry_classification_compatible_strict_modes_fail (__main__.TestConformanceBacklogModes.test_real_registry_classification_compatible_strict_modes_fail) ... ok
+test_unknown_classification_intent_and_public55_mask_failclosed (__main__.TestConformanceBacklogModes.test_unknown_classification_intent_and_public55_mask_failclosed) ... ok
+test_unknown_disposition_profile_and_duplicate_case_id_fail (__main__.TestConformanceBacklogModes.test_unknown_disposition_profile_and_duplicate_case_id_fail) ... ok
+test_unknown_mode_is_explicit_input_error (__main__.TestConformanceBacklogModes.test_unknown_mode_is_explicit_input_error) ... ok
+test_unknown_or_duplicate_task_status_is_malformed (__main__.TestConformanceBacklogModes.test_unknown_or_duplicate_task_status_is_malformed) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.476s
+
+OK

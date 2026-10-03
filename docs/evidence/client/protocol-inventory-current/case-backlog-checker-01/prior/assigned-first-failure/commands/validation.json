@@ -1,0 +1,38 @@
+{
+  "WORK_only_actual_assigned_taskbook": true,
+  "candidate_four_path_freeze_sha256": "fc28022a2e23111e237bd8e47caa6f17c1fcbcdfafb3d92dcb92687d198d90f3",
+  "no_sdk_cargo_jvm_product_runtime": true,
+  "passed": false,
+  "results": [
+    {
+      "after": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "tests/conformance/test_check_protocol_coverage.py",
+        "-v"
+      ],
+      "before": {
+        "byte_full_mode_pathset_unchanged": true,
+        "scope": "minimal static checker input copy, not a full Git archive",
+        "verified_inputs": 83
+      },
+      "exit_code": 1,
+      "expected_exit_code": 0,
+      "name": "unit-tests",
+      "ordinal": 1,
+      "passed": false,
+      "seconds": 7.857444524765015,
+      "stderr_sha256": "06298efb1a6267cd323e11b0758063073011ba547fb1d249504d85930fd3c4ed",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests": 53
+    }
+  ],
+  "source_input_pin": "497f0722100d2ec34cfa6e0775bb278190f53693"
+}

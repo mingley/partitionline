@@ -1,0 +1,10 @@
+{
+  "all169_old_case_fields_and175_old_feature_fields_preserved": true,
+  "all_prior_success_failures_preserved_in_place": true,
+  "assigned_previous_source_freeze_sha256": "e2f7857d25709e4de82317bd8c23e245a876744a76badd36a0940046388c1382",
+  "assigned_previous_validation_sha256": "6e156bda352b207adb43c68e81da32a89e67dcbb35fde1fbb37d744a7c60bc6c",
+  "assigned_work02": "/workspace/work/consumer-protocol-checker-implementation-02",
+  "latest_taskbook_status_delta": "KL05-38 pending\u2192in_progress; all22 new cards remainpending",
+  "new_only_current_claimed_case_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+  "unassigned_work01": "/workspace/work/consumer-protocol-checker-implementation-01"
+}

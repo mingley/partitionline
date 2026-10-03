@@ -164,8 +164,10 @@
     "notes": "Caps queued key+value bytes; partial because headers, metadata, encoded buffers, and socket memory are uncounted (audit A08).",
     "backlog_tasks": [
       "KL02-09",
-      "KL02-10",
-      "KL02-11"
+      "KL02-10"
+    ],
+    "planned_backlog_keys": [
+      "Q-IMPL-ProducerBacking"
     ]
   },
   {
@@ -1139,10 +1141,12 @@
     "evidence": "docs/ROADMAP.md:KL-06",
     "notes": "Proactive token refresh before expiry and broker session_lifetime_ms reauth are missing; tracked in KL06-01 to KL06-04.",
     "backlog_tasks": [
-      "KL06-06",
-      "KL06-11",
-      "KL06-12",
-      "KL06-13"
+      "KL06-06"
+    ],
+    "planned_backlog_keys": [
+      "Q-IMPL-OidcManagerOwnership",
+      "Q-IMPL-ProducerReauth",
+      "Q-IMPL-RpcReauth"
     ]
   },
   {
@@ -1986,8 +1990,9 @@
     "entrypoint": "partitionline_schema::{encode,decode}",
     "evidence": "partitionline-schema/src/wire.rs",
     "notes": "Dependency-free generic five-byte header scaffold; unpublished companion. Generic helpers do not parse Protobuf message indexes; separate protobuf module/Adapter qualified in KL05-26.",
-    "backlog_tasks": [
-      "KL05-45"
+    "backlog_tasks": [],
+    "planned_backlog_keys": [
+      "Q-CONF-GenericSchemaHeader"
     ]
   },
   {
@@ -2024,8 +2029,9 @@
     "entrypoint": "none",
     "evidence": "docs/schema-companion.md",
     "notes": "Opt-in Avro serialization/deserialization adapter; companion crate, tracked in KL05-25.",
-    "backlog_tasks": [
-      "KL05-43"
+    "backlog_tasks": [],
+    "planned_backlog_keys": [
+      "Q-CONF-AvroBackend"
     ]
   },
   {
@@ -2049,8 +2055,9 @@
     "entrypoint": "none",
     "evidence": "docs/schema-companion.md",
     "notes": "JSON Schema validation and serialization adapter; companion crate, tracked in KL05-27.",
-    "backlog_tasks": [
-      "KL05-44"
+    "backlog_tasks": [],
+    "planned_backlog_keys": [
+      "Q-CONF-JsonSchemaBackend"
     ]
   },
   {

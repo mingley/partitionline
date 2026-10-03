@@ -226,8 +226,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Produce x 3.9.1 (versions 3-11): ProduceRequest versions 3-11 decoded required fields vs pinned Kafka 3.9.1. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -243,8 +244,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Produce x 4.1.0 (versions 3-12): ProduceRequest versions 3-12 decoded required fields vs pinned Kafka 4.1.0. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -260,8 +262,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Fetch x 3.9.1 (versions 4-17): FetchRequest versions 4-17 decoded required fields vs pinned Kafka 3.9.1. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -277,8 +280,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Fetch x 4.1.0 (versions 4-17): FetchRequest versions 4-17 decoded required fields vs pinned Kafka 4.1.0. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -294,8 +298,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Metadata x 3.9.1 (versions 1-12): MetadataRequest versions 1-12 decoded required fields vs pinned Kafka 3.9.1. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -311,8 +316,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell Metadata x 4.1.0 (versions 1-13): MetadataRequest versions 1-13 decoded required fields vs pinned Kafka 4.1.0. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -328,8 +334,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell ListOffsets x 3.9.1 (versions 1-9): ListOffsetsRequest versions 1-9 decoded required fields vs pinned Kafka 3.9.1. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -345,8 +352,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Cell ListOffsets x 4.1.0 (versions 1-10): ListOffsetsRequest versions 1-10 decoded required fields vs pinned Kafka 4.1.0. Local encoder/decoder consistency, not independent wire oracle.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -362,8 +370,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v3 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -379,8 +388,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v4 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -396,8 +406,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v5 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -413,8 +424,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v6 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -430,8 +442,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v7 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -447,8 +460,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v8 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -464,8 +478,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v9 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -481,8 +496,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v10 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -498,8 +514,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v11 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -515,8 +532,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Produce v12 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -532,8 +550,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v4 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -549,8 +568,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v5 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -566,8 +586,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v6 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -583,8 +604,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v7 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -600,8 +622,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v8 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -617,8 +640,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v9 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -634,8 +658,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v10 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -651,8 +676,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v11 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -668,8 +694,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v12 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -685,8 +712,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v13 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -702,8 +730,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v14 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -719,8 +748,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v15 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -736,8 +766,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v16 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -753,8 +784,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch v17 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -770,8 +802,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v1 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -787,8 +820,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v2 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -804,8 +838,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v3 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -821,8 +856,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v4 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -838,8 +874,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v5 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -855,8 +892,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v6 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -872,8 +910,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v7 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -889,8 +928,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v8 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -906,8 +946,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v9 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -923,8 +964,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v10 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -940,8 +982,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v11 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -957,8 +1000,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v12 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -974,8 +1018,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Metadata v13 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -991,8 +1036,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v1 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1008,8 +1054,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v2 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1025,8 +1072,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v3 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1042,8 +1090,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v4 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1059,8 +1108,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v5 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1076,8 +1126,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v6 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1093,8 +1144,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v7 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1110,8 +1162,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v8 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1127,8 +1180,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v9 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1144,8 +1198,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "ListOffsets v10 encode/decode self-roundtrip consistency in tests/protocol_oracles.rs; verified local consistency, not independent wire conformance.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1161,8 +1216,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "Produce v12 is KIP-890 Part 2 transaction V2; Apache Kafka 3.9.1 ProduceRequest.json validVersions is 0-11. Kafka 4.0+ only.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -1178,8 +1234,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "Metadata v13 adds top-level ErrorCode; Apache Kafka 3.9.1 MetadataRequest.json validVersions is 0-12. Kafka 4.0+ only.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -1195,8 +1252,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "ListOffsets v10 adds TimeoutMs (KIP-1075); Apache Kafka 3.9.1 ListOffsetsRequest.json validVersions is 0-9. Kafka 4.0+ only.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1212,8 +1270,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "Produce13 topic IDs (KIP-516) are implemented in KL05-11; Apache3.9.1 supports only versions0-11. This peer/version cell remains unsupported.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -1229,8 +1288,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "Fetch18 KIP-1166 is implemented; Apache3.9.1 supports through17. This historical peer/version cell remains unsupported.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -1246,8 +1306,9 @@
       "disposition": "unsupported",
       "denominator": true,
       "reason": "ListOffsets v11 supported in Kafka 4.3.1; partitionline runtime cap is v10. Unsupported in client.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1263,8 +1324,9 @@
       "disposition": "blocked",
       "denominator": true,
       "reason": "Exhaustive independent Produce v3-v12 Java wire qualification remains blocked in this historical cell. KL05-11 separately qualifies only v13 against the three current pinned Apache releases in explicit versioned cells; those results do not promote older-version local round trips.",
-      "backlog_tasks": [
-        "KL01-18"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ProduceWire"
       ]
     },
     {
@@ -1280,8 +1342,9 @@
       "disposition": "blocked",
       "denominator": true,
       "reason": "Independent Apache Java Fetch wire fixture generator pending implementation in KL01-03 / KL01-05; blocked on test tooling.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -1297,8 +1360,9 @@
       "disposition": "blocked",
       "denominator": true,
       "reason": "Independent Apache Java Metadata wire fixture generator pending implementation in KL01-03 / KL01-06; blocked on test tooling.",
-      "backlog_tasks": [
-        "KL01-20"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-MetadataWire"
       ]
     },
     {
@@ -1314,8 +1378,9 @@
       "disposition": "blocked",
       "denominator": true,
       "reason": "Independent Apache Java ListOffsets wire fixture generator pending implementation in KL01-03 / KL01-07; blocked on test tooling.",
-      "backlog_tasks": [
-        "KL01-21"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ListOffsetsWire"
       ]
     },
     {
@@ -1331,8 +1396,9 @@
       "disposition": "failed",
       "denominator": true,
       "reason": "Audit regression A01 (KL03-04): Assign offset 2; broker returns batch 0..2. Client returns [0, 1, 2] instead of [2]. apply_fetch_body lacks lower-bound check against requested offset. Reproduced in docs/audits/2026-09-21-consumer-probes.rs; client-semantic reproduction, not independent wire-conformance.",
-      "backlog_tasks": [
-        "KL01-22"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
       ]
     },
     {
@@ -1348,8 +1414,9 @@
       "disposition": "failed",
       "denominator": true,
       "reason": "Audit regression A02 (KL03-03): PID 7 aborts txn at offset 0 (marker 1), commits at 2 (marker 3). read_committed should return [2]; returns [] and advances past data because control batch skips without ending the aborted-PID interval. Reproduced in docs/audits/2026-09-21-consumer-probes.rs; client-semantic reproduction, not independent wire-conformance.",
-      "backlog_tasks": [
-        "KL01-22"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
       ]
     },
     {
@@ -1365,8 +1432,9 @@
       "disposition": "failed",
       "denominator": true,
       "reason": "Audit regression A03 (KL03-02): One partition succeeds while another returns retriable error. Delivered record disappears from application delivery because retry branch discards round-local out vector. Reproduced in docs/audits/2026-09-21-consumer-probes.rs; client-semantic reproduction, not independent wire-conformance.",
-      "backlog_tasks": [
-        "KL01-22"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
       ]
     },
     {
@@ -1382,8 +1450,9 @@
       "disposition": "failed",
       "denominator": true,
       "reason": "Audit regression A04 (KL03-05): With auto.offset.reset=None, Fetch reports OFFSET_OUT_OF_RANGE and log start 10. Expected error and unchanged position 0; client resets unconditionally to log start 10. Reproduced in docs/audits/2026-09-21-consumer-probes.rs; client-semantic reproduction, not independent wire-conformance.",
-      "backlog_tasks": [
-        "KL01-22"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
       ]
     },
     {
@@ -1399,8 +1468,9 @@
       "disposition": "failed",
       "denominator": true,
       "reason": "Audit regression A05 (KL03-06, KL03-07): Fetch 3 records with max_poll_records=1; process offset 0, commit(), leave and rejoin. Expected [1, 2]; received [] because fetch cursor advances before buffering excess records and commits cursor instead of delivered position. Reproduced in docs/audits/2026-09-21-consumer-probes.rs; client-semantic reproduction, not independent wire-conformance.",
-      "backlog_tasks": [
-        "KL01-22"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchDeliveryRegressions"
       ]
     },
     {
@@ -1416,8 +1486,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Historical executed broker cell (Docker apache/kafka:3.9.1 in CI run 33948193731). Smoke executed with audit limits: KIP-848 and share group cases explicitly skipped in 3.9.1 cell; smoke coverage only, not a full independent pass of all cases.",
-      "backlog_tasks": [
-        "KL01-23"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-HistoricalOrdinary"
       ]
     },
     {
@@ -1433,8 +1504,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Historical executed broker cell (Docker apache/kafka:4.1.0 in CI run 33948193731; native 4.1.0 for auth smoke). Smoke executed with audit limits; not a full independent pass of all cases.",
-      "backlog_tasks": [
-        "KL01-23"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-HistoricalOrdinary"
       ]
     },
     {
@@ -1924,8 +1996,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Incremental fetch helpers exist at codec level but high-level consumer hardcodes FetchMetadata::LEGACY (audit A07); runtime wiring pending KL05.",
-      "backlog_tasks": [
-        "KL01-24"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchSessionRuntime"
       ]
     },
     {
@@ -1941,8 +2014,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Produce and Fetch responses decode ThrottleTimeMs but runtime discards it without applying quota backoff (audit A07); pending KL05.",
-      "backlog_tasks": [
-        "KL01-25"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-QuotaThrottleRuntime"
       ]
     },
     {
@@ -1958,8 +2032,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-09: examples/verifiable_producer.rs + verifiable_consumer.rs implement the pinned Apache 3.9.1 CLI/JSON event contract; tests/verifiable_contract.rs runs one produce-consume scenario (25 records, verbose manual-commit consumer) against the mock broker and validates every event (IDs, values, partitions, offsets, maxOffset+1 commits). Local contract-shape proof only: mock broker, not the ducktape suite or a live Apache broker (see KL01-15/KL01-16/KL01-17).",
-      "backlog_tasks": [
-        "KL01-23"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-HistoricalOrdinary"
       ]
     },
     {
@@ -2009,8 +2084,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-16: verifiable_producer_options_and_earliest_consumer produces six records at five/second with explicit create time, repeating keys and value prefix; checks paced elapsed time, accumulated wire timestamps bounded by ack events, earliest adapter delivery of all keys/values/offsets and stored next offset 6. Pinned Apache 3.9.1 source contract, mock broker only; no live or ducktape qualification.",
-      "backlog_tasks": [
-        "KL01-26"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-VerifiableProducerOptions"
       ]
     },
     {
@@ -2026,8 +2102,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-16: verifiable_consumer_latest_and_none_reset_policies seeds an old record before join, then validates latest delivers only new offset 1 and stores 2; none without stored offset exits with explicit error and no delivery/commit; none with stored offset resumes at 2 and stores 3. Local mock contract only; no live or ducktape qualification.",
-      "backlog_tasks": [
-        "KL01-27"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-VerifiableConsumerOffsets"
       ]
     },
     {
@@ -2043,8 +2120,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "KL01-16: verifiable_consumer_autocommit_has_no_manual_commit_events delivers offset 0, waits for interval auto-commit to store next offset 1, then delivers offset 1 and exits; every stdout line validated and no offsets_committed events. Final poll is not automatically committed on close by current root contract. Local mock proof only; no Java close-parity, live or ducktape qualification.",
-      "backlog_tasks": [
-        "KL01-27"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-VerifiableConsumerOffsets"
       ]
     },
     {
@@ -2161,8 +2239,9 @@
       "disposition": "local_consistency",
       "denominator": true,
       "reason": "Fetch18 local semantic matrix now covers required fields; independent Apache fixtures and runtime regressions tracked separately in KL05-12.",
-      "backlog_tasks": [
-        "KL01-19"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-FetchWire"
       ]
     },
     {
@@ -2943,8 +3022,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -2960,8 +3040,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -2977,8 +3058,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -2994,8 +3076,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3011,8 +3094,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3028,8 +3112,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3045,8 +3130,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3062,8 +3148,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3079,8 +3166,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-28"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-UpdateFeatures"
       ]
     },
     {
@@ -3289,8 +3377,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3306,8 +3395,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3323,8 +3413,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3340,8 +3431,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3357,8 +3449,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3374,8 +3467,9 @@
       "disposition": "not_run",
       "denominator": true,
       "reason": "Public Admin operation required independently of internal use; current source/codec support exists, but this newly defined conformance cell has no imported execution result. Retain not_run until its exact existing or future evidence is reviewed.",
-      "backlog_tasks": [
-        "KL01-29"
+      "backlog_tasks": [],
+      "planned_backlog_keys": [
+        "Q-CONF-ShareOffsetMutations"
       ]
     },
     {
@@ -3387,15 +3481,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3406,15 +3501,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3425,15 +3521,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3444,15 +3541,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3463,15 +3561,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3482,15 +3581,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3501,15 +3601,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3520,15 +3621,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v1-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3539,15 +3641,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-055-v2-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-30"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-DescribeQuorum"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3558,15 +3661,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-31"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3577,15 +3681,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-31"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3596,15 +3701,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-067-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-31"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AllocateProducerIdsRaw"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3615,15 +3721,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-1-2",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.1.2",
       "peer_version_pin": "4.1.2",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-32"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3634,15 +3741,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-2-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.2.1",
       "peer_version_pin": "4.2.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-32"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "backlog_tasks": []
     },
     {
       "adapter": "none",
@@ -3653,15 +3761,16 @@
       "denominator": true,
       "disposition": "not_run",
       "id": "current-claimed-api-073-v0-4-3-1",
-      "immutable_source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+      "immutable_source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
       "peer_pin": "4.3.1",
       "peer_version_pin": "4.3.1",
       "profile": "admin",
       "reason": "Additive current claimed operation cell, independent of historical internal-role exclusions; no execution imported by this WORK plan.",
-      "source_pin": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
-      "backlog_tasks": [
-        "KL01-32"
-      ]
+      "source_pin": "497f0722100d2ec34cfa6e0775bb278190f53693",
+      "planned_backlog_keys": [
+        "Q-CONF-AssignReplicasToDirsRaw"
+      ],
+      "backlog_tasks": []
     }
   ],
   "coverage_contract": {
@@ -4198,6 +4307,7 @@
     "applicability_backlog_tasks": [
       "KL01-14"
     ],
-    "scope": "Registered source rows required by this audit; denominator subset is separately declared. Parameter expansion and additional upstream source families remain unresolved."
+    "scope": "Registered source rows required by this audit; denominator subset is separately declared. Parameter expansion and additional upstream source families remain unresolved.",
+    "work_only_unassigned_proposals": true
   }
 }

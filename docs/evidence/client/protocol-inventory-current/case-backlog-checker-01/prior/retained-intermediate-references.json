@@ -1,0 +1,184 @@
+{
+  "cohorts": [
+    {
+      "cohort": "guarded-assigned-dc5-pass",
+      "files": [
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/backlog.stderr"
+        },
+        {
+          "bytes": 598693,
+          "full_mode": "0o600",
+          "sha256": "90eaa7b6e9e76b8cd7da57acad098588a430c1cf5828d4471c6f9ce83f44422a",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/backlog.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/classification.stderr"
+        },
+        {
+          "bytes": 598711,
+          "full_mode": "0o600",
+          "sha256": "7bf46dae3d7333dd3fb2027a0313d92b572f54cd6e8b2cffd3d4895299a97db7",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/classification.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/core.stderr"
+        },
+        {
+          "bytes": 598687,
+          "full_mode": "0o600",
+          "sha256": "0d3ef9886c581882e26d794ca12ed102c3ed3f06211a0493ba3b8f895de5a301",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/core.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/full.stderr"
+        },
+        {
+          "bytes": 598687,
+          "full_mode": "0o600",
+          "sha256": "6a136daa4f405adca4abc7d61d6a15a290c7f75371240f6474a72daf09c60795",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/full.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/self-test.stderr"
+        },
+        {
+          "bytes": 468,
+          "full_mode": "0o600",
+          "sha256": "04e7314da3a30153f745376cc82de6e9eecab7cec3997cc5caa37f75f8e475fb",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/self-test.stdout"
+        },
+        {
+          "bytes": 9060,
+          "full_mode": "0o600",
+          "sha256": "8f132be532ca51a23d0327a4722020ab6d1f270d2d5489347fce1f0c563f2c72",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/unit-tests.stderr"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/unit-tests.stdout"
+        },
+        {
+          "bytes": 6185,
+          "full_mode": "0o600",
+          "sha256": "a9e4b0ef791ca6a56205e990c123127a88d8896aeae7c9bcde68bc9730737107",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass/validation.json"
+        }
+      ],
+      "publication_policy": "validation copied; complete raw original retained in WORK",
+      "retained_in_place": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-assigned-dc5-pass"
+    },
+    {
+      "cohort": "guarded-final-work",
+      "files": [
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/backlog.stderr"
+        },
+        {
+          "bytes": 598693,
+          "full_mode": "0o600",
+          "sha256": "90eaa7b6e9e76b8cd7da57acad098588a430c1cf5828d4471c6f9ce83f44422a",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/backlog.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/classification.stderr"
+        },
+        {
+          "bytes": 598711,
+          "full_mode": "0o600",
+          "sha256": "7bf46dae3d7333dd3fb2027a0313d92b572f54cd6e8b2cffd3d4895299a97db7",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/classification.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/core.stderr"
+        },
+        {
+          "bytes": 598687,
+          "full_mode": "0o600",
+          "sha256": "0d3ef9886c581882e26d794ca12ed102c3ed3f06211a0493ba3b8f895de5a301",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/core.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/full.stderr"
+        },
+        {
+          "bytes": 598687,
+          "full_mode": "0o600",
+          "sha256": "6a136daa4f405adca4abc7d61d6a15a290c7f75371240f6474a72daf09c60795",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/full.stdout"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/self-test.stderr"
+        },
+        {
+          "bytes": 468,
+          "full_mode": "0o600",
+          "sha256": "04e7314da3a30153f745376cc82de6e9eecab7cec3997cc5caa37f75f8e475fb",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/self-test.stdout"
+        },
+        {
+          "bytes": 9060,
+          "full_mode": "0o600",
+          "sha256": "0c182af56e2e10573986010b4bb6a9617bdd471aaa752b98ff8750b85d02ecd6",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/unit-tests.stderr"
+        },
+        {
+          "bytes": 0,
+          "full_mode": "0o600",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/unit-tests.stdout"
+        },
+        {
+          "bytes": 6187,
+          "full_mode": "0o600",
+          "sha256": "6e156bda352b207adb43c68e81da32a89e67dcbb35fde1fbb37d744a7c60bc6c",
+          "source": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work/validation.json"
+        }
+      ],
+      "publication_policy": "validation copied; complete raw original retained in WORK",
+      "retained_in_place": "/workspace/work/consumer-protocol-checker-implementation-02/guarded-final-work"
+    },
+    {
+      "cohort": "dc5-taskbook-snapshot",
+      "publication_policy": "no duplicate taskbook copied; exact original and source refs retained",
+      "retained_raw_original": {
+        "bytes": 3500058,
+        "full_mode": "0o600",
+        "sha256": "dc5b60af3a622ccb483be7ace1043d8573e65a6833b0b88c7c1d2ceba115660c",
+        "source": "/workspace/work/consumer-protocol-checker-implementation-02/retained-assigned-dc5-pass/taskbook.json"
+      }
+    }
+  ]
+}

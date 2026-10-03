@@ -1,0 +1,64 @@
+{
+  "actual_root338_taskbook_unchanged_at_close": true,
+  "all_canonical_four_paths_unchanged": true,
+  "authoritative_install_map_sha256": "16283fb04654d3fb89721a1c61badac9d480f0eee8bd662998ac4a0eb896e373",
+  "commands": 6,
+  "core_protocol_complete": false,
+  "exits": {
+    "backlog": 0,
+    "classification": 0,
+    "core": 1,
+    "full": 1,
+    "self-test": 0,
+    "unit-tests": 0
+  },
+  "four_candidate_paths": [
+    {
+      "bytes": 80307,
+      "full_mode": "0o755",
+      "path": "scripts/check-protocol-coverage.py",
+      "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6"
+    },
+    {
+      "bytes": 176992,
+      "full_mode": "0o644",
+      "path": "tests/conformance/cases.json",
+      "sha256": "c85fa2e7bd83f641e561f27334484c8ed9a62666d7d253bef67ff6c6a57f4c15"
+    },
+    {
+      "bytes": 83674,
+      "full_mode": "0o644",
+      "path": "tests/conformance/features.json",
+      "sha256": "5a56c500e6d7515e5a3fa2fc642c1afec6fe6fd9a0a68f672985a9f17d8dad67"
+    },
+    {
+      "bytes": 39373,
+      "full_mode": "0o644",
+      "path": "tests/conformance/test_check_protocol_coverage.py",
+      "sha256": "e9823d1213b6a238cfcebc6a00da87a52aaef48230ef00f21ca547ab8612e809"
+    }
+  ],
+  "full_current_protocol_complete": false,
+  "new15_current_claimed_cases_not_run": true,
+  "original169_cases_and175_feature_fields_unchanged": true,
+  "previous_unassigned_stale_test_failures_and_book_cohorts_preserved": true,
+  "registry_counts": {
+    "excluded": 20,
+    "independent": 16,
+    "required": 164,
+    "total": 184,
+    "unqualified": 148
+  },
+  "root_only_canonical_install_commit_push": true,
+  "scope": "Static checker and task/config validation only; no upstream runtime/SDK/Cargo/JVM qualification",
+  "source_freeze_sha256": "5d0403c2d2dd371539638f1aed78e838752095c3104666353d0609da96c70c8d",
+  "source_sha": "5cdbe674430cdbcb6d1ff99f7a992bc2d30132ae",
+  "task_counts": {
+    "done": 176,
+    "in_progress": 13,
+    "pending": 149
+  },
+  "tests": 53,
+  "upstream_applicability_complete": false,
+  "validation_sha256": "e62659137dae216dbd4d30582831224f3eedc352a2fdc815eafb407e3085fceb"
+}

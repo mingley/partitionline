@@ -1,0 +1,34 @@
+{
+  "all83_baseline_inputs_unchanged": true,
+  "canonical4_inputs_unchanged_from_original_source": true,
+  "phase": "WORK only, before root ID assignment",
+  "rows": [
+    {
+      "bytes": 80307,
+      "full_mode": "0o755",
+      "path": "scripts/check-protocol-coverage.py",
+      "sha256": "373d5f0aecadf0e95f538eec20f1089ed4d3428d9b031c13cfe7729b1d924da6"
+    },
+    {
+      "bytes": 182302,
+      "full_mode": "0o644",
+      "path": "tests/conformance/cases.json",
+      "sha256": "6fe47f57d73198b7e18f40d496a35d5b4607ce7434156c451b0cd8305386afb3"
+    },
+    {
+      "bytes": 83947,
+      "full_mode": "0o644",
+      "path": "tests/conformance/features.json",
+      "sha256": "8b2f48daf9a7aab6d25771a6d59fa606d02d578fcba6c78fb5deaa3136c7e732"
+    },
+    {
+      "bytes": 38943,
+      "full_mode": "0o644",
+      "path": "tests/conformance/test_check_protocol_coverage.py",
+      "sha256": "3e1d2464f8e21e8764e2a4d1eb653c829814e7fcaaf6255e689761dc7e3b7bf8"
+    }
+  ],
+  "scope": "No full archive or upstream runtime qualification claimed",
+  "source_sha": "497f0722100d2ec34cfa6e0775bb278190f53693",
+  "unchanged_supporting_inputs": 79
+}

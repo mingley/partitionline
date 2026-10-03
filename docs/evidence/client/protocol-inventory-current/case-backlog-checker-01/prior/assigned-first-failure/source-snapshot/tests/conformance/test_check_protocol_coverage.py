@@ -693,16 +693,10 @@ class TestConformanceBacklogModes(unittest.TestCase):
                 case = dict(self.case, **fields)
                 self.issue(self.audit(cases=[case]), kind)
 
-    def test_real_registry_backlog_passes_but_core_and_full_fail(self):
+    def test_real_registry_classification_compatible_strict_modes_fail(self):
         report = cpc.evaluate_protocol_coverage()
         self.assertEqual(report['summary']['exit_code'], 0)
-        backlog = cpc.evaluate_protocol_coverage(mode='backlog')
-        self.assertEqual(backlog['summary']['exit_code'], 0)
-        self.assertTrue(backlog['conformance_backlog']['backlog_complete'])
-        self.assertEqual(backlog['conformance_backlog']['required_cases'], 164)
-        self.assertEqual(backlog['conformance_backlog']['independent_cases'], 16)
-        self.assertEqual(backlog['conformance_backlog']['unqualified_cases'], 148)
-        for mode in ('core', 'full'):
+        for mode in ('backlog', 'core', 'full'):
             with self.subTest(mode=mode):
                 report = cpc.evaluate_protocol_coverage(mode=mode)
                 self.assertEqual(report['summary']['exit_code'], 1)

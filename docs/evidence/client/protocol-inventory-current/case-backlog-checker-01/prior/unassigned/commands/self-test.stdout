@@ -1,0 +1,8 @@
+Running protocol coverage self-tests...
+  [ok] Frozen pins evaluated cleanly (exit 0, 0 unclassified drift)
+  [ok] Synthetic unclassified API injection rejected (exit 1)
+  [ok] Classified synthetic API accepted (exit 0)
+  [ok] Synthetic unclassified version injection rejected (exit 1)
+  [ok] Classified synthetic version accepted (exit 0)
+  [ok] Key names and helper types strictly excluded from implemented client operations
+Protocol coverage self-tests: ALL PASSED

@@ -1,0 +1,176 @@
+
+class TestConformanceBacklogModes(unittest.TestCase):
+    """Task provenance, denominator and verdict controls, without SDK execution."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        (self.root / 'accepted.json').write_text('{}')
+        self.tasks = {'tasks': [
+            {'id': 'TEST-open', 'status': 'pending'},
+            {'id': 'TEST-working', 'status': 'in_progress'},
+            {'id': 'TEST-done', 'status': 'done'}]}
+        self.case = {'id': 'case-a', 'profile': 'core', 'disposition': 'failed',
+                     'denominator': True, 'backlog_tasks': ['TEST-open']}
+        self.feature = {'id': 'feature-a', 'profile': 'producer', 'layer': 'runtime',
+                        'disposition': 'partial', 'backlog_tasks': ['TEST-working']}
+
+    def audit(self, cases=None, features=None, tasks=None, **kwargs):
+        return cpc.evaluate_conformance_backlog(
+            {'cases': [self.case] if cases is None else cases},
+            [self.feature] if features is None else features,
+            self.tasks if tasks is None else tasks, self.root, **kwargs)
+
+    def issue(self, result, kind):
+        self.assertTrue(any(i['type'] == kind for i in result['issues']), result)
+        self.assertFalse(result['backlog_complete'])
+
+    def test_open_tasks_track_a_gap_but_cannot_qualify_it(self):
+        result = self.audit()
+        self.assertTrue(result['backlog_complete'])
+        self.assertEqual(result['required_cases'], 1)
+        self.assertEqual(result['unqualified_cases'], 1)
+        self.assertFalse(result['core_conformance_complete'])
+        self.assertFalse(result['full_conformance_complete'])
+
+    def test_missing_done_only_unknown_and_duplicate_bindings_fail(self):
+        for value, kind in [([], 'untracked_case'), (['TEST-done'], 'untracked_case'),
+                            (['unknown'], 'unknown_task'),
+                            (['TEST-open', 'TEST-open'], 'invalid_task_bindings')]:
+            with self.subTest(value=value):
+                self.case['backlog_tasks'] = value
+                self.issue(self.audit(), kind)
+
+    def test_closing_task_does_not_close_failed_or_local_case(self):
+        for status in ('failed', 'local_consistency', 'unsupported', 'blocked', 'not_run'):
+            with self.subTest(status=status):
+                self.case['disposition'] = status
+                self.tasks['tasks'][0]['status'] = 'done'
+                self.issue(self.audit(), 'untracked_case')
+
+    def test_every_nonindependent_disposition_stays_in_denominator(self):
+        for status in ('failed', 'local_consistency', 'unsupported', 'blocked', 'not_run'):
+            with self.subTest(status=status):
+                self.case.update(disposition=status, denominator=False,
+                                 applicability_scope='current_broker_internal_role',
+                                 applicability_reason='This reason cannot exclude a required verdict.')
+                self.issue(self.audit(), 'invalid_case_exclusion')
+
+    def test_denominator_must_be_an_actual_boolean(self):
+        for value in ('false', 0, 1, None):
+            with self.subTest(value=value):
+                self.case['denominator'] = value
+                self.issue(self.audit(), 'invalid_denominator')
+
+    def test_unknown_disposition_profile_and_duplicate_case_id_fail(self):
+        self.case['disposition'] = 'codec_pass'
+        self.issue(self.audit(), 'invalid_case_disposition')
+        self.case['disposition'] = 'failed'
+        self.case['profile'] = 'made-up'
+        self.issue(self.audit(), 'invalid_case_profile')
+        self.case['profile'] = 'core'
+        self.issue(self.audit(cases=[self.case, dict(self.case)]), 'duplicate_case_id')
+
+    def test_declared_registered_ids_cannot_be_truncated_or_empty(self):
+        result = cpc.evaluate_conformance_backlog(
+            {'cases': [], 'coverage_contract': {'required_case_ids': ['case-a'],
+                                                'required_feature_ids': ['feature-a']}},
+            [self.feature], self.tasks, self.root)
+        self.issue(result, 'case_registry_mismatch')
+        self.issue(self.audit(cases=[]), 'empty_case_registry')
+
+    def test_independent_requires_local_regular_artifact_not_directory_or_escape(self):
+        self.case.update(disposition='independent_pass', artifacts=['accepted.json'])
+        self.feature.update(disposition='present', conformance_case_ids=['case-a'])
+        result = self.audit()
+        self.assertTrue(result['core_conformance_complete'])
+        self.assertTrue(result['full_conformance_complete'])
+        self.assertFalse(result['exhaustive_upstream_applicability_complete'])
+        for artifacts in ([], ['missing.json'], ['.'], ['../outside.json'], ['/tmp/outside']):
+            with self.subTest(artifacts=artifacts):
+                self.case['artifacts'] = artifacts
+                self.issue(self.audit(), 'invalid_independent_artifacts')
+
+    def test_done_implementation_and_rust_test_path_do_not_qualify_feature(self):
+        self.case.update(disposition='independent_pass', artifacts=['accepted.json'])
+        self.feature.update(disposition='present', evidence='tests/full_surface.rs:test_send',
+                            backlog_tasks=['TEST-done'])
+        result = self.audit()
+        self.issue(result, 'untracked_feature_qualification')
+        self.assertFalse(result['core_conformance_complete'])
+
+    def test_nonindependent_or_missing_case_cannot_qualify_present_feature(self):
+        self.feature.update(disposition='present', conformance_case_ids=['case-a'],
+                            qualification_backlog_tasks=['TEST-open'])
+        result = self.audit()
+        self.assertTrue(result['backlog_complete'])
+        self.assertFalse(result['full_conformance_complete'])
+        self.feature['conformance_case_ids'] = ['absent']
+        self.issue(self.audit(), 'invalid_feature_case_binding')
+
+    def test_missing_and_partial_features_need_real_open_task(self):
+        for status in ('missing', 'partial'):
+            with self.subTest(status=status):
+                self.feature.update(disposition=status, backlog_tasks=['TEST-done'])
+                self.issue(self.audit(), 'untracked_feature')
+
+    def test_feature_out_of_scope_needs_specific_role(self):
+        self.feature.update(disposition='out_of_scope')
+        self.issue(self.audit(), 'invalid_feature_exclusion')
+        self.feature.update(applicability_scope='framework_runtime',
+                            applicability_reason='Framework execution only; protocol semantics remain required.')
+        self.assertTrue(self.audit()['backlog_complete'])
+
+    def test_historical_public_exclusion_requires_parallel_current_cell(self):
+        old = {'id': 'api-broker-internal-055-describe-quorum', 'api_key': 55,
+               'profile': 'admin', 'disposition': 'not_applicable', 'denominator': False,
+               'applicability_scope': 'historical_internal_role',
+               'applicability_reason': 'Historical broker role only.'}
+        self.issue(self.audit(cases=[old]), 'missing_current_claimed_cases')
+        current = dict(self.case, id='quorum-current', profile='admin', api_key=55)
+        result = self.audit(cases=[old, current])
+        self.assertTrue(result['backlog_complete'])
+        self.assertEqual(result['excluded_cases'], 1)
+        old['applicability_scope'] = 'current_broker_internal_role'
+        self.issue(self.audit(cases=[old, current]), 'invalid_case_exclusion')
+
+    def test_raw_extension_does_not_invent_public_java_admin_method(self):
+        for key in (67, 73):
+            with self.subTest(key=key):
+                self.case.update(api_key=key, applicability_role='public_Java_Admin')
+                self.issue(self.audit(), 'invalid_raw_extension_role')
+                self.case['applicability_role'] = 'Rust_raw_extension_no_Java_Admin_equivalent'
+                self.assertTrue(self.audit()['backlog_complete'])
+
+    def test_unknown_or_duplicate_task_status_is_malformed(self):
+        self.tasks['tasks'][0]['status'] = 'finished'
+        self.issue(self.audit(), 'invalid_task_status')
+        self.tasks['tasks'][0]['status'] = 'pending'
+        self.tasks['tasks'].append(dict(self.tasks['tasks'][0]))
+        self.issue(self.audit(), 'duplicate_task_id')
+
+    def test_real_registry_classification_compatible_strict_modes_fail(self):
+        report = cpc.evaluate_protocol_coverage()
+        self.assertEqual(report['summary']['exit_code'], 0)
+        for mode in ('backlog', 'core', 'full'):
+            with self.subTest(mode=mode):
+                report = cpc.evaluate_protocol_coverage(mode=mode)
+                self.assertEqual(report['summary']['exit_code'], 1)
+                self.assertFalse(report['core_protocol_complete'])
+                self.assertFalse(report['full_current_protocol_complete'])
+
+    def test_unknown_mode_is_explicit_input_error(self):
+        with self.assertRaises(cpc.ProtocolCoverageError):
+            cpc.evaluate_protocol_coverage(mode='schema_is_full')
+        proc = subprocess.run([sys.executable, str(SCRIPT_PATH), '--mode', 'schema_is_full'],
+                              cwd=REPO_ROOT, capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 2)
+
+    def test_unknown_classification_intent_and_public55_mask_failclosed(self):
+        report = cpc.evaluate_protocol_coverage(extra_classified_apis={0: 'magic_pass'})
+        self.assertEqual(report['summary']['exit_code'], 1)
+        self.assertTrue(any(d['type']=='unknown_classification' for d in report['unclassified_drift']))
+        report = cpc.evaluate_protocol_coverage(extra_classified_apis={55: 'excluded_broker_internal'})
+        self.assertEqual(report['summary']['exit_code'], 1)
+        self.assertTrue(any(d['type']=='public_api_excluded' for d in report['unclassified_drift']))
