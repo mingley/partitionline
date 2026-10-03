@@ -35,7 +35,7 @@ public final class StreamsWireOracle {
     }
 
     private static byte[] bytes(Message message) {
-        ByteBuffer encoded = MessageUtil.toByteBufferAccessor(message, VERSION).buffer();
+        ByteBuffer encoded = MessageUtil.toByteBuffer(message, VERSION);
         byte[] result = new byte[encoded.remaining()];
         encoded.get(result);
         return result;
@@ -524,7 +524,7 @@ public final class StreamsWireOracle {
 
     private static final List<String> HEADER_INDEX = new ArrayList<>();
     private static byte[] serialize(Message message, short version) {
-        ByteBuffer encoded = MessageUtil.toByteBufferAccessor(message, version).buffer();
+        ByteBuffer encoded = MessageUtil.toByteBuffer(message, version);
         byte[] body = new byte[encoded.remaining()];
         encoded.get(body);
         return body;

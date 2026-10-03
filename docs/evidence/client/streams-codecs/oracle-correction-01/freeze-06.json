@@ -1,0 +1,230 @@
+{
+  "scope": "WORK-only source caller correction and actual first-failure compact publication. No repository edit/Cargo/JVM retry or generated vectors.",
+  "reviewed_previous_freeze_sha256": "2b29259d0a81e1dc485cd0d45a363fc449b18e40f719b688ace74fef17d93e0d",
+  "failed_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "failed_oracle_sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+  "candidate_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "minimal_change_hunks": 2,
+  "candidate_compiled": false,
+  "publication_files": 22,
+  "publication_total_logical_bytes": 2846272,
+  "all_files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/StreamsWireOracle.java",
+      "bytes": 56478,
+      "full_permission_mode": "0644",
+      "sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/4.1.2-compile.json",
+      "bytes": 1555,
+      "full_permission_mode": "0644",
+      "sha256": "be5fdd12090652a24405ef7a7f9b65db673efd8ab609e2c0828533477017d83a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/4.1.2-compile.stderr",
+      "bytes": 664,
+      "full_permission_mode": "0644",
+      "sha256": "9583b99c69fd035721d8a36086152027de40d8172eb286232953bb17842747cf"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/4.1.2-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/driver-06.stderr",
+      "bytes": 478,
+      "full_permission_mode": "0644",
+      "sha256": "354cd4ebab435e0e6aa1cfa480a9cfa17d533521a2164b20953bbc3e2d8a82f0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/driver-06.stdout",
+      "bytes": 171,
+      "full_permission_mode": "0644",
+      "sha256": "24c6011d25aadf43ff50b6e313a1557a2e3f6fb7cf2cc66e79c041c5d8dd37d0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/failure-summary.json",
+      "bytes": 6264,
+      "full_permission_mode": "0644",
+      "sha256": "51ae3118987000eeb39e0eb61eebc5c43a2afcc61acf08f4d180c220f231f876"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/freeze-05.json",
+      "bytes": 8071,
+      "full_permission_mode": "0644",
+      "sha256": "2b29259d0a81e1dc485cd0d45a363fc449b18e40f719b688ace74fef17d93e0d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/java-version.json",
+      "bytes": 901,
+      "full_permission_mode": "0644",
+      "sha256": "b057004c455f8905af316475063180f5f892c62ad80edc23bc953707ab30d85d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/java-version.stderr",
+      "bytes": 187,
+      "full_permission_mode": "0644",
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/java-version.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/launch-06.json",
+      "bytes": 1042,
+      "full_permission_mode": "0644",
+      "sha256": "4531eccc9fa818de6d1f23dc3a72c39a0a3d177e94cef7ccb73ce200d0ef6f97"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/launch-preflight-06.json",
+      "bytes": 1564,
+      "full_permission_mode": "0644",
+      "sha256": "c805f8d33a0b6d3f48709ecf167dce41ccb0664805bea0fe6166aa244a2edcfa"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/launch-supervisor-06.py",
+      "bytes": 6235,
+      "full_permission_mode": "0644",
+      "sha256": "b14037020c2554db861986d894aa3cd3e1e70e2e106e50d8f3fd3b9709140d0b"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/oracle-7f81-original.java",
+      "bytes": 56444,
+      "full_permission_mode": "0644",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/results.json",
+      "bytes": 46855,
+      "full_permission_mode": "0644",
+      "sha256": "82bb30225836460a430e228e0c7a7d35a2f6931af9d7189b0f3e02520d8e6d18"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/run-oracle.py",
+      "bytes": 22721,
+      "full_permission_mode": "0644",
+      "sha256": "7752f503971163b9ad2d56f22496beacf1d7d58cf2d7484d1e65f4985507cd21"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/source-after-receipt.json",
+      "bytes": 895,
+      "full_permission_mode": "0644",
+      "sha256": "68622e0c88299cbb045e180cf64190025b7950201df8c94017ec66aea74d16c8"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/source-after.json.gz",
+      "bytes": 2630489,
+      "full_permission_mode": "0644",
+      "sha256": "e3e549aae650a679e50b4989f99022f4706abd7ef0c3ef18c237c1c101f63129"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/source-before-receipt.json",
+      "bytes": 823,
+      "full_permission_mode": "0644",
+      "sha256": "0987b76885e95207903cb5d252f41c819c80ba22a089469b964471ddf2ca7dab"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/source-directories-after.json.gz",
+      "bytes": 48524,
+      "full_permission_mode": "0644",
+      "sha256": "6537193d84a1c4cbeb683cefd52f890a25e053496e3804db6cad71c254d9d3a5"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/failure-01-publication/supervisor-06.json",
+      "bytes": 1653,
+      "full_permission_mode": "0644",
+      "sha256": "61fc31b1f5edf6fee48a5a447462e40c3133183468f7d9eb88cbfb04928ddc94"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/next-run-contract.json",
+      "bytes": 2770,
+      "full_permission_mode": "0644",
+      "sha256": "2c484a3ac77d9cee5cc7e71a9c431e59eb6722ed5f843f7137f32c891f4f0798"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/oracle-7f81-original.java",
+      "bytes": 56444,
+      "full_permission_mode": "0644",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/oracle-method-correction.patch",
+      "bytes": 907,
+      "full_permission_mode": "0644",
+      "sha256": "245b3c204aaf41e2160923547a84e017d3f706b31486fb4b648bf516e899b64e"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/source-method-review.json",
+      "bytes": 32276,
+      "full_permission_mode": "0644",
+      "sha256": "ac0e00c7f492d578962f5c60b003e15108f2fbc14558532e798117a2c288dc69"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.1.2/ByteBufferAccessor.java",
+      "bytes": 3633,
+      "full_permission_mode": "0644",
+      "sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.1.2/Message.java",
+      "bytes": 3885,
+      "full_permission_mode": "0644",
+      "sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.1.2/MessageUtil.java",
+      "bytes": 9972,
+      "full_permission_mode": "0644",
+      "sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.2.1/ByteBufferAccessor.java",
+      "bytes": 3633,
+      "full_permission_mode": "0644",
+      "sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.2.1/Message.java",
+      "bytes": 3885,
+      "full_permission_mode": "0644",
+      "sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.2.1/MessageUtil.java",
+      "bytes": 9972,
+      "full_permission_mode": "0644",
+      "sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.3.1/ByteBufferAccessor.java",
+      "bytes": 3633,
+      "full_permission_mode": "0644",
+      "sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.3.1/Message.java",
+      "bytes": 3885,
+      "full_permission_mode": "0644",
+      "sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-06/upstream/4.3.1/MessageUtil.java",
+      "bytes": 9972,
+      "full_permission_mode": "0644",
+      "sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81"
+    }
+  ],
+  "required_action": "Root review/source push/materialization, then revised exact frozen runner pin+origin args and renewed SDK lease before first retry."
+}

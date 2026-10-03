@@ -1,0 +1,32 @@
+{
+  "driver_pid": 1230449,
+  "driver_pgid": 1230449,
+  "supervisor_pid": 1230445,
+  "supervisor_pgid": 1230445,
+  "output": "/workspace/work/streams-codecs/oracle-final-04f6bc29-attempt-01",
+  "arguments": [
+    "taskset",
+    "-c",
+    "0,1",
+    "python3",
+    "/workspace/work/streams-codecs/revision-05/run-oracle.py",
+    "--repo",
+    "/workspace/partitionline",
+    "--snapshot",
+    "/workspace/work/client-capabilities-source-04f6bc29",
+    "--jars",
+    "/workspace/work/broker-wire/jars",
+    "--java",
+    "/usr/bin/java",
+    "--origin",
+    "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "--output",
+    "/workspace/work/streams-codecs/oracle-final-04f6bc29-attempt-01"
+  ],
+  "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "runner_sha256": "7752f503971163b9ad2d56f22496beacf1d7d58cf2d7484d1e65f4985507cd21",
+  "poll_seconds": 0.2,
+  "whole_run_absolute_deadline_seconds": 720,
+  "minimum_free_bytes": 367001600,
+  "output_unique_logical_and_allocated_limit_bytes": 100663296
+}

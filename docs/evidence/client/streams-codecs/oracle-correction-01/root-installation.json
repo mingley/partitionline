@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "source_change": "exact two MessageUtil calls",
+  "candidate_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "genuine_api_source_review": "all3 MessageUtil5a907... accessor owns exact-size message.write buffer and flips it before return",
+  "actual_first_compile_failure_preserved": true,
+  "candidate_compiled": false,
+  "no_fixture_or_Rust_behavior_pass_claim": true,
+  "all_other315_tasks_unchanged": true,
+  "task31_still_in_progress": true
+}

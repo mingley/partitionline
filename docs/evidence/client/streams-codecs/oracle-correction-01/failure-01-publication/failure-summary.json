@@ -1,0 +1,166 @@
+{
+  "scope": "Actual first strict SDK compiler failure. No generated vectors; no Rust build. No retry. Complete source/input immutability and all joined process/guard results retained. Publication is lossless compact copies; full before/after raw maps remain at owned WORK output, with both exact bytes and modes preserved.",
+  "failed_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "oracle_sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+  "driver_completed": false,
+  "actual_sdk_command_count": 2,
+  "actual_genuine_compiles": {
+    "4.1.2": "failed exit1",
+    "4.2.1": "not_run",
+    "4.3.1": "not_run"
+  },
+  "actual_vector_generation_commands": 0,
+  "failure": "RuntimeError: actual command failed: 4.1.2-compile",
+  "compile_stderr_sha256": "9583b99c69fd035721d8a36086152027de40d8172eb286232953bb17842747cf",
+  "all_processes_joined": true,
+  "whole_run_watchdog_failure": null,
+  "immutable_source_before_and_after_passed": true,
+  "input_objects_before_after_equal": true,
+  "source_full_map": {
+    "path": "source-after.json",
+    "bytes": 23380322,
+    "sha256": "f5179aac9e296b356b80b3ae3e053ff836bc5d084593d21fd01678513dde2b5c",
+    "mode": "0600"
+  },
+  "source_full_directory_map": {
+    "path": "source-directories-after.json",
+    "bytes": 1628040,
+    "sha256": "2ed570a730ed4254348ab2576351fbe42fff8f744a5e91846c2a77b7da3ce7c8",
+    "mode": "0600"
+  },
+  "work_full_evidence_path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-attempt-01",
+  "whole_supervisor_path": "/workspace/work/streams-codecs/revision-05/supervisor-06.json",
+  "fix_disposition": "Source-only minimal correction proposed separately; no repository edit/JVM retry without root review/new source pin and lease.",
+  "development_inspection_findings": [
+    "A broad rg search after the stopped run also traversed complete compact source maps and produced oversized truncated tool output; no files changed. Subsequent inspections target explicit small files.",
+    "Cached extracted broker-api schema directories contain no Java protocol implementation sources; actual cached full official source archives were inspected directly with exact member paths."
+  ],
+  "artifact_manifest": [
+    {
+      "name": "4.1.2-compile.json",
+      "bytes": 1555,
+      "full_permission_mode": "0644",
+      "sha256": "be5fdd12090652a24405ef7a7f9b65db673efd8ab609e2c0828533477017d83a"
+    },
+    {
+      "name": "4.1.2-compile.stderr",
+      "bytes": 664,
+      "full_permission_mode": "0644",
+      "sha256": "9583b99c69fd035721d8a36086152027de40d8172eb286232953bb17842747cf"
+    },
+    {
+      "name": "4.1.2-compile.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "driver-06.stderr",
+      "bytes": 478,
+      "full_permission_mode": "0644",
+      "sha256": "354cd4ebab435e0e6aa1cfa480a9cfa17d533521a2164b20953bbc3e2d8a82f0"
+    },
+    {
+      "name": "driver-06.stdout",
+      "bytes": 171,
+      "full_permission_mode": "0644",
+      "sha256": "24c6011d25aadf43ff50b6e313a1557a2e3f6fb7cf2cc66e79c041c5d8dd37d0"
+    },
+    {
+      "name": "freeze-05.json",
+      "bytes": 8071,
+      "full_permission_mode": "0644",
+      "sha256": "2b29259d0a81e1dc485cd0d45a363fc449b18e40f719b688ace74fef17d93e0d"
+    },
+    {
+      "name": "java-version.json",
+      "bytes": 901,
+      "full_permission_mode": "0644",
+      "sha256": "b057004c455f8905af316475063180f5f892c62ad80edc23bc953707ab30d85d"
+    },
+    {
+      "name": "java-version.stderr",
+      "bytes": 187,
+      "full_permission_mode": "0644",
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "name": "java-version.stdout",
+      "bytes": 0,
+      "full_permission_mode": "0644",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "launch-06.json",
+      "bytes": 1042,
+      "full_permission_mode": "0644",
+      "sha256": "4531eccc9fa818de6d1f23dc3a72c39a0a3d177e94cef7ccb73ce200d0ef6f97"
+    },
+    {
+      "name": "launch-preflight-06.json",
+      "bytes": 1564,
+      "full_permission_mode": "0644",
+      "sha256": "c805f8d33a0b6d3f48709ecf167dce41ccb0664805bea0fe6166aa244a2edcfa"
+    },
+    {
+      "name": "launch-supervisor-06.py",
+      "bytes": 6235,
+      "full_permission_mode": "0644",
+      "sha256": "b14037020c2554db861986d894aa3cd3e1e70e2e106e50d8f3fd3b9709140d0b"
+    },
+    {
+      "name": "oracle-7f81-original.java",
+      "bytes": 56444,
+      "full_permission_mode": "0644",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d"
+    },
+    {
+      "name": "origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "name": "results.json",
+      "bytes": 46855,
+      "full_permission_mode": "0644",
+      "sha256": "82bb30225836460a430e228e0c7a7d35a2f6931af9d7189b0f3e02520d8e6d18"
+    },
+    {
+      "name": "run-oracle.py",
+      "bytes": 22721,
+      "full_permission_mode": "0644",
+      "sha256": "7752f503971163b9ad2d56f22496beacf1d7d58cf2d7484d1e65f4985507cd21"
+    },
+    {
+      "name": "source-after-receipt.json",
+      "bytes": 895,
+      "full_permission_mode": "0644",
+      "sha256": "68622e0c88299cbb045e180cf64190025b7950201df8c94017ec66aea74d16c8"
+    },
+    {
+      "name": "source-after.json.gz",
+      "bytes": 2630489,
+      "full_permission_mode": "0644",
+      "sha256": "e3e549aae650a679e50b4989f99022f4706abd7ef0c3ef18c237c1c101f63129"
+    },
+    {
+      "name": "source-before-receipt.json",
+      "bytes": 823,
+      "full_permission_mode": "0644",
+      "sha256": "0987b76885e95207903cb5d252f41c819c80ba22a089469b964471ddf2ca7dab"
+    },
+    {
+      "name": "source-directories-after.json.gz",
+      "bytes": 48524,
+      "full_permission_mode": "0644",
+      "sha256": "6537193d84a1c4cbeb683cefd52f890a25e053496e3804db6cad71c254d9d3a5"
+    },
+    {
+      "name": "supervisor-06.json",
+      "bytes": 1653,
+      "full_permission_mode": "0644",
+      "sha256": "61fc31b1f5edf6fee48a5a447462e40c3133183468f7d9eb88cbfb04928ddc94"
+    }
+  ]
+}

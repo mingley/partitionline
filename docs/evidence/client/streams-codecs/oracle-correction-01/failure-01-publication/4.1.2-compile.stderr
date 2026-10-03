@@ -1,0 +1,11 @@
+/workspace/work/client-capabilities-source-04f6bc29/tests/fixtures/streams/oracle/StreamsWireOracle.java:38: error: cannot find symbol
+        ByteBuffer encoded = MessageUtil.toByteBuffer(message, VERSION);
+                                        ^
+  symbol:   method toByteBuffer(Message,short)
+  location: class MessageUtil
+/workspace/work/client-capabilities-source-04f6bc29/tests/fixtures/streams/oracle/StreamsWireOracle.java:527: error: cannot find symbol
+        ByteBuffer encoded = MessageUtil.toByteBuffer(message, version);
+                                        ^
+  symbol:   method toByteBuffer(Message,short)
+  location: class MessageUtil
+2 errors

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/workspace/work/streams-codecs/revision-05/run-oracle.py", line 440, in <module>
+    main()
+  File "/workspace/work/streams-codecs/revision-05/run-oracle.py", line 378, in main
+    execute(f"{release}-compile", args_compile, environment)
+  File "/workspace/work/streams-codecs/revision-05/run-oracle.py", line 336, in execute
+    raise RuntimeError(f"actual command failed: {label}")
+RuntimeError: actual command failed: 4.1.2-compile

@@ -1,0 +1,981 @@
+{
+  "scope": "Read-only cached official source/archive and actual jar/classfile method-table inspection; no JVM/Cargo execution. Minimal proposed caller fix only; no generated vectors or runtime qualification. Original source/checkpoint unchanged.",
+  "failed_source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "failed_oracle_sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+  "proposed_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+  "exact_change": "Both nonexistent MessageUtil.toByteBuffer(Message,short) calls become actual MessageUtil.toByteBufferAccessor(Message,short).buffer(). Nothing else changes.",
+  "upstream_contract": "Identical official MessageUtil.java lines207-213 in all three releases: one ObjectSerializationCache, message.size(cache,version), exact ByteBuffer.allocate(messageSize), message.write(accessor,cache,version), accessor.flip(), return accessor. Official ByteBufferAccessor.java153-159 flips and exposes same backing buffer. Message.size uses addSize accumulator and Message.write writes all fields for selected version. No version prefix is introduced and no body/header bytes are hand-authored by this correction.",
+  "actual_jar_contract": "Actual classfile method descriptors prove toByteBufferAccessor(Message,short)->ByteBufferAccessor and ByteBufferAccessor.buffer()->ByteBuffer are public; no toByteBuffer method is present. Compilation is still pending and not inferred from this source inspection.",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "upstream_commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "cached_full_source_archive": {
+        "path": "/workspace/work/broker-api/4.1.2.tar.gz",
+        "bytes": 13467172,
+        "sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a"
+      },
+      "actual_classpath_jar": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+        "bytes": 9769826,
+        "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "full_permission_mode": "0600"
+      },
+      "objects": [
+        {
+          "source_object": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/protocol/MessageUtil.java",
+          "source_bytes": 9972,
+          "source_sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81",
+          "class_object": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "class_bytes": 9509,
+          "class_sha256": "96f395d1c07a055ed12bb0d703bd0d19a54fdcf8a0d3dbd14b7f7808587541bd",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 150,
+                  "sha256": "d18dd1072fea99c620f4390f2fac95b0cc1eb5d64753860bdcdf7144795dc81a"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "()V"
+            ],
+            [
+              "byteBufferToArray",
+              "(Ljava/nio/ByteBuffer;)[B"
+            ],
+            [
+              "deepToString",
+              "(Ljava/util/Iterator;)Ljava/lang/String;"
+            ],
+            [
+              "jsonNodeToByte",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B"
+            ],
+            [
+              "jsonNodeToShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S"
+            ],
+            [
+              "jsonNodeToUnsignedShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToUnsignedInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToLong",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToBinary",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B"
+            ],
+            [
+              "jsonNodeToDouble",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D"
+            ],
+            [
+              "duplicate",
+              "([B)[B"
+            ],
+            [
+              "compareRawTaggedFields",
+              "(Ljava/util/List;Ljava/util/List;)Z"
+            ],
+            [
+              "toByteBufferAccessor",
+              "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;"
+            ],
+            [
+              "toVersionPrefixedByteBuffer",
+              "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toVersionPrefixedBytes",
+              "(SLorg/apache/kafka/common/protocol/Message;)[B"
+            ],
+            [
+              "toCoordinatorTypePrefixedByteBuffer",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toCoordinatorTypePrefixedBytes",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/protocol/ByteBufferAccessor.java",
+          "source_bytes": 3633,
+          "source_sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc",
+          "class_object": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "class_bytes": 4307,
+          "class_sha256": "3e0cc852eb4ce1009fd3dc90014bb8a732669f957ec9933a19eb51c65eab62fd",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 55,
+                  "sha256": "ef172fc73ff47a13fd60a0c735572f1b88c4f76e4724b71a3ee8f05407e33d82"
+                }
+              ]
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 47,
+                  "sha256": "776e93eff1d0d13a2d1ef35daa2d987c50d664a6c102826c7cb7dd2e3a076e5a"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "readByte",
+              "()B"
+            ],
+            [
+              "readShort",
+              "()S"
+            ],
+            [
+              "readInt",
+              "()I"
+            ],
+            [
+              "readLong",
+              "()J"
+            ],
+            [
+              "readDouble",
+              "()D"
+            ],
+            [
+              "readArray",
+              "(I)[B"
+            ],
+            [
+              "readUnsignedVarint",
+              "()I"
+            ],
+            [
+              "readByteBuffer",
+              "(I)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "writeByte",
+              "(B)V"
+            ],
+            [
+              "writeShort",
+              "(S)V"
+            ],
+            [
+              "writeInt",
+              "(I)V"
+            ],
+            [
+              "writeLong",
+              "(J)V"
+            ],
+            [
+              "writeDouble",
+              "(D)V"
+            ],
+            [
+              "writeByteArray",
+              "([B)V"
+            ],
+            [
+              "writeUnsignedVarint",
+              "(I)V"
+            ],
+            [
+              "writeByteBuffer",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "writeVarint",
+              "(I)V"
+            ],
+            [
+              "writeVarlong",
+              "(J)V"
+            ],
+            [
+              "readVarint",
+              "()I"
+            ],
+            [
+              "readVarlong",
+              "()J"
+            ],
+            [
+              "remaining",
+              "()I"
+            ],
+            [
+              "slice",
+              "()Lorg/apache/kafka/common/protocol/Readable;"
+            ],
+            [
+              "flip",
+              "()V"
+            ],
+            [
+              "buffer",
+              "()Ljava/nio/ByteBuffer;"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c/clients/src/main/java/org/apache/kafka/common/protocol/Message.java",
+          "source_bytes": 3885,
+          "source_sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127",
+          "class_object": "org/apache/kafka/common/protocol/Message.class",
+          "class_bytes": 1303,
+          "class_sha256": "ad607cafe7d0adaf6286a836e4c27d84d22c17807a361ae9d6bfb4c92dae73ed",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "size",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 102,
+                  "sha256": "d3b3ef6bf681484b34a6cff7f0af0cb32476ea5d6db5bd4eff347bd7b48dc3cf"
+                }
+              ]
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1025,
+              "attributes": []
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "lowestSupportedVersion",
+              "()S"
+            ],
+            [
+              "highestSupportedVersion",
+              "()S"
+            ],
+            [
+              "size",
+              "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I"
+            ],
+            [
+              "addSize",
+              "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "write",
+              "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "read",
+              "(Lorg/apache/kafka/common/protocol/Readable;S)V"
+            ],
+            [
+              "unknownTaggedFields",
+              "()Ljava/util/List;"
+            ],
+            [
+              "duplicate",
+              "()Lorg/apache/kafka/common/protocol/Message;"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "upstream_commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "cached_full_source_archive": {
+        "path": "/workspace/work/broker-api/4.2.1.tar.gz",
+        "bytes": 13797370,
+        "sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955"
+      },
+      "actual_classpath_jar": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+        "bytes": 10119977,
+        "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "full_permission_mode": "0600"
+      },
+      "objects": [
+        {
+          "source_object": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/protocol/MessageUtil.java",
+          "source_bytes": 9972,
+          "source_sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81",
+          "class_object": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "class_bytes": 9509,
+          "class_sha256": "96f395d1c07a055ed12bb0d703bd0d19a54fdcf8a0d3dbd14b7f7808587541bd",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 150,
+                  "sha256": "d18dd1072fea99c620f4390f2fac95b0cc1eb5d64753860bdcdf7144795dc81a"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "()V"
+            ],
+            [
+              "byteBufferToArray",
+              "(Ljava/nio/ByteBuffer;)[B"
+            ],
+            [
+              "deepToString",
+              "(Ljava/util/Iterator;)Ljava/lang/String;"
+            ],
+            [
+              "jsonNodeToByte",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B"
+            ],
+            [
+              "jsonNodeToShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S"
+            ],
+            [
+              "jsonNodeToUnsignedShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToUnsignedInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToLong",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToBinary",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B"
+            ],
+            [
+              "jsonNodeToDouble",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D"
+            ],
+            [
+              "duplicate",
+              "([B)[B"
+            ],
+            [
+              "compareRawTaggedFields",
+              "(Ljava/util/List;Ljava/util/List;)Z"
+            ],
+            [
+              "toByteBufferAccessor",
+              "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;"
+            ],
+            [
+              "toVersionPrefixedByteBuffer",
+              "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toVersionPrefixedBytes",
+              "(SLorg/apache/kafka/common/protocol/Message;)[B"
+            ],
+            [
+              "toCoordinatorTypePrefixedByteBuffer",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toCoordinatorTypePrefixedBytes",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/protocol/ByteBufferAccessor.java",
+          "source_bytes": 3633,
+          "source_sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc",
+          "class_object": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "class_bytes": 4307,
+          "class_sha256": "3e0cc852eb4ce1009fd3dc90014bb8a732669f957ec9933a19eb51c65eab62fd",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 55,
+                  "sha256": "ef172fc73ff47a13fd60a0c735572f1b88c4f76e4724b71a3ee8f05407e33d82"
+                }
+              ]
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 47,
+                  "sha256": "776e93eff1d0d13a2d1ef35daa2d987c50d664a6c102826c7cb7dd2e3a076e5a"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "readByte",
+              "()B"
+            ],
+            [
+              "readShort",
+              "()S"
+            ],
+            [
+              "readInt",
+              "()I"
+            ],
+            [
+              "readLong",
+              "()J"
+            ],
+            [
+              "readDouble",
+              "()D"
+            ],
+            [
+              "readArray",
+              "(I)[B"
+            ],
+            [
+              "readUnsignedVarint",
+              "()I"
+            ],
+            [
+              "readByteBuffer",
+              "(I)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "writeByte",
+              "(B)V"
+            ],
+            [
+              "writeShort",
+              "(S)V"
+            ],
+            [
+              "writeInt",
+              "(I)V"
+            ],
+            [
+              "writeLong",
+              "(J)V"
+            ],
+            [
+              "writeDouble",
+              "(D)V"
+            ],
+            [
+              "writeByteArray",
+              "([B)V"
+            ],
+            [
+              "writeUnsignedVarint",
+              "(I)V"
+            ],
+            [
+              "writeByteBuffer",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "writeVarint",
+              "(I)V"
+            ],
+            [
+              "writeVarlong",
+              "(J)V"
+            ],
+            [
+              "readVarint",
+              "()I"
+            ],
+            [
+              "readVarlong",
+              "()J"
+            ],
+            [
+              "remaining",
+              "()I"
+            ],
+            [
+              "slice",
+              "()Lorg/apache/kafka/common/protocol/Readable;"
+            ],
+            [
+              "flip",
+              "()V"
+            ],
+            [
+              "buffer",
+              "()Ljava/nio/ByteBuffer;"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-18d5ecd939c8d510fdd72d0abb1f7099659dcd58/clients/src/main/java/org/apache/kafka/common/protocol/Message.java",
+          "source_bytes": 3885,
+          "source_sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127",
+          "class_object": "org/apache/kafka/common/protocol/Message.class",
+          "class_bytes": 1303,
+          "class_sha256": "ad607cafe7d0adaf6286a836e4c27d84d22c17807a361ae9d6bfb4c92dae73ed",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "size",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 102,
+                  "sha256": "d3b3ef6bf681484b34a6cff7f0af0cb32476ea5d6db5bd4eff347bd7b48dc3cf"
+                }
+              ]
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1025,
+              "attributes": []
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "lowestSupportedVersion",
+              "()S"
+            ],
+            [
+              "highestSupportedVersion",
+              "()S"
+            ],
+            [
+              "size",
+              "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I"
+            ],
+            [
+              "addSize",
+              "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "write",
+              "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "read",
+              "(Lorg/apache/kafka/common/protocol/Readable;S)V"
+            ],
+            [
+              "unknownTaggedFields",
+              "()Ljava/util/List;"
+            ],
+            [
+              "duplicate",
+              "()Lorg/apache/kafka/common/protocol/Message;"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "upstream_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "cached_full_source_archive": {
+        "path": "/workspace/work/broker-api/4.3.1.tar.gz",
+        "bytes": 14169772,
+        "sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2"
+      },
+      "actual_classpath_jar": {
+        "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+        "bytes": 10204032,
+        "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "full_permission_mode": "0600"
+      },
+      "objects": [
+        {
+          "source_object": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/protocol/MessageUtil.java",
+          "source_bytes": 9972,
+          "source_sha256": "5a907b3679f8e48565ee1f0b767bb1a7e9cb4674323292acd80c93fc17734f81",
+          "class_object": "org/apache/kafka/common/protocol/MessageUtil.class",
+          "class_bytes": 9549,
+          "class_sha256": "6cc828d9300f1df0d420a9d75af0db60e46bc8e64846a4c58212d16453109f9f",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "toByteBufferAccessor",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;",
+              "access_flags": 9,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 150,
+                  "sha256": "54688bb1acdf42d21c242d51dd32c269352415858cd2be22ead7ab66892b1eae"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "()V"
+            ],
+            [
+              "byteBufferToArray",
+              "(Ljava/nio/ByteBuffer;)[B"
+            ],
+            [
+              "deepToString",
+              "(Ljava/util/Iterator;)Ljava/lang/String;"
+            ],
+            [
+              "jsonNodeToByte",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)B"
+            ],
+            [
+              "jsonNodeToShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)S"
+            ],
+            [
+              "jsonNodeToUnsignedShort",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToUnsignedInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToInt",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)I"
+            ],
+            [
+              "jsonNodeToLong",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)J"
+            ],
+            [
+              "jsonNodeToBinary",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)[B"
+            ],
+            [
+              "jsonNodeToDouble",
+              "(Lcom/fasterxml/jackson/databind/JsonNode;Ljava/lang/String;)D"
+            ],
+            [
+              "duplicate",
+              "([B)[B"
+            ],
+            [
+              "compareRawTaggedFields",
+              "(Ljava/util/List;Ljava/util/List;)Z"
+            ],
+            [
+              "toByteBufferAccessor",
+              "(Lorg/apache/kafka/common/protocol/Message;S)Lorg/apache/kafka/common/protocol/ByteBufferAccessor;"
+            ],
+            [
+              "toVersionPrefixedByteBuffer",
+              "(SLorg/apache/kafka/common/protocol/Message;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toVersionPrefixedBytes",
+              "(SLorg/apache/kafka/common/protocol/Message;)[B"
+            ],
+            [
+              "toCoordinatorTypePrefixedByteBuffer",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "toCoordinatorTypePrefixedBytes",
+              "(Lorg/apache/kafka/common/protocol/ApiMessage;)[B"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/protocol/ByteBufferAccessor.java",
+          "source_bytes": 3633,
+          "source_sha256": "5bd5014d20612c542d81abe0e1df088a49f2f6f1e5792d0445076592084ef1fc",
+          "class_object": "org/apache/kafka/common/protocol/ByteBufferAccessor.class",
+          "class_bytes": 4307,
+          "class_sha256": "9d50ce9c5bc2e466eb61242560b09783e8fd3e872e6f657c6baf8db8aedc9f06",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "flip",
+              "descriptor": "()V",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 55,
+                  "sha256": "838f6194e3784b4cda27305bbaaab1abf0aa2ed39f74e0ad5b6077aef50997fb"
+                }
+              ]
+            },
+            {
+              "name": "buffer",
+              "descriptor": "()Ljava/nio/ByteBuffer;",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 47,
+                  "sha256": "4470f04e41b467ff3632934a487091788b6a6ba8c15193af105d0f591d6ed513"
+                }
+              ]
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "<init>",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "readByte",
+              "()B"
+            ],
+            [
+              "readShort",
+              "()S"
+            ],
+            [
+              "readInt",
+              "()I"
+            ],
+            [
+              "readLong",
+              "()J"
+            ],
+            [
+              "readDouble",
+              "()D"
+            ],
+            [
+              "readArray",
+              "(I)[B"
+            ],
+            [
+              "readUnsignedVarint",
+              "()I"
+            ],
+            [
+              "readByteBuffer",
+              "(I)Ljava/nio/ByteBuffer;"
+            ],
+            [
+              "writeByte",
+              "(B)V"
+            ],
+            [
+              "writeShort",
+              "(S)V"
+            ],
+            [
+              "writeInt",
+              "(I)V"
+            ],
+            [
+              "writeLong",
+              "(J)V"
+            ],
+            [
+              "writeDouble",
+              "(D)V"
+            ],
+            [
+              "writeByteArray",
+              "([B)V"
+            ],
+            [
+              "writeUnsignedVarint",
+              "(I)V"
+            ],
+            [
+              "writeByteBuffer",
+              "(Ljava/nio/ByteBuffer;)V"
+            ],
+            [
+              "writeVarint",
+              "(I)V"
+            ],
+            [
+              "writeVarlong",
+              "(J)V"
+            ],
+            [
+              "readVarint",
+              "()I"
+            ],
+            [
+              "readVarlong",
+              "()J"
+            ],
+            [
+              "remaining",
+              "()I"
+            ],
+            [
+              "slice",
+              "()Lorg/apache/kafka/common/protocol/Readable;"
+            ],
+            [
+              "flip",
+              "()V"
+            ],
+            [
+              "buffer",
+              "()Ljava/nio/ByteBuffer;"
+            ]
+          ]
+        },
+        {
+          "source_object": "kafka-26b251a451ce941d3d7a55e6487bcb7f16b5ad48/clients/src/main/java/org/apache/kafka/common/protocol/Message.java",
+          "source_bytes": 3885,
+          "source_sha256": "bdcfd9f33be5f2bf8b6b811e63f90341b13857c331a0ecd1427871137f55d127",
+          "class_object": "org/apache/kafka/common/protocol/Message.class",
+          "class_bytes": 1303,
+          "class_sha256": "d2971d32af2a8476f1fba5f26b765ad5c823370b64b994480f4b4292a81d5f30",
+          "class_version": {
+            "major": 55,
+            "minor": 0
+          },
+          "relevant_actual_method_table": [
+            {
+              "name": "size",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I",
+              "access_flags": 1,
+              "attributes": [
+                {
+                  "kind": "Code",
+                  "bytes": 102,
+                  "sha256": "7d6cdc5c2844f73bd3250ce8f98b060305d3039f8d3cbf82148405b8b7ac914f"
+                }
+              ]
+            },
+            {
+              "name": "write",
+              "descriptor": "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V",
+              "access_flags": 1025,
+              "attributes": []
+            }
+          ],
+          "all_method_name_descriptor_pairs": [
+            [
+              "lowestSupportedVersion",
+              "()S"
+            ],
+            [
+              "highestSupportedVersion",
+              "()S"
+            ],
+            [
+              "size",
+              "(Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)I"
+            ],
+            [
+              "addSize",
+              "(Lorg/apache/kafka/common/protocol/MessageSizeAccumulator;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "write",
+              "(Lorg/apache/kafka/common/protocol/Writable;Lorg/apache/kafka/common/protocol/ObjectSerializationCache;S)V"
+            ],
+            [
+              "read",
+              "(Lorg/apache/kafka/common/protocol/Readable;S)V"
+            ],
+            [
+              "unknownTaggedFields",
+              "()Ljava/util/List;"
+            ],
+            [
+              "duplicate",
+              "()Lorg/apache/kafka/common/protocol/Message;"
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "next_run": "Root source push/materialization/new origin and reviewed runner pin required; renewed explicit SDK lease. Existing strict compile/generation args and all bounds stay unchanged; no automatic retry."
+}

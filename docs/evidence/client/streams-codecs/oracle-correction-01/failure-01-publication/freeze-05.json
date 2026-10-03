@@ -1,0 +1,160 @@
+{
+  "scope": "Additive WORK-only reviewed-source/prelaunch correction. Zero JVM/SDK/Cargo commands;22 meaningful real Python controls (including two synthetic Python child-process failure/lifecycle cells), full actualsource inspection only. Old39c5+preparation04 bytes unchanged. No repository edits, vector synthesis, source or runtime/evidence deletions. Synthetic test data independently allocated/cleaned only.",
+  "source_pin": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "origin_receipt": {
+    "path": "/workspace/work/integration/client-capabilities-source-04f6bc29/receipt.json",
+    "sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29"
+  },
+  "preserved_original": {
+    "runner_sha256": "39c5d71c8ff2c1e99bfa5f1b9b7c61a6ebc623a254d3a45eb225239cf7a98171",
+    "packet_sha256": "d2b20f5771cd7a791bbe3d541634f8027f8c9a5c22e6660b8ce68ea7a6a5276b",
+    "oracle_sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d"
+  },
+  "actual_full_source_inspection": {
+    "complete": true,
+    "file_identity_checks": 73938,
+    "observed_files": 73938,
+    "expected_files": 73938,
+    "directory_identity_checks": 10308,
+    "observed_file_bytes": 713363027,
+    "passed": true,
+    "error_count": 0,
+    "first16errors": [],
+    "expected_owner_uid": 1000,
+    "expected_owner_gid": 1000,
+    "file_owner_checks": 73938,
+    "scope": "Prelaunch full source inspection only; no JVM, SDK or Cargo execution",
+    "source_sha": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "source_origin_receipt_sha256": "5abaab9053b7b81d03a3c6ac161c4188f1f7a6ee909c71ecc69914224ed4ce29",
+    "actual_raw_bytes": 23380322,
+    "actual_raw_sha256": "f5179aac9e296b356b80b3ae3e053ff836bc5d084593d21fd01678513dde2b5c",
+    "actual_directory_map_bytes": 1628040,
+    "actual_directory_map_sha256": "2ed570a730ed4254348ab2576351fbe42fff8f744a5e91846c2a77b7da3ce7c8",
+    "duration_seconds": 8.271802454997669,
+    "retained_complete_raw_map": {
+      "path": "/workspace/work/integration/client-capabilities-source-04f6bc29/complete-source.json",
+      "exact_byte_equality_to_observed_map": true,
+      "full_mode": "0600"
+    }
+  },
+  "corrected_forecast": {
+    "source_file_count": 73938,
+    "source_bytes": 713363027,
+    "source_directory_count": 10308,
+    "categories": {
+      "full_raw_before_exact_bytes": 23380322,
+      "full_raw_after_configured_upper_bound_bytes": 24428898,
+      "verified_origin_gzip_before_exact_bytes": 2630489,
+      "verified_origin_gzip_after_upper_bound_bytes": 2630489,
+      "full_directory_before_exact_compact_bytes": 1628040,
+      "full_directory_after_configured_upper_bound_bytes": 2152329,
+      "all_fresh_classes_enforced_upper_bound_bytes": 2097152,
+      "all_two_process_three_sdk_fixtures_enforced_upper_bound_bytes": 8388608,
+      "ten_command_two_streams_enforced_upper_bound_bytes": 1310720,
+      "minimal_json_metadata_enforced_upper_bound_bytes": 2097152,
+      "file_allocation_and_directory_entry_reserve_bytes": 8388608
+    },
+    "worst_case_new_output_allocated_bytes": 79132807,
+    "successful_unchanged_raw_maps_exact_physical_bytes": 27638851,
+    "required_free_bytes": 446134407,
+    "sampled_free_bytes": 1006694400,
+    "minimum_remaining_free_bytes": 367001600,
+    "owned_output_limit_bytes": 100663296
+  },
+  "proofs": "Explicit100000source entry bound and guarded actual73938origin; complete Git/actual/declared path sets, every Gitblob SHA1+SHA256/size/full07777 mode and owner checks; all directory paths/full0700 modes. Full compact raw observed maps retained, before copied raw plus byteverified origin gzip; identical after byte-verified hardlink with both artifact paths retained, changed after full separate raw artifact. Complete after audit in failed-command finally. SDK inputs bind exact paths/hashes/full07777 before/after; no unbound inode/mtime assertions. Strict96MiB unique physical/logical owned-output budget plus350MiBfloor/reservedwrites; bounded classes/vector cohorts/metadata/stdout/process deadline andjoinedgroupkill.",
+  "control_result": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 taskset -c0,1 python3 revision-05/test_prelaunch.py",
+    "exit_status": 0,
+    "tests_passed": 22,
+    "actual_sdk_jvm_cargo_commands": 0,
+    "final_log": "prelaunch-controls-03.log",
+    "earlier_runs_retained": "controls01/02 and preliminary wrong-filesystem free-space sample retained; source inspection/review rejections in development-prelaunch-findings.json"
+  },
+  "next_step": "Await explicit root JVM GO0,1 after Avro forced-baseline priority; fresh WORK output only, fixed source04f6 and oracle7f81; no Cargo/matrix/target allocation.",
+  "files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/additive-runner-correction.patch",
+      "bytes": 28824,
+      "full_permission_mode": "0644",
+      "sha256": "2b3de4e42606bb88eb1e71f9736b031665d836dcb1860b8e7821da171694a206"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/development-prelaunch-findings.json",
+      "bytes": 1892,
+      "full_permission_mode": "0644",
+      "sha256": "9f08341a48c547623e426a16f1c60a26208ce3d4f65d40d58cae104da2b5bb0c"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/measured-disk-forecast-01.json",
+      "bytes": 1080,
+      "full_permission_mode": "0644",
+      "sha256": "2a57d2564623cd73702e6439d6ebdf2dfd9e19a24de94881298ecaf4f6e9ed17"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/measured-disk-forecast-02.json",
+      "bytes": 1080,
+      "full_permission_mode": "0644",
+      "sha256": "eb8c17ce34361410c83f90de1736608923a839086f01be5530434e5de2a26dfb"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/measured-disk-forecast-03.json",
+      "bytes": 1080,
+      "full_permission_mode": "0644",
+      "sha256": "6a20ce0320790fab1a5cb4d03435b7ef8a42abab9b5f681ec00d46c5ae47909a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/measured-disk-forecast.json",
+      "bytes": 1080,
+      "full_permission_mode": "0644",
+      "sha256": "2a57d2564623cd73702e6439d6ebdf2dfd9e19a24de94881298ecaf4f6e9ed17"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/origin_audit.py",
+      "bytes": 10736,
+      "full_permission_mode": "0644",
+      "sha256": "dfc6802e18c9a5007219da96159d9e889d37e3e23e69bdd15772e8dea2266022"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/prelaunch-controls-01.log",
+      "bytes": 2915,
+      "full_permission_mode": "0644",
+      "sha256": "cb212df5d37dc17524ab09d39b62fe8639a08fb81d82a3403f290e7caffb9abe"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/prelaunch-controls-02.log",
+      "bytes": 2915,
+      "full_permission_mode": "0644",
+      "sha256": "cb212df5d37dc17524ab09d39b62fe8639a08fb81d82a3403f290e7caffb9abe"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/prelaunch-controls-03.log",
+      "bytes": 3171,
+      "full_permission_mode": "0644",
+      "sha256": "e705fca5a0c0c365e806f0811f817e6a090d68f8ae8411536bcc81d21104a0a0"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/prelaunch-full-source-inspection.json",
+      "bytes": 1098,
+      "full_permission_mode": "0644",
+      "sha256": "a674db76d75806ca68f270b67f600604d79ba60f8f422fc639ba7a2785101333"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/run-oracle.py",
+      "bytes": 22721,
+      "full_permission_mode": "0644",
+      "sha256": "7752f503971163b9ad2d56f22496beacf1d7d58cf2d7484d1e65f4985507cd21"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/test_prelaunch-01.py",
+      "bytes": 11203,
+      "full_permission_mode": "0644",
+      "sha256": "2ef98baf130e194df35ee5473ae085dff1ccbd520f453af2ec9384924ef6d65a"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-05/test_prelaunch.py",
+      "bytes": 11848,
+      "full_permission_mode": "0644",
+      "sha256": "4b99a6b458f241fa1c0a92e5e1dfc31f1b2252e24da743994d86ffa4d92eb4ad"
+    }
+  ]
+}

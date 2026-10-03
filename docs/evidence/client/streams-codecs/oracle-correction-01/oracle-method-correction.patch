@@ -1,0 +1,20 @@
+--- a/tests/fixtures/streams/oracle/StreamsWireOracle.java
++++ b/tests/fixtures/streams/oracle/StreamsWireOracle.java
+@@ -35,7 +35,7 @@
+     }
+ 
+     private static byte[] bytes(Message message) {
+-        ByteBuffer encoded = MessageUtil.toByteBuffer(message, VERSION);
++        ByteBuffer encoded = MessageUtil.toByteBufferAccessor(message, VERSION).buffer();
+         byte[] result = new byte[encoded.remaining()];
+         encoded.get(result);
+         return result;
+@@ -524,7 +524,7 @@
+ 
+     private static final List<String> HEADER_INDEX = new ArrayList<>();
+     private static byte[] serialize(Message message, short version) {
+-        ByteBuffer encoded = MessageUtil.toByteBuffer(message, version);
++        ByteBuffer encoded = MessageUtil.toByteBufferAccessor(message, version).buffer();
+         byte[] body = new byte[encoded.remaining()];
+         encoded.get(body);
+         return body;

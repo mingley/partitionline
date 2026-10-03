@@ -1,0 +1,32 @@
+{
+  "label": "java-version",
+  "command": [
+    "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+    "-version"
+  ],
+  "timeout_seconds": 60,
+  "maximum_stdout_or_stderr_bytes": 65536,
+  "cpu_affinity": "0,1",
+  "exit_status": 0,
+  "duration_seconds": 0.031555970999761485,
+  "streams": {
+    "stdout": {
+      "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-attempt-01/java-version.stdout",
+      "size": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "0600"
+    },
+    "stderr": {
+      "path": "/workspace/work/streams-codecs/oracle-final-04f6bc29-attempt-01/java-version.stderr",
+      "size": 187,
+      "sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20",
+      "mode": "0600"
+    }
+  },
+  "actual_read_stream_bytes": {
+    "stdout": 0,
+    "stderr": 187
+  },
+  "joined": true,
+  "bound_failure": null
+}

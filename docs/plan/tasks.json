@@ -49834,7 +49834,26 @@
         "Focused stable/1.85 default/all-feature codec and malformed-input tests; strict fmt/Clippy/rustdoc.",
         "Actual pinned Java fixture generation and reverse parsing; source registration alone cannot become runtime coverage."
       ],
-      "evidence": []
+      "evidence": [
+  {
+    "schema_version": 1,
+    "task": "KL05-31",
+    "status": "in_progress",
+    "scope": "Actual strict Kafka4.1.2 Java compile failure and two-line caller correction; no generated fixture or Rust test pass.",
+    "actual_failed_source": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+    "actual_failure_result_sha256": "82bb30225836460a430e228e0c7a7d35a2f6931af9d7189b0f3e02520d8e6d18",
+    "actual_sdk_commands": 2,
+    "actual_compile_exit": 1,
+    "generated_vectors": 0,
+    "source_and_input_guards_passed": true,
+    "all_children_joined": true,
+    "candidate_oracle_sha256": "848047c5fb87ca57e3d19dd76c575f3b2edbe86ff3ac1d378daca13f1206110a",
+    "candidate_compiled": false,
+    "full_protocol_complete": false,
+    "evidence": "docs/evidence/client/streams-codecs/oracle-correction-01/failure-01-publication/failure-summary.json",
+    "source_method_review": "docs/evidence/client/streams-codecs/oracle-correction-01/source-method-review.json"
+  }
+]
     },
     {
       "id": "KL05-32",
