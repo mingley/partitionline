@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "source_sha": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "cell": {
+    "version": "4.1.2",
+    "image": "apache/kafka:4.1.2",
+    "digest": "sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "host": "linux-x86_64",
+    "required_scenarios": [
+      "admin",
+      "produce",
+      "manual",
+      "classic",
+      "cooperative",
+      "kip848",
+      "share",
+      "transaction"
+    ],
+    "records_per_partition": 8,
+    "partitions": 2,
+    "replication_factor": 1,
+    "qualification": "passed",
+    "qualifying_source_sha": "8bec4f21fd92bb2aaa8b44f2899534b900f94c1e",
+    "ci_run_id": 36869103809
+  },
+  "identity": {
+    "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "actual_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+    "container_cpuset": "",
+    "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+    "repo_digests": [
+      "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+    ],
+    "kafka_cli_version": "4.1.2\n",
+    "host_os": "Linux",
+    "host_arch": "x86_64",
+    "rustc_host": "x86_64-unknown-linux-gnu",
+    "rustc_release": "1.99.0"
+  },
+  "runtime": {
+    "scenarios": {
+      "admin": {
+        "records": 0,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "classic": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "cooperative": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "kip848": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "manual": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "produce": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "share": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      },
+      "transaction": {
+        "records": 16,
+        "duplicates": 0,
+        "missing": 0,
+        "corrupt": 0,
+        "status": "passed"
+      }
+    },
+    "api_ranges": {
+      "0": [
+        0,
+        13
+      ],
+      "1": [
+        4,
+        18
+      ],
+      "10": [
+        0,
+        6
+      ],
+      "11": [
+        0,
+        9
+      ],
+      "12": [
+        0,
+        4
+      ],
+      "13": [
+        0,
+        5
+      ],
+      "14": [
+        0,
+        5
+      ],
+      "15": [
+        0,
+        6
+      ],
+      "16": [
+        0,
+        5
+      ],
+      "17": [
+        0,
+        1
+      ],
+      "18": [
+        0,
+        4
+      ],
+      "19": [
+        2,
+        7
+      ],
+      "2": [
+        1,
+        10
+      ],
+      "20": [
+        1,
+        6
+      ],
+      "21": [
+        0,
+        2
+      ],
+      "22": [
+        0,
+        5
+      ],
+      "23": [
+        2,
+        4
+      ],
+      "24": [
+        0,
+        5
+      ],
+      "25": [
+        0,
+        4
+      ],
+      "26": [
+        0,
+        5
+      ],
+      "27": [
+        1,
+        1
+      ],
+      "28": [
+        0,
+        5
+      ],
+      "29": [
+        1,
+        3
+      ],
+      "3": [
+        0,
+        13
+      ],
+      "30": [
+        1,
+        3
+      ],
+      "31": [
+        1,
+        3
+      ],
+      "32": [
+        1,
+        4
+      ],
+      "33": [
+        0,
+        2
+      ],
+      "34": [
+        1,
+        2
+      ],
+      "35": [
+        1,
+        4
+      ],
+      "36": [
+        0,
+        2
+      ],
+      "37": [
+        0,
+        3
+      ],
+      "38": [
+        1,
+        3
+      ],
+      "39": [
+        1,
+        2
+      ],
+      "40": [
+        1,
+        2
+      ],
+      "41": [
+        1,
+        3
+      ],
+      "42": [
+        0,
+        2
+      ],
+      "43": [
+        0,
+        2
+      ],
+      "44": [
+        0,
+        1
+      ],
+      "45": [
+        0,
+        1
+      ],
+      "46": [
+        0,
+        0
+      ],
+      "47": [
+        0,
+        0
+      ],
+      "48": [
+        0,
+        1
+      ],
+      "49": [
+        0,
+        1
+      ],
+      "50": [
+        0,
+        0
+      ],
+      "51": [
+        0,
+        0
+      ],
+      "55": [
+        0,
+        2
+      ],
+      "57": [
+        0,
+        2
+      ],
+      "60": [
+        0,
+        2
+      ],
+      "61": [
+        0,
+        0
+      ],
+      "64": [
+        0,
+        0
+      ],
+      "65": [
+        0,
+        0
+      ],
+      "66": [
+        0,
+        2
+      ],
+      "68": [
+        0,
+        1
+      ],
+      "69": [
+        0,
+        1
+      ],
+      "74": [
+        0,
+        1
+      ],
+      "75": [
+        0,
+        0
+      ],
+      "76": [
+        1,
+        1
+      ],
+      "77": [
+        1,
+        1
+      ],
+      "78": [
+        1,
+        1
+      ],
+      "79": [
+        1,
+        1
+      ],
+      "8": [
+        2,
+        9
+      ],
+      "80": [
+        0,
+        0
+      ],
+      "81": [
+        0,
+        0
+      ],
+      "83": [
+        0,
+        0
+      ],
+      "84": [
+        0,
+        0
+      ],
+      "85": [
+        0,
+        0
+      ],
+      "86": [
+        0,
+        0
+      ],
+      "87": [
+        0,
+        0
+      ],
+      "9": [
+        1,
+        9
+      ],
+      "90": [
+        0,
+        0
+      ],
+      "91": [
+        0,
+        0
+      ],
+      "92": [
+        0,
+        0
+      ]
+    },
+    "finalized_features": {
+      "eligible.leader.replicas.version": [
+        1,
+        1
+      ],
+      "group.version": [
+        1,
+        1
+      ],
+      "metadata.version": [
+        27,
+        27
+      ],
+      "share.version": [
+        1,
+        1
+      ],
+      "transaction.version": [
+        2,
+        2
+      ]
+    },
+    "committed_offsets": {
+      "classic": {
+        "0": 8,
+        "1": 8
+      },
+      "cooperative": {
+        "0": 8,
+        "1": 8
+      },
+      "kip848": {
+        "0": 8,
+        "1": 8
+      },
+      "transaction": {
+        "0": 8,
+        "1": 8
+      }
+    },
+    "group_ids": {
+      "classic": "plcompat-4-1-2-classic",
+      "cooperative": "plcompat-4-1-2-cooperative",
+      "kip848": "plcompat-4-1-2-kip848",
+      "transaction": "plcompat-4-1-2-transaction"
+    },
+    "startup_attempts": [
+      {
+        "phase": "setup",
+        "scenario": "classic",
+        "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+      },
+      {
+        "phase": "setup",
+        "scenario": "transaction",
+        "error": "broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator"
+      },
+      {
+        "phase": "setup",
+        "scenario": "transaction",
+        "error": "broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId"
+      }
+    ],
+    "transaction_visibility": [
+      {
+        "attempt": 0,
+        "elapsed_ms": 1,
+        "error": 88
+      },
+      {
+        "attempt": 1,
+        "elapsed_ms": 28,
+        "offsets": {
+          "0": 8,
+          "1": 8
+        }
+      }
+    ],
+    "source_sha": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+    "requested": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "input_topic": "plcompat-4-1-2-input",
+    "output_topic": "plcompat-4-1-2-output",
+    "seed_timestamp": 1791064671820,
+    "transaction_aborted_visible": 0,
+    "share_accepted": 16
+  },
+  "status": "passed"
+}

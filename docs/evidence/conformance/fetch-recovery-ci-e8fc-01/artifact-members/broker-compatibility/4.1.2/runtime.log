@@ -1,0 +1,148 @@
+[1m[92m    Finished[0m `test` profile [unoptimized] target(s) in 0.03s
+[1m[92m     Running[0m tests/broker_compatibility.rs (target/debug/deps/broker_compatibility-504f1bc62ad9b1df)
+
+running 1 test
+compatibility phase: admin-connect
+compatibility phase: admin-features
+compatibility phase: admin-create-topics
+compatibility phase: admin-offsets
+compatibility phase: produce
+compatibility phase: manual
+compatibility phase: groups
+compatibility group phase: classic join
+coordinator startup classic: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator
+compatibility group phase: classic poll
+compatibility group phase: classic commit
+compatibility group phase: classic committed
+compatibility group phase: classic close
+compatibility group phase: cooperative join
+compatibility group phase: cooperative poll
+compatibility group phase: cooperative commit
+compatibility group phase: cooperative committed
+compatibility group phase: cooperative close
+compatibility group phase: kip848 join
+compatibility group phase: kip848 poll
+compatibility group phase: kip848 commit
+compatibility group phase: kip848 committed
+compatibility group phase: kip848 close
+compatibility phase: share
+compatibility phase: transaction
+transaction coordinator startup: broker error 15 (COORDINATOR_NOT_AVAILABLE): FindCoordinator
+transaction coordinator startup: broker error 14 (COORDINATOR_LOAD_IN_PROGRESS): InitProducerId
+transaction offset visibility: 1ms None
+transaction offset visibility: 28ms Some({"0": 8, "1": 8})
+PL_COMPAT_SOURCE	e8fc0b72724ebfcef99d4742c7870f95a7a9a47f
+PL_COMPAT_REFERENCE	apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+PL_COMPAT_INPUT_TOPIC	plcompat-4-1-2-input
+PL_COMPAT_OUTPUT_TOPIC	plcompat-4-1-2-output
+PL_COMPAT_SEED_TIMESTAMP	1791064671820
+PL_COMPAT_SCENARIO	admin	passed	0	0	0	0
+PL_COMPAT_SCENARIO	classic	passed	16	0	0	0
+PL_COMPAT_SCENARIO	cooperative	passed	16	0	0	0
+PL_COMPAT_SCENARIO	kip848	passed	16	0	0	0
+PL_COMPAT_SCENARIO	manual	passed	16	0	0	0
+PL_COMPAT_SCENARIO	produce	passed	16	0	0	0
+PL_COMPAT_SCENARIO	share	passed	16	0	0	0
+PL_COMPAT_SCENARIO	transaction	passed	16	0	0	0
+PL_COMPAT_API	0	0	13
+PL_COMPAT_API	1	4	18
+PL_COMPAT_API	10	0	6
+PL_COMPAT_API	11	0	9
+PL_COMPAT_API	12	0	4
+PL_COMPAT_API	13	0	5
+PL_COMPAT_API	14	0	5
+PL_COMPAT_API	15	0	6
+PL_COMPAT_API	16	0	5
+PL_COMPAT_API	17	0	1
+PL_COMPAT_API	18	0	4
+PL_COMPAT_API	19	2	7
+PL_COMPAT_API	2	1	10
+PL_COMPAT_API	20	1	6
+PL_COMPAT_API	21	0	2
+PL_COMPAT_API	22	0	5
+PL_COMPAT_API	23	2	4
+PL_COMPAT_API	24	0	5
+PL_COMPAT_API	25	0	4
+PL_COMPAT_API	26	0	5
+PL_COMPAT_API	27	1	1
+PL_COMPAT_API	28	0	5
+PL_COMPAT_API	29	1	3
+PL_COMPAT_API	3	0	13
+PL_COMPAT_API	30	1	3
+PL_COMPAT_API	31	1	3
+PL_COMPAT_API	32	1	4
+PL_COMPAT_API	33	0	2
+PL_COMPAT_API	34	1	2
+PL_COMPAT_API	35	1	4
+PL_COMPAT_API	36	0	2
+PL_COMPAT_API	37	0	3
+PL_COMPAT_API	38	1	3
+PL_COMPAT_API	39	1	2
+PL_COMPAT_API	40	1	2
+PL_COMPAT_API	41	1	3
+PL_COMPAT_API	42	0	2
+PL_COMPAT_API	43	0	2
+PL_COMPAT_API	44	0	1
+PL_COMPAT_API	45	0	1
+PL_COMPAT_API	46	0	0
+PL_COMPAT_API	47	0	0
+PL_COMPAT_API	48	0	1
+PL_COMPAT_API	49	0	1
+PL_COMPAT_API	50	0	0
+PL_COMPAT_API	51	0	0
+PL_COMPAT_API	55	0	2
+PL_COMPAT_API	57	0	2
+PL_COMPAT_API	60	0	2
+PL_COMPAT_API	61	0	0
+PL_COMPAT_API	64	0	0
+PL_COMPAT_API	65	0	0
+PL_COMPAT_API	66	0	2
+PL_COMPAT_API	68	0	1
+PL_COMPAT_API	69	0	1
+PL_COMPAT_API	74	0	1
+PL_COMPAT_API	75	0	0
+PL_COMPAT_API	76	1	1
+PL_COMPAT_API	77	1	1
+PL_COMPAT_API	78	1	1
+PL_COMPAT_API	79	1	1
+PL_COMPAT_API	8	2	9
+PL_COMPAT_API	80	0	0
+PL_COMPAT_API	81	0	0
+PL_COMPAT_API	83	0	0
+PL_COMPAT_API	84	0	0
+PL_COMPAT_API	85	0	0
+PL_COMPAT_API	86	0	0
+PL_COMPAT_API	87	0	0
+PL_COMPAT_API	9	1	9
+PL_COMPAT_API	90	0	0
+PL_COMPAT_API	91	0	0
+PL_COMPAT_API	92	0	0
+PL_COMPAT_FEATURE	eligible.leader.replicas.version	1	1
+PL_COMPAT_FEATURE	group.version	1	1
+PL_COMPAT_FEATURE	metadata.version	27	27
+PL_COMPAT_FEATURE	share.version	1	1
+PL_COMPAT_FEATURE	transaction.version	2	2
+PL_COMPAT_COMMITTED	classic	0	8
+PL_COMPAT_COMMITTED	classic	1	8
+PL_COMPAT_COMMITTED	cooperative	0	8
+PL_COMPAT_COMMITTED	cooperative	1	8
+PL_COMPAT_COMMITTED	kip848	0	8
+PL_COMPAT_COMMITTED	kip848	1	8
+PL_COMPAT_COMMITTED	transaction	0	8
+PL_COMPAT_COMMITTED	transaction	1	8
+PL_COMPAT_GROUP	classic	plcompat-4-1-2-classic
+PL_COMPAT_GROUP	cooperative	plcompat-4-1-2-cooperative
+PL_COMPAT_GROUP	kip848	plcompat-4-1-2-kip848
+PL_COMPAT_GROUP	transaction	plcompat-4-1-2-transaction
+PL_COMPAT_STARTUP	classic	YnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y
+PL_COMPAT_STARTUP	transaction	YnJva2VyIGVycm9yIDE1IChDT09SRElOQVRPUl9OT1RfQVZBSUxBQkxFKTogRmluZENvb3JkaW5hdG9y
+PL_COMPAT_STARTUP	transaction	YnJva2VyIGVycm9yIDE0IChDT09SRElOQVRPUl9MT0FEX0lOX1BST0dSRVNTKTogSW5pdFByb2R1Y2VySWQ=
+PL_COMPAT_VISIBILITY_ERROR	0	1	88
+PL_COMPAT_VISIBILITY	1	28	8	8
+PL_COMPAT_ABORTED_VISIBLE	0
+PL_COMPAT_SHARE_ACCEPTED	16
+PL_COMPAT_COMPLETE
+test live_compatibility_required ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.07s
+

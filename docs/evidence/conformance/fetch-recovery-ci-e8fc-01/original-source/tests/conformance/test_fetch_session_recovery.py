@@ -1,4 +1,4 @@
-"""Synthetic negative histories and a retained actual failed-CI runtime trace."""
+"""Negative qualification tests use fabricated histories only inside this fixture."""
 import importlib.util
 import json
 from pathlib import Path
@@ -73,55 +73,11 @@ class FetchSessionRecoveryReportTests(unittest.TestCase):
             REPORT.finish(self.directory, SOURCE)
         self.assertFalse((self.directory/'report.json').exists())
 
-    def set_wire_version(self, version):
-        path = self.directory/'runtime.stdout.log'
-        rows = []
-        for line in path.read_text().splitlines():
-            fields = line.split('\t')
-            if fields[0] == 'PL_FETCH_WIRE':
-                fields[2] = str(version)
-            rows.append('\t'.join(fields))
-        path.write_text('\n'.join(rows)+'\n')
-
     def test_complete_fixture_passes_and_retains_full_history(self):
         result = REPORT.finish(self.directory, SOURCE)
         self.assertEqual(len(result['runtime']['wire']), 7)
         self.assertEqual(len(result['java_records']), 65)
         self.assertEqual(result['status'], 'passed')
-
-    def test_complete_version18_fixture_preserves_every_history_requirement(self):
-        self.set_wire_version(18)
-        result = REPORT.finish(self.directory, SOURCE)
-        self.assertEqual([row['version'] for row in result['runtime']['wire']], [18]*7)
-        self.assertEqual(len(result['runtime']['records']), 65)
-
-    def test_mixed_fetch_versions_rejected(self):
-        self.replace('PL_FETCH_WIRE\t2\t17', 'PL_FETCH_WIRE\t2\t18')
-        with self.assertRaisesRegex(ValueError, 'Fetch version changed during session history'):
-            REPORT.finish(self.directory, SOURCE)
-
-    def test_unqualified_fetch_versions_rejected(self):
-        for version in (0, 16, 19):
-            with self.subTest(version=version):
-                fixture(self.directory)
-                self.set_wire_version(version)
-                with self.assertRaisesRegex(ValueError, 'unsupported observed Fetch version'):
-                    REPORT.finish(self.directory, SOURCE)
-
-    def test_actual_ci_version18_history_replays_but_failed_wrapper_stays_failed(self):
-        directory = ROOT/'tests/fixtures/fetch-session-recovery/e8fc0b72'
-        identity = json.loads((directory/'identity.json').read_text())
-        source = 'e8fc0b72724ebfcef99d4742c7870f95a7a9a47f'
-        self.assertEqual(identity['source_sha'], source)
-        result = REPORT.history((directory/'runtime.stdout.log').read_text(), source, identity['topic'])
-        self.assertEqual([row['version'] for row in result['wire']], [18]*7)
-        self.assertEqual(len(result['acks']), 65)
-        self.assertEqual(len(result['records']), 65)
-        self.assertEqual(len(result['positions']), 32)
-        self.assertIn('failure', identity)
-        with self.assertRaisesRegex(ValueError, 'failed attempt cannot be promoted'):
-            REPORT.finish(directory, source)
-        self.assertFalse((directory/'report.json').exists())
 
     def test_wrong_source_rejected(self):
         self.identity(lambda x:x.update(source_sha='d'*40))

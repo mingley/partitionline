@@ -1,0 +1,512 @@
+{
+  "source_sha": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "repository": "mingley/partitionline",
+  "run_id": 37156631589,
+  "job_id": 111301245657,
+  "artifact_id": 11286412224,
+  "tool": "mcp__codex_apps__github_download_workflow_artifact",
+  "original_zip_sha256": "ce20dc2c38ed7635ed503c93055f750104b085927fd5c3a71f4428b088cfbc39",
+  "original_zip_bytes": 59347,
+  "original_zip_full_mode": 384,
+  "original_zip_retained_WORK": "/workspace/attachments/1cdf1e86-1b06-407e-9c4b-b95907858b12/fetch-session-recovery-e8fc0b72.zip",
+  "members": [
+    {
+      "zip_member": "broker-compatibility/4.1.2/broker-version.log",
+      "bytes": 6,
+      "sha256": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/build.log",
+      "bytes": 5453,
+      "sha256": "6ae4fa7579a44fa7f6518b82ca18d5a24ec33177887e735cf2ad6652c0f3dc72",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/broker.log",
+      "bytes": 106371,
+      "sha256": "68171e6f8da9c511e27b8ea16218a0dedeb4b3e20e358b32d8c0ce83c0b8ebc3",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/cargo.log",
+      "bytes": 36,
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/cleanup.log",
+      "bytes": 21,
+      "sha256": "39d88800b6e15d60b340b4fbc3839a302d1a064863402c0368a34a6cac1b3902",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/container-id.log",
+      "bytes": 65,
+      "sha256": "4f25ae499d8d745c4bf3ef2dbb118e1bb5016b0e6c8fd86b47340ff8f5937419",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/features-before.log",
+      "bytes": 670,
+      "sha256": "871a9d9ec6626d0e216161aed908400034c7c9c9de3011d6a1b9fd14a13d5d9f",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/features-upgrade.log",
+      "bytes": 33,
+      "sha256": "e141022fde66c8abf284d87a0ea005a43a2851b2f0dac97891d587fbe0e336ee",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/features.log",
+      "bytes": 670,
+      "sha256": "85f47654d0af7f46c8fda7ea97d4c67d2ce7e115463e3608c0de811e1d0ed9fa",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-input.log",
+      "bytes": 1080,
+      "sha256": "2590b812ae789d456e9800c8c3c3032e2f2eae6dcc340ccec517eee24eeed974",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/identity.json",
+      "bytes": 722,
+      "sha256": "159cd514513df1f691e395e1a77f7a7cd95a44d03499d6df1c9f262191bb240a",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-input.stderr.log",
+      "bytes": 33,
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-offsets-classic.log",
+      "bytes": 484,
+      "sha256": "796aa4f165804afb9d7cf78ff00ce8e169e5fc2954d4bd1a0cb85922a66e1463",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-offsets-cooperative.log",
+      "bytes": 500,
+      "sha256": "3112605325f705a92d3c2cabde0ebcb3b6e4fba4ccd86cc7dba7ede8574cad7c",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-offsets-transaction.log",
+      "bytes": 500,
+      "sha256": "9873bc1715dd3b71b30d278141772832869dc15339ad7922c4597a33af17bcb4",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-offsets-kip848.log",
+      "bytes": 480,
+      "sha256": "4ffd5b4ee54796bfa4b7cfe4c27b08566ee6a39b6d9d5c5ad67134df95c04a9f",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-output.log",
+      "bytes": 1086,
+      "sha256": "9eba97e5b734b60e5d11a8113b637d7e64e123f5208e5d54a9f98a520ba00e77",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/java-output.stderr.log",
+      "bytes": 33,
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/pull.log",
+      "bytes": 1930,
+      "sha256": "891a07de093a083064ec1132ea7e685f755c973f0263bd01200c2a441ca0a4c9",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/readiness-1.log",
+      "bytes": 1225,
+      "sha256": "d99eb8e6eeeeab7a20bfdfa7c20b500e2b4d7222ba09d87244b35c1268a5ee14",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/readiness-2.log",
+      "bytes": 3247,
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/report-validation.log",
+      "bytes": 140,
+      "sha256": "89eff2efd975f9f49f738b3ffa15199f403d6058cc94498d0de821e3aaa92800",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/readiness.log",
+      "bytes": 3247,
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/report.json",
+      "bytes": 7966,
+      "sha256": "b3f366cffdec021b6775921901dcb87f1ec946a8906adada3ed38821c7084e95",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/runtime.log",
+      "bytes": 4976,
+      "sha256": "ac45987a99195a6dd519588020175cc813cd869bf3f213ac661151302bbe395c",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/rustc.log",
+      "bytes": 196,
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/start.log",
+      "bytes": 21,
+      "sha256": "39d88800b6e15d60b340b4fbc3839a302d1a064863402c0368a34a6cac1b3902",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.log",
+      "bytes": 168,
+      "sha256": "f5ecf38dd5ffc56c31ed09a618dd08a8de4df5651bdcc467ff2edc708e54630f",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.jsonl",
+      "bytes": 4783,
+      "sha256": "b71f98aeabe697d81544ad3e429b5e98049074636a12182feb17d866ce0f8d71",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/cargo.log",
+      "bytes": 36,
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.log",
+      "bytes": 67,
+      "sha256": "6a5e9768288a2e588d9137c0693148ee9df65dd575e70c3cfaf41b8b631b2553",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/identity.json",
+      "bytes": 1143,
+      "sha256": "00f8a799bdcf42db07fd93483ada9164097f1043ce5624445a336295b63d5f74",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.log",
+      "bytes": 415,
+      "sha256": "d31fb563ac8639a24f25ba9c8136b359251f75057679466f740f4eaa2e68e0f3",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.stderr.log",
+      "bytes": 99,
+      "sha256": "7145b4452701cb0cc26055709176503c1971b6a04cb68d0ef3f993a7d18e6d05",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.log",
+      "bytes": 730,
+      "sha256": "ec74ff428015931e7571a497ebf99c284a04ae181fe96e60e8b9fc671804afd2",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.stderr.log",
+      "bytes": 33,
+      "sha256": "bddb7ea0e285e0078b79ac392a1e694454bb3f375816425028544e03f0661706",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.jsonl",
+      "bytes": 4490,
+      "sha256": "39054e1b55ee4c1dbc00a3cd737c1416f261d8bf07ac59ae0830b485bd3dda58",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report-validation.log",
+      "bytes": 96,
+      "sha256": "42c4e42bef1ff26e3410c8683081fe51e3d1dfbdbeb2ab5efb4afc1fcb5943ab",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report.json",
+      "bytes": 9037,
+      "sha256": "0495643200b699e282e3cbec4df38ddf5249af7db77558200bdadaabb5e29c40",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/rustc.log",
+      "bytes": 196,
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "broker-compatibility/4.1.2/verifiable-validation.log",
+      "bytes": 259,
+      "sha256": "e2746d120e51882be6a5274acb860905ffa745e4b4b3de84a67ec4bd1ac45726",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stdout.log",
+      "bytes": 169264,
+      "sha256": "1febec72d84d9db222ced7d9c58cba0b99d48d83265bcc84a2d61565db426d46",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stderr.log",
+      "bytes": 291,
+      "sha256": "b40ba2756cfea705467ffc99bdaf8ba66b7da99b429604ebf23cd44adb5a42c9",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cargo.log",
+      "bytes": 36,
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stdout.log",
+      "bytes": 51,
+      "sha256": "c0fb114a906fa99a0dec8ca1035100d5bedc225de0fcc1ccde196bc3d552b387",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stdout.log",
+      "bytes": 65,
+      "sha256": "fa877e73363c954983302b1dee749d4841e63776091456fbc069941367788b03",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stdout.log",
+      "bytes": 65,
+      "sha256": "c407b112bfd2500a643337fde64b39eb4edae9fa110b9e7324ec7cb638c19509",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/identity.json",
+      "bytes": 1377,
+      "sha256": "8515d1c4074b4222109a0e05c0ed84c1f830564b2e1d79e2f42278bc04c38da2",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stderr.log",
+      "bytes": 33,
+      "sha256": "06475d2d419068f492e76b9f792ab9f11f637f0be262fc6ec70836fd59e2d395",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stdout.log",
+      "bytes": 2407,
+      "sha256": "c5b1ed27787f3f5a7704a8e07cf0fae24fb08d9e10ea3a7a39248d804e3df14e",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stderr.log",
+      "bytes": 1225,
+      "sha256": "d134ef0a38454f5c0bf1d62b6792d37ecd8198100fc4f30d2a823e98fe0efed4",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stdout.log",
+      "bytes": 3247,
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stderr.log",
+      "bytes": 1028,
+      "sha256": "676535065ece2678685414db33c3244fd00a33de5117b24dbcd04fd2dde439c0",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stderr.log",
+      "bytes": 196,
+      "sha256": "8f9e738177ab41403f68c4e50e7e1b1f6ef8b01257dc61bba883d968df035f0b",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stdout.log",
+      "bytes": 6621,
+      "sha256": "3b1c074e0ba927136b65ee7a44981346c6e761343d7521aed3d1144ec30d95dd",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/rustc.log",
+      "bytes": 196,
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stdout.log",
+      "bytes": 51,
+      "sha256": "c0fb114a906fa99a0dec8ca1035100d5bedc225de0fcc1ccde196bc3d552b387",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    },
+    {
+      "zip_member": "fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/validation-exit.json",
+      "bytes": 25,
+      "sha256": "9439ee59ed207e9cd38ee0bbe53f46976623b9796703823d111171b4dd13585d",
+      "zip_external_attr": 2175008800,
+      "copied_physical_full_mode": 384
+    }
+  ],
+  "scope": "Complete original71 ZIP members preserved byte-for-byte with archive attributes mapped separately from copied physical0600. Runtime executed1 required test,65 records,32 positions,7 successful Fetch18 phases. Original wrapper failed validator and original identity failure is retained; no rewritten identity or new passing complete SDK/CI qualification claim."
+}

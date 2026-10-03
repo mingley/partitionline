@@ -1,0 +1,41 @@
+{
+  "scope": "SOURCE-ONLY review and formatter results; no Cargo, Clippy, test, typecheck, SDK or runtime execution",
+  "source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "files": [
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "destination": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "bytes": 16026,
+      "full07777": 420,
+      "sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2",
+      "expected_destination_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad"
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+      "destination": "tests/write_txn_markers_v2.rs",
+      "bytes": 17877,
+      "full07777": 420,
+      "sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b",
+      "expected_destination_sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d"
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+      "destination": "tests/share_offsets_v1.rs",
+      "bytes": 14371,
+      "full07777": 420,
+      "sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f",
+      "expected_destination_sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0"
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs",
+      "destination": "tests/sticky_partitioner.rs",
+      "bytes": 38642,
+      "full07777": 420,
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "expected_destination_sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71"
+    }
+  ],
+  "patch_sha256": "9eb6049fb32ac2bb8d5cf94cf3ccb968873d97732c4919b7d1cb8f8ed4e80e7c",
+  "shared_main_writes_performed": 0,
+  "commands_compiler_runtime": 0
+}

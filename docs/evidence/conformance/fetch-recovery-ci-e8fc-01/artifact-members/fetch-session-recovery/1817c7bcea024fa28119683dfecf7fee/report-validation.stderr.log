@@ -1,0 +1,13 @@
+Traceback (most recent call last):
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 162, in <module>
+    result = finish(args.directory, args.source_sha)
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 138, in finish
+    runtime = history((directory / 'runtime.stdout.log').read_text(), source, identity['topic'])
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 81, in history
+    require(0 <= previous_phase <= phase <= 6 and version == 17 and code == 0 and size > 0,
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'wire phase/version/error/size mismatch')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 14, in require
+    raise ValueError(message)
+ValueError: wire phase/version/error/size mismatch

@@ -1,0 +1,64 @@
+{
+  "formatter_path": "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+  "formatter_sha256": "a3ab6c445b26eda8d7bcfd5cc3f4b068dd7136af96822fd21378fc6fe8c2f2a3",
+  "commands": [
+    {
+      "label": "version",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--version"
+      ],
+      "exit_code": 0,
+      "joined": true,
+      "stdout_bytes": 46,
+      "stderr_bytes": 0
+    },
+    {
+      "label": "format-apply",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs"
+      ],
+      "exit_code": 0,
+      "joined": true,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    },
+    {
+      "label": "format-check",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+        "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs"
+      ],
+      "exit_code": 0,
+      "joined": true,
+      "stdout_bytes": 0,
+      "stderr_bytes": 0
+    }
+  ],
+  "scope": "standalone source formatter only; no Cargo/compiler/test/runtime execution"
+}

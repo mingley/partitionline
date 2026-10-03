@@ -1,0 +1,48 @@
+{
+  "source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "scope": "WORK-only source candidates for actual reported CI lints; no main edits/compiler/runtime execution",
+  "baseline_files": [
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full07777": 384,
+      "git_object_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e"
+    },
+    {
+      "path": "tests/write_txn_markers_v2.rs",
+      "sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d",
+      "bytes": 17802,
+      "full07777": 384,
+      "git_object_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e"
+    },
+    {
+      "path": "tests/share_offsets_v1.rs",
+      "sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "bytes": 14540,
+      "full07777": 384,
+      "git_object_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e"
+    },
+    {
+      "path": "tests/sticky_partitioner.rs",
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full07777": 384,
+      "git_object_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e"
+    }
+  ],
+  "transformations": [
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "parking_lot_lock_user_adaptations": 4
+    },
+    {
+      "path": "tests/write_txn_markers_v2.rs",
+      "parking_lot_lock_user_adaptations": 13
+    },
+    {
+      "path": "tests/share_offsets_v1.rs",
+      "parking_lot_lock_user_adaptations": 10
+    }
+  ]
+}

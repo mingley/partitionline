@@ -1,0 +1,4 @@
+{
+  "actual_old_history_error": "wire phase/version/error/size mismatch",
+  "scope": "Actual e8fc retained runtime replay, not a new Rust or SDK execution."
+}

@@ -1,0 +1,910 @@
+{
+  "source_parent": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "six_sources_before": {
+    "tests/fixtures/write-txn-markers-v2/socket_peer.rs": {
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full_mode": 384
+    },
+    "tests/write_txn_markers_v2.rs": {
+      "sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d",
+      "bytes": 17802,
+      "full_mode": 384
+    },
+    "tests/share_offsets_v1.rs": {
+      "sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "bytes": 14540,
+      "full_mode": 384
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full_mode": 384
+    },
+    "scripts/report-fetch-session-recovery.py": {
+      "sha256": "ec23d5dfabb86f37af8114b1da1423f939ae43bf7efd70165054f9dfc69be512",
+      "bytes": 9420,
+      "full_mode": 384
+    },
+    "tests/conformance/test_fetch_session_recovery.py": {
+      "sha256": "f9438f49527738f59ae9b22779d5deb5596a226a45a157d18e10cfbfeb1f31de",
+      "bytes": 6848,
+      "full_mode": 384
+    }
+  },
+  "six_sources_after": {
+    "tests/fixtures/write-txn-markers-v2/socket_peer.rs": {
+      "sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2",
+      "bytes": 16026,
+      "full_mode": 420
+    },
+    "tests/write_txn_markers_v2.rs": {
+      "sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b",
+      "bytes": 17877,
+      "full_mode": 420
+    },
+    "tests/share_offsets_v1.rs": {
+      "sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f",
+      "bytes": 14371,
+      "full_mode": 420
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "bytes": 38642,
+      "full_mode": 420
+    },
+    "scripts/report-fetch-session-recovery.py": {
+      "sha256": "85f97654441e731f1bce2d13db933c912e17597e2982a7d7e62f98d3175d6734",
+      "bytes": 9834,
+      "full_mode": 384
+    },
+    "tests/conformance/test_fetch_session_recovery.py": {
+      "sha256": "0f3b1c90e5aad5edced1c5edcf62ef24cd6ed97c7695707cf6b513f99a252ac8",
+      "bytes": 9118,
+      "full_mode": 384
+    }
+  },
+  "held_and_client_compiler_unchanged": {
+    "src/protocol/records.rs": {
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "bytes": 171836,
+      "full_mode": 384
+    },
+    "src/protocol/buf.rs": {
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "full_mode": 384
+    },
+    "src/admin.rs": {
+      "sha256": "10bc276939b42486dd40bb889bff802f33237086219b59410bac2cdc514da668",
+      "bytes": 590502,
+      "full_mode": 384
+    },
+    "src/lib.rs": {
+      "sha256": "95e15136b6e6bc0b745f0e59da56e495e3c7c3555952a97c43041ebff228c788",
+      "bytes": 211672,
+      "full_mode": 384
+    },
+    "src/producer.rs": {
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "bytes": 218265,
+      "full_mode": 384
+    },
+    "src/partitioner.rs": {
+      "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a",
+      "bytes": 43985,
+      "full_mode": 384
+    }
+  },
+  "installed": [
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/broker-version.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/broker-version.log",
+      "sha256": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+      "bytes": 6,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/broker.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/broker.log",
+      "sha256": "68171e6f8da9c511e27b8ea16218a0dedeb4b3e20e358b32d8c0ce83c0b8ebc3",
+      "bytes": 106371,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/build.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/build.log",
+      "sha256": "6ae4fa7579a44fa7f6518b82ca18d5a24ec33177887e735cf2ad6652c0f3dc72",
+      "bytes": 5453,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/cargo.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/cargo.log",
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/cleanup.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/cleanup.log",
+      "sha256": "39d88800b6e15d60b340b4fbc3839a302d1a064863402c0368a34a6cac1b3902",
+      "bytes": 21,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/container-id.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/container-id.log",
+      "sha256": "4f25ae499d8d745c4bf3ef2dbb118e1bb5016b0e6c8fd86b47340ff8f5937419",
+      "bytes": 65,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features-before.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features-before.log",
+      "sha256": "871a9d9ec6626d0e216161aed908400034c7c9c9de3011d6a1b9fd14a13d5d9f",
+      "bytes": 670,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features-upgrade.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features-upgrade.log",
+      "sha256": "e141022fde66c8abf284d87a0ea005a43a2851b2f0dac97891d587fbe0e336ee",
+      "bytes": 33,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/features.log",
+      "sha256": "85f47654d0af7f46c8fda7ea97d4c67d2ce7e115463e3608c0de811e1d0ed9fa",
+      "bytes": 670,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/identity.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/identity.json",
+      "sha256": "159cd514513df1f691e395e1a77f7a7cd95a44d03499d6df1c9f262191bb240a",
+      "bytes": 722,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-input.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-input.log",
+      "sha256": "2590b812ae789d456e9800c8c3c3032e2f2eae6dcc340ccec517eee24eeed974",
+      "bytes": 1080,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-input.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-input.stderr.log",
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-classic.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-classic.log",
+      "sha256": "796aa4f165804afb9d7cf78ff00ce8e169e5fc2954d4bd1a0cb85922a66e1463",
+      "bytes": 484,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-cooperative.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-cooperative.log",
+      "sha256": "3112605325f705a92d3c2cabde0ebcb3b6e4fba4ccd86cc7dba7ede8574cad7c",
+      "bytes": 500,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-kip848.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-kip848.log",
+      "sha256": "4ffd5b4ee54796bfa4b7cfe4c27b08566ee6a39b6d9d5c5ad67134df95c04a9f",
+      "bytes": 480,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-transaction.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-offsets-transaction.log",
+      "sha256": "9873bc1715dd3b71b30d278141772832869dc15339ad7922c4597a33af17bcb4",
+      "bytes": 500,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-output.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-output.log",
+      "sha256": "9eba97e5b734b60e5d11a8113b637d7e64e123f5208e5d54a9f98a520ba00e77",
+      "bytes": 1086,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-output.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/java-output.stderr.log",
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/pull.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/pull.log",
+      "sha256": "891a07de093a083064ec1132ea7e685f755c973f0263bd01200c2a441ca0a4c9",
+      "bytes": 1930,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness-1.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness-1.log",
+      "sha256": "d99eb8e6eeeeab7a20bfdfa7c20b500e2b4d7222ba09d87244b35c1268a5ee14",
+      "bytes": 1225,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness-2.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness-2.log",
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "bytes": 3247,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/readiness.log",
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "bytes": 3247,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/report-validation.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/report-validation.log",
+      "sha256": "89eff2efd975f9f49f738b3ffa15199f403d6058cc94498d0de821e3aaa92800",
+      "bytes": 140,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/report.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/report.json",
+      "sha256": "b3f366cffdec021b6775921901dcb87f1ec946a8906adada3ed38821c7084e95",
+      "bytes": 7966,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/runtime.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/runtime.log",
+      "sha256": "ac45987a99195a6dd519588020175cc813cd869bf3f213ac661151302bbe395c",
+      "bytes": 4976,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/rustc.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/start.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/start.log",
+      "sha256": "39d88800b6e15d60b340b4fbc3839a302d1a064863402c0368a34a6cac1b3902",
+      "bytes": 21,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.log",
+      "sha256": "f5ecf38dd5ffc56c31ed09a618dd08a8de4df5651bdcc467ff2edc708e54630f",
+      "bytes": 168,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/build.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/cargo.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/cargo.log",
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.jsonl",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.jsonl",
+      "sha256": "b71f98aeabe697d81544ad3e429b5e98049074636a12182feb17d866ce0f8d71",
+      "bytes": 4783,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/consumer.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.log",
+      "sha256": "6a5e9768288a2e588d9137c0693148ee9df65dd575e70c3cfaf41b8b631b2553",
+      "bytes": 67,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/create-topic.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/identity.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/identity.json",
+      "sha256": "00f8a799bdcf42db07fd93483ada9164097f1043ce5624445a336295b63d5f74",
+      "bytes": 1143,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.log",
+      "sha256": "d31fb563ac8639a24f25ba9c8136b359251f75057679466f740f4eaa2e68e0f3",
+      "bytes": 415,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-offsets.stderr.log",
+      "sha256": "7145b4452701cb0cc26055709176503c1971b6a04cb68d0ef3f993a7d18e6d05",
+      "bytes": 99,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.log",
+      "sha256": "ec74ff428015931e7571a497ebf99c284a04ae181fe96e60e8b9fc671804afd2",
+      "bytes": 730,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/java-records.stderr.log",
+      "sha256": "bddb7ea0e285e0078b79ac392a1e694454bb3f375816425028544e03f0661706",
+      "bytes": 33,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.jsonl",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.jsonl",
+      "sha256": "39054e1b55ee4c1dbc00a3cd737c1416f261d8bf07ac59ae0830b485bd3dda58",
+      "bytes": 4490,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/producer.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report-validation.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report-validation.log",
+      "sha256": "42c4e42bef1ff26e3410c8683081fe51e3d1dfbdbeb2ab5efb4afc1fcb5943ab",
+      "bytes": 96,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/report.json",
+      "sha256": "0495643200b699e282e3cbec4df38ddf5249af7db77558200bdadaabb5e29c40",
+      "bytes": 9037,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/rustc.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9/rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable-validation.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/broker-compatibility/4.1.2/verifiable-validation.log",
+      "sha256": "e2746d120e51882be6a5274acb860905ffa745e4b4b3de84a67ec4bd1ac45726",
+      "bytes": 259,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/broker-logs.stdout.log",
+      "sha256": "1febec72d84d9db222ced7d9c58cba0b99d48d83265bcc84a2d61565db426d46",
+      "bytes": 169264,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stderr.log",
+      "sha256": "b40ba2756cfea705467ffc99bdaf8ba66b7da99b429604ebf23cd44adb5a42c9",
+      "bytes": 291,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/build.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cargo.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cargo.log",
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/cleanup.stdout.log",
+      "sha256": "c0fb114a906fa99a0dec8ca1035100d5bedc225de0fcc1ccde196bc3d552b387",
+      "bytes": 51,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create-topic.stdout.log",
+      "sha256": "fa877e73363c954983302b1dee749d4841e63776091456fbc069941367788b03",
+      "bytes": 65,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/create.stdout.log",
+      "sha256": "c407b112bfd2500a643337fde64b39eb4edae9fa110b9e7324ec7cb638c19509",
+      "bytes": 65,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/identity.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/identity.json",
+      "sha256": "8515d1c4074b4222109a0e05c0ed84c1f830564b2e1d79e2f42278bc04c38da2",
+      "bytes": 1377,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stderr.log",
+      "sha256": "06475d2d419068f492e76b9f792ab9f11f637f0be262fc6ec70836fd59e2d395",
+      "bytes": 33,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/java-records.stdout.log",
+      "sha256": "c5b1ed27787f3f5a7704a8e07cf0fae24fb08d9e10ea3a7a39248d804e3df14e",
+      "bytes": 2407,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stderr.log",
+      "sha256": "d134ef0a38454f5c0bf1d62b6792d37ecd8198100fc4f30d2a823e98fe0efed4",
+      "bytes": 1225,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-1.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/readiness-2.stdout.log",
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "bytes": 3247,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stderr.log",
+      "sha256": "676535065ece2678685414db33c3244fd00a33de5117b24dbcd04fd2dde439c0",
+      "bytes": 1028,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/report-validation.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stderr.log",
+      "sha256": "8f9e738177ab41403f68c4e50e7e1b1f6ef8b01257dc61bba883d968df035f0b",
+      "bytes": 196,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/runtime.stdout.log",
+      "sha256": "3b1c074e0ba927136b65ee7a44981346c6e761343d7521aed3d1144ec30d95dd",
+      "bytes": 6621,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/rustc.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/start.stdout.log",
+      "sha256": "c0fb114a906fa99a0dec8ca1035100d5bedc225de0fcc1ccde196bc3d552b387",
+      "bytes": 51,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/validation-exit.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-members/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee/validation-exit.json",
+      "sha256": "9439ee59ed207e9cd38ee0bbe53f46976623b9796703823d111171b4dd13585d",
+      "bytes": 25,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-provenance.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/artifact-provenance.json",
+      "sha256": "db9a5619092497923cd6e7bf9e949272b50b2fd6943eacfe4c99010485e48bdb",
+      "bytes": 21097,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244793.decoded.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244793.decoded.log",
+      "sha256": "d6e388838c99c834e3246fe702856f800794d5f31112187cbba0935f26c89331",
+      "bytes": 57751,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244793.tool-result.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244793.tool-result.json",
+      "sha256": "784b7983346de09df9d278ea1ff66cfacb065b15276e907b8f5e569f35126586",
+      "bytes": 64350,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244998.decoded.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244998.decoded.log",
+      "sha256": "2ee31cb495c7c72bf80a822a90e64bd7b1cecb1d2c59cd60622db59b6a60d2d3",
+      "bytes": 47077,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244998.tool-result.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301244998.tool-result.json",
+      "sha256": "543e20953bf6419ba97c19a7f9e2c3e0d2167f946ba1ef7d987f9b92a537d9bb",
+      "bytes": 51345,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301245657.decoded.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301245657.decoded.log",
+      "sha256": "112a02d8d87e33cdd584c648f8dac4abdf63acadf70fdf8c618c2e8da1ba69ba",
+      "bytes": 56068,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301245657.tool-result.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/job-111301245657.tool-result.json",
+      "sha256": "7d998548f1457bb281e6c845d371b7c8cdec90ba2290e9497135c3647fd6bf32",
+      "bytes": 58011,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/original-history-replay.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/original-history-replay.json",
+      "sha256": "fe22662fcef770a58e0008c355ebfb63b02549ea0ebf175de12490580e68ebc0",
+      "bytes": 159,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/prepare.py",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/prepare.py",
+      "sha256": "51e38b49b34661381a0b25d7ba3cf026f6a0f9e2f9ae5d3671fc82909cbe171b",
+      "bytes": 2784,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unexecuted-initial-test-draft.py",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unexecuted-initial-test-draft.py",
+      "sha256": "db2c60d765d8c124a2afc3e9a70310066468362e8daca0c0be35ac54342b285e",
+      "bytes": 8684,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unittest.stderr.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unittest.stderr.log",
+      "sha256": "92aab79fae166e50dadcb3faaeac5800ddab30c0cb50203ed554fe1c7d6335a7",
+      "bytes": 120,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unittest.stdout.log",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/unittest.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/docs/evidence/conformance/fetch-recovery-ci-e8fc-01/validation.json",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/validation.json",
+      "sha256": "c1a00380d3f5b69c4bcd69de2d92799cf7dd51cfa5f6a6cc37aa6bcbae67d882",
+      "bytes": 21985,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/scripts/report-fetch-session-recovery.py",
+      "path": "scripts/report-fetch-session-recovery.py",
+      "sha256": "85f97654441e731f1bce2d13db933c912e17597e2982a7d7e62f98d3175d6734",
+      "bytes": 9834,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/tests/conformance/test_fetch_session_recovery.py",
+      "path": "tests/conformance/test_fetch_session_recovery.py",
+      "sha256": "0f3b1c90e5aad5edced1c5edcf62ef24cd6ed97c7695707cf6b513f99a252ac8",
+      "bytes": 9118,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/tests/fixtures/fetch-session-recovery/e8fc0b72/identity.json",
+      "path": "tests/fixtures/fetch-session-recovery/e8fc0b72/identity.json",
+      "sha256": "8515d1c4074b4222109a0e05c0ed84c1f830564b2e1d79e2f42278bc04c38da2",
+      "bytes": 1377,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/tests/fixtures/fetch-session-recovery/e8fc0b72/java-records.stdout.log",
+      "path": "tests/fixtures/fetch-session-recovery/e8fc0b72/java-records.stdout.log",
+      "sha256": "c5b1ed27787f3f5a7704a8e07cf0fae24fb08d9e10ea3a7a39248d804e3df14e",
+      "bytes": 2407,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/stage/tests/fixtures/fetch-session-recovery/e8fc0b72/runtime.stdout.log",
+      "path": "tests/fixtures/fetch-session-recovery/e8fc0b72/runtime.stdout.log",
+      "sha256": "3b1c074e0ba927136b65ee7a44981346c6e761343d7521aed3d1144ec30d95dd",
+      "bytes": 6621,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/original/scripts/report-fetch-session-recovery.py",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/original-source/scripts/report-fetch-session-recovery.py",
+      "sha256": "ec23d5dfabb86f37af8114b1da1423f939ae43bf7efd70165054f9dfc69be512",
+      "bytes": 9420,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/integration/fetch-recovery-ci-e8fc-01/original/tests/conformance/test_fetch_session_recovery.py",
+      "path": "docs/evidence/conformance/fetch-recovery-ci-e8fc-01/original-source/tests/conformance/test_fetch_session_recovery.py",
+      "sha256": "f9438f49527738f59ae9b22779d5deb5596a226a45a157d18e10cfbfeb1f31de",
+      "bytes": 6848,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2",
+      "bytes": 16026,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/candidate/tests/share_offsets_v1.rs",
+      "sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f",
+      "bytes": 14371,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/candidate/tests/sticky_partitioner.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "bytes": 38642,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/candidate/tests/write_txn_markers_v2.rs",
+      "sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b",
+      "bytes": 17877,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-apply.stderr.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/format-apply.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-apply.stdout.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/format-apply.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-check.stderr.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/format-check.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-check.stdout.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/format-check.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-receipt.json",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/format-receipt.json",
+      "sha256": "d776d5581feaeeb8ab0d83b127d06703e7e9b0622e6727135fde73dc98775bd1",
+      "bytes": 2325,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/install-manifest.json",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/install-manifest.json",
+      "sha256": "1d11537d1caffa82e29d0748130acff5136edaf010df1982f62cf08137b0f2ec",
+      "bytes": 2063,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/original/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/share_offsets_v1.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/original/tests/share_offsets_v1.rs",
+      "sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "bytes": 14540,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/sticky_partitioner.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/original/tests/sticky_partitioner.rs",
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/write_txn_markers_v2.rs",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/original/tests/write_txn_markers_v2.rs",
+      "sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d",
+      "bytes": 17802,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/preparation.json",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/preparation.json",
+      "sha256": "1b7c92ebefe23abe5571302aa3adcd958e5c00a9e1fd0b410ed3d03a5b991c53",
+      "bytes": 1634,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/source-review.json",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/source-review.json",
+      "sha256": "812783d95d02d84670d9c85dc544cd71ead418137c23b7c53c1d65354a40b3f8",
+      "bytes": 2823,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/source.patch",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/source.patch",
+      "sha256": "9eb6049fb32ac2bb8d5cf94cf3ccb968873d97732c4919b7d1cb8f8ed4e80e7c",
+      "bytes": 17479,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/version.stderr.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/version.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/version.stdout.log",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/version.stdout.log",
+      "sha256": "32ae47248d3c1c88781660ad9acdfd0496c040eda7e0759c5f1fec8122c97a0a",
+      "bytes": 46,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/freeze.json",
+      "path": "docs/evidence/ci/github-e8fc-test-lint-corrections/freeze.json",
+      "sha256": "05fbf4561f1ff6d69fc337286fd7262e385e3b89fa62320bc39fa3274f32cb3c",
+      "bytes": 4841,
+      "full_mode": 384
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2",
+      "bytes": 16026,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+      "path": "tests/write_txn_markers_v2.rs",
+      "sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b",
+      "bytes": 17877,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+      "path": "tests/share_offsets_v1.rs",
+      "sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f",
+      "bytes": 14371,
+      "full_mode": 420
+    },
+    {
+      "source": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs",
+      "path": "tests/sticky_partitioner.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "bytes": 38642,
+      "full_mode": 420
+    }
+  ],
+  "observed_validation": "Actual21 Python unit methods pass, including complete real e8fc Fetch18 runtime replay; original failed wrapper remains rejected. Four Rust test-source fixes have standalone source formatting only. No new Rust compilation, strict Clippy, SDK or complete passing CI claim.",
+  "known_peer_semantic_change": "Test-fixture short critical sections use parking_lot instead of std poisoning mutex; all27 callers adapted and async filesystem operations awaited outside guards. All raw wire history fields and requests retained.",
+  "first_failures_retained": true,
+  "full_production_or_performance_claim": false
+}

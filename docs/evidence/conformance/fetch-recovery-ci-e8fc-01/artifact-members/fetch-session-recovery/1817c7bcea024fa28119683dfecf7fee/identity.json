@@ -1,0 +1,36 @@
+{
+  "source_sha": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "broker_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "container": "pl-fetch-recovery-1817c7bcea024fa28119683dfecf7fee",
+  "topic": "plfetch-recovery-1817c7bcea024fa28119683dfecf7fee",
+  "backend": "127.0.0.1:19192",
+  "proxy": "127.0.0.1:19193",
+  "host_os": "Linux",
+  "host_arch": "x86_64",
+  "exit_codes": {
+    "create": 0,
+    "start": 0,
+    "readiness-1": 1,
+    "readiness-2": 0,
+    "readiness": 0,
+    "create-topic": 0,
+    "build": 0,
+    "runtime": 0,
+    "java-records": 0,
+    "broker-logs": 0,
+    "cleanup": 0
+  },
+  "phase": "cleanup",
+  "started_ms": 1791064695201,
+  "ended_ms": 1791064728761,
+  "actual_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+  "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+  "repo_digests": [
+    "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+  ],
+  "mapped_backend": "127.0.0.1:19192",
+  "advertised_listeners": "PLAINTEXT://127.0.0.1:19193,INTERNAL://localhost:9094",
+  "java_cli_version": "4.1.2",
+  "failure": "complete-history validator exited 1"
+}

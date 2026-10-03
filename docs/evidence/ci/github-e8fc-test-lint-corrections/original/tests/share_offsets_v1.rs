@@ -62,6 +62,7 @@ async fn typed_and_existing_operations_negotiate_and_consume_lag() {
         let peer = Peer::start(None, Some(range)).await;
         peer.state
             .lock()
+            .unwrap()
             .share_responses
             .push_back(response(version, &[group("g", 29, 0)]));
         let mut admin = peer.admin().await;
@@ -110,7 +111,7 @@ async fn unsupported_share_offsets_fail_before_coordinator_or_metadata_work() {
     for range in [None, Some((2, 2)), Some((-2, -1))] {
         let peer = Peer::start(None, range).await;
         let mut admin = peer.admin().await;
-        let before = peer.state.lock().observed.len();
+        let before = peer.state.lock().unwrap().observed.len();
         let groups = [DescribeShareGroupOffsetsGroup::all("g")];
         assert!(matches!(
             admin.describe_share_group_offsets(&groups).await,
@@ -120,7 +121,7 @@ async fn unsupported_share_offsets_fail_before_coordinator_or_metadata_work() {
             admin.describe_share_group_offsets_with_lag(&groups).await,
             Err(Error::Unsupported(_))
         ));
-        assert_eq!(peer.state.lock().observed.len(), before);
+        assert_eq!(peer.state.lock().unwrap().observed.len(), before);
         assert!(peer.requests(FIND_COORDINATOR).is_empty());
         assert!(peer.requests(METADATA).is_empty());
         assert!(admin
@@ -137,7 +138,7 @@ async fn group_hop_errors_refresh_coordinator_while_partition_errors_remain_resu
     for code in [14, 15, 16] {
         let peer = Peer::start(None, Some((0, 1))).await;
         {
-            let mut state = peer.state.lock();
+            let mut state = peer.state.lock().unwrap();
             state.share_responses.extend([
                 response(1, &[group("g", -1, code)]),
                 response(1, &[group("g", 7, 0)]),
@@ -158,6 +159,7 @@ async fn group_hop_errors_refresh_coordinator_while_partition_errors_remain_resu
     result.topics[0].partitions[0].partition.error_code = 29;
     peer.state
         .lock()
+        .unwrap()
         .share_responses
         .push_back(response(1, &[result.clone()]));
     let mut admin = peer.admin().await;
@@ -175,10 +177,14 @@ async fn group_hop_errors_refresh_coordinator_while_partition_errors_remain_resu
 #[tokio::test]
 async fn duplicate_request_groups_and_reordered_results_preserve_request_order() {
     let peer = Peer::start(None, Some((0, 1))).await;
-    peer.state.lock().share_responses.push_back(response(
-        1,
-        &[group("b", 20, 0), group("a", 1, 0), group("a", 2, 0)],
-    ));
+    peer.state
+        .lock()
+        .unwrap()
+        .share_responses
+        .push_back(response(
+            1,
+            &[group("b", 20, 0), group("a", 1, 0), group("a", 2, 0)],
+        ));
     let mut admin = peer.admin().await;
     let groups = [
         DescribeShareGroupOffsetsGroup::all("a"),
@@ -210,7 +216,7 @@ async fn missing_group_truncated_and_trailing_responses_fail_without_fabricated_
         vec![0, 0, 0, 0, 255, 255, 255, 255, 7],
     ] {
         let peer = Peer::start(None, Some((1, 1))).await;
-        peer.state.lock().share_responses.push_back(wire);
+        peer.state.lock().unwrap().share_responses.push_back(wire);
         let mut admin = peer.admin().await;
         assert!(matches!(
             admin
@@ -227,6 +233,7 @@ async fn share_retry_and_stalled_rpc_use_one_absolute_deadline() {
     let peer = Peer::start(None, Some((0, 1))).await;
     peer.state
         .lock()
+        .unwrap()
         .share_responses
         .push_back(response(1, &[group("g", -1, 16)]));
     let mut admin = peer.admin().await;
@@ -246,7 +253,7 @@ async fn share_retry_and_stalled_rpc_use_one_absolute_deadline() {
 
     let peer = Peer::start(None, Some((1, 1))).await;
     {
-        let mut state = peer.state.lock();
+        let mut state = peer.state.lock().unwrap();
         state
             .share_responses
             .push_back(response(1, &[group("g", 1, 0)]));
@@ -271,7 +278,7 @@ async fn share_retry_and_stalled_rpc_use_one_absolute_deadline() {
 async fn canceled_share_request_leaves_unrelated_operation_usable() {
     let peer = Peer::start(None, Some((1, 1))).await;
     {
-        let mut state = peer.state.lock();
+        let mut state = peer.state.lock().unwrap();
         state
             .share_responses
             .push_back(response(1, &[group("g", 3, 0)]));

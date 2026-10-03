@@ -1,0 +1,440 @@
+--- a/tests/fixtures/write-txn-markers-v2/socket_peer.rs
++++ b/tests/fixtures/write-txn-markers-v2/socket_peer.rs
+@@ -5,10 +5,11 @@
+ )]
+ 
+ use std::collections::VecDeque;
+-use std::sync::{Arc, Mutex};
++use std::sync::Arc;
+ use std::time::Duration;
+ 
+ use bytes::{BufMut, BytesMut};
++use parking_lot::Mutex;
+ use partitionline::protocol::api::{
+     encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
+     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
+@@ -157,7 +158,7 @@
+                                 let mut cursor = frame.as_slice();
+                                 let header = decode_request_header(&mut cursor).unwrap();
+                                 let observation_index = {
+-                                    let mut state = state.lock().unwrap();
++                                    let mut state = state.lock();
+                                     assert!(state.observed.len() < 256);
+                                     let observation_index = state.observed.len();
+                                     state.observed.push(Observed {
+@@ -224,7 +225,8 @@
+                                             key_type, 0,
+                                             "public share offsets use GROUP coordinator"
+                                         );
+-                                        let coordinator = &brokers[1];
++                                        let coordinator =
++                                            brokers.get(1).expect("declared second broker");
+                                         let rows: Vec<_> = keys
+                                             .into_iter()
+                                             .map(|key| CoordinatorResult {
+@@ -249,7 +251,7 @@
+                                             "operation reaches selected leader/coordinator"
+                                         );
+                                         let (response, hold) = {
+-                                            let mut state = state.lock().unwrap();
++                                            let mut state = state.lock();
+                                             let hold = if header.api_key == WRITE_TXN_MARKERS {
+                                                 state.hold_markers
+                                             } else {
+@@ -289,11 +291,13 @@
+                                 packet.extend_from_slice(&response);
+                                 let response_written = stream.write_all(&packet).await.is_ok();
+                                 {
+-                                    let mut state = state.lock().unwrap();
+-                                    state.observed[observation_index].response_payload =
+-                                        Some(response.to_vec());
+-                                    state.observed[observation_index].response_written =
+-                                        response_written;
++                                    let mut state = state.lock();
++                                    let observed = state
++                                        .observed
++                                        .get_mut(observation_index)
++                                        .expect("recorded request observation");
++                                    observed.response_payload = Some(response.to_vec());
++                                    observed.response_written = response_written;
+                                 }
+                                 if !response_written {
+                                     break;
+@@ -328,7 +332,6 @@
+     pub(crate) fn requests(&self, key: i16) -> Vec<Observed> {
+         self.state
+             .lock()
+-            .unwrap()
+             .observed
+             .iter()
+             .filter(|row| row.key == key)
+--- a/tests/write_txn_markers_v2.rs
++++ b/tests/write_txn_markers_v2.rs
+@@ -60,7 +60,6 @@
+         let peer = Peer::start(Some(range), None).await;
+         peer.state
+             .lock()
+-            .unwrap()
+             .marker_responses
+             .push_back(response(&[good(0)]));
+         let mut admin = peer.admin().await;
+@@ -84,12 +83,12 @@
+     for range in [None, Some((3, 3)), Some((-2, -1))] {
+         let peer = Peer::start(range, None).await;
+         let mut admin = peer.admin().await;
+-        let before = peer.state.lock().unwrap().observed.len();
++        let before = peer.state.lock().observed.len();
+         assert!(matches!(
+             admin.abort_transaction(spec()).await,
+             Err(Error::Unsupported(_))
+         ));
+-        assert_eq!(peer.state.lock().unwrap().observed.len(), before);
++        assert_eq!(peer.state.lock().observed.len(), before);
+         assert!(peer.requests(METADATA).is_empty());
+         admin.close().await.unwrap();
+     }
+@@ -133,7 +132,6 @@
+         let peer = Peer::start(Some((1, 1)), None).await;
+         peer.state
+             .lock()
+-            .unwrap()
+             .marker_responses
+             .push_back(response(&results));
+         let mut admin = peer.admin().await;
+@@ -155,7 +153,7 @@
+     for code in [3, 6, 8, 9] {
+         let peer = Peer::start(Some((1, 2)), None).await;
+         {
+-            let mut state = peer.state.lock().unwrap();
++            let mut state = peer.state.lock();
+             state
+                 .marker_responses
+                 .extend([response(&[good(code)]), response(&[good(0)])]);
+@@ -178,7 +176,6 @@
+         let peer = Peer::start(Some((1, 2)), None).await;
+         peer.state
+             .lock()
+-            .unwrap()
+             .marker_responses
+             .push_back(response(&[good(code)]));
+         let mut admin = peer.admin().await;
+@@ -195,7 +192,6 @@
+     let peer = Peer::start(Some((1, 2)), None).await;
+     peer.state
+         .lock()
+-        .unwrap()
+         .marker_responses
+         .push_back(response(&[good(8)]));
+     let mut admin = peer.admin().await;
+@@ -215,7 +211,7 @@
+ async fn canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable() {
+     let peer = Peer::start(Some((1, 2)), None).await;
+     {
+-        let mut state = peer.state.lock().unwrap();
++        let mut state = peer.state.lock();
+         state.marker_responses.push_back(response(&[good(0)]));
+         state.hold_markers = true;
+     }
+@@ -227,14 +223,14 @@
+         ()=tokio::time::sleep(BUDGET)=>panic!("marker was never sent"),
+     }
+     drop(operation);
+-    peer.state.lock().unwrap().hold_markers = false;
++    peer.state.lock().hold_markers = false;
+     peer.release.notify_one();
+     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
+     admin.close().await.unwrap();
+ 
+     let peer = Peer::start(Some((1, 2)), None).await;
+     {
+-        let mut state = peer.state.lock().unwrap();
++        let mut state = peer.state.lock();
+         state.marker_responses.push_back(response(&[good(0)]));
+         state.hold_markers = true;
+     }
+@@ -260,7 +256,7 @@
+         vec![0xff, 0xff, 0xff, 0xff, 7],
+     ] {
+         let peer = Peer::start(Some((1, 2)), None).await;
+-        peer.state.lock().unwrap().marker_responses.push_back(wire);
++        peer.state.lock().marker_responses.push_back(wire);
+         let mut admin = peer.admin().await;
+         assert!(matches!(
+             admin.abort_transaction(spec()).await,
+@@ -426,9 +422,9 @@
+     assert!(matches!(mode.as_str(), "abort" | "share"));
+     assert!((0..=2).contains(&version));
+     let responses = directory.join("responses.bin");
+-    let metadata = std::fs::metadata(&responses).unwrap();
++    let metadata = tokio::fs::metadata(&responses).await.unwrap();
+     assert!(metadata.is_file() && metadata.len() <= 65_536);
+-    let bytes = std::fs::read(&responses).unwrap();
++    let bytes = tokio::fs::read(&responses).await.unwrap();
+     let mut cursor = bytes.as_slice();
+     let mut declared = Vec::new();
+     while !cursor.is_empty() {
+@@ -446,46 +442,53 @@
+         Peer::start(None, Some((version, version))).await
+     };
+     {
+-        let mut state = peer.state.lock().unwrap();
++        let mut state = peer.state.lock();
+         if mode == "abort" {
+             state.marker_responses.extend(declared)
+         } else {
+             state.share_responses.extend(declared)
+         }
+     }
+-    std::fs::write(directory.join("ready"), &peer.bootstrap).unwrap();
++    tokio::fs::write(directory.join("ready"), &peer.bootstrap)
++        .await
++        .unwrap();
+     let started = Instant::now();
+-    while !directory.join("stop").exists() {
++    while !tokio::fs::try_exists(directory.join("stop")).await.unwrap() {
+         assert!(
+             started.elapsed() < Duration::from_secs(30),
+             "finite actual SDK peer deadline"
+         );
+         tokio::time::sleep(Duration::from_millis(10)).await;
+     }
+-    let state = peer.state.lock().unwrap();
+-    let hex = |data: &[u8]| {
+-        data.iter()
+-            .map(|byte| format!("{byte:02x}"))
+-            .collect::<String>()
++    let history = {
++        let state = peer.state.lock();
++        let hex = |data: &[u8]| {
++            data.iter()
++                .map(|byte| format!("{byte:02x}"))
++                .collect::<String>()
++        };
++        let mut history = String::new();
++        for row in &state.observed {
++            use std::fmt::Write;
++            writeln!(
++                history,
++                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
++                row.node,
++                row.key,
++                row.version,
++                row.correlation,
++                hex(&row.body),
++                hex(&row.request_payload),
++                row.response_payload
++                    .as_ref()
++                    .map_or_else(String::new, |data| hex(data)),
++                row.response_written,
++            )
++            .unwrap();
++        }
++        history
+     };
+-    let mut history = String::new();
+-    for row in &state.observed {
+-        use std::fmt::Write;
+-        writeln!(
+-            history,
+-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+-            row.node,
+-            row.key,
+-            row.version,
+-            row.correlation,
+-            hex(&row.body),
+-            hex(&row.request_payload),
+-            row.response_payload
+-                .as_ref()
+-                .map_or_else(String::new, |data| hex(data)),
+-            row.response_written,
+-        )
++    tokio::fs::write(directory.join("actual-requests.tsv"), history)
++        .await
+         .unwrap();
+-    }
+-    std::fs::write(directory.join("actual-requests.tsv"), history).unwrap();
+-}
++}
+--- a/tests/share_offsets_v1.rs
++++ b/tests/share_offsets_v1.rs
+@@ -62,7 +62,6 @@
+         let peer = Peer::start(None, Some(range)).await;
+         peer.state
+             .lock()
+-            .unwrap()
+             .share_responses
+             .push_back(response(version, &[group("g", 29, 0)]));
+         let mut admin = peer.admin().await;
+@@ -111,7 +110,7 @@
+     for range in [None, Some((2, 2)), Some((-2, -1))] {
+         let peer = Peer::start(None, range).await;
+         let mut admin = peer.admin().await;
+-        let before = peer.state.lock().unwrap().observed.len();
++        let before = peer.state.lock().observed.len();
+         let groups = [DescribeShareGroupOffsetsGroup::all("g")];
+         assert!(matches!(
+             admin.describe_share_group_offsets(&groups).await,
+@@ -121,7 +120,7 @@
+             admin.describe_share_group_offsets_with_lag(&groups).await,
+             Err(Error::Unsupported(_))
+         ));
+-        assert_eq!(peer.state.lock().unwrap().observed.len(), before);
++        assert_eq!(peer.state.lock().observed.len(), before);
+         assert!(peer.requests(FIND_COORDINATOR).is_empty());
+         assert!(peer.requests(METADATA).is_empty());
+         assert!(admin
+@@ -138,7 +137,7 @@
+     for code in [14, 15, 16] {
+         let peer = Peer::start(None, Some((0, 1))).await;
+         {
+-            let mut state = peer.state.lock().unwrap();
++            let mut state = peer.state.lock();
+             state.share_responses.extend([
+                 response(1, &[group("g", -1, code)]),
+                 response(1, &[group("g", 7, 0)]),
+@@ -159,7 +158,6 @@
+     result.topics[0].partitions[0].partition.error_code = 29;
+     peer.state
+         .lock()
+-        .unwrap()
+         .share_responses
+         .push_back(response(1, &[result.clone()]));
+     let mut admin = peer.admin().await;
+@@ -177,14 +175,10 @@
+ #[tokio::test]
+ async fn duplicate_request_groups_and_reordered_results_preserve_request_order() {
+     let peer = Peer::start(None, Some((0, 1))).await;
+-    peer.state
+-        .lock()
+-        .unwrap()
+-        .share_responses
+-        .push_back(response(
+-            1,
+-            &[group("b", 20, 0), group("a", 1, 0), group("a", 2, 0)],
+-        ));
++    peer.state.lock().share_responses.push_back(response(
++        1,
++        &[group("b", 20, 0), group("a", 1, 0), group("a", 2, 0)],
++    ));
+     let mut admin = peer.admin().await;
+     let groups = [
+         DescribeShareGroupOffsetsGroup::all("a"),
+@@ -216,7 +210,7 @@
+         vec![0, 0, 0, 0, 255, 255, 255, 255, 7],
+     ] {
+         let peer = Peer::start(None, Some((1, 1))).await;
+-        peer.state.lock().unwrap().share_responses.push_back(wire);
++        peer.state.lock().share_responses.push_back(wire);
+         let mut admin = peer.admin().await;
+         assert!(matches!(
+             admin
+@@ -233,7 +227,6 @@
+     let peer = Peer::start(None, Some((0, 1))).await;
+     peer.state
+         .lock()
+-        .unwrap()
+         .share_responses
+         .push_back(response(1, &[group("g", -1, 16)]));
+     let mut admin = peer.admin().await;
+@@ -253,7 +246,7 @@
+ 
+     let peer = Peer::start(None, Some((1, 1))).await;
+     {
+-        let mut state = peer.state.lock().unwrap();
++        let mut state = peer.state.lock();
+         state
+             .share_responses
+             .push_back(response(1, &[group("g", 1, 0)]));
+@@ -278,7 +271,7 @@
+ async fn canceled_share_request_leaves_unrelated_operation_usable() {
+     let peer = Peer::start(None, Some((1, 1))).await;
+     {
+-        let mut state = peer.state.lock().unwrap();
++        let mut state = peer.state.lock();
+         state
+             .share_responses
+             .push_back(response(1, &[group("g", 3, 0)]));
+--- a/tests/sticky_partitioner.rs
++++ b/tests/sticky_partitioner.rs
+@@ -11,6 +11,10 @@
+ use std::time::Duration;
+ use tokio::time::{sleep, timeout};
+ 
++#[expect(
++    clippy::unwrap_used,
++    reason = "bounded test record sizing must succeed and fit the accounting type"
++)]
+ fn unkeyed_packed_bytes(value: &'static [u8]) -> u64 {
+     let record = Record {
+         offset: 0,
+@@ -180,7 +184,9 @@
+     )
+     .await
+     .unwrap();
+-    producer.partitions_for("t").await.unwrap();
++    let partitions = producer.partitions_for("t").await.unwrap();
++    assert_eq!(partitions.len(), 3);
++    assert!(partitions.iter().all(|partition| partition.leader == -1));
+     let before = producer.__test_sticky_state().unwrap();
+     for _ in 0..20 {
+         assert!(matches!(
+@@ -524,10 +530,13 @@
+     .await
+     .unwrap();
+     for topic in ["a", "bb", "ccc", "dddd", "toolongfortextcap"] {
+-        producer
++        let metadata = producer
+             .send(ProduceRecord::to(topic).value(&b"payload"[..]))
+             .await
+             .unwrap();
++        assert_eq!(metadata.topic, topic);
++        assert_eq!(metadata.partition, 0);
++        assert!(metadata.offset >= 0);
+         let state = producer.__test_sticky_state().unwrap();
+         assert!(state.0 <= 2 && state.1 == 0 && state.2 <= 8);
+     }
+@@ -618,7 +627,15 @@
+         .await
+         .unwrap();
+     mock.set_partition_leader("t", first.partition, -1);
+-    producer.partitions_for("t").await.unwrap();
++    let partitions = producer.partitions_for("t").await.unwrap();
++    assert_eq!(partitions.len(), 4);
++    assert_eq!(
++        partitions
++            .iter()
++            .find(|partition| partition.partition == first.partition)
++            .map(|partition| partition.leader),
++        Some(-1)
++    );
+     let before = producer.__test_sticky_state().unwrap();
+     for _ in 0..20 {
+         assert!(matches!(
+@@ -628,7 +645,15 @@
+         assert_eq!(producer.__test_sticky_state().unwrap(), before);
+     }
+     mock.set_partition_leader("t", first.partition, 1);
+-    producer.partitions_for("t").await.unwrap();
++    let partitions = producer.partitions_for("t").await.unwrap();
++    assert_eq!(partitions.len(), 4);
++    assert_eq!(
++        partitions
++            .iter()
++            .find(|partition| partition.partition == first.partition)
++            .map(|partition| partition.leader),
++        Some(1)
++    );
+     let second = producer
+         .send(ProduceRecord::to("t").value(&b"second"[..]))
+         .await
+@@ -658,7 +683,9 @@
+         .try_send(ProduceRecord::to("t").value(&b"accepted_before_recreation"[..]))
+         .unwrap();
+     mock.set_topic_id("t", [2; 16]);
+-    producer.partitions_for("t").await.unwrap();
++    let partitions = producer.partitions_for("t").await.unwrap();
++    assert_eq!(partitions.len(), 1);
++    assert!(partitions.iter().all(|partition| partition.topic == "t"));
+     // Real broker rejects the old UUID after deletion. The framed mock may also
+     // reject it; the required observation is the identity actually on the wire.
+     let _flush_outcome = timeout(Duration::from_secs(2), producer.flush())

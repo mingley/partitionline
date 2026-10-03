@@ -60,6 +60,7 @@ async fn public_abort_negotiates_v2_and_default_transaction_version() {
         let peer = Peer::start(Some(range), None).await;
         peer.state
             .lock()
+            .unwrap()
             .marker_responses
             .push_back(response(&[good(0)]));
         let mut admin = peer.admin().await;
@@ -83,12 +84,12 @@ async fn unsupported_abort_fails_before_metadata_or_marker_work() {
     for range in [None, Some((3, 3)), Some((-2, -1))] {
         let peer = Peer::start(range, None).await;
         let mut admin = peer.admin().await;
-        let before = peer.state.lock().observed.len();
+        let before = peer.state.lock().unwrap().observed.len();
         assert!(matches!(
             admin.abort_transaction(spec()).await,
             Err(Error::Unsupported(_))
         ));
-        assert_eq!(peer.state.lock().observed.len(), before);
+        assert_eq!(peer.state.lock().unwrap().observed.len(), before);
         assert!(peer.requests(METADATA).is_empty());
         admin.close().await.unwrap();
     }
@@ -132,6 +133,7 @@ async fn omitted_duplicate_or_unrelated_abort_results_cannot_succeed() {
         let peer = Peer::start(Some((1, 1)), None).await;
         peer.state
             .lock()
+            .unwrap()
             .marker_responses
             .push_back(response(&results));
         let mut admin = peer.admin().await;
@@ -153,7 +155,7 @@ async fn broker_and_replica_unavailability_refresh_the_selected_partition_leader
     for code in [3, 6, 8, 9] {
         let peer = Peer::start(Some((1, 2)), None).await;
         {
-            let mut state = peer.state.lock();
+            let mut state = peer.state.lock().unwrap();
             state
                 .marker_responses
                 .extend([response(&[good(code)]), response(&[good(0)])]);
@@ -176,6 +178,7 @@ async fn authorization_and_producer_or_coordinator_fencing_are_terminal() {
         let peer = Peer::start(Some((1, 2)), None).await;
         peer.state
             .lock()
+            .unwrap()
             .marker_responses
             .push_back(response(&[good(code)]));
         let mut admin = peer.admin().await;
@@ -192,6 +195,7 @@ async fn retry_deadline_is_one_absolute_budget() {
     let peer = Peer::start(Some((1, 2)), None).await;
     peer.state
         .lock()
+        .unwrap()
         .marker_responses
         .push_back(response(&[good(8)]));
     let mut admin = peer.admin().await;
@@ -211,7 +215,7 @@ async fn retry_deadline_is_one_absolute_budget() {
 async fn canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable() {
     let peer = Peer::start(Some((1, 2)), None).await;
     {
-        let mut state = peer.state.lock();
+        let mut state = peer.state.lock().unwrap();
         state.marker_responses.push_back(response(&[good(0)]));
         state.hold_markers = true;
     }
@@ -223,14 +227,14 @@ async fn canceled_abort_and_stalled_deadline_leave_unrelated_metadata_usable() {
         ()=tokio::time::sleep(BUDGET)=>panic!("marker was never sent"),
     }
     drop(operation);
-    peer.state.lock().hold_markers = false;
+    peer.state.lock().unwrap().hold_markers = false;
     peer.release.notify_one();
     assert_eq!(admin.describe_topics(["t"]).await.unwrap().len(), 1);
     admin.close().await.unwrap();
 
     let peer = Peer::start(Some((1, 2)), None).await;
     {
-        let mut state = peer.state.lock();
+        let mut state = peer.state.lock().unwrap();
         state.marker_responses.push_back(response(&[good(0)]));
         state.hold_markers = true;
     }
@@ -256,7 +260,7 @@ async fn truncated_or_trailing_marker_response_is_a_protocol_error() {
         vec![0xff, 0xff, 0xff, 0xff, 7],
     ] {
         let peer = Peer::start(Some((1, 2)), None).await;
-        peer.state.lock().marker_responses.push_back(wire);
+        peer.state.lock().unwrap().marker_responses.push_back(wire);
         let mut admin = peer.admin().await;
         assert!(matches!(
             admin.abort_transaction(spec()).await,
@@ -422,9 +426,9 @@ async fn serve_public_admin_probe() {
     assert!(matches!(mode.as_str(), "abort" | "share"));
     assert!((0..=2).contains(&version));
     let responses = directory.join("responses.bin");
-    let metadata = tokio::fs::metadata(&responses).await.unwrap();
+    let metadata = std::fs::metadata(&responses).unwrap();
     assert!(metadata.is_file() && metadata.len() <= 65_536);
-    let bytes = tokio::fs::read(&responses).await.unwrap();
+    let bytes = std::fs::read(&responses).unwrap();
     let mut cursor = bytes.as_slice();
     let mut declared = Vec::new();
     while !cursor.is_empty() {
@@ -442,53 +446,46 @@ async fn serve_public_admin_probe() {
         Peer::start(None, Some((version, version))).await
     };
     {
-        let mut state = peer.state.lock();
+        let mut state = peer.state.lock().unwrap();
         if mode == "abort" {
             state.marker_responses.extend(declared)
         } else {
             state.share_responses.extend(declared)
         }
     }
-    tokio::fs::write(directory.join("ready"), &peer.bootstrap)
-        .await
-        .unwrap();
+    std::fs::write(directory.join("ready"), &peer.bootstrap).unwrap();
     let started = Instant::now();
-    while !tokio::fs::try_exists(directory.join("stop")).await.unwrap() {
+    while !directory.join("stop").exists() {
         assert!(
             started.elapsed() < Duration::from_secs(30),
             "finite actual SDK peer deadline"
         );
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    let history = {
-        let state = peer.state.lock();
-        let hex = |data: &[u8]| {
-            data.iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>()
-        };
-        let mut history = String::new();
-        for row in &state.observed {
-            use std::fmt::Write;
-            writeln!(
-                history,
-                "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
-                row.node,
-                row.key,
-                row.version,
-                row.correlation,
-                hex(&row.body),
-                hex(&row.request_payload),
-                row.response_payload
-                    .as_ref()
-                    .map_or_else(String::new, |data| hex(data)),
-                row.response_written,
-            )
-            .unwrap();
-        }
-        history
+    let state = peer.state.lock().unwrap();
+    let hex = |data: &[u8]| {
+        data.iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
     };
-    tokio::fs::write(directory.join("actual-requests.tsv"), history)
-        .await
+    let mut history = String::new();
+    for row in &state.observed {
+        use std::fmt::Write;
+        writeln!(
+            history,
+            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
+            row.node,
+            row.key,
+            row.version,
+            row.correlation,
+            hex(&row.body),
+            hex(&row.request_payload),
+            row.response_payload
+                .as_ref()
+                .map_or_else(String::new, |data| hex(data)),
+            row.response_written,
+        )
         .unwrap();
+    }
+    std::fs::write(directory.join("actual-requests.tsv"), history).unwrap();
 }

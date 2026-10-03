@@ -1,0 +1,736 @@
+﻿2026-10-03T21:56:41.7458489Z Current runner version: '2.337.0'
+2026-10-03T21:56:41.7486746Z ##[group]Runner Image Provisioner
+2026-10-03T21:56:41.7487745Z Hosted Compute Agent
+2026-10-03T21:56:41.7488634Z Version: 20260901.588
+2026-10-03T21:56:41.7489389Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-03T21:56:41.7490348Z Build Date: 2026-09-01T19:56:44Z
+2026-10-03T21:56:41.7491188Z Worker ID: {25a94172-7852-43ca-a06c-635a969fcdef}
+2026-10-03T21:56:41.7492422Z Azure Region: eastus
+2026-10-03T21:56:41.7493174Z ##[endgroup]
+2026-10-03T21:56:41.7494824Z ##[group]Operating System
+2026-10-03T21:56:41.7495686Z Ubuntu
+2026-10-03T21:56:41.7496308Z 24.04.5
+2026-10-03T21:56:41.7496945Z LTS
+2026-10-03T21:56:41.7497576Z ##[endgroup]
+2026-10-03T21:56:41.7498406Z ##[group]Runner Image
+2026-10-03T21:56:41.7499202Z Image: ubuntu-24.04
+2026-10-03T21:56:41.7499929Z Version: 20260927.320.1
+2026-10-03T21:56:41.7501543Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-03T21:56:41.7503412Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-03T21:56:41.7504746Z ##[endgroup]
+2026-10-03T21:56:41.7509094Z ##[group]GITHUB_TOKEN Permissions
+2026-10-03T21:56:41.7511718Z Actions: write
+2026-10-03T21:56:41.7512485Z ArtifactMetadata: write
+2026-10-03T21:56:41.7513273Z Attestations: write
+2026-10-03T21:56:41.7513940Z Checks: write
+2026-10-03T21:56:41.7514643Z CodeQuality: write
+2026-10-03T21:56:41.7515318Z Contents: write
+2026-10-03T21:56:41.7515959Z CopilotRequests: write
+2026-10-03T21:56:41.7516767Z Deployments: write
+2026-10-03T21:56:41.7517481Z Discussions: write
+2026-10-03T21:56:41.7518401Z Drives: write
+2026-10-03T21:56:41.7519049Z Issues: write
+2026-10-03T21:56:41.7519723Z Metadata: read
+2026-10-03T21:56:41.7520526Z Models: read
+2026-10-03T21:56:41.7521318Z Packages: write
+2026-10-03T21:56:41.7522032Z Pages: write
+2026-10-03T21:56:41.7522689Z PullRequests: write
+2026-10-03T21:56:41.7523488Z RepositoryProjects: write
+2026-10-03T21:56:41.7524283Z SecurityEvents: write
+2026-10-03T21:56:41.7524939Z Statuses: write
+2026-10-03T21:56:41.7525691Z VulnerabilityAlerts: read
+2026-10-03T21:56:41.7526414Z ##[endgroup]
+2026-10-03T21:56:41.7529216Z Secret source: Actions
+2026-10-03T21:56:41.7530385Z Cache mode: write
+2026-10-03T21:56:41.7531491Z Prepare workflow directory
+2026-10-03T21:56:41.7950796Z Prepare all required actions
+2026-10-03T21:56:41.7991809Z Getting action download info
+2026-10-03T21:56:41.9522670Z Download action repository 'actions/checkout@v7' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-10-03T21:56:42.3297090Z Download action repository 'dtolnay/rust-toolchain@stable' (SHA:89b12181fb390509a0842a86cc55eeb8eb928c1d)
+2026-10-03T21:56:42.4460830Z Download action repository 'actions/setup-python@v6' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-03T21:56:42.5362290Z Download action repository 'actions/upload-artifact@v7' (SHA:043fb46d1a93c77aae656e7c1c64a875d1fc6a0a)
+2026-10-03T21:56:42.7589647Z Complete job name: broker-current (4.1.2)
+2026-10-03T21:56:42.8193382Z ##[group]Run actions/checkout@v7
+2026-10-03T21:56:42.8194146Z with:
+2026-10-03T21:56:42.8194557Z   repository: mingley/partitionline
+2026-10-03T21:56:42.8198346Z   token: ***
+2026-10-03T21:56:42.8198732Z   ssh-strict: true
+2026-10-03T21:56:42.8199116Z   ssh-user: git
+2026-10-03T21:56:42.8199507Z   persist-credentials: true
+2026-10-03T21:56:42.8199927Z   clean: true
+2026-10-03T21:56:42.8200314Z   sparse-checkout-cone-mode: true
+2026-10-03T21:56:42.8200756Z   fetch-depth: 1
+2026-10-03T21:56:42.8201128Z   fetch-tags: false
+2026-10-03T21:56:42.8201526Z   show-progress: true
+2026-10-03T21:56:42.8201914Z   lfs: false
+2026-10-03T21:56:42.8202264Z   submodules: false
+2026-10-03T21:56:42.8202659Z   set-safe-directory: true
+2026-10-03T21:56:42.8203098Z   allow-unsafe-pr-checkout: false
+2026-10-03T21:56:42.8203726Z env:
+2026-10-03T21:56:42.8204087Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:42.8204525Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:42.8204947Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:42.8205667Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:42.8206099Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:42.8206515Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:42.8206903Z ##[endgroup]
+2026-10-03T21:56:42.9079035Z Syncing repository: mingley/partitionline
+2026-10-03T21:56:42.9081067Z ##[group]Getting Git version info
+2026-10-03T21:56:42.9081886Z Working directory is '/home/runner/work/partitionline/partitionline'
+2026-10-03T21:56:42.9083128Z [command]/usr/bin/git version
+2026-10-03T21:56:42.9144373Z git version 2.55.0
+2026-10-03T21:56:42.9164203Z ##[endgroup]
+2026-10-03T21:56:42.9175739Z Temporarily overriding HOME='/home/runner/work/_temp/de397fb2-1d37-47a6-b1cd-5ce122abe857' before making global git config changes
+2026-10-03T21:56:42.9177732Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T21:56:42.9179794Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-10-03T21:56:42.9221803Z Deleting the contents of '/home/runner/work/partitionline/partitionline'
+2026-10-03T21:56:42.9225785Z ##[group]Determining repository object format
+2026-10-03T21:56:42.9227379Z ##[endgroup]
+2026-10-03T21:56:42.9228591Z ##[group]Initializing the repository
+2026-10-03T21:56:42.9231874Z [command]/usr/bin/git init /home/runner/work/partitionline/partitionline
+2026-10-03T21:56:42.9308517Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-03T21:56:42.9310054Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-03T21:56:42.9311710Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-03T21:56:42.9312918Z hint: call:
+2026-10-03T21:56:42.9313873Z hint:
+2026-10-03T21:56:42.9314689Z hint: 	git config --global init.defaultBranch <name>
+2026-10-03T21:56:42.9315568Z hint:
+2026-10-03T21:56:42.9316390Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-03T21:56:42.9317822Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-03T21:56:42.9319130Z hint:
+2026-10-03T21:56:42.9319743Z hint: 	git branch -m <name>
+2026-10-03T21:56:42.9320419Z hint:
+2026-10-03T21:56:42.9321327Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-03T21:56:42.9322927Z Initialized empty Git repository in /home/runner/work/partitionline/partitionline/.git/
+2026-10-03T21:56:42.9325434Z [command]/usr/bin/git remote add origin https://github.com/mingley/partitionline
+2026-10-03T21:56:42.9373615Z ##[endgroup]
+2026-10-03T21:56:42.9374327Z ##[group]Disabling automatic garbage collection
+2026-10-03T21:56:42.9377308Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-03T21:56:42.9412898Z ##[endgroup]
+2026-10-03T21:56:42.9413954Z ##[group]Setting up auth
+2026-10-03T21:56:42.9414716Z Removing SSH command configuration
+2026-10-03T21:56:42.9419135Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T21:56:42.9454544Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-03T21:56:42.9751627Z Removing HTTP extra header
+2026-10-03T21:56:42.9759020Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T21:56:42.9870207Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-03T21:56:42.9997243Z Removing includeIf entries pointing to credentials config files
+2026-10-03T21:56:43.0001892Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T21:56:43.0041117Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-03T21:56:43.0241196Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-03T21:56:43.0278153Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git.path /home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:56:43.0310713Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:56:43.0346321Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:56:43.0379362Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:56:43.0409597Z ##[endgroup]
+2026-10-03T21:56:43.0410264Z ##[group]Fetching the repository
+2026-10-03T21:56:43.0415535Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e8fc0b72724ebfcef99d4742c7870f95a7a9a47f:refs/remotes/origin/main
+2026-10-03T21:56:50.0345937Z From https://github.com/mingley/partitionline
+2026-10-03T21:56:50.0346702Z  * [new ref]           e8fc0b72724ebfcef99d4742c7870f95a7a9a47f -> origin/main
+2026-10-03T21:56:50.0353534Z [command]/usr/bin/git branch --list --remote origin/main
+2026-10-03T21:56:50.0381249Z   origin/main
+2026-10-03T21:56:50.0387352Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-10-03T21:56:50.0411249Z e8fc0b72724ebfcef99d4742c7870f95a7a9a47f
+2026-10-03T21:56:50.0414551Z ##[endgroup]
+2026-10-03T21:56:50.0415186Z ##[group]Determining the checkout info
+2026-10-03T21:56:50.0415819Z ##[endgroup]
+2026-10-03T21:56:50.0418872Z [command]/usr/bin/git sparse-checkout disable
+2026-10-03T21:56:50.0465612Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-03T21:56:50.0496330Z ##[group]Checking out the ref
+2026-10-03T21:56:50.0500609Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-10-03T21:56:51.1051503Z Updating files:  37% (28802/75877)
+2026-10-03T21:56:51.1341223Z Updating files:  38% (28834/75877)
+2026-10-03T21:56:51.1613728Z Updating files:  39% (29593/75877)
+2026-10-03T21:56:51.1861865Z Updating files:  40% (30351/75877)
+2026-10-03T21:56:51.2086878Z Updating files:  41% (31110/75877)
+2026-10-03T21:56:51.2305864Z Updating files:  42% (31869/75877)
+2026-10-03T21:56:51.2561307Z Updating files:  43% (32628/75877)
+2026-10-03T21:56:51.2855350Z Updating files:  44% (33386/75877)
+2026-10-03T21:56:51.3216556Z Updating files:  45% (34145/75877)
+2026-10-03T21:56:51.3701349Z Updating files:  46% (34904/75877)
+2026-10-03T21:56:51.3936887Z Updating files:  47% (35663/75877)
+2026-10-03T21:56:51.5352513Z Updating files:  48% (36421/75877)
+2026-10-03T21:56:51.6744246Z Updating files:  49% (37180/75877)
+2026-10-03T21:56:51.7074708Z Updating files:  50% (37939/75877)
+2026-10-03T21:56:51.7309165Z Updating files:  51% (38698/75877)
+2026-10-03T21:56:51.7782782Z Updating files:  52% (39457/75877)
+2026-10-03T21:56:51.8075310Z Updating files:  53% (40215/75877)
+2026-10-03T21:56:51.8272226Z Updating files:  54% (40974/75877)
+2026-10-03T21:56:51.8469529Z Updating files:  55% (41733/75877)
+2026-10-03T21:56:51.8668473Z Updating files:  56% (42492/75877)
+2026-10-03T21:56:51.8869424Z Updating files:  57% (43250/75877)
+2026-10-03T21:56:52.0068346Z Updating files:  58% (44009/75877)
+2026-10-03T21:56:52.0261351Z Updating files:  59% (44768/75877)
+2026-10-03T21:56:52.0793187Z Updating files:  60% (45527/75877)
+2026-10-03T21:56:52.1042606Z Updating files:  61% (46285/75877)
+2026-10-03T21:56:52.1205301Z Updating files:  61% (46865/75877)
+2026-10-03T21:56:52.1388923Z Updating files:  62% (47044/75877)
+2026-10-03T21:56:52.1713858Z Updating files:  63% (47803/75877)
+2026-10-03T21:56:52.1936414Z Updating files:  64% (48562/75877)
+2026-10-03T21:56:52.2145630Z Updating files:  65% (49321/75877)
+2026-10-03T21:56:52.2354461Z Updating files:  66% (50079/75877)
+2026-10-03T21:56:52.2658898Z Updating files:  67% (50838/75877)
+2026-10-03T21:56:52.2853105Z Updating files:  68% (51597/75877)
+2026-10-03T21:56:52.3087229Z Updating files:  69% (52356/75877)
+2026-10-03T21:56:52.3278212Z Updating files:  70% (53114/75877)
+2026-10-03T21:56:52.3474126Z Updating files:  71% (53873/75877)
+2026-10-03T21:56:52.3665863Z Updating files:  72% (54632/75877)
+2026-10-03T21:56:52.3873753Z Updating files:  73% (55391/75877)
+2026-10-03T21:56:52.4238490Z Updating files:  74% (56149/75877)
+2026-10-03T21:56:52.4564783Z Updating files:  75% (56908/75877)
+2026-10-03T21:56:52.4893653Z Updating files:  76% (57667/75877)
+2026-10-03T21:56:52.5089120Z Updating files:  77% (58426/75877)
+2026-10-03T21:56:52.5365388Z Updating files:  78% (59185/75877)
+2026-10-03T21:56:52.5881576Z Updating files:  79% (59943/75877)
+2026-10-03T21:56:52.6194311Z Updating files:  80% (60702/75877)
+2026-10-03T21:56:52.6796477Z Updating files:  81% (61461/75877)
+2026-10-03T21:56:52.7162684Z Updating files:  82% (62220/75877)
+2026-10-03T21:56:52.7762914Z Updating files:  83% (62978/75877)
+2026-10-03T21:56:52.8075501Z Updating files:  84% (63737/75877)
+2026-10-03T21:56:52.8527222Z Updating files:  85% (64496/75877)
+2026-10-03T21:56:52.8806037Z Updating files:  86% (65255/75877)
+2026-10-03T21:56:52.9673546Z Updating files:  87% (66013/75877)
+2026-10-03T21:56:53.0177649Z Updating files:  88% (66772/75877)
+2026-10-03T21:56:53.0501372Z Updating files:  89% (67531/75877)
+2026-10-03T21:56:53.1068442Z Updating files:  90% (68290/75877)
+2026-10-03T21:56:53.1091051Z Updating files:  90% (68995/75877)
+2026-10-03T21:56:53.1325378Z Updating files:  91% (69049/75877)
+2026-10-03T21:56:53.1530007Z Updating files:  92% (69807/75877)
+2026-10-03T21:56:53.1741039Z Updating files:  93% (70566/75877)
+2026-10-03T21:56:53.1937715Z Updating files:  94% (71325/75877)
+2026-10-03T21:56:53.9378597Z Updating files:  95% (72084/75877)
+2026-10-03T21:56:53.9573688Z Updating files:  96% (72842/75877)
+2026-10-03T21:56:53.9771048Z Updating files:  97% (73601/75877)
+2026-10-03T21:56:54.0009927Z Updating files:  98% (74360/75877)
+2026-10-03T21:56:54.0419228Z Updating files:  99% (75119/75877)
+2026-10-03T21:56:54.0419694Z Updating files: 100% (75877/75877)
+2026-10-03T21:56:54.0420130Z Updating files: 100% (75877/75877), done.
+2026-10-03T21:56:54.1139214Z Switched to a new branch 'main'
+2026-10-03T21:56:54.1140745Z branch 'main' set up to track 'origin/main'.
+2026-10-03T21:56:54.1189670Z ##[endgroup]
+2026-10-03T21:56:54.1233981Z [command]/usr/bin/git log -1 --format=%H
+2026-10-03T21:56:54.1261909Z e8fc0b72724ebfcef99d4742c7870f95a7a9a47f
+2026-10-03T21:56:54.1540895Z ##[group]Run dtolnay/rust-toolchain@stable
+2026-10-03T21:56:54.1541164Z with:
+2026-10-03T21:56:54.1541342Z   toolchain: stable
+2026-10-03T21:56:54.1541528Z env:
+2026-10-03T21:56:54.1541708Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.1541948Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.1542157Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.1542346Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.1542549Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.1542746Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.1542927Z ##[endgroup]
+2026-10-03T21:56:54.1595441Z ##[start-action display=Parse toolchain version;id=__dtolnay_rust-toolchain.parse]
+2026-10-03T21:56:54.1643404Z ##[group]Run if [[ -z $toolchain ]]; then
+2026-10-03T21:56:54.1643753Z [36;1mif [[ -z $toolchain ]]; then[0m
+2026-10-03T21:56:54.1644200Z [36;1m  # GitHub does not enforce `required: true` inputs itself. https://github.com/actions/runner/issues/1070[0m
+2026-10-03T21:56:54.1644742Z [36;1m  echo "'toolchain' is a required input" >&2[0m
+2026-10-03T21:56:54.1644999Z [36;1m  exit 1[0m
+2026-10-03T21:56:54.1645273Z [36;1melif [[ $toolchain =~ ^stable' '[0-9]+' '(year|month|week|day)s?' 'ago$ ]]; then[0m
+2026-10-03T21:56:54.1645593Z [36;1m  if [[ Linux == macOS ]]; then[0m
+2026-10-03T21:56:54.1646220Z [36;1m    echo "toolchain=1.$((($(date -v-$(sed 's/stable \([0-9]*\) \(.\).*/\1\2/' <<< $toolchain) +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.1646620Z [36;1m  else[0m
+2026-10-03T21:56:54.1646948Z [36;1m    echo "toolchain=1.$((($(date --date "${toolchain#stable }" +%s)/60/60/24-16569)/7/6))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.1647313Z [36;1m  fi[0m
+2026-10-03T21:56:54.1647568Z [36;1melif [[ $toolchain =~ ^stable' 'minus' '[0-9]+' 'releases?$ ]]; then[0m
+2026-10-03T21:56:54.1648177Z [36;1m  echo "toolchain=1.$((($(date +%s)/60/60/24-16569)/7/6-${toolchain//[^0-9]/}))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.1648545Z [36;1melif [[ $toolchain =~ ^1\.[0-9]+$ ]]; then[0m
+2026-10-03T21:56:54.1648953Z [36;1m  echo "toolchain=1.$((i=${toolchain#1.}, c=($(date +%s)/60/60/24-16569)/7/6, i+9*i*(10*i<=c)+90*i*(100*i<=c)))" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.1649330Z [36;1melse[0m
+2026-10-03T21:56:54.1649549Z [36;1m  echo "toolchain=$toolchain" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.1649790Z [36;1mfi[0m
+2026-10-03T21:56:54.1850471Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:56:54.1850778Z env:
+2026-10-03T21:56:54.1850966Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.1851188Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.1851391Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.1851582Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.1851790Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.1851988Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.1852178Z   toolchain: stable
+2026-10-03T21:56:54.1852363Z ##[endgroup]
+2026-10-03T21:56:54.1979600Z ##[end-action id=__dtolnay_rust-toolchain.parse;outcome=success;conclusion=success;duration_ms=38]
+2026-10-03T21:56:54.1990552Z ##[start-action display=Construct rustup command line;id=__dtolnay_rust-toolchain.flags]
+2026-10-03T21:56:54.2014352Z ##[group]Run echo "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT
+2026-10-03T21:56:54.2014901Z [36;1mecho "targets=$(for t in ${targets//,/ }; do echo -n ' --target' $t; done)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.2015391Z [36;1mecho "components=$(for c in ${components//,/ }; do echo -n ' --component' $c; done)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.2015783Z [36;1mecho "downgrade=" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:56:54.2074620Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:56:54.2074920Z env:
+2026-10-03T21:56:54.2075102Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.2075324Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.2075534Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.2075725Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.2075924Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.2076362Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.2076548Z   targets: 
+2026-10-03T21:56:54.2076713Z   components: 
+2026-10-03T21:56:54.2076886Z ##[endgroup]
+2026-10-03T21:56:54.2168833Z ##[end-action id=__dtolnay_rust-toolchain.flags;outcome=success;conclusion=success;duration_ms=17]
+2026-10-03T21:56:54.2170986Z ##[start-action display=Set $CARGO_HOME;id=__dtolnay_rust-toolchain.__run]
+2026-10-03T21:56:54.2188251Z ##[group]Run echo CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV
+2026-10-03T21:56:54.2188653Z [36;1mecho CARGO_HOME=${CARGO_HOME:-"$HOME/.cargo"} >> $GITHUB_ENV[0m
+2026-10-03T21:56:54.2246935Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:56:54.2247234Z env:
+2026-10-03T21:56:54.2247420Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.2247644Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.2248001Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.2248203Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.2248406Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.2248623Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.2248819Z ##[endgroup]
+2026-10-03T21:56:54.2332670Z ##[end-action id=__dtolnay_rust-toolchain.__run;outcome=success;conclusion=success;duration_ms=16]
+2026-10-03T21:56:54.2334953Z ##[start-action display=Install rustup if needed;id=__dtolnay_rust-toolchain.__run_2]
+2026-10-03T21:56:54.2356935Z ##[group]Run if ! command -v rustup &>/dev/null; then
+2026-10-03T21:56:54.2357249Z [36;1mif ! command -v rustup &>/dev/null; then[0m
+2026-10-03T21:56:54.2358088Z [36;1m  curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused --location --silent --show-error --fail https://sh.rustup.rs | sh -s -- --default-toolchain none -y[0m
+2026-10-03T21:56:54.2358674Z [36;1m  echo "$CARGO_HOME/bin" >> $GITHUB_PATH[0m
+2026-10-03T21:56:54.2358921Z [36;1mfi[0m
+2026-10-03T21:56:54.2414424Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:56:54.2414724Z env:
+2026-10-03T21:56:54.2414904Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.2415137Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.2415342Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.2415533Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.2415739Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.2415949Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.2416138Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:56:54.2416351Z ##[endgroup]
+2026-10-03T21:56:54.2497297Z ##[end-action id=__dtolnay_rust-toolchain.__run_2;outcome=success;conclusion=success;duration_ms=16]
+2026-10-03T21:56:54.2499793Z ##[start-action display=Install rustup if needed on windows;id=__dtolnay_rust-toolchain.__run_3]
+2026-10-03T21:56:54.2506885Z ##[end-action id=__dtolnay_rust-toolchain.__run_3;outcome=skipped;conclusion=skipped;duration_ms=0]
+2026-10-03T21:56:54.2516301Z ##[start-action display=rustup toolchain install stable;id=__dtolnay_rust-toolchain.__run_4]
+2026-10-03T21:56:54.2556006Z ##[group]Run log=$(mktemp)
+2026-10-03T21:56:54.2556261Z [36;1mlog=$(mktemp)[0m
+2026-10-03T21:56:54.2556477Z [36;1mtrap 'rm -f "$log"' EXIT[0m
+2026-10-03T21:56:54.2556701Z [36;1mfor attempt in 1 2 3 4 5; do[0m
+2026-10-03T21:56:54.2557164Z [36;1m  if rustup toolchain install stable --profile minimal --no-self-update --force-non-host 2>&1 | tee "$log"; then[0m
+2026-10-03T21:56:54.2557630Z [36;1m    break[0m
+2026-10-03T21:56:54.2557809Z [36;1m  else[0m
+2026-10-03T21:56:54.2558158Z [36;1m    status=$?[0m
+2026-10-03T21:56:54.2558345Z [36;1m  fi[0m
+2026-10-03T21:56:54.2558593Z [36;1m  if [[ $attempt == 5 ]] || ! grep -Fq 'checksum failed for ' "$log" \[0m
+2026-10-03T21:56:54.2559037Z [36;1m      || ! grep -Fq 'this is likely due to an ongoing update of the official release server' "$log"; then[0m
+2026-10-03T21:56:54.2559400Z [36;1m    exit "$status"[0m
+2026-10-03T21:56:54.2559596Z [36;1m  fi[0m
+2026-10-03T21:56:54.2559887Z [36;1m  echo "Retrying rustup toolchain install in 30 seconds (retry $attempt of 4)" >&2[0m
+2026-10-03T21:56:54.2560216Z [36;1m  sleep 30[0m
+2026-10-03T21:56:54.2560548Z [36;1mdone[0m
+2026-10-03T21:56:54.2621200Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:56:54.2621487Z env:
+2026-10-03T21:56:54.2621675Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:56:54.2621917Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:56:54.2622131Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:56:54.2622319Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:56:54.2622523Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:56:54.2622718Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:56:54.2622911Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:56:54.2623144Z   RUSTUP_PERMIT_COPY_RENAME: 1
+2026-10-03T21:56:54.2623347Z ##[endgroup]
+2026-10-03T21:56:54.5773230Z info: syncing channel updates for stable-x86_64-unknown-linux-gnu
+2026-10-03T21:56:55.6377574Z info: latest update on 2026-10-01 for version 1.99.0 (b940084d7 2026-09-28)
+2026-10-03T21:56:55.6488045Z info: removing previous version of component rustfmt
+2026-10-03T21:56:55.6543999Z info: removing previous version of component clippy
+2026-10-03T21:56:55.6553486Z info: removing previous version of component cargo
+2026-10-03T21:56:55.6587424Z info: removing previous version of component rust-std
+2026-10-03T21:56:55.6663045Z info: removing previous version of component rustc
+2026-10-03T21:56:55.6753915Z info: downloading 5 components
+2026-10-03T21:57:03.3545230Z 
+2026-10-03T21:57:03.3606167Z   stable-x86_64-unknown-linux-gnu updated - rustc 1.99.0 (b940084d7 2026-09-28) (from rustc 1.98.1 (48a229cea 2026-09-01))
+2026-10-03T21:57:03.3606557Z 
+2026-10-03T21:57:03.3671765Z ##[end-action id=__dtolnay_rust-toolchain.__run_4;outcome=success;conclusion=success;duration_ms=9115]
+2026-10-03T21:57:03.3676626Z ##[start-action display=rustup default stable;id=__dtolnay_rust-toolchain.__run_5]
+2026-10-03T21:57:03.3692377Z ##[group]Run rustup default stable --force-non-host
+2026-10-03T21:57:03.3692700Z [36;1mrustup default stable --force-non-host[0m
+2026-10-03T21:57:03.3747274Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.3747560Z env:
+2026-10-03T21:57:03.3747759Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.3748191Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.3748396Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.3748584Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.3748803Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.3748999Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.3749191Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.3749405Z ##[endgroup]
+2026-10-03T21:57:03.3853805Z info: using existing install for stable-x86_64-unknown-linux-gnu
+2026-10-03T21:57:03.3859220Z info: default toolchain set to stable-x86_64-unknown-linux-gnu
+2026-10-03T21:57:03.3859570Z 
+2026-10-03T21:57:03.3915759Z   stable-x86_64-unknown-linux-gnu unchanged - rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-03T21:57:03.3916200Z 
+2026-10-03T21:57:03.3931171Z ##[end-action id=__dtolnay_rust-toolchain.__run_5;outcome=success;conclusion=success;duration_ms=25]
+2026-10-03T21:57:03.3933353Z ##[start-action display=Create cachekey;id=__dtolnay_rust-toolchain.rustc-version]
+2026-10-03T21:57:03.3949499Z ##[group]Run DATE=$(rustc +stable --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')
+2026-10-03T21:57:03.3950138Z [36;1mDATE=$(rustc +stable --version --verbose | sed -ne 's/^commit-date: \(20[0-9][0-9]\)-\([01][0-9]\)-\([0-3][0-9]\)$/\1\2\3/p')[0m
+2026-10-03T21:57:03.3950642Z [36;1mHASH=$(rustc +stable --version --verbose | sed -ne 's/^commit-hash: //p')[0m
+2026-10-03T21:57:03.3951039Z [36;1mecho "cachekey=$(echo $DATE$HASH | head -c12)" >> $GITHUB_OUTPUT[0m
+2026-10-03T21:57:03.4005001Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.4005284Z env:
+2026-10-03T21:57:03.4005469Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.4005691Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.4005898Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.4006088Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.4006290Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.4006487Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.4006827Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.4007041Z ##[endgroup]
+2026-10-03T21:57:03.4297163Z ##[end-action id=__dtolnay_rust-toolchain.rustc-version;outcome=success;conclusion=success;duration_ms=36]
+2026-10-03T21:57:03.4299580Z ##[start-action display=Disable incremental compilation;id=__dtolnay_rust-toolchain.__run_6]
+2026-10-03T21:57:03.4314654Z ##[group]Run if [ -z "${CARGO_INCREMENTAL+set}" ]; then
+2026-10-03T21:57:03.4314966Z [36;1mif [ -z "${CARGO_INCREMENTAL+set}" ]; then[0m
+2026-10-03T21:57:03.4315239Z [36;1m  echo CARGO_INCREMENTAL=0 >> $GITHUB_ENV[0m
+2026-10-03T21:57:03.4315472Z [36;1mfi[0m
+2026-10-03T21:57:03.4369849Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.4370136Z env:
+2026-10-03T21:57:03.4370317Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.4370540Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.4370751Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.4370943Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.4371151Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.4371349Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.4371544Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.4371757Z ##[endgroup]
+2026-10-03T21:57:03.4444426Z ##[end-action id=__dtolnay_rust-toolchain.__run_6;outcome=success;conclusion=success;duration_ms=14]
+2026-10-03T21:57:03.4446541Z ##[start-action display=Enable colors in Cargo output;id=__dtolnay_rust-toolchain.__run_7]
+2026-10-03T21:57:03.4461449Z ##[group]Run if [ -z "${CARGO_TERM_COLOR+set}" ]; then
+2026-10-03T21:57:03.4461752Z [36;1mif [ -z "${CARGO_TERM_COLOR+set}" ]; then[0m
+2026-10-03T21:57:03.4462024Z [36;1m  echo CARGO_TERM_COLOR=always >> $GITHUB_ENV[0m
+2026-10-03T21:57:03.4462264Z [36;1mfi[0m
+2026-10-03T21:57:03.4511526Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.4511814Z env:
+2026-10-03T21:57:03.4511991Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.4512210Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.4512433Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.4512623Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.4512828Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.4513024Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.4513219Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.4513441Z ##[endgroup]
+2026-10-03T21:57:03.4583295Z ##[end-action id=__dtolnay_rust-toolchain.__run_7;outcome=success;conclusion=success;duration_ms=13]
+2026-10-03T21:57:03.4585108Z ##[start-action display=Enable Cargo sparse registry;id=__dtolnay_rust-toolchain.__run_8]
+2026-10-03T21:57:03.4600192Z ##[group]Run # implemented in 1.66, stabilized in 1.68, made default in 1.70
+2026-10-03T21:57:03.4600609Z [36;1m# implemented in 1.66, stabilized in 1.68, made default in 1.70[0m
+2026-10-03T21:57:03.4601169Z [36;1mif [ -z "${CARGO_REGISTRIES_CRATES_IO_PROTOCOL+set}" -o -f "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol ]; then[0m
+2026-10-03T21:57:03.4601744Z [36;1m  if rustc +stable --version --verbose | grep -q '^release: 1\.6[89]\.'; then[0m
+2026-10-03T21:57:03.4602204Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-03T21:57:03.4602627Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse >> $GITHUB_ENV[0m
+2026-10-03T21:57:03.4603030Z [36;1m  elif rustc +stable --version --verbose | grep -q '^release: 1\.6[67]\.'; then[0m
+2026-10-03T21:57:03.4603477Z [36;1m    touch "/home/runner/work/_temp"/.implicit_cargo_registries_crates_io_protocol || true[0m
+2026-10-03T21:57:03.4603882Z [36;1m    echo CARGO_REGISTRIES_CRATES_IO_PROTOCOL=git >> $GITHUB_ENV[0m
+2026-10-03T21:57:03.4604164Z [36;1m  fi[0m
+2026-10-03T21:57:03.4604333Z [36;1mfi[0m
+2026-10-03T21:57:03.4651380Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.4651656Z env:
+2026-10-03T21:57:03.4651832Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.4652060Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.4652263Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.4652590Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.4652795Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.4652990Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.4653186Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.4653398Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:03.4653591Z ##[endgroup]
+2026-10-03T21:57:03.4921841Z ##[end-action id=__dtolnay_rust-toolchain.__run_8;outcome=success;conclusion=success;duration_ms=33]
+2026-10-03T21:57:03.4924091Z ##[start-action display=Work around spurious network errors in curl 8.0;id=__dtolnay_rust-toolchain.__run_9]
+2026-10-03T21:57:03.4940472Z ##[group]Run # https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation
+2026-10-03T21:57:03.4941072Z [36;1m# https://rust-lang.zulipchat.com/#narrow/stream/246057-t-cargo/topic/timeout.20investigation[0m
+2026-10-03T21:57:03.4941546Z [36;1mif rustc +stable --version --verbose | grep -q '^release: 1\.7[01]\.'; then[0m
+2026-10-03T21:57:03.4941934Z [36;1m  echo CARGO_HTTP_MULTIPLEXING=false >> $GITHUB_ENV[0m
+2026-10-03T21:57:03.4942206Z [36;1mfi[0m
+2026-10-03T21:57:03.4996118Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.4996405Z env:
+2026-10-03T21:57:03.4996586Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.4996968Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.4997170Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.4997357Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.4997559Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.4997765Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.4998151Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.4998364Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:03.4998556Z ##[endgroup]
+2026-10-03T21:57:03.5167156Z ##[end-action id=__dtolnay_rust-toolchain.__run_9;outcome=success;conclusion=success;duration_ms=24]
+2026-10-03T21:57:03.5171098Z ##[start-action display=rustc +stable --version --verbose;id=__dtolnay_rust-toolchain.__run_10]
+2026-10-03T21:57:03.5185971Z ##[group]Run rustc +stable --version --verbose
+2026-10-03T21:57:03.5186279Z [36;1mrustc +stable --version --verbose[0m
+2026-10-03T21:57:03.5240616Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-03T21:57:03.5240904Z env:
+2026-10-03T21:57:03.5241084Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.5241322Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.5241534Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.5241725Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.5241929Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.5242126Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.5242317Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.5242528Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:03.5242720Z ##[endgroup]
+2026-10-03T21:57:03.5400045Z rustc 1.99.0 (b940084d7 2026-09-28)
+2026-10-03T21:57:03.5400429Z binary: rustc
+2026-10-03T21:57:03.5400671Z commit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4
+2026-10-03T21:57:03.5400937Z commit-date: 2026-09-28
+2026-10-03T21:57:03.5401138Z host: x86_64-unknown-linux-gnu
+2026-10-03T21:57:03.5401412Z release: 1.99.0
+2026-10-03T21:57:03.5401674Z LLVM version: 23.1.1
+2026-10-03T21:57:03.5413869Z ##[end-action id=__dtolnay_rust-toolchain.__run_10;outcome=success;conclusion=success;duration_ms=24]
+2026-10-03T21:57:03.5517057Z ##[group]Run actions/setup-python@v6
+2026-10-03T21:57:03.5517302Z with:
+2026-10-03T21:57:03.5517487Z   python-version: 3.13
+2026-10-03T21:57:03.5517689Z   check-latest: false
+2026-10-03T21:57:03.5519938Z   token: ***
+2026-10-03T21:57:03.5520126Z   update-environment: true
+2026-10-03T21:57:03.5520335Z   allow-prereleases: false
+2026-10-03T21:57:03.5520526Z   freethreaded: false
+2026-10-03T21:57:03.5520709Z env:
+2026-10-03T21:57:03.5520875Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.5521089Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.5521295Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.5521480Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.5521678Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.5521883Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.5522078Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.5522288Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:03.5522479Z ##[endgroup]
+2026-10-03T21:57:03.6553488Z ##[group]Installed versions
+2026-10-03T21:57:03.6617054Z Successfully set up CPython (3.13.15)
+2026-10-03T21:57:03.6617707Z ##[endgroup]
+2026-10-03T21:57:03.6735787Z ##[group]Run python3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py
+2026-10-03T21:57:03.6736690Z [36;1mpython3 -B -m unittest discover -s tests/conformance -p test_broker_compatibility.py[0m
+2026-10-03T21:57:03.6814537Z shell: /usr/bin/bash -e {0}
+2026-10-03T21:57:03.6814869Z env:
+2026-10-03T21:57:03.6815136Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:03.6815472Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:03.6815787Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:03.6816068Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:03.6816387Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:03.6816704Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:03.6817002Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:03.6817345Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:03.6817744Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:03.6818537Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:57:03.6819371Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:03.6819883Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:03.6820385Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:03.6820893Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:57:03.6821317Z ##[endgroup]
+2026-10-03T21:57:04.1880100Z .....
+2026-10-03T21:57:04.1881541Z ----------------------------------------------------------------------
+2026-10-03T21:57:04.1882247Z Ran 5 tests in 0.008s
+2026-10-03T21:57:04.1882473Z 
+2026-10-03T21:57:04.1882599Z OK
+2026-10-03T21:57:04.1989178Z ##[group]Run python3 -B -m unittest discover -s tests/conformance -p test_verifiable_scenario.py
+2026-10-03T21:57:04.1989719Z [36;1mpython3 -B -m unittest discover -s tests/conformance -p test_verifiable_scenario.py[0m
+2026-10-03T21:57:04.2044441Z shell: /usr/bin/bash -e {0}
+2026-10-03T21:57:04.2044658Z env:
+2026-10-03T21:57:04.2044859Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:04.2045082Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:04.2045289Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:04.2045482Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:04.2045690Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:04.2045896Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:04.2046088Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:04.2046300Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:04.2046548Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.2046893Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:57:04.2047283Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.2047595Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.2048066Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.2048376Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:57:04.2048642Z ##[endgroup]
+2026-10-03T21:57:04.4262809Z .........
+2026-10-03T21:57:04.4263282Z ----------------------------------------------------------------------
+2026-10-03T21:57:04.4263773Z Ran 9 tests in 0.064s
+2026-10-03T21:57:04.4263976Z 
+2026-10-03T21:57:04.4264080Z OK
+2026-10-03T21:57:04.4378915Z ##[group]Run python3 -B -m unittest discover -s tests/conformance -p test_fetch_session_recovery.py
+2026-10-03T21:57:04.4379492Z [36;1mpython3 -B -m unittest discover -s tests/conformance -p test_fetch_session_recovery.py[0m
+2026-10-03T21:57:04.4434204Z shell: /usr/bin/bash -e {0}
+2026-10-03T21:57:04.4434431Z env:
+2026-10-03T21:57:04.4434617Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:04.4434836Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:04.4435040Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:04.4435227Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:04.4435434Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:04.4435639Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:04.4435837Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:04.4436075Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:04.4436326Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.4436676Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:57:04.4437053Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.4437367Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.4437683Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.4438163Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:57:04.4438432Z ##[endgroup]
+2026-10-03T21:57:04.5774872Z .................
+2026-10-03T21:57:04.5775290Z ----------------------------------------------------------------------
+2026-10-03T21:57:04.5775600Z Ran 17 tests in 0.051s
+2026-10-03T21:57:04.5775726Z 
+2026-10-03T21:57:04.5775803Z OK
+2026-10-03T21:57:04.5884340Z ##[group]Run bash scripts/ci-broker-smoke.sh
+2026-10-03T21:57:04.5884645Z [36;1mbash scripts/ci-broker-smoke.sh[0m
+2026-10-03T21:57:04.5939220Z shell: /usr/bin/bash -e {0}
+2026-10-03T21:57:04.5939431Z env:
+2026-10-03T21:57:04.5939616Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:57:04.5939831Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:57:04.5940033Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:57:04.5940220Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:57:04.5940418Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:57:04.5940615Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:57:04.5940816Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:57:04.5941027Z   CARGO_TERM_COLOR: always
+2026-10-03T21:57:04.5941272Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.5941617Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:57:04.5941952Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.5942316Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.5942623Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:57:04.5942940Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:57:04.5943206Z ##[endgroup]
+2026-10-03T21:58:05.7043960Z broker-compatibility: qualified 4.1.2 digest=sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e scenarios=8 records=16
+2026-10-03T21:58:14.4728997Z Live verifiable scenario: all 25 acknowledgements, deliveries and Java-confirmed offsets passed
+2026-10-03T21:58:14.4729553Z 
+2026-10-03T21:58:14.4730313Z Full live verifiable report retained: /home/runner/work/partitionline/partitionline/target/broker-compatibility/4.1.2/verifiable/e090b61326b74d39b75ceb542c8a9ce9
+2026-10-03T21:58:14.9088678Z ##[group]Run bash scripts/ci-fetch-session-recovery.sh
+2026-10-03T21:58:14.9089042Z [36;1mbash scripts/ci-fetch-session-recovery.sh[0m
+2026-10-03T21:58:14.9144524Z shell: /usr/bin/bash -e {0}
+2026-10-03T21:58:14.9144741Z env:
+2026-10-03T21:58:14.9144925Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:58:14.9145149Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:58:14.9145368Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:58:14.9145556Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:58:14.9145757Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:58:14.9145953Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:58:14.9146154Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:58:14.9146374Z   CARGO_TERM_COLOR: always
+2026-10-03T21:58:14.9146627Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:14.9146987Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:58:14.9147327Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:14.9147679Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:14.9148171Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:14.9148478Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:58:14.9148737Z ##[endgroup]
+2026-10-03T21:58:48.7616928Z complete-history validator exited 1
+2026-10-03T21:58:48.7617483Z Full attempt: target/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee
+2026-10-03T21:58:48.7618166Z runtime:
+2026-10-03T21:58:48.7618797Z [1m[92m    Finished[0m `test` profile [unoptimized] target(s) in 0.02s
+2026-10-03T21:58:48.7619587Z [1m[92m     Running[0m tests/consumer_fetch_semantics.rs (target/debug/deps/consumer_fetch_semantics-04cf5bf4c058f319)
+2026-10-03T21:58:48.7620104Z 
+2026-10-03T21:58:48.7620201Z build:
+2026-10-03T21:58:48.7620684Z [1m[92m   Compiling[0m partitionline v0.1.0 (/home/runner/work/partitionline/partitionline)
+2026-10-03T21:58:48.7621349Z [1m[92m    Finished[0m `test` profile [unoptimized] target(s) in 4.31s
+2026-10-03T21:58:48.7622129Z [1m[92m  Executable[0m tests/consumer_fetch_semantics.rs (target/debug/deps/consumer_fetch_semantics-04cf5bf4c058f319)
+2026-10-03T21:58:48.7622616Z 
+2026-10-03T21:58:48.7622746Z report-validation:
+2026-10-03T21:58:48.7622968Z Traceback (most recent call last):
+2026-10-03T21:58:48.7627134Z   File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 162, in <module>
+2026-10-03T21:58:48.7628164Z     result = finish(args.directory, args.source_sha)
+2026-10-03T21:58:48.7628878Z   File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 138, in finish
+2026-10-03T21:58:48.7629809Z     runtime = history((directory / 'runtime.stdout.log').read_text(), source, identity['topic'])
+2026-10-03T21:58:48.7630389Z   File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 81, in history
+2026-10-03T21:58:48.7630933Z     require(0 <= previous_phase <= phase <= 6 and version == 17 and code == 0 and size > 0,
+2026-10-03T21:58:48.7631378Z     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-03T21:58:48.7631768Z             'wire phase/version/error/size mismatch')
+2026-10-03T21:58:48.7632118Z             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2026-10-03T21:58:48.7632870Z   File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 14, in require
+2026-10-03T21:58:48.7643957Z     raise ValueError(message)
+2026-10-03T21:58:48.7644357Z ValueError: wire phase/version/error/size mismatch
+2026-10-03T21:58:48.7644616Z 
+2026-10-03T21:58:48.7669864Z ##[error]complete-history validator exited 1
+Full attempt: target/fetch-session-recovery/1817c7bcea024fa28119683dfecf7fee
+runtime:
+[1m[92m    Finished[0m `test` profile [unoptimized] target(s) in 0.02s
+[1m[92m     Running[0m tests/consumer_fetch_semantics.rs (target/debug/deps/consumer_fetch_semantics-04cf5bf4c058f319)
+
+build:
+[1m[92m   Compiling[0m partitionline v0.1.0 (/home/runner/work/partitionline/partitionline)
+[1m[92m    Finished[0m `test` profile [unoptimized] target(s) in 4.31s
+[1m[92m  Executable[0m tests/consumer_fetch_semantics.rs (target/debug/deps/consumer_fetch_semantics-04cf5bf4c058f319)
+
+report-validation:
+Traceback (most recent call last):
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 162, in <module>
+    result = finish(args.directory, args.source_sha)
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 138, in finish
+    runtime = history((directory / 'runtime.stdout.log').read_text(), source, identity['topic'])
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 81, in history
+    require(0 <= previous_phase <= phase <= 6 and version == 17 and code == 0 and size > 0,
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            'wire phase/version/error/size mismatch')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/runner/work/partitionline/partitionline/scripts/report-fetch-session-recovery.py", line 14, in require
+    raise ValueError(message)
+ValueError: wire phase/version/error/size mismatch
+
+2026-10-03T21:58:48.7681037Z ##[error]Process completed with exit code 1.
+2026-10-03T21:58:48.7730892Z ##[group]Run actions/upload-artifact@v7
+2026-10-03T21:58:48.7731136Z with:
+2026-10-03T21:58:48.7731846Z   name: broker-current-4.1.2-e8fc0b72724ebfcef99d4742c7870f95a7a9a47f-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta27-5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+2026-10-03T21:58:48.7732689Z   path: target/broker-compatibility/4.1.2/
+target/fetch-session-recovery/
+
+2026-10-03T21:58:48.7733011Z   if-no-files-found: error
+2026-10-03T21:58:48.7733209Z   retention-days: 30
+2026-10-03T21:58:48.7733399Z   compression-level: 6
+2026-10-03T21:58:48.7733584Z   overwrite: false
+2026-10-03T21:58:48.7733767Z   include-hidden-files: false
+2026-10-03T21:58:48.7733966Z   archive: true
+2026-10-03T21:58:48.7734135Z env:
+2026-10-03T21:58:48.7734305Z   PL_CURRENT_BROKER_CELL: 4.1.2
+2026-10-03T21:58:48.7734516Z   PL_COMPAT_RUN_VERIFIABLE: 1
+2026-10-03T21:58:48.7734709Z   CARGO_BUILD_JOBS: 2
+2026-10-03T21:58:48.7734893Z   CARGO_PROFILE_DEV_DEBUG: 0
+2026-10-03T21:58:48.7735280Z   CARGO_PROFILE_TEST_DEBUG: 0
+2026-10-03T21:58:48.7735473Z   CARGO_INCREMENTAL: 0
+2026-10-03T21:58:48.7735663Z   CARGO_HOME: /home/runner/.cargo
+2026-10-03T21:58:48.7735872Z   CARGO_TERM_COLOR: always
+2026-10-03T21:58:48.7736113Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:48.7736455Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-03T21:58:48.7736791Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:48.7737098Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:48.7737402Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-03T21:58:48.7737703Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-03T21:58:48.7738131Z ##[endgroup]
+2026-10-03T21:58:48.9029558Z Multiple search paths detected. Calculating the least common ancestor of all paths
+2026-10-03T21:58:48.9031831Z The least common ancestor is /home/runner/work/partitionline/partitionline/target. This will be the root directory of the artifact
+2026-10-03T21:58:48.9032820Z With the provided path, there will be 71 files uploaded
+2026-10-03T21:58:48.9036757Z Artifact name is valid!
+2026-10-03T21:58:48.9037070Z Root directory input is valid!
+2026-10-03T21:58:49.1189386Z Uploading artifact: broker-current-4.1.2-e8fc0b72724ebfcef99d4742c7870f95a7a9a47f-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta27-5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e.zip
+2026-10-03T21:58:49.1218781Z Beginning upload of artifact content to blob storage
+2026-10-03T21:58:49.2397322Z Uploaded bytes 59347
+2026-10-03T21:58:49.2544982Z Finished uploading artifact content to blob storage!
+2026-10-03T21:58:49.2545730Z SHA256 digest of uploaded artifact is ce20dc2c38ed7635ed503c93055f750104b085927fd5c3a71f4428b088cfbc39
+2026-10-03T21:58:49.2546373Z Finalizing artifact upload
+2026-10-03T21:58:49.4900910Z Artifact broker-current-4.1.2-e8fc0b72724ebfcef99d4742c7870f95a7a9a47f-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta27-5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e successfully finalized. Artifact ID 11286412224
+2026-10-03T21:58:49.4902690Z Artifact broker-current-4.1.2-e8fc0b72724ebfcef99d4742c7870f95a7a9a47f-rust1.99.0-scenarios8-records16-share1-group1-txn2-meta27-5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e has been successfully uploaded! Final size is 59347 bytes. Artifact ID is 11286412224
+2026-10-03T21:58:49.4904380Z Artifact download URL: https://github.com/mingley/partitionline/actions/runs/37156631589/artifacts/11286412224
+2026-10-03T21:58:49.5057001Z Post job cleanup.
+2026-10-03T21:58:49.5763322Z [command]/usr/bin/git version
+2026-10-03T21:58:49.5801557Z git version 2.55.0
+2026-10-03T21:58:49.5840241Z Temporarily overriding HOME='/home/runner/work/_temp/8fc8ca8e-88e4-4170-ac10-ad60cb48190d' before making global git config changes
+2026-10-03T21:58:49.5841141Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-03T21:58:49.5845050Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/partitionline/partitionline
+2026-10-03T21:58:49.5874776Z Removing SSH command configuration
+2026-10-03T21:58:49.5880771Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-03T21:58:49.5913410Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-03T21:58:49.6203674Z Removing HTTP extra header
+2026-10-03T21:58:49.6210218Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-03T21:58:49.6247116Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-03T21:58:49.6526353Z Removing includeIf entries pointing to credentials config files
+2026-10-03T21:58:49.6532950Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-03T21:58:49.6571323Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-10-03T21:58:49.6572312Z includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-10-03T21:58:49.6573236Z includeif.gitdir:/github/workspace/.git.path
+2026-10-03T21:58:49.6573962Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T21:58:49.6580016Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path
+2026-10-03T21:58:49.6605229Z /home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:58:49.6613461Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-1158f80b\-fec1\-44d5\-be4a\-ace582fc96f0\.config
+2026-10-03T21:58:49.6649965Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path
+2026-10-03T21:58:49.6674690Z /home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:58:49.6683832Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/partitionline/partitionline/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-1158f80b\-fec1\-44d5\-be4a\-ace582fc96f0\.config
+2026-10-03T21:58:49.6728842Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-10-03T21:58:49.6753645Z /github/runner_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:58:49.6760929Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-1158f80b\-fec1\-44d5\-be4a\-ace582fc96f0\.config
+2026-10-03T21:58:49.6796396Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-10-03T21:58:49.6823405Z /github/runner_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config
+2026-10-03T21:58:49.6829867Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-1158f80b\-fec1\-44d5\-be4a\-ace582fc96f0\.config
+2026-10-03T21:58:49.6877536Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-03T21:58:49.7129477Z Removing credentials config '/home/runner/work/_temp/git-credentials-1158f80b-fec1-44d5-be4a-ace582fc96f0.config'
+2026-10-03T21:58:49.7255940Z Cleaning up orphan processes

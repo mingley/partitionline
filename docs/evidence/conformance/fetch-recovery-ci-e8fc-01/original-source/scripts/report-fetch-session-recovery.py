@@ -74,18 +74,11 @@ def history(text, source, topic):
     sid = 0
     next_epoch = 0
     previous_phase = 0
-    negotiated_version = None
     for fields in entries['WIRE']:
         require(len(fields) == 9, 'wrong wire fields')
         phase, version, requested, epoch, responded, code, size = map(int, fields[:7])
         changed, forgotten = mapping(fields[7], True), mapping(fields[8])
-        # Preserve the qualified v17 histories and current v18 negotiation.
-        # A connection must use one supported schema throughout this trace.
-        require(version in (17, 18), 'unsupported observed Fetch version')
-        if negotiated_version is None:
-            negotiated_version = version
-        require(version == negotiated_version, 'Fetch version changed during session history')
-        require(0 <= previous_phase <= phase <= 6 and code == 0 and size > 0,
+        require(0 <= previous_phase <= phase <= 6 and version == 17 and code == 0 and size > 0,
                 'wire phase/version/error/size mismatch')
         previous_phase = phase
         if epoch == 0:

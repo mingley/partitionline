@@ -1,0 +1,57 @@
+{
+  "scope": "SOURCE-ONLY review and formatter results; no Cargo, Clippy, test, typecheck, SDK or runtime execution",
+  "source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "reported_ci": {
+    "source": "root-supplied actual job diagnostics; raw job logs remain root-owned, not fetched by this worker",
+    "clippy_job_id": 111301244793,
+    "linux_default_job_id": 111301244998,
+    "initial_marker_diagnostics": 9,
+    "initial_sticky_diagnostics": 7
+  },
+  "checks": [
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "existing_functions_test_attributes_fixture_includes_unchanged": true,
+      "main_baseline_payload_still_unchanged": true,
+      "baseline_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "candidate_sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2"
+    },
+    {
+      "path": "tests/write_txn_markers_v2.rs",
+      "existing_functions_test_attributes_fixture_includes_unchanged": true,
+      "main_baseline_payload_still_unchanged": true,
+      "baseline_sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d",
+      "candidate_sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b"
+    },
+    {
+      "path": "tests/share_offsets_v1.rs",
+      "existing_functions_test_attributes_fixture_includes_unchanged": true,
+      "main_baseline_payload_still_unchanged": true,
+      "baseline_sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "candidate_sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f"
+    },
+    {
+      "path": "tests/sticky_partitioner.rs",
+      "existing_functions_test_attributes_fixture_includes_unchanged": true,
+      "main_baseline_payload_still_unchanged": true,
+      "baseline_sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "candidate_sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa"
+    },
+    {
+      "marker_history_serializer_wire_fields_exact_after_whitespace_normalization": true,
+      "no_await_in_history_lock_scope": true,
+      "all27_parking_lot_users_adapted": true
+    }
+  ],
+  "io_changes": [
+    "metadata/read/ready-write/stop-existence/history-write use tokio::fs with await",
+    "history is completed in short parking_lot lock scope before file write awaits"
+  ],
+  "sticky_assertions": [
+    "configured three partitions with no leader",
+    "four partitions and selected leader unavailable then restored",
+    "recreated topic metadata keeps one named partition",
+    "each text-cap topic send acknowledges its topic,partition0 andnonnegativeoffset"
+  ],
+  "remaining_validation": "Actual current CI and immutable local compile/test/strict-Clippy validation remain future coordinator work."
+}

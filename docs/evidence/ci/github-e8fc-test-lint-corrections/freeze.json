@@ -1,0 +1,119 @@
+{
+  "scope": "SOURCE-ONLY review and formatter results; no Cargo, Clippy, test, typecheck, SDK or runtime execution",
+  "files": [
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "9f1674093e8fc43176c253fe2d6fca2423a68f4698ae2f4c6706da16c28416a2",
+      "bytes": 16026,
+      "full07777": 420
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/share_offsets_v1.rs",
+      "sha256": "29756c42b140e04ea8a4d47f40c59dacaa20d9299b91cb82982554af91785a2f",
+      "bytes": 14371,
+      "full07777": 420
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/sticky_partitioner.rs",
+      "sha256": "a1e6010fbde683b87989761efa56ecdab53c1140ba9cd63d8c1adceaaaaeafaa",
+      "bytes": 38642,
+      "full07777": 420
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/candidate/tests/write_txn_markers_v2.rs",
+      "sha256": "aee4fae08377d3d8cd8a17da35928a838c81668640cf700aea2440c96736375b",
+      "bytes": 17877,
+      "full07777": 420
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-apply.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-apply.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-check.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-check.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/format-receipt.json",
+      "sha256": "d776d5581feaeeb8ab0d83b127d06703e7e9b0622e6727135fde73dc98775bd1",
+      "bytes": 2325,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/install-manifest.json",
+      "sha256": "1d11537d1caffa82e29d0748130acff5136edaf010df1982f62cf08137b0f2ec",
+      "bytes": 2063,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/share_offsets_v1.rs",
+      "sha256": "52ecabf4c4be59a135fed7e2a6fd6237d83bf2ff2caf2a229a5e1528bb40adc0",
+      "bytes": 14540,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/sticky_partitioner.rs",
+      "sha256": "f3ccf21dd1354c47ce08640aaafcfcd58bf132d9babe62545764b1aa016c7d71",
+      "bytes": 37628,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/original/tests/write_txn_markers_v2.rs",
+      "sha256": "a2521e1f7e174857783c64be1a3fcdca20151b64200eedb4484cb92e5b2f716d",
+      "bytes": 17802,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/preparation.json",
+      "sha256": "1b7c92ebefe23abe5571302aa3adcd958e5c00a9e1fd0b410ed3d03a5b991c53",
+      "bytes": 1634,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/source-review.json",
+      "sha256": "812783d95d02d84670d9c85dc544cd71ead418137c23b7c53c1d65354a40b3f8",
+      "bytes": 2823,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/source.patch",
+      "sha256": "9eb6049fb32ac2bb8d5cf94cf3ccb968873d97732c4919b7d1cb8f8ed4e80e7c",
+      "bytes": 17479,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/version.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "/workspace/work/client-ci-lint-corrections-3dbc/revision-01/version.stdout.log",
+      "sha256": "32ae47248d3c1c88781660ad9acdfd0496c040eda7e0759c5f1fec8122c97a0a",
+      "bytes": 46,
+      "full07777": 384
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+CreateTime:1791064671820	Partition:0	Offset:0	0:0	KL01-10/0/0/x
+CreateTime:1791064671821	Partition:0	Offset:1	0:1	KL01-10/0/1/xx
+CreateTime:1791064671822	Partition:0	Offset:2	0:2	KL01-10/0/2/xxx
+CreateTime:1791064671823	Partition:0	Offset:3	0:3	KL01-10/0/3/xxxx
+CreateTime:1791064671824	Partition:0	Offset:4	0:4	KL01-10/0/4/xxxxx
+CreateTime:1791064671825	Partition:0	Offset:5	0:5	KL01-10/0/5/xxxxxx
+CreateTime:1791064671826	Partition:0	Offset:6	0:6	KL01-10/0/6/xxxxxxx
+CreateTime:1791064671827	Partition:0	Offset:7	0:7	KL01-10/0/7/xxxxxxxx
+CreateTime:1791064671820	Partition:1	Offset:0	1:0	KL01-10/1/0/x
+CreateTime:1791064671821	Partition:1	Offset:1	1:1	KL01-10/1/1/xx
+CreateTime:1791064671822	Partition:1	Offset:2	1:2	KL01-10/1/2/xxx
+CreateTime:1791064671823	Partition:1	Offset:3	1:3	KL01-10/1/3/xxxx
+CreateTime:1791064671824	Partition:1	Offset:4	1:4	KL01-10/1/4/xxxxx
+CreateTime:1791064671825	Partition:1	Offset:5	1:5	KL01-10/1/5/xxxxxx
+CreateTime:1791064671826	Partition:1	Offset:6	1:6	KL01-10/1/6/xxxxxxx
+CreateTime:1791064671827	Partition:1	Offset:7	1:7	KL01-10/1/7/xxxxxxxx

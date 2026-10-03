@@ -5,11 +5,10 @@
 )]
 
 use std::collections::VecDeque;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use bytes::{BufMut, BytesMut};
-use parking_lot::Mutex;
 use partitionline::protocol::api::{
     encode_api_versions_response, encode_metadata_response, ApiVersion, ApiVersionsResponse,
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
@@ -158,7 +157,7 @@ impl Peer {
                                 let mut cursor = frame.as_slice();
                                 let header = decode_request_header(&mut cursor).unwrap();
                                 let observation_index = {
-                                    let mut state = state.lock();
+                                    let mut state = state.lock().unwrap();
                                     assert!(state.observed.len() < 256);
                                     let observation_index = state.observed.len();
                                     state.observed.push(Observed {
@@ -225,8 +224,7 @@ impl Peer {
                                             key_type, 0,
                                             "public share offsets use GROUP coordinator"
                                         );
-                                        let coordinator =
-                                            brokers.get(1).expect("declared second broker");
+                                        let coordinator = &brokers[1];
                                         let rows: Vec<_> = keys
                                             .into_iter()
                                             .map(|key| CoordinatorResult {
@@ -251,7 +249,7 @@ impl Peer {
                                             "operation reaches selected leader/coordinator"
                                         );
                                         let (response, hold) = {
-                                            let mut state = state.lock();
+                                            let mut state = state.lock().unwrap();
                                             let hold = if header.api_key == WRITE_TXN_MARKERS {
                                                 state.hold_markers
                                             } else {
@@ -291,13 +289,11 @@ impl Peer {
                                 packet.extend_from_slice(&response);
                                 let response_written = stream.write_all(&packet).await.is_ok();
                                 {
-                                    let mut state = state.lock();
-                                    let observed = state
-                                        .observed
-                                        .get_mut(observation_index)
-                                        .expect("recorded request observation");
-                                    observed.response_payload = Some(response.to_vec());
-                                    observed.response_written = response_written;
+                                    let mut state = state.lock().unwrap();
+                                    state.observed[observation_index].response_payload =
+                                        Some(response.to_vec());
+                                    state.observed[observation_index].response_written =
+                                        response_written;
                                 }
                                 if !response_written {
                                     break;
@@ -332,6 +328,7 @@ impl Peer {
     pub(crate) fn requests(&self, key: i16) -> Vec<Observed> {
         self.state
             .lock()
+            .unwrap()
             .observed
             .iter()
             .filter(|row| row.key == key)
