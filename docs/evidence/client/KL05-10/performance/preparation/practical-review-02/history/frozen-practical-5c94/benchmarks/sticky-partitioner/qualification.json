@@ -1,0 +1,105 @@
+{
+  "classification": "PREPARED smaller correctness/delivery cell only; uncompiled/unexecuted, never ranking qualification",
+  "purpose": "qualification",
+  "profiles": [
+    {
+      "name": "rust-rr-keyed",
+      "client": "rust",
+      "key_presence": "non-null16bytes",
+      "selection": "existing Rust globalRR for null /murmur2 keyed",
+      "accounting": "Rust legacy batching",
+      "input_seed": 79443,
+      "partitioner_seed": "counter initial0 in fresh producer",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-uniform-keyed",
+      "client": "rust",
+      "key_presence": "non-null16bytes",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "Rust successful admission conservative packed record bound+61perrealcohort",
+      "input_seed": 79443,
+      "partitioner_seed": "paired block input seed",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "java-uniform-keyed",
+      "client": "java",
+      "key_presence": "non-null16bytes",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "genuine Java accumulator bytes; not exact Rust packed-byte history",
+      "input_seed": 79443,
+      "partitioner_seed": "not externally seedable for Java",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-rr-null",
+      "client": "rust",
+      "key_presence": "null",
+      "selection": "existing Rust globalRR for null /murmur2 keyed",
+      "accounting": "Rust legacy batching",
+      "input_seed": 79443,
+      "partitioner_seed": "counter initial0 in fresh producer",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-uniform-null",
+      "client": "rust",
+      "key_presence": "null",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "Rust successful admission conservative packed record bound+61perrealcohort",
+      "input_seed": 79443,
+      "partitioner_seed": "paired block input seed",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "java-uniform-null",
+      "client": "java",
+      "key_presence": "null",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "genuine Java accumulator bytes; not exact Rust packed-byte history",
+      "input_seed": 79443,
+      "partitioner_seed": "not externally seedable for Java",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    }
+  ],
+  "records": {
+    "warmup": 8192,
+    "exercise": 16384,
+    "total_exact": 24576,
+    "outstanding_max": 8192
+  },
+  "ranking_minima_satisfied": false,
+  "minimum_duration_requirement_seconds": 0,
+  "ranking_contract_preserved": {
+    "minimum_measure_seconds": 60,
+    "minimum_delivered_measure_records": 1000000,
+    "minimum_paired_blocks": 5,
+    "original_forecast_file": "resource-forecast.json"
+  },
+  "runtime_parameters": {
+    "partitions": 6,
+    "batch_bytes": 1048576,
+    "batch_records_Rust": 32768,
+    "linger_ms": 5,
+    "acks": "all",
+    "idempotence": true,
+    "keyed_bytes": 16,
+    "value_bytes": 100,
+    "max_in_flight": 5,
+    "compression": "none",
+    "request_timeout_ms": 10000,
+    "delivery_timeout_ms": 30000,
+    "max_block_ms": 5000
+  },
+  "cpu_set": "0,1 future qualification lease; CPU3 remains reserved for later ranking",
+  "observations": "public ID/key/value SHA, ack partition/offset, independent delivery and fence, conservative record bound, actual durations/skew. Throughput rate remains null in qualification output.",
+  "six_cells": "serial, one fresh ready six-partition topic at a time; retain all failures and completed journals; re-evaluate actual free space before every cell",
+  "disallowed_claims": [
+    ">=60s ranking or >=1M delivered",
+    "five paired runs",
+    "fastest/client ranking",
+    "exact Java accumulator/compression/RNG history",
+    "request/batch/wire counts from absent instrumentation"
+  ]
+}

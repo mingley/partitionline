@@ -1,0 +1,50 @@
+{
+  "scope": "Rust source formatting only; no type checking, compilation or runtime",
+  "commands": [
+    {
+      "name": "stable-format",
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/tcp-qualification-03/stable-format.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "stable-format-check",
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/tcp-qualification-03/stable-format-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "1.85.0-format-check",
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/tests/common/raft_runtime.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/tcp-qualification-03/1.85.0-format-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "actual_rust_tests_executed": 0
+}

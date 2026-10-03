@@ -1,0 +1,15 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+    "--check",
+    "--edition",
+    "2021",
+    "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/src/main.rs"
+  ],
+  "exit": 0,
+  "elapsed_seconds": 0.014940866996767,
+  "classification": "Executed rustfmt source syntax/format only; not compile/behavior proof"
+}

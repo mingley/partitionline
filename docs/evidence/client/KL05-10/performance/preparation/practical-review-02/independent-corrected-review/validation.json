@@ -1,0 +1,1180 @@
+{
+  "schema_version": 1,
+  "classification": "Independent source-only review of corrected practical benchmark packet; no actual performance or execution qualification",
+  "source_manifest": {
+    "path": "/workspace/work/client-sticky-performance-practical-review-02/stage-handoff.json",
+    "sha256": "2724dd786ec25e9bb371fceaaac6d0deb5f384969f7fa9ba2826d9afb4820ea9",
+    "bytes": 46034,
+    "full_mode": 384
+  },
+  "packet_before": {
+    "Python-syntax.json": {
+      "sha256": "2d5aa8eb7d1a497936e6ac6b865fe0fa09773f186debfea516f303a9976c944f",
+      "bytes": 360,
+      "full_mode": 384
+    },
+    "README-md.patch": {
+      "sha256": "84d3eca9f0dc11925a6d8524a7174a67c308d01fd9a74c5dd34409390ed78de5",
+      "bytes": 2980,
+      "full_mode": 384
+    },
+    "add-sidecar-and-vanish-bounds.py": {
+      "sha256": "aa9b1fbb3f35af7fcb132d4d17679d5e6204726e294cc216a11f08d34426ecd0",
+      "bytes": 3406,
+      "full_mode": 384
+    },
+    "audit-py.patch": {
+      "sha256": "f866ef1584e69a6dfecef2f6ac3ef93ea4c41b7320ec8011fb93bd1cdd88549f",
+      "bytes": 5466,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/README.md": {
+      "sha256": "14e393f2bd083aaba41c9381128f21b3e53501de5db125ed6794759d5c1e5437",
+      "bytes": 10528,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "0d59194a790d6e543074fab724a3aa52a40d670c1afc8341ac45eb82d69650db",
+      "bytes": 16109,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "3f5abd97bcb630cf814cd7dd5904037c696c2bb54b61d5ff375b5d11052f0ec7",
+      "bytes": 12734,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "9cde21695706f457c19567d5ede870414cf85552ef088c102d83e2eca73c4fdb",
+      "bytes": 3332,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "bc4c6eb0e4df51e9b78442b6589efa9c8cede2be2e3fb6c41f00f90f473262d1",
+      "bytes": 4374,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/ranking-resource-forecast.json": {
+      "sha256": "c72a8a88965a27da9d613acfbfb0383364f535e968fba87642f0530408924d01",
+      "bytes": 1301,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "0fb6117c817b8ccba99489a1d6b7ee9058670022bf8a81b8dd31439cd87feaf7",
+      "bytes": 21264,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "e75cfebc4c1bf1268046f17b69dc6e8d417fb92895afd08920bd3353ec808a65",
+      "bytes": 24446,
+      "full_mode": 384
+    },
+    "correct-membership.py": {
+      "sha256": "2452dcde868d55097bb8eb77349493dd791fec753eac0212a969f0d73a16fc57",
+      "bytes": 7138,
+      "full_mode": 384
+    },
+    "finalize-additive-source.py": {
+      "sha256": "63dc176e1b181d8c015914761e628611500980855a00a7477e645871d559212e",
+      "bytes": 8310,
+      "full_mode": 384
+    },
+    "freeze-additive-stage.py": {
+      "sha256": "0cc8ba8fb9905d23e3385f6a5e2e8f3e8a3c5db0d42f68a8068890699ab25b4f",
+      "bytes": 5583,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/receipt.json": {
+      "sha256": "eada394596fcf8931c018b49a2bb96385794bb26c72a749489689012b8eb274c",
+      "bytes": 494,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/source-semantic-controls.py": {
+      "sha256": "b660348904725f49f7ad1efa6d14d813fb601726f1dbc14cf0931e1afdb7d3b4",
+      "bytes": 10469,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/stderr.log": {
+      "sha256": "bddc997326501f1e1733b2e29fd7ac5a3d7f27c4b45e68ba0ad3fd21ee27ac66",
+      "bytes": 252,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/controls-38-source-fixtures/source-semantic-controls.json": {
+      "sha256": "196eea0469aeaffd6bcf26b897995299f2a0c5589d580cb7a2ba633ff4e13ce0",
+      "bytes": 9763,
+      "full_mode": 384
+    },
+    "history/controls-38-source-fixtures/source-semantic-controls.py": {
+      "sha256": "9b06bbef1a94e13836259b755f75c274ed3f310da3d43909c3bec3436ad4f74b",
+      "bytes": 10472,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/adapt-practical-java.py": {
+      "sha256": "5bfaf30d105a6faf1883a86d96857144edf9bd97a9de85ab0c96b3b751c4136b",
+      "bytes": 4361,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/adapt-practical-source.py": {
+      "sha256": "7741bf75ce8eb34c1e8528383dc2c0f80c3f52b16b9e3e008d6a24a87e46ca41",
+      "bytes": 5183,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/add-host-cancellation.py": {
+      "sha256": "ec071ca974c63983f2b66a06eb85c78e802f77b8e939290e76563da8fc7604db",
+      "bytes": 2073,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/audit-qualification-and-size-bounds.patch": {
+      "sha256": "795a47d5a65059fe5f0bcdb42230b94da5a6d82f1f4785b7e889c028c5ed69b1",
+      "bytes": 4309,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "4990798c8d485f6924b6674118b17112164b306c7b4d3ed94e0fdc013513fc7c",
+      "bytes": 9098,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "0d59194a790d6e543074fab724a3aa52a40d670c1afc8341ac45eb82d69650db",
+      "bytes": 16109,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "bytes": 9282,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "11e8be8093c8ee65b30b0499abfcd8dc71d00691fe9b3cf6d032d5fdf26600e2",
+      "bytes": 2367,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "bytes": 4019,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "6bfe95dabfd4c63d133574b47fe5738be64eabb0cc89208066c635e7e28b383e",
+      "bytes": 16919,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "e75cfebc4c1bf1268046f17b69dc6e8d417fb92895afd08920bd3353ec808a65",
+      "bytes": 24446,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/finish-practical-review.py": {
+      "sha256": "862093e5126b8aa2d8149a23ce5665125ea1a1613bff2b7ec7a47d1e91215fd5",
+      "bytes": 10063,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/freeze-practical-stage.py": {
+      "sha256": "5353daa0aa63ea70bd8e3e60851f65f24c4ff32213fc134a1bf7cb16d3f48117",
+      "bytes": 5283,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "bytes": 394,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "6428f309e9dcd66d192559b856968a055e82831bdabe6aecb2f8840ef737d2b0",
+      "bytes": 5277,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "bytes": 14117,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "bytes": 8404,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "bytes": 13692,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "bytes": 21992,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "bytes": 394,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "5d054687c7b83620163ea8236c22cdb28bb72b1f6a0218302eb16805748cba0d",
+      "bytes": 5229,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "bytes": 14117,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "bytes": 8404,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "bytes": 13692,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "bytes": 21992,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/preparation-receipt.json": {
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "bytes": 1128,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/stage-handoff.json": {
+      "sha256": "2e3f283d72fbda834d0311b46305d930b4c330cb61f9fae3d042de19e913d876",
+      "bytes": 1989,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/preparation-receipt.json": {
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "bytes": 1128,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/stage-handoff.json": {
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "bytes": 4723,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "4bd0c00783c8aff6d6efd48abb964df1843018e37b60367dbb079dba6e57df05",
+      "bytes": 7928,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "af825cf0832ef22b235100e8949ab9136ce9ce6e0ddc938c577b06666f68ff96",
+      "bytes": 15359,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "bytes": 9282,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "099d3172011f4ca61dc9752e9f592e2def55958d95f05ec1ea347ab06f67e74b",
+      "bytes": 2278,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "bytes": 4019,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "50c1b315968a406fb3e413db27f91484f9313b5a259fa2b0a497e29591a37186",
+      "bytes": 15189,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "97a986997978a90ea4f0e57c4901b5e8871014a9b44d3fe3af45206504a36921",
+      "bytes": 24140,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/java-qualification.patch": {
+      "sha256": "a65e0eb6f296863a97b7599db6c5a3c7b3935a9e18194bdb94e28ae2d9949d06",
+      "bytes": 10823,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/offline-compile-plan.json": {
+      "sha256": "de246825b9818a6f4d4e52d68a22739dd61331e15e99415f40a9d3263085e62d",
+      "bytes": 3833,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/preservation.json": {
+      "sha256": "5c66dbb7b32687b68cb210a47ae724bfb2576b15a1a5f439705dcd2a943b4bec",
+      "bytes": 2580,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/rust-qualification-and-deadline.patch": {
+      "sha256": "12c45b1d7df03ceaa5a5306501e21d3110ae4e4044906333f19141ed68ff8531",
+      "bytes": 9111,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/host-qualification-and-failure-paths.patch": {
+      "sha256": "ce008eb45071d9186b3fe6b660d13a068054318ba67e353a7faaf6431330c43a",
+      "bytes": 14509,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/java-qualification.patch": {
+      "sha256": "0e73f19fe9f33638f01b2dba152fa8061d6d385175087a6a70c1ebe9b200f848",
+      "bytes": 14183,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/offline-compile-plan.json": {
+      "sha256": "8c231ed6bf31c017f132ab2fd87ee3a725d52e6357394437e37edd3556df85aa",
+      "bytes": 3898,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/offline-lock-candidate.json": {
+      "sha256": "217641997e418fd0c8041915f532997ee6dd77bf29a4d72836f233a73d8636e7",
+      "bytes": 29362,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/original-preservation.json": {
+      "sha256": "4e17325514fded1f7ae3f4f0afde6bcc9f8131e18e0ebd5bc973f60cbbfa3f5d",
+      "bytes": 372,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/original-stage-ebb7b91b.json": {
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "bytes": 4723,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/prepare-lock-candidate.py": {
+      "sha256": "68132d73b9f85ee76e85292dd7c773172acc7e6ccc85702348248a8d8715e592",
+      "bytes": 4378,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/review-and-seal-preparation.py": {
+      "sha256": "1777827d540a6ffda7385a50a7beff0410b03f0711604db1803400555bf5bdb6",
+      "bytes": 9940,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/rust-qualification-and-deadline.patch": {
+      "sha256": "86f8d7cd3bdbd315aa7c20faef108cd093fbc280f4c4d3b1531b6fdd15506c3d",
+      "bytes": 12649,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-identity.json": {
+      "sha256": "5b68cfb537acb67c39fb1eed72c9341a56de91b6fbd4603ced68d1041ac6216a",
+      "bytes": 1734,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.json": {
+      "sha256": "d4a71639f875d4bff42b588d2610d96a1ab3adc95882d899dd3a1ae6f43859c7",
+      "bytes": 440,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/preservation-after.json": {
+      "sha256": "59d454f9d9d367953d2302c4c04cd5db75983eb813241bef942184b87af1496a",
+      "bytes": 1607,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/python-syntax.json": {
+      "sha256": "e0b9129e00f6ffcecf57554ed360bb9481510621d905252258177c14a130bd1b",
+      "bytes": 519,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.json": {
+      "sha256": "7b2c09c16eb8a448a8770a26fa5210a90f81b344e6c20c6ae91ca7ee4c99814f",
+      "bytes": 442,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-review.json": {
+      "sha256": "5282381f2ac4b19b1b8980579b06c7db8061006804c1a3d01518a207fbff9103",
+      "bytes": 5867,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/stage-handoff.json": {
+      "sha256": "5c94ab5065e12bdc174fdd3abfd3520ee0ed893553a6f301d9719344995f37a1",
+      "bytes": 27219,
+      "full_mode": 384
+    },
+    "independent-frozen-review/controls.json": {
+      "sha256": "f5967d4ea5fd6c6ed2a8584ab7a2a7dac2e869fd3046fcd1b83d16b745ff8c31",
+      "bytes": 43490,
+      "full_mode": 384
+    },
+    "independent-frozen-review/source-controls.py": {
+      "sha256": "4f81bf450f7f0db3539b7a74227e827d8efd88fbf2d32892041ae4d90c24d488",
+      "bytes": 10424,
+      "full_mode": 384
+    },
+    "independent-frozen-review/validation.json": {
+      "sha256": "71020e3c3cfc105997155fcdca8489d9b0164a172c99aa30b23b9bdeb42e6a68",
+      "bytes": 43093,
+      "full_mode": 384
+    },
+    "offline-compile-plan.json": {
+      "sha256": "0057598ce69cfac8b54537e6666b951e6449b3289705dd487e690abf0a069f9e",
+      "bytes": 3967,
+      "full_mode": 384
+    },
+    "original-preservation.json": {
+      "sha256": "5a31461845927923e0c3e20b4d629c07238afe34c1d6513220bbe923f1433da9",
+      "bytes": 385,
+      "full_mode": 384
+    },
+    "prepare-additive-derivative.py": {
+      "sha256": "67bc9e2b924ab212b3496c87d4d703f9ac61fd8625ef4e3061c5d3b961ecc671",
+      "bytes": 9119,
+      "full_mode": 384
+    },
+    "preservation-after.json": {
+      "sha256": "07b6edb079a3e11b8126a44a9da13b44f0639650ac353bfef1b2f12d91a65bf8",
+      "bytes": 5143,
+      "full_mode": 384
+    },
+    "qualification-json.patch": {
+      "sha256": "5c60f9270e005bf067be82f25a9313b4898b79a580c464ac09d1c31ae82660ae",
+      "bytes": 611,
+      "full_mode": 384
+    },
+    "qualification-resource-forecast-json.patch": {
+      "sha256": "5297a853c123dce028b470d6b1ad2ca4345ebf49c49a31b6c9c76f232d66b0f3",
+      "bytes": 3412,
+      "full_mode": 384
+    },
+    "run-cell-py.patch": {
+      "sha256": "ce991a15909434118b5fba06eda0c3f0a51cddf32592d4d3fc8e44748d164165",
+      "bytes": 11662,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.exit.json": {
+      "sha256": "49f23929837c7b63ca0967df2b12b7a26ef12af72bd9029390af46a9dd845c42",
+      "bytes": 471,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.stdout": {
+      "sha256": "2eb1a5b47052d49f3bd2afbcf60e1abadd151835ca1d73a6cab045fedbc9996d",
+      "bytes": 101,
+      "full_mode": 384
+    },
+    "source-review.json": {
+      "sha256": "89d1c4bdd7167306a9a5d25cb8b36406b5523ce3d66eba047a8528b480d3ee89",
+      "bytes": 3176,
+      "full_mode": 384
+    },
+    "source-semantic-controls.json": {
+      "sha256": "ba187d9167f89a1d43557e590a0ad7aed70e2f2513e3b005302eee2f1e7a9a84",
+      "bytes": 15279,
+      "full_mode": 384
+    },
+    "source-semantic-controls.py": {
+      "sha256": "787016c9e53cb7adaa8ab3bb923b9dc1ae951dda7ba46ef7afe366b7493164f3",
+      "bytes": 13246,
+      "full_mode": 384
+    },
+    "unchanged-driver-source.json": {
+      "sha256": "bf537f094fb9fba5180abbaee746d0afd0762755386f1545ef3fc7e4185fd535",
+      "bytes": 349,
+      "full_mode": 384
+    }
+  },
+  "packet_after": {
+    "Python-syntax.json": {
+      "sha256": "2d5aa8eb7d1a497936e6ac6b865fe0fa09773f186debfea516f303a9976c944f",
+      "bytes": 360,
+      "full_mode": 384
+    },
+    "README-md.patch": {
+      "sha256": "84d3eca9f0dc11925a6d8524a7174a67c308d01fd9a74c5dd34409390ed78de5",
+      "bytes": 2980,
+      "full_mode": 384
+    },
+    "add-sidecar-and-vanish-bounds.py": {
+      "sha256": "aa9b1fbb3f35af7fcb132d4d17679d5e6204726e294cc216a11f08d34426ecd0",
+      "bytes": 3406,
+      "full_mode": 384
+    },
+    "audit-py.patch": {
+      "sha256": "f866ef1584e69a6dfecef2f6ac3ef93ea4c41b7320ec8011fb93bd1cdd88549f",
+      "bytes": 5466,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/README.md": {
+      "sha256": "14e393f2bd083aaba41c9381128f21b3e53501de5db125ed6794759d5c1e5437",
+      "bytes": 10528,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "0d59194a790d6e543074fab724a3aa52a40d670c1afc8341ac45eb82d69650db",
+      "bytes": 16109,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "3f5abd97bcb630cf814cd7dd5904037c696c2bb54b61d5ff375b5d11052f0ec7",
+      "bytes": 12734,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "9cde21695706f457c19567d5ede870414cf85552ef088c102d83e2eca73c4fdb",
+      "bytes": 3332,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "bc4c6eb0e4df51e9b78442b6589efa9c8cede2be2e3fb6c41f00f90f473262d1",
+      "bytes": 4374,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/ranking-resource-forecast.json": {
+      "sha256": "c72a8a88965a27da9d613acfbfb0383364f535e968fba87642f0530408924d01",
+      "bytes": 1301,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "0fb6117c817b8ccba99489a1d6b7ee9058670022bf8a81b8dd31439cd87feaf7",
+      "bytes": 21264,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "e75cfebc4c1bf1268046f17b69dc6e8d417fb92895afd08920bd3353ec808a65",
+      "bytes": 24446,
+      "full_mode": 384
+    },
+    "correct-membership.py": {
+      "sha256": "2452dcde868d55097bb8eb77349493dd791fec753eac0212a969f0d73a16fc57",
+      "bytes": 7138,
+      "full_mode": 384
+    },
+    "finalize-additive-source.py": {
+      "sha256": "63dc176e1b181d8c015914761e628611500980855a00a7477e645871d559212e",
+      "bytes": 8310,
+      "full_mode": 384
+    },
+    "freeze-additive-stage.py": {
+      "sha256": "0cc8ba8fb9905d23e3385f6a5e2e8f3e8a3c5db0d42f68a8068890699ab25b4f",
+      "bytes": 5583,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/receipt.json": {
+      "sha256": "eada394596fcf8931c018b49a2bb96385794bb26c72a749489689012b8eb274c",
+      "bytes": 494,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/source-semantic-controls.py": {
+      "sha256": "b660348904725f49f7ad1efa6d14d813fb601726f1dbc14cf0931e1afdb7d3b4",
+      "bytes": 10469,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/stderr.log": {
+      "sha256": "bddc997326501f1e1733b2e29fd7ac5a3d7f27c4b45e68ba0ad3fd21ee27ac66",
+      "bytes": 252,
+      "full_mode": 384
+    },
+    "history/control-attempt-01-syntax/stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/controls-38-source-fixtures/source-semantic-controls.json": {
+      "sha256": "196eea0469aeaffd6bcf26b897995299f2a0c5589d580cb7a2ba633ff4e13ce0",
+      "bytes": 9763,
+      "full_mode": 384
+    },
+    "history/controls-38-source-fixtures/source-semantic-controls.py": {
+      "sha256": "9b06bbef1a94e13836259b755f75c274ed3f310da3d43909c3bec3436ad4f74b",
+      "bytes": 10472,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/adapt-practical-java.py": {
+      "sha256": "5bfaf30d105a6faf1883a86d96857144edf9bd97a9de85ab0c96b3b751c4136b",
+      "bytes": 4361,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/adapt-practical-source.py": {
+      "sha256": "7741bf75ce8eb34c1e8528383dc2c0f80c3f52b16b9e3e008d6a24a87e46ca41",
+      "bytes": 5183,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/add-host-cancellation.py": {
+      "sha256": "ec071ca974c63983f2b66a06eb85c78e802f77b8e939290e76563da8fc7604db",
+      "bytes": 2073,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/audit-qualification-and-size-bounds.patch": {
+      "sha256": "795a47d5a65059fe5f0bcdb42230b94da5a6d82f1f4785b7e889c028c5ed69b1",
+      "bytes": 4309,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "4990798c8d485f6924b6674118b17112164b306c7b4d3ed94e0fdc013513fc7c",
+      "bytes": 9098,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "0d59194a790d6e543074fab724a3aa52a40d670c1afc8341ac45eb82d69650db",
+      "bytes": 16109,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "bytes": 9282,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "11e8be8093c8ee65b30b0499abfcd8dc71d00691fe9b3cf6d032d5fdf26600e2",
+      "bytes": 2367,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "bytes": 4019,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "6bfe95dabfd4c63d133574b47fe5738be64eabb0cc89208066c635e7e28b383e",
+      "bytes": 16919,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "e75cfebc4c1bf1268046f17b69dc6e8d417fb92895afd08920bd3353ec808a65",
+      "bytes": 24446,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/finish-practical-review.py": {
+      "sha256": "862093e5126b8aa2d8149a23ce5665125ea1a1613bff2b7ec7a47d1e91215fd5",
+      "bytes": 10063,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/freeze-practical-stage.py": {
+      "sha256": "5353daa0aa63ea70bd8e3e60851f65f24c4ff32213fc134a1bf7cb16d3f48117",
+      "bytes": 5283,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "bytes": 394,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "6428f309e9dcd66d192559b856968a055e82831bdabe6aecb2f8840ef737d2b0",
+      "bytes": 5277,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "bytes": 14117,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "bytes": 8404,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "bytes": 13692,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "bytes": 21992,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "bytes": 394,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "5d054687c7b83620163ea8236c22cdb28bb72b1f6a0218302eb16805748cba0d",
+      "bytes": 5229,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "bytes": 14117,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "bytes": 8404,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "bytes": 13692,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "bytes": 21992,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/preparation-receipt.json": {
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "bytes": 1128,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/stage-handoff.json": {
+      "sha256": "2e3f283d72fbda834d0311b46305d930b4c330cb61f9fae3d042de19e913d876",
+      "bytes": 1989,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/preparation-receipt.json": {
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "bytes": 1128,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/original-performance-ebb7b91b/stage-handoff.json": {
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "bytes": 4723,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock": {
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "bytes": 19857,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "bytes": 455,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/README.md": {
+      "sha256": "4bd0c00783c8aff6d6efd48abb964df1843018e37b60367dbb079dba6e57df05",
+      "bytes": 7928,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "af825cf0832ef22b235100e8949ab9136ce9ce6e0ddc938c577b06666f68ff96",
+      "bytes": 15359,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "bytes": 9282,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "sha256": "099d3172011f4ca61dc9752e9f592e2def55958d95f05ec1ea347ab06f67e74b",
+      "bytes": 2278,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/qualification.json": {
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "bytes": 4019,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "50c1b315968a406fb3e413db27f91484f9313b5a259fa2b0a497e29591a37186",
+      "bytes": 15189,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "97a986997978a90ea4f0e57c4901b5e8871014a9b44d3fe3af45206504a36921",
+      "bytes": 24140,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/java-qualification.patch": {
+      "sha256": "a65e0eb6f296863a97b7599db6c5a3c7b3935a9e18194bdb94e28ae2d9949d06",
+      "bytes": 10823,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/offline-compile-plan.json": {
+      "sha256": "de246825b9818a6f4d4e52d68a22739dd61331e15e99415f40a9d3263085e62d",
+      "bytes": 3833,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/preservation.json": {
+      "sha256": "5c66dbb7b32687b68cb210a47ae724bfb2576b15a1a5f439705dcd2a943b4bec",
+      "bytes": 2580,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/history/practical-review-01/rust-qualification-and-deadline.patch": {
+      "sha256": "12c45b1d7df03ceaa5a5306501e21d3110ae4e4044906333f19141ed68ff8531",
+      "bytes": 9111,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/host-qualification-and-failure-paths.patch": {
+      "sha256": "ce008eb45071d9186b3fe6b660d13a068054318ba67e353a7faaf6431330c43a",
+      "bytes": 14509,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/java-qualification.patch": {
+      "sha256": "0e73f19fe9f33638f01b2dba152fa8061d6d385175087a6a70c1ebe9b200f848",
+      "bytes": 14183,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/offline-compile-plan.json": {
+      "sha256": "8c231ed6bf31c017f132ab2fd87ee3a725d52e6357394437e37edd3556df85aa",
+      "bytes": 3898,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/offline-lock-candidate.json": {
+      "sha256": "217641997e418fd0c8041915f532997ee6dd77bf29a4d72836f233a73d8636e7",
+      "bytes": 29362,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/original-preservation.json": {
+      "sha256": "4e17325514fded1f7ae3f4f0afde6bcc9f8131e18e0ebd5bc973f60cbbfa3f5d",
+      "bytes": 372,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/original-stage-ebb7b91b.json": {
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "bytes": 4723,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/prepare-lock-candidate.py": {
+      "sha256": "68132d73b9f85ee76e85292dd7c773172acc7e6ccc85702348248a8d8715e592",
+      "bytes": 4378,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/review-and-seal-preparation.py": {
+      "sha256": "1777827d540a6ffda7385a50a7beff0410b03f0711604db1803400555bf5bdb6",
+      "bytes": 9940,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/rust-qualification-and-deadline.patch": {
+      "sha256": "86f8d7cd3bdbd315aa7c20faef108cd093fbc280f4c4d3b1531b6fdd15506c3d",
+      "bytes": 12649,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-identity.json": {
+      "sha256": "5b68cfb537acb67c39fb1eed72c9341a56de91b6fbd4603ced68d1041ac6216a",
+      "bytes": 1734,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.json": {
+      "sha256": "d4a71639f875d4bff42b588d2610d96a1ab3adc95882d899dd3a1ae6f43859c7",
+      "bytes": 440,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/msrv.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/preservation-after.json": {
+      "sha256": "59d454f9d9d367953d2302c4c04cd5db75983eb813241bef942184b87af1496a",
+      "bytes": 1607,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/python-syntax.json": {
+      "sha256": "e0b9129e00f6ffcecf57554ed360bb9481510621d905252258177c14a130bd1b",
+      "bytes": 519,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.json": {
+      "sha256": "7b2c09c16eb8a448a8770a26fa5210a90f81b344e6c20c6ae91ca7ee4c99814f",
+      "bytes": 442,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-only-checks/stable.stdout": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/source-review.json": {
+      "sha256": "5282381f2ac4b19b1b8980579b06c7db8061006804c1a3d01518a207fbff9103",
+      "bytes": 5867,
+      "full_mode": 384
+    },
+    "history/frozen-practical-5c94/stage-handoff.json": {
+      "sha256": "5c94ab5065e12bdc174fdd3abfd3520ee0ed893553a6f301d9719344995f37a1",
+      "bytes": 27219,
+      "full_mode": 384
+    },
+    "independent-frozen-review/controls.json": {
+      "sha256": "f5967d4ea5fd6c6ed2a8584ab7a2a7dac2e869fd3046fcd1b83d16b745ff8c31",
+      "bytes": 43490,
+      "full_mode": 384
+    },
+    "independent-frozen-review/source-controls.py": {
+      "sha256": "4f81bf450f7f0db3539b7a74227e827d8efd88fbf2d32892041ae4d90c24d488",
+      "bytes": 10424,
+      "full_mode": 384
+    },
+    "independent-frozen-review/validation.json": {
+      "sha256": "71020e3c3cfc105997155fcdca8489d9b0164a172c99aa30b23b9bdeb42e6a68",
+      "bytes": 43093,
+      "full_mode": 384
+    },
+    "offline-compile-plan.json": {
+      "sha256": "0057598ce69cfac8b54537e6666b951e6449b3289705dd487e690abf0a069f9e",
+      "bytes": 3967,
+      "full_mode": 384
+    },
+    "original-preservation.json": {
+      "sha256": "5a31461845927923e0c3e20b4d629c07238afe34c1d6513220bbe923f1433da9",
+      "bytes": 385,
+      "full_mode": 384
+    },
+    "prepare-additive-derivative.py": {
+      "sha256": "67bc9e2b924ab212b3496c87d4d703f9ac61fd8625ef4e3061c5d3b961ecc671",
+      "bytes": 9119,
+      "full_mode": 384
+    },
+    "preservation-after.json": {
+      "sha256": "07b6edb079a3e11b8126a44a9da13b44f0639650ac353bfef1b2f12d91a65bf8",
+      "bytes": 5143,
+      "full_mode": 384
+    },
+    "qualification-json.patch": {
+      "sha256": "5c60f9270e005bf067be82f25a9313b4898b79a580c464ac09d1c31ae82660ae",
+      "bytes": 611,
+      "full_mode": 384
+    },
+    "qualification-resource-forecast-json.patch": {
+      "sha256": "5297a853c123dce028b470d6b1ad2ca4345ebf49c49a31b6c9c76f232d66b0f3",
+      "bytes": 3412,
+      "full_mode": 384
+    },
+    "run-cell-py.patch": {
+      "sha256": "ce991a15909434118b5fba06eda0c3f0a51cddf32592d4d3fc8e44748d164165",
+      "bytes": 11662,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.exit.json": {
+      "sha256": "49f23929837c7b63ca0967df2b12b7a26ef12af72bd9029390af46a9dd845c42",
+      "bytes": 471,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.stderr": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": 384
+    },
+    "source-only-checks/pure-controls.stdout": {
+      "sha256": "2eb1a5b47052d49f3bd2afbcf60e1abadd151835ca1d73a6cab045fedbc9996d",
+      "bytes": 101,
+      "full_mode": 384
+    },
+    "source-review.json": {
+      "sha256": "89d1c4bdd7167306a9a5d25cb8b36406b5523ce3d66eba047a8528b480d3ee89",
+      "bytes": 3176,
+      "full_mode": 384
+    },
+    "source-semantic-controls.json": {
+      "sha256": "ba187d9167f89a1d43557e590a0ad7aed70e2f2513e3b005302eee2f1e7a9a84",
+      "bytes": 15279,
+      "full_mode": 384
+    },
+    "source-semantic-controls.py": {
+      "sha256": "787016c9e53cb7adaa8ab3bb923b9dc1ae951dda7ba46ef7afe366b7493164f3",
+      "bytes": 13246,
+      "full_mode": 384
+    },
+    "unchanged-driver-source.json": {
+      "sha256": "bf537f094fb9fba5180abbaee746d0afd0762755386f1545ef3fc7e4185fd535",
+      "bytes": 349,
+      "full_mode": 384
+    }
+  },
+  "all_114_bytes_full_modes_unchanged": true,
+  "controls": {
+    "path": "/workspace/work/integration/client-sticky-performance-review-02/controls.json",
+    "sha256": "07ea486f343d9a61b0e6e17e8064c2a38c2aedae8e7ff1013ef06b0b9ef1396e",
+    "bytes": 18300,
+    "full_mode": 384
+  },
+  "source_findings": [
+    {
+      "original": "SQLite page geometry and DELETE sidecars",
+      "status": "resolved in source",
+      "evidence": "configure_database explicitly verifies page4096/count, DELETE/FULL/cache_spillOFF/tempMEMORY before schema; separate rollback and statement allocations reflected in effective forecasts"
+    },
+    {
+      "original": "Unreadable process membership could masquerade as empty",
+      "status": "resolved in source",
+      "evidence": "Unknown members use null/unverified and persistent failure reasons; group signals refused for unknown identity; only Popen direct child fallback, no inferred descendant closure"
+    }
+  ],
+  "remaining_gates": [
+    "Actual offline Cargo resolution/forced compilation on installed immutable source",
+    "Actual genuine Java/Rust six qualification histories and lifecycle/mutation proof",
+    "Already-ready broker/image cost is a separate physical precondition; forecasts are unobserved estimates",
+    "Ranking still requires >=60s and >=1M independent records with five paired runs; qualification supplies no ranking"
+  ],
+  "no_additional_concrete_source_blocker": true
+}

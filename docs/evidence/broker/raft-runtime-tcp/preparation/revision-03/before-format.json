@@ -1,0 +1,16 @@
+[
+  {
+    "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/src/raft/runtime.rs",
+    "preserved": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format/candidate/partitionline-broker/src/raft/runtime.rs",
+    "sha256": "3207dffe9780a18a2029f2640120f11b0851ee5ff82e67ad54a4750c422eb056",
+    "bytes": 117676,
+    "full07777": 384
+  },
+  {
+    "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+    "preserved": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+    "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+    "bytes": 44171,
+    "full07777": 384
+  }
+]

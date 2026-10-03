@@ -1,0 +1,229 @@
+{
+  "schema_version": 1,
+  "scope": "WORK-only additive runtime instrumentation and future retention/guard source; no Cargo/runtime/cleanup/Docker",
+  "previous_handoff": {
+    "path": "/workspace/work/raft-runtime-76/tcp-qualification-02/handoff.json",
+    "sha256": "e4250889d4cd2e68818a21b19e6a68a8caeb7b516ad54643a24b34880a54591b",
+    "all20_bytes_lengths_full07777_unchanged": true
+  },
+  "candidate_repository_write_paths": [
+    "partitionline-broker/src/raft/runtime.rs"
+  ],
+  "unchanged_shared_body": {
+    "path": "partitionline-broker/tests/common/raft_runtime.rs",
+    "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162"
+  },
+  "rows": [
+    {
+      "path": "1.85.0-format-check.log",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/1.85.0-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "README.md",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/README.md",
+      "sha256": "7964cbdfe3a36a9644250562ff2e4af89313ea4f100b7e442d5390c1e51d6409",
+      "bytes": 2791,
+      "full07777": 384
+    },
+    {
+      "path": "artifact-parser-validation.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/artifact-parser-validation.json",
+      "sha256": "e0eacc479aff6e782224f10e7f9cf42b9f0ab51787ead14e69145951c727c9b2",
+      "bytes": 1541,
+      "full07777": 384
+    },
+    {
+      "path": "artifact_paths.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/artifact_paths.py",
+      "sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+      "bytes": 1600,
+      "full07777": 384
+    },
+    {
+      "path": "before-format/candidate/partitionline-broker/src/raft/runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format/candidate/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "3207dffe9780a18a2029f2640120f11b0851ee5ff82e67ad54a4750c422eb056",
+      "bytes": 117676,
+      "full07777": 384
+    },
+    {
+      "path": "before-format/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "bytes": 44171,
+      "full07777": 384
+    },
+    {
+      "path": "before-format-derivative-controls.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format-derivative-controls.json",
+      "sha256": "279c169a407d9236c58a457b65d37bcb8352bbebbc47ef6583d6f53d34a4d635",
+      "bytes": 12526,
+      "full07777": 384
+    },
+    {
+      "path": "before-format.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/before-format.json",
+      "sha256": "fc00df6c398cf85e9e9d731a94f9268417d9afc413946c1d840b382f313d82b0",
+      "bytes": 804,
+      "full07777": 384
+    },
+    {
+      "path": "cache-guards.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/cache-guards.py",
+      "sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+      "bytes": 10074,
+      "full07777": 384
+    },
+    {
+      "path": "candidate/partitionline-broker/src/raft/runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "096ea362bea73ae3a83cdc12a3f0e4bb3dc06b5235321c23ea2bf99029ca5c00",
+      "bytes": 117768,
+      "full07777": 384
+    },
+    {
+      "path": "candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "bytes": 44171,
+      "full07777": 384
+    },
+    {
+      "path": "check-derivative.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/check-derivative.py",
+      "sha256": "6fd5fa14a8faa969783700c60ab0b8adfc935d97d7d70035a9166bc5a79169a9",
+      "bytes": 9320,
+      "full07777": 384
+    },
+    {
+      "path": "check-parser.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/check-parser.py",
+      "sha256": "c7070bddf4eeace6f95ff1498b7d00cd75ec5c9b77d1b459b41c02c6c81cb088",
+      "bytes": 2166,
+      "full07777": 384
+    },
+    {
+      "path": "derivative-controls.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/derivative-controls.json",
+      "sha256": "709e775be50d730c82a839a5f6c8b5f186b4c3d1f7871fd0fe776c31e335dbd5",
+      "bytes": 12526,
+      "full07777": 384
+    },
+    {
+      "path": "guard-functions.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/guard-functions.py",
+      "sha256": "0f86ff586c6e0e1e70d3cc9315fa061c8c99e3e2661dad95b5756b92b3c9685e",
+      "bytes": 11943,
+      "full07777": 384
+    },
+    {
+      "path": "guard-functions.py.patch",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/guard-functions.py.patch",
+      "sha256": "6b13005185432d0c52b70a617b6abdcb0f705c7eebd094c22f6782994a3e6acb",
+      "bytes": 3271,
+      "full07777": 384
+    },
+    {
+      "path": "guard-provenance.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/guard-provenance.json",
+      "sha256": "6219acdd8105e08ce37863002f4f3f56939b70962b1a90f5320be5dd4ed71d30",
+      "bytes": 1844,
+      "full07777": 384
+    },
+    {
+      "path": "next-run-plan.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/next-run-plan.json",
+      "sha256": "c5d2ff489d25d753a560b9cd3b24f1a5f4ff28fe225c041043a3025b9c28eda7",
+      "bytes": 7832,
+      "full07777": 384
+    },
+    {
+      "path": "prepare-runner-fixes.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/prepare-runner-fixes.py",
+      "sha256": "97d1b18d05017732a86b80be4a80f702ca14904e94c02cb384c37e50aae53d95",
+      "bytes": 5775,
+      "full07777": 384
+    },
+    {
+      "path": "process_guards.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/process_guards.py",
+      "sha256": "af1dd54cecfa39c091fa012ffece5869a67dd4b9fa7606d9ce2fde898d6d7407",
+      "bytes": 8007,
+      "full07777": 384
+    },
+    {
+      "path": "remote-ci-b814-source/partitionline-broker/src/raft/runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/remote-ci-b814-source/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+      "bytes": 96127,
+      "full07777": 384
+    },
+    {
+      "path": "remote-ci-b814-source/partitionline-broker/tests/common/raft_runtime.rs",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/remote-ci-b814-source/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+      "bytes": 31258,
+      "full07777": 384
+    },
+    {
+      "path": "remote-ci-source.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/remote-ci-source.json",
+      "sha256": "1d869b03f87794459919ec84a4911645edd2c102313acdaf2ce10bbcfda2e3f0",
+      "bytes": 995,
+      "full07777": 384
+    },
+    {
+      "path": "run-next-focused.py",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/run-next-focused.py",
+      "sha256": "2dd3d65a2994a42e2bab3ed8e8c4971e95d9313bae92c717d61d8ad5b407b0c6",
+      "bytes": 10934,
+      "full07777": 384
+    },
+    {
+      "path": "run-next-focused.py.patch",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/run-next-focused.py.patch",
+      "sha256": "6165c139f57366ef22fe254b6b4fad359ee7f73cf1768fd4fdcb15c9f1ab6088",
+      "bytes": 4958,
+      "full07777": 384
+    },
+    {
+      "path": "runtime.rs.patch",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/runtime.rs.patch",
+      "sha256": "468b0be1976d6b8d3d2776ce4d4302dd2f611b4bd5c30f07637a40ab87cbfbbf",
+      "bytes": 5467,
+      "full07777": 384
+    },
+    {
+      "path": "stable-format-check.log",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/stable-format-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "stable-format.log",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/stable-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    {
+      "path": "syntax-format-validation.json",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-03/syntax-format-validation.json",
+      "sha256": "ae44a6adb2984cf3abac9d4de6aafd48e2dae91bbb64f645da15eca8b76c1d13",
+      "bytes": 1938,
+      "full07777": 384
+    }
+  ],
+  "total_payload_bytes": 567483,
+  "actual_rust_tests_executed": 0,
+  "pending": [
+    "root source/read-only review",
+    "hosted failure causal test-source derivative",
+    "actual immutable compile/runtime and independent captured proof",
+    "full stable/Rust1.85 default/all strict matrix"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "classification": "Actual executed AST-extracted source helpers with mocked APIs; no SQLite connection/proc/process/audit main",
+  "command": [
+    "python3",
+    "/workspace/work/client-sticky-performance-practical-review-02/source-semantic-controls.py"
+  ],
+  "exit": 0,
+  "control_count": 44,
+  "source_sha256": "787016c9e53cb7adaa8ab3bb923b9dc1ae951dda7ba46ef7afe366b7493164f3",
+  "stdout": "Exact successful tool-output bytes retained",
+  "stderr_empty": true
+}

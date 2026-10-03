@@ -1,0 +1,27 @@
+{
+  "all_19_original_paths_SHA_bytes_fullmode_exact": true,
+  "paths": [
+    "benchmarks/sticky-partitioner/Cargo.toml",
+    "benchmarks/sticky-partitioner/README.md",
+    "benchmarks/sticky-partitioner/StickyBenchmark.java",
+    "benchmarks/sticky-partitioner/audit.py",
+    "benchmarks/sticky-partitioner/profiles.json",
+    "benchmarks/sticky-partitioner/resource-forecast.json",
+    "benchmarks/sticky-partitioner/run-cell.py",
+    "benchmarks/sticky-partitioner/src/main.rs",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py",
+    "history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs",
+    "history/initial-source-stage-2e3f283d/preparation-receipt.json",
+    "history/initial-source-stage-2e3f283d/stage-handoff.json",
+    "preparation-receipt.json"
+  ],
+  "original_stage_sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+  "original_forecast_SHA256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+  "original_forecast_bytes_proposal": 8396561424
+}

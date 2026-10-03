@@ -1,0 +1,17 @@
+--- frozen5c94/qualification.json
++++ corrected/qualification.json
+@@ -101,5 +101,13 @@
+     "fastest/client ranking",
+     "exact Java accumulator/compression/RNG history",
+     "request/batch/wire counts from absent instrumentation"
+-  ]
++  ],
++  "SQLite_geometry_and_sidecars": {
++    "verified_page_bytes": 4096,
++    "max_database_pages": 4096,
++    "database_byte_cap": 16777216,
++    "DELETE_rollback_reserve_bytes": 33554432,
++    "statement_subjournal_reserve_bytes": 33554432,
++    "allocation_claim": "Prepared conservative forecast; no actual SQLite connection or allocation proof executed"
++  }
+ }

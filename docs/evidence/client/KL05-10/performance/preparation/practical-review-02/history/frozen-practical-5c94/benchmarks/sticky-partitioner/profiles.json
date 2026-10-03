@@ -1,0 +1,191 @@
+{
+  "classification": "PREPARED source only, uncompiled/unexecuted; no performance result",
+  "profiles": [
+    {
+      "name": "rust-rr-keyed",
+      "client": "rust",
+      "key_presence": "non-null16bytes",
+      "selection": "existing Rust globalRR for null /murmur2 keyed",
+      "accounting": "Rust legacy batching",
+      "input_seed": 79443,
+      "partitioner_seed": "counter initial0 in fresh producer",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-uniform-keyed",
+      "client": "rust",
+      "key_presence": "non-null16bytes",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "Rust successful admission conservative packed record bound+61perrealcohort",
+      "input_seed": 79443,
+      "partitioner_seed": "paired block input seed",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "java-uniform-keyed",
+      "client": "java",
+      "key_presence": "non-null16bytes",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "genuine Java accumulator bytes; not exact Rust packed-byte history",
+      "input_seed": 79443,
+      "partitioner_seed": "not externally seedable for Java",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-rr-null",
+      "client": "rust",
+      "key_presence": "null",
+      "selection": "existing Rust globalRR for null /murmur2 keyed",
+      "accounting": "Rust legacy batching",
+      "input_seed": 79443,
+      "partitioner_seed": "counter initial0 in fresh producer",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "rust-uniform-null",
+      "client": "rust",
+      "key_presence": "null",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "Rust successful admission conservative packed record bound+61perrealcohort",
+      "input_seed": 79443,
+      "partitioner_seed": "paired block input seed",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    },
+    {
+      "name": "java-uniform-null",
+      "client": "java",
+      "key_presence": "null",
+      "selection": "uniform/adaptive=false; keyed murmur2",
+      "accounting": "genuine Java accumulator bytes; not exact Rust packed-byte history",
+      "input_seed": 79443,
+      "partitioner_seed": "not externally seedable for Java",
+      "input_seed_contract": "paired_blocks[pair_block].seed"
+    }
+  ],
+  "paired_blocks": [
+    {
+      "pair_block": 0,
+      "seed": 79443,
+      "randomized_order": [
+        "rust-rr-keyed",
+        "rust-uniform-null",
+        "java-uniform-null",
+        "rust-uniform-keyed",
+        "rust-rr-null",
+        "java-uniform-keyed"
+      ]
+    },
+    {
+      "pair_block": 1,
+      "seed": 79444,
+      "randomized_order": [
+        "rust-rr-null",
+        "rust-uniform-null",
+        "java-uniform-null",
+        "rust-uniform-keyed",
+        "rust-rr-keyed",
+        "java-uniform-keyed"
+      ]
+    },
+    {
+      "pair_block": 2,
+      "seed": 79445,
+      "randomized_order": [
+        "rust-uniform-null",
+        "java-uniform-null",
+        "rust-uniform-keyed",
+        "rust-rr-keyed",
+        "rust-rr-null",
+        "java-uniform-keyed"
+      ]
+    },
+    {
+      "pair_block": 3,
+      "seed": 79446,
+      "randomized_order": [
+        "rust-rr-null",
+        "rust-uniform-null",
+        "java-uniform-keyed",
+        "rust-rr-keyed",
+        "rust-uniform-keyed",
+        "java-uniform-null"
+      ]
+    },
+    {
+      "pair_block": 4,
+      "seed": 79447,
+      "randomized_order": [
+        "java-uniform-null",
+        "java-uniform-keyed",
+        "rust-uniform-null",
+        "rust-rr-null",
+        "rust-rr-keyed",
+        "rust-uniform-keyed"
+      ]
+    }
+  ],
+  "minimum_pair_blocks": 5,
+  "minimum_measure_seconds": 60,
+  "minimum_independently_delivered_measure_records": 1000000,
+  "warmup_seconds": 15,
+  "warmup_acknowledged_records": 10000,
+  "maximum_total_records_per_cell": 10000000,
+  "driver_window": 8192,
+  "latency_sample_scope": "all journalled individual invocations to actual ack, closed-loop. No coordinated-omission-corrected or open-loop latency claim",
+  "parameters": {
+    "partitions": 6,
+    "replication_factor": 1,
+    "min_isr": 1,
+    "acks": "all",
+    "idempotence": true,
+    "max_in_flight": 5,
+    "linger_ms": 5,
+    "batch_bytes": 1048576,
+    "batch_records_Rust": 32768,
+    "value_bytes": 100,
+    "key_bytes_keyed": 16,
+    "compression": "none",
+    "security": "PLAINTEXT",
+    "isolation_verifier": "read_uncommitted; no transactions",
+    "buffer_bytes": 33554432,
+    "request_timeout_ms": 30000,
+    "delivery_timeout_ms": 120000,
+    "max_block_ms": 60000,
+    "fresh_topic_per_cell": true,
+    "topic_retention_ms": -1
+  },
+  "CPU_contract": {
+    "measurement_producer": "exclusive CPU3 future lease only",
+    "broker": "0,1,2,4 or separately reserved non3 set",
+    "driver_source_guards_and_verifier": "0,1, no simultaneous measurement",
+    "no_compilation_or_unrelated_measurement_on3": true
+  },
+  "actual_receipts_required": [
+    "public ack binary76byte rows withID/phase/partition/offset/timing/key+valueSHA256/conservative bound",
+    "independent consumer binary76byte rows withactual ID/hash/partition/offset",
+    "duration including admission/drain/flush",
+    "process CPUtime delta and sampled RSS, actual frequency/governor if available",
+    "all six actual leader eligibility snapshots",
+    "producer config and accounting/seeds",
+    "source/build/ELF or class/JAR/hash/fullmode identity",
+    "physical350MiB floor0.2s monitor/ownedPGID closure",
+    "offline exactID/hash/offset/skew reconciliation",
+    "five complete paired blocks; failures preserved",
+    "95percent paired bootstrap interval plusMAD; no global fastest claim"
+  ],
+  "unsupported_observations": [
+    "actual producer request count/wire bytes/batch sizes unless independent framed proxy/log capture is separately prepared",
+    "exact Java compression/accumulator accounting or production random history equality",
+    "durable fsync merely from broker ack",
+    "open-loop or CO-corrected latency from closed-loop send window"
+  ],
+  "future_negative_controls": [
+    "changed consumer public offset/hash/ID ->offline audit failure",
+    "missingID/duplicateID/phase ->offline audit failure",
+    "shorter-than60s or delivered count below1M ->qualification failure",
+    "forcedexplicitpartition ->configuration/source guard refusal",
+    "wrongSDK/ELF/source identity ->prelaunch refusal",
+    "owned process stdout over cap or physical floor breach ->stop and retained failed attempt"
+  ],
+  "qualification_currently": "HOLD; no Cargo/JVM/CPU3 lease, no benchmark artifact or measurement"
+}

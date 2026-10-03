@@ -1,0 +1,375 @@
+{
+  "Envelope_literal_scan": [
+    {
+      "has_required_counter": true,
+      "line": 580
+    },
+    {
+      "has_required_counter": true,
+      "line": 622
+    },
+    {
+      "has_required_counter": true,
+      "line": 2542
+    },
+    {
+      "has_required_counter": true,
+      "line": 2569
+    },
+    {
+      "has_required_counter": false,
+      "line": 2699
+    }
+  ],
+  "classification": "Independent frozen-source and in-memory semantic review only;0Cargo/compiler/JVM/listener/socket/process/signal/cleanup/repository writes",
+  "controls": [
+    {
+      "detail": null,
+      "name": "Envelope declaration requires cfg(test) counter",
+      "passed": true
+    },
+    {
+      "detail": {
+        "literal_scan": [
+          {
+            "has_required_counter": true,
+            "line": 580
+          },
+          {
+            "has_required_counter": true,
+            "line": 622
+          },
+          {
+            "has_required_counter": true,
+            "line": 2542
+          },
+          {
+            "has_required_counter": true,
+            "line": 2569
+          },
+          {
+            "has_required_counter": false,
+            "line": 2699
+          }
+        ],
+        "missing_literal": [
+          {
+            "has_required_counter": false,
+            "line": 2699
+          }
+        ]
+      },
+      "name": "reproduced exactly one missing required Envelope literal field",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "frozen permit fields release semaphore before counter",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "counter race intermediate real occupancy bounded",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "counter race records false-over-limit peak despite bounded permits",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "counter race persists after current recovers",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "counter-before-permit ordering avoids same legal interleaving",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "transport-counter race scales with charge1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "transport-counter race scales with charge4096",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "transport-counter race scales with charge524288",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser nonverbose lib",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser nonverbose integration",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser verbose quoted path",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser compiler cfg parentheses",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser buildscript",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser refuses outside target",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual parser refuses wrong harness",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "frozen orchestration parses before complete new-output retention",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "parser refusal skips later retention in frozen ordering",
+      "passed": true
+    },
+    {
+      "detail": {
+        "frozen_result": [],
+        "known_cmdline_reference": "/workspace/work/target-broker-segments",
+        "later_maps_error": "PermissionError"
+      },
+      "name": "reproduced discarded positive cache reference after unreadable maps",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "forecast arithmetic image-three",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "owner/proxy raw capture cap image-three",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "no execution authority image-three",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "forecast arithmetic image-five",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "owner/proxy raw capture cap image-five",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "no execution authority image-five",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "forecast arithmetic owner-controls",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "owner/proxy raw capture cap owner-controls",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "no execution authority owner-controls",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "majority-threshold caveat exact",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "proxy capture occurs before delay",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "both directional pipes are joined",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "no-forward metadata starts nullable",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "configured genuine multichunk observer construction",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "actual read/chunk Finish/Finished marker requirements",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "observer cadence uses process-local clock caveat",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "timeout capture target and cleanup are explicit",
+      "passed": true
+    }
+  ],
+  "cpu_set": [
+    2,
+    4
+  ],
+  "frozen20_rows_before_after_exact": true,
+  "handoff_sha256": "e4250889d4cd2e68818a21b19e6a68a8caeb7b516ad54643a24b34880a54591b",
+  "logical_payload_bytes": 241020,
+  "passed_controls": 37,
+  "rows": {
+    "1.85.0-check.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/1.85.0-check.log"
+    },
+    "README.md": {
+      "bytes": 6073,
+      "full07777": 384,
+      "sha256": "f92d5274ad47b554d3f7df140b465cd062d62c0fc806f17b2080b4047977758c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/README.md"
+    },
+    "artifact-parser-validation.json": {
+      "bytes": 1541,
+      "full07777": 384,
+      "sha256": "e0eacc479aff6e782224f10e7f9cf42b9f0ab51787ead14e69145951c727c9b2",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/artifact-parser-validation.json"
+    },
+    "artifact_paths.py": {
+      "bytes": 1600,
+      "full07777": 384,
+      "sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/artifact_paths.py"
+    },
+    "before-manifest.json": {
+      "bytes": 864,
+      "full07777": 384,
+      "sha256": "9c6d442a308772ee1a080529292cc19d800ea77ff22fe223d7104cdbf53b482a",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/before-manifest.json"
+    },
+    "cache-guards.py": {
+      "bytes": 10074,
+      "full07777": 384,
+      "sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/cache-guards.py"
+    },
+    "candidate/partitionline-broker/src/raft/runtime.rs": {
+      "bytes": 113949,
+      "full07777": 384,
+      "sha256": "32737ccc7565dc1b44b63444c2d33885ee3a248cd3a35e7999e6b95126260ba1",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/candidate/partitionline-broker/src/raft/runtime.rs"
+    },
+    "candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "bytes": 44171,
+      "full07777": 384,
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/candidate/partitionline-broker/tests/common/raft_runtime.rs"
+    },
+    "check-parser.py": {
+      "bytes": 2166,
+      "full07777": 384,
+      "sha256": "c7070bddf4eeace6f95ff1498b7d00cd75ec5c9b77d1b459b41c02c6c81cb088",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/check-parser.py"
+    },
+    "guard-functions.py": {
+      "bytes": 13075,
+      "full07777": 384,
+      "sha256": "4bc27b5198f6e21b478a788d1f16dffe4707f0c522c921b126d4411bb8e20ab7",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/guard-functions.py"
+    },
+    "guard-provenance.json": {
+      "bytes": 1347,
+      "full07777": 384,
+      "sha256": "ad35308e2e02f5422110ed3e5989becedae7d501a5ce7e3a84b31d13491987a9",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/guard-provenance.json"
+    },
+    "next-run-plan.json": {
+      "bytes": 7152,
+      "full07777": 384,
+      "sha256": "7605e1f7d357d734adc3def88016def9052489414b096fc75368a49f100afecf",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/next-run-plan.json"
+    },
+    "prepare-runner.py": {
+      "bytes": 2997,
+      "full07777": 384,
+      "sha256": "542fd0828417f6eed68578dc13346fa22b8a52ca81639162cfb40d7ece9dbe51",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/prepare-runner.py"
+    },
+    "prepare-source.py": {
+      "bytes": 9825,
+      "full07777": 384,
+      "sha256": "5cdddb65870cbf269f33b06ae89d22fc4d000bb6e6027814b532043d0b4ea8c2",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/prepare-source.py"
+    },
+    "raft_runtime.rs.patch": {
+      "bytes": 12200,
+      "full07777": 384,
+      "sha256": "84be6e99e428d8fe51e510fb04e344f5b721ed6eb3d917c545dd949562b2d00c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/raft_runtime.rs.patch"
+    },
+    "run-next-focused.py": {
+      "bytes": 10276,
+      "full07777": 384,
+      "sha256": "329a24ac80c29f4322e519fd484491539a824ab40cfc90332a6001f65d3448a5",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/run-next-focused.py"
+    },
+    "runtime.rs.patch": {
+      "bytes": 1351,
+      "full07777": 384,
+      "sha256": "ad61812f003e2fd3c70b327a1d74620d4ae7ddd7e01bc9b481a57e406e9ca33a",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/runtime.rs.patch"
+    },
+    "source-validation.json": {
+      "bytes": 2359,
+      "full07777": 384,
+      "sha256": "be838ca68f4a03b748d0bf9c0e8366084eb37db419816313977877b6f6e90d0c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/source-validation.json"
+    },
+    "stable-check.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/stable-check.log"
+    },
+    "stable-format.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/stable-format.log"
+    }
+  }
+}

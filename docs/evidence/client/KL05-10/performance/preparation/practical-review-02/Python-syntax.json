@@ -1,0 +1,7 @@
+{
+  "classification": "Executed compile(source) syntax only; no main/module import/audit/SQLite/proc/process",
+  "files": {
+    "benchmarks/sticky-partitioner/run-cell.py": "0fb6117c817b8ccba99489a1d6b7ee9058670022bf8a81b8dd31439cd87feaf7",
+    "benchmarks/sticky-partitioner/audit.py": "3f5abd97bcb630cf814cd7dd5904037c696c2bb54b61d5ff375b5d11052f0ec7"
+  }
+}

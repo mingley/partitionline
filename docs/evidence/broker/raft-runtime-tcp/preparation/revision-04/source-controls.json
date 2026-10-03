@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "scope": "source-only hosted test correction; not compiled/executed",
+  "runtime_sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+  "shared_body_sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739",
+  "runtime_prefix_through_all_production_and_prior_cfg_helpers_unchanged_vs03": true,
+  "prior03_all29_full_modes_payloads_unchanged": true,
+  "typed_invalid_peer_excludes_Deadline_Closed": true,
+  "durable_state_rejection_fields": [
+    "persistent_election",
+    "role",
+    "base_position",
+    "last_position",
+    "committed_end",
+    "active_term",
+    "wal_durable_ops",
+    "election_durable_states",
+    "ready",
+    "poisoned"
+  ],
+  "fixture_wait": "new absolute2s outer test wait around reliable; production deadlines and20ms intentional Stop/expired-write behavior unchanged",
+  "commit_timeout_ms": 15000,
+  "all_prior15s_values_unchanged": true,
+  "commit_phase_labels": [
+    "observer-prefix-on-genesis",
+    "observer-addition-all",
+    "observer-addition-reopen-all",
+    "observer-post-reopen-suffix",
+    "fault-initial-all",
+    "fault-after-process-exit-majority",
+    "fault-restarted-follower-all",
+    "fault-delayed-old-reply-all",
+    "fault-partition-new-majority",
+    "fault-healed-partition-all",
+    "fault-removed-leader-new-set"
+  ],
+  "diagnostics": "on existing timeout only, configured child process status+next_control and <=2048B state firstline; overall text<=16KiB",
+  "actual_rust_tests_executed": 0,
+  "remote_failure_exact_causal_stage_not_established": true
+}

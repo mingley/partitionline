@@ -1,0 +1,77 @@
+{
+  "classification": "Source-only prepared practical candidate before failure-path review; no Cargo/JVM/performance commands",
+  "paths": [
+    {
+      "path": "benchmarks/sticky-partitioner/Cargo.lock",
+      "bytes": 19857,
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/Cargo.toml",
+      "bytes": 455,
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/README.md",
+      "bytes": 7928,
+      "sha256": "4bd0c00783c8aff6d6efd48abb964df1843018e37b60367dbb079dba6e57df05",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/StickyBenchmark.java",
+      "bytes": 15359,
+      "sha256": "af825cf0832ef22b235100e8949ab9136ce9ce6e0ddc938c577b06666f68ff96",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/audit.py",
+      "bytes": 9282,
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/profiles.json",
+      "bytes": 6782,
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/qualification-resource-forecast.json",
+      "bytes": 2278,
+      "sha256": "099d3172011f4ca61dc9752e9f592e2def55958d95f05ec1ea347ab06f67e74b",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/qualification.json",
+      "bytes": 4019,
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/resource-forecast.json",
+      "bytes": 1464,
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/run-cell.py",
+      "bytes": 15189,
+      "sha256": "50c1b315968a406fb3e413db27f91484f9313b5a259fa2b0a497e29591a37186",
+      "full_mode": 384
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/src/main.rs",
+      "bytes": 24140,
+      "sha256": "97a986997978a90ea4f0e57c4901b5e8871014a9b44d3fe3af45206504a36921",
+      "full_mode": 384
+    },
+    {
+      "path": "offline-compile-plan.json",
+      "bytes": 3833,
+      "sha256": "de246825b9818a6f4d4e52d68a22739dd61331e15e99415f40a9d3263085e62d",
+      "full_mode": 384
+    }
+  ]
+}

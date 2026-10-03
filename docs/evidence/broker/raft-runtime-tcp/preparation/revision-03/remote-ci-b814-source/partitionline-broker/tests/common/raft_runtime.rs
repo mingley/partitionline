@@ -168,26 +168,13 @@ fn runtime_child_process() -> TestResult {
         .build()?
         .block_on(async {
             let listener = TcpListener::bind(backend).await?;
-            let cfg = config(local, &routes, active)?;
-            let configured_task_bound = cfg.task_bound();
-            let configured_managed_bytes = cfg.managed_bytes();
-            let configured_client_slots = 4;
-            let configured_socket_bound = 2 * routes.len().saturating_sub(1).max(1);
-            let mut runtime = Runtime::start(listener, cfg, paths(&root)?)?;
+            let mut runtime =
+                Runtime::start(listener, config(local, &routes, active)?, paths(&root)?)?;
             runtime.wait_ready().await?;
             let handle = runtime.handle();
             write_text(&root.join("ready"), "ready\n")?;
             let mut next = 0;
-            let mut sampled_peaks = [0usize; 4];
             loop {
-                let observed = handle.diagnostics();
-                assert!(observed.network_tasks <= configured_task_bound);
-                assert!(observed.sockets <= configured_socket_bound);
-                assert!(observed.transport_bytes <= configured_managed_bytes);
-                assert!(observed.client_slots <= configured_client_slots);
-                for (peak, value) in sampled_peaks.iter_mut().zip([
-                    observed.network_tasks, observed.sockets, observed.transport_bytes, observed.client_slots
-                ]) { *peak = (*peak).max(value); }
                 let state = handle.state().await?;
                 let records = handle.fetch_committed(1, 64, 256 * 1024).await?;
                 let prefix = records
@@ -210,14 +197,12 @@ fn runtime_child_process() -> TestResult {
                 write_text(
                     &root.join("state"),
                     &format!(
-                        "{} {:?} {} {} {}\n{prefix}\nimage {} {}\n",
+                        "{} {:?} {} {} {}\n{prefix}\n",
                         state.election.persistent.term,
                         state.election.role,
                         state.last_position.index,
                         state.committed_end,
-                        state.ready,
-                        state.base_position.term,
-                        state.base_position.index
+                        state.ready
                     ),
                 )?;
                 let inbox = root.join(format!("inbox-{next}"));
@@ -232,13 +217,6 @@ fn runtime_child_process() -> TestResult {
                         let value: u8 = value.trim().parse()?;
                         match handle.checkpoint([value; 16]).await {
                             Ok(d) => format!("image {} {} {}", d.base.term, d.base.index, d.bytes),
-                            Err(e) => format!("error {e}"),
-                        }
-                    } else if let Some(value) = command.strip_prefix("add ") {
-                        let value: usize = value.trim().parse()?;
-                        if value >= routes.len() { return Err("add route bound".into()); }
-                        match handle.add_voter(voter(value as u32, routes[value])?.key()).await {
-                            Ok(r) => format!("change {} {} {}", r.epoch, r.position.index, r.committed),
                             Err(e) => format!("error {e}"),
                         }
                     } else if let Some(value) = command.strip_prefix("remove ") {
@@ -263,10 +241,6 @@ fn runtime_child_process() -> TestResult {
                         assert_eq!(handle.diagnostics().network_tasks, 0);
                         assert_eq!(handle.diagnostics().sockets, 0);
                         assert_eq!(handle.diagnostics().transport_bytes, 0);
-                        assert_eq!(handle.diagnostics().client_slots, 0);
-                        let final_diagnostics = handle.diagnostics();
-                        let receipt = format!("{{\"schema_version\":1,\"source_sha\":\"{}\",\"pid\":{},\"local_id\":{local},\"directory\":\"{}\",\"genesis_voter_count\":{active},\"configured_route_count\":{},\"configured_task_bound\":{configured_task_bound},\"configured_managed_bytes\":{configured_managed_bytes},\"supervisor_shutdown_returned\":true,\"sampled_peak_network_tasks\":{},\"sampled_peak_sockets\":{},\"sampled_peak_transport_bytes\":{},\"sampled_peak_client_slots\":{},\"sampled_peak_limit\":\"20ms observer samples are lower bounds; lib owner metrics retain logical lifetime high-water counters\",\"final_network_tasks\":{},\"final_sockets\":{},\"final_transport_bytes\":{},\"final_client_slots\":{},\"stopping\":{}}}\n", std::env::var("PL_PEER_RUNTIME_SOURCE_SHA").unwrap_or_else(|_| "unqualified-test".into()), std::process::id(), hex(&[(local+1) as u8;16])?, routes.len(), sampled_peaks[0],sampled_peaks[1],sampled_peaks[2],sampled_peaks[3],final_diagnostics.network_tasks,final_diagnostics.sockets,final_diagnostics.transport_bytes,final_diagnostics.client_slots,final_diagnostics.stopping);
-                        write_text(&root.join("joined-receipt.json"), &receipt)?;
                         write_text(&root.join(format!("outbox-{next}")), "joined")?;
                         return Ok(());
                     } else {
@@ -285,9 +259,6 @@ struct Gate {
     allowed: Vec<AtomicBool>,
     delay: Vec<AtomicU64>,
     capture: Option<PathBuf>,
-    clock: std::time::Instant,
-    captured_bytes: AtomicU64,
-    capture_failed: AtomicBool,
 }
 impl Gate {
     fn new(count: usize, capture: Option<PathBuf>) -> Self {
@@ -296,34 +267,7 @@ impl Gate {
             allowed: (0..count * count).map(|_| AtomicBool::new(true)).collect(),
             delay: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
             capture,
-            clock: std::time::Instant::now(),
-            captured_bytes: AtomicU64::new(0),
-            capture_failed: AtomicBool::new(false),
         }
-    }
-    fn capture_file(&self, name: &str, bytes: &[u8]) -> TestResult {
-        let result = (|| -> TestResult {
-            let Some(root) = &self.capture else {
-                return Ok(());
-            };
-            let size = u64::try_from(bytes.len())?;
-            self.captured_bytes
-                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
-                    n.checked_add(size).filter(|next| *next <= 16 * 1024 * 1024)
-                })
-                .map_err(|_| "finite per-case proxy capture bytes")?;
-            let mut file = fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(root.join(name))?;
-            file.write_all(bytes)?;
-            file.sync_all()?;
-            Ok(())
-        })();
-        if result.is_err() {
-            self.capture_failed.store(true, Ordering::Release);
-        }
-        result
     }
     fn set(&self, a: usize, b: usize, value: bool) {
         self.allowed[a * self.count + b].store(value, Ordering::Release);
@@ -347,28 +291,6 @@ async fn packet<R: AsyncRead + Unpin>(r: &mut R) -> TestResult<Vec<u8>> {
     r.read_exact(&mut bytes[4..]).await?;
     Ok(bytes)
 }
-struct ForwardReceipt {
-    source: usize,
-    target: usize,
-    connection: u64,
-    reply: bool,
-    ordinal: u64,
-    received_ms: u128,
-    delay_ms: u64,
-    forward_started_ms: Option<u128>,
-    forward_finished_ms: Option<u128>,
-    write_ok: Option<bool>,
-    disposition: &'static str,
-}
-impl Gate {
-    fn forward_receipt(&self, name: &str, bytes: &[u8], r: ForwardReceipt) -> TestResult {
-        let rpc = u64::from_be_bytes(bytes[16..24].try_into()?);
-        let time = |v: Option<u128>| v.map_or_else(|| "null".into(), |n| n.to_string());
-        let ok = r.write_ok.map_or_else(|| "null".into(), |b| b.to_string());
-        let metadata = format!("{{\"schema_version\":2,\"packet_file\":\"{name}\",\"proxy_pid\":{},\"clock_basis\":\"parent proxy process monotonic Instant epoch; not owner process clock\",\"source\":{},\"target\":{},\"connection\":{},\"reply\":{},\"ordinal\":{},\"kind\":{},\"rpc\":{rpc},\"received_ms\":{},\"selected_delay_ms\":{},\"forward_started_ms\":{},\"forward_finished_ms\":{},\"forward_write_ok\":{ok},\"disposition\":\"{}\"}}}\n", std::process::id(), r.source, r.target, r.connection, r.reply, r.ordinal, bytes[14], r.received_ms, r.delay_ms, time(r.forward_started_ms), time(r.forward_finished_ms), r.disposition);
-        self.capture_file(&format!("{name}.forward.json"), metadata.as_bytes())
-    }
-}
 async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
     mut r: R,
     mut w: W,
@@ -382,62 +304,32 @@ async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
     let mut ordinal = 0;
     loop {
         let bytes = tokio::select! {_ = stop.changed()=>return Ok(()),p=packet(&mut r)=>p?};
-        let received_ms = gate.clock.elapsed().as_millis();
-        let name = format!(
-            "wire-{source}-{target}-{connection}-{}-{ordinal}.bin",
-            if reply { "response" } else { "request" }
-        );
-        // Capture actual read bytes before waiting, including a response whose
-        // source times out while the proxy is holding it. Forwarding is a later
-        // fact; only the owner's ACK command proves response consumption.
-        gate.capture_file(&name, &bytes)?;
+        if !gate.permits(source, target) {
+            return Ok(());
+        }
         let delay = if reply {
             gate.delay[source * gate.count + target].swap(0, Ordering::AcqRel)
         } else {
             0
         };
-        let mut receipt = ForwardReceipt {
-            source,
-            target,
-            connection,
-            reply,
-            ordinal,
-            received_ms,
-            delay_ms: delay,
-            forward_started_ms: None,
-            forward_finished_ms: None,
-            write_ok: None,
-            disposition: "partition-drop",
-        };
-        if !gate.permits(source, target) {
-            gate.forward_receipt(&name, &bytes, receipt)?;
-            return Ok(());
-        }
         if delay > 0 {
-            tokio::select! {
-                _ = stop.changed()=>{
-                    receipt.disposition="shutdown-before-forward";
-                    gate.forward_receipt(&name, &bytes, receipt)?;
-                    return Ok(());
-                },
-                _ = tokio::time::sleep(Duration::from_millis(delay))=>{}
-            }
+            tokio::select! {_ = stop.changed()=>return Ok(()),_ = tokio::time::sleep(Duration::from_millis(delay))=>{}}
         }
         if !gate.permits(source, target) {
-            gate.forward_receipt(&name, &bytes, receipt)?;
             return Ok(());
         }
-        receipt.forward_started_ms = Some(gate.clock.elapsed().as_millis());
-        let result = w.write_all(&bytes).await;
-        receipt.forward_finished_ms = Some(gate.clock.elapsed().as_millis());
-        receipt.write_ok = Some(result.is_ok());
-        receipt.disposition = if result.is_ok() {
-            "forward-write-ok"
-        } else {
-            "forward-write-error"
-        };
-        gate.forward_receipt(&name, &bytes, receipt)?;
-        result?;
+        if let Some(root) = &gate.capture {
+            let name = format!(
+                "wire-{source}-{target}-{connection}-{}-{ordinal}.bin",
+                if reply { "response" } else { "request" }
+            );
+            let mut file = File::create(root.join(name))?;
+            file.write_all(&bytes)?;
+            file.sync_all()?;
+        }
+        // A retained proxy packet is an actual read/forward attempt, not by
+        // itself a claimed source receipt. Owner ACK traces establish consumption.
+        w.write_all(&bytes).await?;
         ordinal += 1;
         if ordinal > 10000 {
             return Err("finite capture count".into());
@@ -467,14 +359,9 @@ async fn proxy(
                     let source=u32::from_be_bytes(first[28..32].try_into()?) as usize;
                     if !gate.permits(source,target){return Ok(());}
                     let mut server=TcpStream::connect(backend).await?;server.write_all(&first).await?;
-                    gate.capture_file(&format!("hello-{source}-{target}-{id}.bin"), &first)?;
+                    if let Some(root)=&gate.capture{let mut file=File::create(root.join(format!("hello-{source}-{target}-{id}.bin")))?;file.write_all(&first)?;file.sync_all()?;}
                     let (cr,cw)=client.into_split();let (sr,sw)=server.into_split();
-                    // EOF in one direction must not cancel the other future
-                    // while it holds an already-read delayed response. Dropping
-                    // its write half shuts down that direction; stop also wakes
-                    // both pipes, so proxy shutdown still joins every task.
-                    let (request,response)=tokio::join!(pipe(cr,sw,gate.clone(),source,target,false,id,stop.clone()),pipe(sr,cw,gate,source,target,true,id,stop));
-                    request.and(response)
+                    tokio::select!{r=pipe(cr,sw,gate.clone(),source,target,false,id,stop.clone())=>r,r=pipe(sr,cw,gate,source,target,true,id,stop)=>r}
                 });
             }
             _ = tasks.join_next(),if !tasks.is_empty()=>{}
@@ -502,13 +389,7 @@ struct Cluster {
 }
 impl Cluster {
     async fn start(count: usize) -> TestResult<Self> {
-        Self::start_profile(count, count).await
-    }
-    async fn start_profile(count: usize, active: usize) -> TestResult<Self> {
-        if count < 2 || active == 0 || active > count {
-            return Err("profile bounds".into());
-        }
-        let root = temporary(&format!("tcp-{count}-genesis-{active}"))?;
+        let root = temporary(&format!("tcp-{count}"))?;
         let mut backend_listeners = Vec::new();
         let mut proxy_listeners = Vec::new();
         let mut routes = Vec::new();
@@ -542,7 +423,7 @@ impl Cluster {
             processes: (0..count).map(|_| None).collect(),
             routes,
             backends,
-            active,
+            active: count,
             gate,
             stop,
             proxies,
@@ -642,51 +523,6 @@ impl Cluster {
             lines.next().unwrap_or("").into(),
         ))
     }
-    fn image_base(&self, id: usize) -> TestResult<(u64, u64)> {
-        let p = self.processes[id].as_ref().ok_or("node closed")?;
-        let text = read_text(&p.root.join("state"), 1024 * 1024)?;
-        let line = text.lines().nth(2).ok_or("public base-position line")?;
-        let fields = line.split_whitespace().collect::<Vec<_>>();
-        if fields.len() != 3 || fields[0] != "image" {
-            return Err("base-position fields".into());
-        }
-        Ok((fields[1].parse()?, fields[2].parse()?))
-    }
-    fn require_completed_image_frames(&self, source: usize, target: usize) -> TestResult {
-        let Some(root) = &self.gate.capture else {
-            return Ok(());
-        };
-        let prefix = format!("wire-{source}-{target}-");
-        let mut chunks = 0;
-        let mut finish = 0;
-        let mut finished = 0;
-        for item in fs::read_dir(root)? {
-            let item = item?;
-            let name = item.file_name();
-            let name = name.to_str().ok_or("capture filename UTF8")?;
-            if !name.starts_with(&prefix) || !name.ends_with(".bin") {
-                continue;
-            }
-            let mut bytes = Vec::new();
-            File::open(item.path())?
-                .take(512 * 1024 + 5)
-                .read_to_end(&mut bytes)?;
-            if bytes.len() < 32 || bytes.len() > 512 * 1024 + 4 {
-                return Err("captured frame bound".into());
-            }
-            match bytes[14] {
-                32 => chunks += 1,
-                34 => finish += 1,
-                35 => finished += 1,
-                _ => {}
-            }
-        }
-        assert!(
-            chunks >= 3 && finish >= 1 && finished >= 1,
-            "actual complete multichunk private image stream required"
-        );
-        Ok(())
-    }
     async fn leader(&self, excluded: &[usize]) -> TestResult<usize> {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
@@ -723,48 +559,7 @@ impl Cluster {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     }
-    fn commit_diagnostics(&mut self, phase: &str, index: u64, ids: &[usize]) -> String {
-        let mut text =
-            format!("commit deadline phase={phase} index={index} ids={ids:?} budget_ms=15000;");
-        for (id, process) in self.processes.iter_mut().enumerate() {
-            let Some(process) = process else {
-                text.push_str(&format!(" node{id}=closed;"));
-                continue;
-            };
-            let status = match process.child.try_wait() {
-                Ok(None) => format!("running(pid={})", process.child.id()),
-                Ok(Some(code)) => format!("exited({code})"),
-                Err(error) => format!("status-error({error})"),
-            };
-            let mut bytes = Vec::new();
-            let header = match File::open(process.root.join("state"))
-                .and_then(|file| file.take(2048).read_to_end(&mut bytes))
-            {
-                Ok(count) => format!(
-                    "read{count}B firstline={:?}",
-                    String::from_utf8_lossy(&bytes).lines().next().unwrap_or("")
-                ),
-                Err(error) => format!("state-read-error({error})"),
-            };
-            text.push_str(&format!(
-                " node{id}={status} control_next={} {header};",
-                process.next
-            ));
-            // Error diagnostics are test evidence, not a full state image. A
-            // fixed ceiling also covers larger permitted route tables.
-            if text.len() > 16 * 1024 {
-                let mut end = 16 * 1024 - " [diagnostic truncated]".len();
-                while !text.is_char_boundary(end) {
-                    end -= 1;
-                }
-                text.truncate(end);
-                text.push_str(" [diagnostic truncated]");
-                break;
-            }
-        }
-        text
-    }
-    async fn commit(&mut self, phase: &str, index: u64, ids: &[usize]) -> TestResult {
+    async fn commit(&self, index: u64, ids: &[usize]) -> TestResult {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
             if ids
@@ -788,7 +583,7 @@ impl Cluster {
                 return Ok(());
             }
             if Instant::now() >= deadline {
-                return Err(self.commit_diagnostics(phase, index, ids).into());
+                return Err("commit deadline".into());
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -819,14 +614,6 @@ impl Cluster {
                 let p = self.processes[id].as_mut().ok_or("node")?;
                 let code = p.child.wait()?;
                 assert!(code.success());
-                if let Some(wire) = &self.gate.capture {
-                    let target = wire
-                        .parent()
-                        .ok_or("case capture parent")?
-                        .join(format!("joined-node-{id}-pid-{}.json", p.child.id()));
-                    let receipt = read_text(&p.root.join("joined-receipt.json"), 8192)?;
-                    write_text(&target, &receipt)?;
-                }
                 self.processes[id] = None;
             }
         }
@@ -834,10 +621,6 @@ impl Cluster {
         while let Some(p) = self.proxies.pop() {
             p.await??;
         }
-        assert!(
-            !self.gate.capture_failed.load(Ordering::Acquire),
-            "every actual packet/forward receipt must fit and persist"
-        );
         Ok(())
     }
 }
@@ -852,117 +635,6 @@ impl Drop for Cluster {
             p.abort();
         }
     }
-}
-
-async fn observer_image_history(total: usize) -> TestResult {
-    let genesis = total - 1;
-    let observer = genesis;
-    let mut cluster = Cluster::start_profile(total, genesis).await?;
-    let leader = cluster.leader(&[observer]).await?;
-    let voters = (0..genesis).collect::<Vec<_>>();
-    // The observer route is configured but outside genesis. No ordinary peer
-    // preparation is eligible before feature negotiation starts admission.
-    assert_eq!(cluster.state(observer)?.3, 0);
-    let mut committed = 0;
-    for byte in [71u8, 72u8] {
-        let answer = cluster
-            .command(leader, &format!("propose {}", hex(&vec![byte; 40 * 1024])?))
-            .await?;
-        committed = answer
-            .split_whitespace()
-            .nth(2)
-            .ok_or("proposal response")?
-            .parse()?;
-        cluster
-            .commit("observer-prefix-on-genesis", committed, &voters)
-            .await?;
-    }
-    let checkpoint = cluster.command(leader, "checkpoint 62").await?;
-    assert!(checkpoint.starts_with("image "));
-    let image_bytes: u64 = checkpoint
-        .split_whitespace()
-        .nth(3)
-        .ok_or("image byte count")?
-        .parse()?;
-    assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");
-    let base: u64 = checkpoint
-        .split_whitespace()
-        .nth(2)
-        .ok_or("image base")?
-        .parse()?;
-    assert_eq!(base, committed);
-    assert_eq!(cluster.image_base(observer)?.1, 0);
-    let added = cluster.command(leader, &format!("add {observer}")).await?;
-    assert!(
-        added.starts_with("change "),
-        "actual public observer addition: {added}"
-    );
-    let addition: u64 = added
-        .split_whitespace()
-        .nth(2)
-        .ok_or("addition position")?
-        .parse()?;
-    let all = (0..total).collect::<Vec<_>>();
-    cluster
-        .commit("observer-addition-all", addition, &all)
-        .await?;
-    assert_eq!(
-        cluster.image_base(observer)?.1,
-        base,
-        "catch-up must select a durable image, not merely append its prefix"
-    );
-    cluster.require_completed_image_frames(leader, observer)?;
-    let prefix = cluster.state(observer)?.4;
-    cluster.crash(observer).await?;
-    cluster.spawn(observer)?;
-    cluster.ready().await?;
-    cluster
-        .commit("observer-addition-reopen-all", addition, &all)
-        .await?;
-    assert_eq!(
-        cluster.image_base(observer)?.1,
-        base,
-        "reopen must recover the selected generation"
-    );
-    assert_eq!(
-        cluster
-            .state(observer)?
-            .4
-            .split(';')
-            .take(addition as usize)
-            .collect::<Vec<_>>(),
-        prefix
-            .split(';')
-            .take(addition as usize)
-            .collect::<Vec<_>>()
-    );
-    let current = cluster.leader(&[]).await?;
-    let answer = cluster
-        .command(
-            current,
-            &format!(
-                "propose {}",
-                hex(b"suffix after installed observer restart")?
-            ),
-        )
-        .await?;
-    let suffix: u64 = answer
-        .split_whitespace()
-        .nth(2)
-        .ok_or("suffix position")?
-        .parse()?;
-    cluster
-        .commit("observer-post-reopen-suffix", suffix, &all)
-        .await?;
-    cluster.shutdown().await
-}
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn actual_three_peer_tcp_observer_multichunk_image_install_reopen_and_join() -> TestResult {
-    observer_image_history(3).await
-}
-#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn actual_five_peer_tcp_observer_multichunk_image_install_reopen_and_join() -> TestResult {
-    observer_image_history(5).await
 }
 
 async fn fault_history(count: usize) -> TestResult {
@@ -980,7 +652,7 @@ async fn fault_history(count: usize) -> TestResult {
         .ok_or("proposal response")?
         .parse()?;
     let all = (0..count).collect::<Vec<_>>();
-    cluster.commit("fault-initial-all", index, &all).await?;
+    cluster.commit(index, &all).await?;
     let follower = (leader + 1) % count;
     cluster.crash(follower).await?;
     let answer = cluster
@@ -999,18 +671,14 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != follower)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-after-process-exit-majority", after, &majority)
-        .await?;
+    cluster.commit(after, &majority).await?;
     assert!(cluster
         .command(leader, "checkpoint 21")
         .await?
         .starts_with("image "));
     cluster.spawn(follower)?;
     cluster.ready().await?;
-    cluster
-        .commit("fault-restarted-follower-all", after, &all)
-        .await?;
+    cluster.commit(after, &all).await?;
     // One delayed old response crosses its source RPC deadline and a reconnect.
     // Actual proxy packets and owner ACKs distinguish forward attempts from receipts.
     cluster.gate.delay[leader * count + follower].store(800, Ordering::Release);
@@ -1022,9 +690,7 @@ async fn fault_history(count: usize) -> TestResult {
         .nth(2)
         .ok_or("proposal response")?
         .parse()?;
-    cluster
-        .commit("fault-delayed-old-reply-all", reordered, &all)
-        .await?;
+    cluster.commit(reordered, &all).await?;
     // Isolate the prior leader bidirectionally. Majority elects autonomously;
     // the isolated writer cannot gain a committed divergent prefix.
     for id in 0..count {
@@ -1072,9 +738,7 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != leader)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-partition-new-majority", committed, &surviving)
-        .await?;
+    cluster.commit(committed, &surviving).await?;
     let lease_deadline = Instant::now() + Duration::from_secs(5);
     while cluster.state(leader)?.1 == "Leader" {
         if Instant::now() >= lease_deadline {
@@ -1093,9 +757,7 @@ async fn fault_history(count: usize) -> TestResult {
         cluster.gate.set(leader, id, true);
         cluster.gate.set(id, leader, true);
     }
-    cluster
-        .commit("fault-healed-partition-all", committed, &all)
-        .await?;
+    cluster.commit(committed, &all).await?;
     // A committed removed leader cannot contribute a match in the new set.
     let current = cluster.leader(&[]).await?;
     let removed = cluster
@@ -1112,9 +774,7 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != current)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-removed-leader-new-set", removal, &remaining)
-        .await?;
+    cluster.commit(removal, &remaining).await?;
     let next = cluster.leader(&[current]).await?;
     assert_ne!(current, next);
     cluster.shutdown().await?;

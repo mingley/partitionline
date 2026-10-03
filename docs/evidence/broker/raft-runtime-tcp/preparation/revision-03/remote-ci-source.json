@@ -1,0 +1,22 @@
+[
+  {
+    "path": "partitionline-broker/src/raft/runtime.rs",
+    "git_commit": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+    "git_mode": "100644",
+    "git_blob_sha1": "8f2b0afdf43f33cd11b0d96b7a22c7b538a2dc05",
+    "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+    "bytes": 96127,
+    "preserved": "/workspace/work/raft-runtime-76/tcp-qualification-03/remote-ci-b814-source/partitionline-broker/src/raft/runtime.rs",
+    "preserved_full07777": 384
+  },
+  {
+    "path": "partitionline-broker/tests/common/raft_runtime.rs",
+    "git_commit": "b8148087f08b205d7d19fd0be10994ebcd1fcc3a",
+    "git_mode": "100644",
+    "git_blob_sha1": "c5b18055c09e4573571b095ec0b94b34707277b0",
+    "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+    "bytes": 31258,
+    "preserved": "/workspace/work/raft-runtime-76/tcp-qualification-03/remote-ci-b814-source/partitionline-broker/tests/common/raft_runtime.rs",
+    "preserved_full07777": 384
+  }
+]

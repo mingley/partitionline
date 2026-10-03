@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "basis": "earlier uncompiled WORK coverage-proposal-01 candidate, derived from exact ea9; new actual main identity bridge pending root source checkpoint",
+  "rows": [
+    {
+      "path": "partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "5d66979cea41911a67b270c7c5d9010184af7a9ad70b62424af96c85f78450e7",
+      "bytes": 113701,
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/tests/common/raft_runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/coverage-proposal-01/candidate/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "a5eff5f54cef8f960436aadaf6b5da7e8ce8704a22d65e6cd06bdf241786671c",
+      "bytes": 40444,
+      "full07777": 384
+    }
+  ]
+}

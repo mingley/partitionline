@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "classification": "Independent source-only04 install review; actual hosted failures remain unresolved observations",
+  "handoff": {
+    "path": "/workspace/work/raft-runtime-76/tcp-qualification-04/handoff.json",
+    "sha256": "01dada13e68830986afb4f468782668ae6b2816a766045a9d0f70d0b2bb06a41",
+    "bytes": 5168,
+    "full07777": 384
+  },
+  "all13_current_and29_previous_identities_bytes_full07777_unchanged": true,
+  "rows": {
+    "1.85.0-format-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "README.md": {
+      "sha256": "724328841184351f0cb7252b4546bfc302c5c210c2500b3c2681bcf45c14c05d",
+      "bytes": 2655,
+      "full07777": 384
+    },
+    "candidate/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full07777": 384
+    },
+    "candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739",
+      "bytes": 46576,
+      "full07777": 384
+    },
+    "check-source.py": {
+      "sha256": "08393a4c74ea8cffd1b6f225b67b0ceeb283fcc56f7686f1114587ff08ffb3ab",
+      "bytes": 2866,
+      "full07777": 384
+    },
+    "next-run-plan.json": {
+      "sha256": "4a47b77c45671ca321fc78cc3c99d67031cb46c93c6f4d607712c673ba2bac79",
+      "bytes": 8457,
+      "full07777": 384
+    },
+    "raft_runtime.rs.patch": {
+      "sha256": "04c5d3980f8cc09e521e1e3b1e41719795d1fae321a28a53277ed493208376a8",
+      "bytes": 6975,
+      "full07777": 384
+    },
+    "runtime.rs.patch": {
+      "sha256": "e40ac2f86a5c0dde1e720e9dee587c2648a46b7a136be9cfffa5ae65523e4327",
+      "bytes": 5045,
+      "full07777": 384
+    },
+    "source-controls-attempt-01-failure.json": {
+      "sha256": "5aa138cff786eea93ff581927f0ca21e8871d05c34398749f3f38f8d92233016",
+      "bytes": 656,
+      "full07777": 384
+    },
+    "source-controls.json": {
+      "sha256": "83ade56b6146835976f95b3442871533c9b5c440f3b4dc991258dd15bb3b83b9",
+      "bytes": 1583,
+      "full07777": 384
+    },
+    "stable-format-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "stable-format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "syntax-format-validation.json": {
+      "sha256": "f86d0202cf3566cc5f281c5096384fd49f03c0c6a1cc4592cfa2fa53661209bf",
+      "bytes": 1895,
+      "full07777": 384
+    }
+  },
+  "controls": {
+    "path": "/workspace/work/integration/raft-runtime-broader-review-04/controls.json",
+    "sha256": "1f5aeb2d6e843f9176e9d35522549883af87ac9d50777c2959b770b2f815e5d9",
+    "bytes": 4810,
+    "full07777": 384
+  },
+  "no_remaining_source_install_blocker": true,
+  "candidate_paths": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full07777": 384
+    },
+    "partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "b0345e4c3d2898d46c1241e7dee547a0e27e0e6c6a7927a57d93b11589a09739",
+      "bytes": 46576,
+      "full07777": 384
+    }
+  },
+  "accepted_source_changes": [
+    "Bounded absolute2s fixture observation/setup through reliable actor admission",
+    "Both genuine stale/full-route grants require exact NodeInvalidPeer and unchanged confirmed/durable fields",
+    "Production/prior cfg helpers unchanged from03; intentional20ms expiry/Stop bodies unchanged",
+    "All11 commit sites phase labeled, original15s/success semantics unchanged, child+bounded state error diagnostics only on timeout"
+  ],
+  "limitations": [
+    "No Rust typechecking, actor runtime, hosted failure repair or full76 qualification observed",
+    "2s fixture is a test-only wait; reliable owner cleanup remains retained after canceled await",
+    "Diagnostic state is current firstline/process observation, not a full synchronized WAL/image proof or identified historic failure cause",
+    "Diagnostic output capped16KiB; transient string/2048B read scratch is separate bounded test allocation",
+    "Complete immutable checkpoint/compiler/source and fresh disk/cache guards required before actual runs"
+  ]
+}

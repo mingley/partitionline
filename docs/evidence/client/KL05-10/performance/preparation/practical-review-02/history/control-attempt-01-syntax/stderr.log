@@ -1,0 +1,4 @@
+  File "/workspace/work/client-sticky-performance-practical-review-02/source-semantic-controls.py", line 41
+    expected=16777216 if qualification else2147483648
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: expected 'else' after 'if' expression

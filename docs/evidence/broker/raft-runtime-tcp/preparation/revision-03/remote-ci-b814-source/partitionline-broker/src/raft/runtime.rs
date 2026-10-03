@@ -34,103 +34,6 @@ use tokio::{
 };
 
 const MANAGED_CEILING: usize = 512 * 1024 * 1024;
-
-#[cfg(not(test))]
-type AdmissionPermit = OwnedSemaphorePermit;
-#[cfg(test)]
-type AdmissionPermit = TestPermit;
-
-#[cfg(test)]
-#[derive(Default)]
-struct TestGauge {
-    current: AtomicUsize,
-    peak: AtomicUsize,
-}
-#[cfg(test)]
-#[derive(Default)]
-struct TestMetrics {
-    // Constructed RAII owners: client, charged bytes, network task, socket,
-    // pending/executing command envelope. This is not allocator or RSS usage.
-    gauges: [TestGauge; 5],
-    workers_spawned: AtomicUsize,
-    workers_joined: AtomicUsize,
-    clock: std::sync::OnceLock<std::time::Instant>,
-}
-#[cfg(test)]
-impl TestMetrics {
-    fn json(&self) -> Result<String> {
-        use std::fmt::Write;
-        let mut out = String::new();
-        out.try_reserve_exact(1024).map_err(|_| Error::Allocation)?;
-        out.push_str("{\"names\":[\"client_admission_owners\",\"charged_transport_owner_bytes\",\"network_task_owners\",\"socket_owners\",\"command_envelope_owners\"],\"gauges\":[");
-        for (index, g) in self.gauges.iter().enumerate() {
-            if index > 0 {
-                out.push(',');
-            }
-            // A constructor may be preempted between its current increment
-            // and peak publication. This observed current value is itself a
-            // genuine high-water observation; publish it before emitting both.
-            let current = g.current.load(Ordering::Acquire);
-            let peak = g.peak.fetch_max(current, Ordering::AcqRel).max(current);
-            write!(out, "{{\"current\":{},\"peak\":{}}}", current, peak)
-                .map_err(|_| Error::Peer)?;
-        }
-        out.push_str("]}");
-        Ok(out)
-    }
-}
-#[cfg(test)]
-struct TestCounter {
-    metrics: Arc<TestMetrics>,
-    gauge: usize,
-    amount: usize,
-}
-#[cfg(test)]
-impl TestCounter {
-    fn new(metrics: Arc<TestMetrics>, gauge: usize, amount: usize) -> Self {
-        let value = metrics.gauges[gauge]
-            .current
-            .fetch_add(amount, Ordering::AcqRel)
-            + amount;
-        metrics.gauges[gauge]
-            .peak
-            .fetch_max(value, Ordering::AcqRel);
-        Self {
-            metrics,
-            gauge,
-            amount,
-        }
-    }
-}
-#[cfg(test)]
-impl Drop for TestCounter {
-    fn drop(&mut self) {
-        self.metrics.gauges[self.gauge]
-            .current
-            .fetch_sub(self.amount, Ordering::AcqRel);
-    }
-}
-#[cfg(test)]
-struct TestPermit {
-    // Rust drops fields in declaration order. Publish the logical decrement
-    // before returning semaphore capacity to the next constructed owner.
-    _counter: TestCounter,
-    _permit: OwnedSemaphorePermit,
-}
-#[cfg(test)]
-impl TestPermit {
-    fn new(
-        permit: OwnedSemaphorePermit,
-        metrics: Arc<TestMetrics>,
-        gauge: usize,
-        amount: usize,
-    ) -> Self {
-        Self {
-            _counter: TestCounter::new(metrics, gauge, amount),
-            _permit: permit,
-        }
-    }
-}
 type Result<T> = std::result::Result<T, Error>;
 
 /// Explicit bounded runtime failure; a timeout after admission can be ambiguous.
@@ -546,10 +449,6 @@ struct Control {
     startup: watch::Receiver<u8>,
     tasks: AtomicUsize,
     sockets: AtomicUsize,
-    #[cfg(test)]
-    metrics: Arc<TestMetrics>,
-    #[cfg(test)]
-    capture_root: Option<PathBuf>,
     config: Arc<Config>,
 }
 impl Control {
@@ -570,8 +469,8 @@ impl Control {
     async fn call(
         &self,
         command: Command,
-        permit: Option<AdmissionPermit>,
-        transport: Option<Arc<AdmissionPermit>>,
+        permit: Option<OwnedSemaphorePermit>,
+        transport: Option<Arc<OwnedSemaphorePermit>>,
         deadline: Instant,
     ) -> Result<Reply> {
         if Instant::now() >= deadline {
@@ -588,8 +487,6 @@ impl Control {
             deadline: Some(deadline),
             #[cfg(test)]
             delivery_gate: None,
-            #[cfg(test)]
-            _counter: Some(TestCounter::new(self.metrics.clone(), 4, 1)),
         };
         tokio::time::timeout_at(deadline, self.commands.send(envelope))
             .await
@@ -630,8 +527,6 @@ impl Control {
             deadline: None,
             #[cfg(test)]
             delivery_gate: None,
-            #[cfg(test)]
-            _counter: Some(TestCounter::new(self.metrics.clone(), 4, 1)),
         };
         self.commands
             .send(envelope)
@@ -642,7 +537,7 @@ impl Control {
     async fn cancel_job(&self, job: Job) -> Result<Reply> {
         self.reliable(job.cancellation()).await
     }
-    async fn reserve_frame(&self, deadline: Instant) -> Result<Arc<AdmissionPermit>> {
+    async fn reserve_frame(&self, deadline: Instant) -> Result<Arc<OwnedSemaphorePermit>> {
         tokio::time::timeout_at(
             deadline,
             self.bytes
@@ -652,87 +547,18 @@ impl Control {
         .await
         .map_err(|_| Error::Deadline)?
         .map_err(|_| Error::Closed)
-        .map(|permit| {
-            #[cfg(test)]
-            let permit = TestPermit::new(permit, self.metrics.clone(), 1, self.config.charge);
-            Arc::new(permit)
-        })
-    }
-    #[cfg(test)]
-    fn lifecycle(
-        &self,
-        stage: &str,
-        spawned: usize,
-        joined: usize,
-        owner_joined: bool,
-        supervisor_joined: bool,
-        listener_closed: bool,
-    ) -> Result<()> {
-        use std::io::Write;
-        let Some(root) = &self.capture_root else {
-            return Ok(());
-        };
-        if !matches!(stage, "workers-owner-joined" | "supervisor-joined") {
-            return Err(Error::InvalidConfig);
-        }
-        let now_ms = u64::try_from(
-            self.metrics
-                .clock
-                .get()
-                .ok_or(Error::InvalidConfig)?
-                .elapsed()
-                .as_millis(),
-        )
-        .map_err(|_| Error::InvalidConfig)?;
-        let capacity = checked_sum(&[
-            self.config.limits.client_slots,
-            self.config.peers.len(),
-            self.config.limits.incoming,
-            1,
-        ])?;
-        let bounds = [
-            self.config.limits.client_slots,
-            self.config.pool,
-            checked_sum(&[self.config.peers.len(), self.config.limits.incoming])?,
-            checked_sum(&[self.config.peers.len(), self.config.limits.incoming])?,
-            checked_sum(&[product(capacity, 2)?, 1])?,
-        ];
-        for (gauge, bound) in self.metrics.gauges.iter().zip(bounds) {
-            if gauge.current.load(Ordering::Acquire) != 0
-                || gauge.peak.load(Ordering::Acquire) > bound
-            {
-                return Err(Error::InvalidConfig);
-            }
-        }
-        if spawned != joined {
-            return Err(Error::InvalidConfig);
-        }
-        std::fs::create_dir_all(root)?;
-        let mut file = std::fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(root.join(format!("lifecycle-{stage}.json")))?;
-        let text = format!("{{\"schema_version\":1,\"capture_revision\":2,\"pid\":{},\"stage\":\"{stage}\",\"now_ms\":{now_ms},\"clock_basis\":\"same exclusive owner process-local monotonic epoch\",\"source_sha\":\"{}\",\"local_id\":{},\"directory\":\"{}\",\"network_workers_spawned\":{spawned},\"network_workers_joined\":{joined},\"owner_joined\":{owner_joined},\"supervisor_joined\":{supervisor_joined},\"listener_closed\":{listener_closed},\"resource_owners\":{},\"stopping\":{},\"available_client_permits\":{},\"available_transport_permits\":{}}}\n", std::process::id(), std::env::var("PL_PEER_RUNTIME_SOURCE_SHA").map_err(|_| Error::InvalidConfig)?, self.config.bootstrap.local().key().id, TestTrace::hex(&self.config.bootstrap.local().key().directory)?, self.metrics.json()?, self.stopped.load(Ordering::Acquire), self.clients.available_permits(), self.bytes.available_permits());
-        if text.len() > 8192 {
-            return Err(Error::InvalidConfig);
-        }
-        file.write_all(text.as_bytes())?;
-        file.sync_all()?;
-        std::fs::File::open(root)?.sync_all()?;
-        Ok(())
+        .map(Arc::new)
     }
 }
 struct Envelope {
     command: Command,
     reply: oneshot::Sender<Delivered>,
-    permit: Option<AdmissionPermit>,
-    transport: Option<Arc<AdmissionPermit>>,
+    permit: Option<OwnedSemaphorePermit>,
+    transport: Option<Arc<OwnedSemaphorePermit>>,
     started: Arc<AtomicBool>,
     deadline: Option<Instant>,
     #[cfg(test)]
     delivery_gate: Option<DeliveryGate>,
-    #[cfg(test)]
-    _counter: Option<TestCounter>,
 }
 #[cfg(test)]
 struct DeliveryGate {
@@ -741,8 +567,8 @@ struct DeliveryGate {
 }
 struct Delivered {
     result: Result<Reply>,
-    _permit: Option<AdmissionPermit>,
-    _transport: Option<Arc<AdmissionPermit>>,
+    _permit: Option<OwnedSemaphorePermit>,
+    _transport: Option<Arc<OwnedSemaphorePermit>>,
 }
 enum Command {
     Tick,
@@ -853,10 +679,6 @@ impl Runtime {
             startup: ready_rx,
             tasks: AtomicUsize::new(0),
             sockets: AtomicUsize::new(0),
-            #[cfg(test)]
-            metrics: Arc::new(TestMetrics::default()),
-            #[cfg(test)]
-            capture_root: TestTrace::capture_root(&paths, &config)?,
             config,
         });
         let owner_control = control.clone();
@@ -910,15 +732,6 @@ impl Runtime {
         self.supervisor.take();
         let result = result.map_err(Error::Join)?;
         let state = result?;
-        #[cfg(test)]
-        self.control.lifecycle(
-            "supervisor-joined",
-            self.control.metrics.workers_spawned.load(Ordering::Acquire),
-            self.control.metrics.workers_joined.load(Ordering::Acquire),
-            true,
-            true,
-            true,
-        )?;
         self.finished = Some(state);
         Ok(state)
     }
@@ -953,8 +766,6 @@ impl Handle {
                 .await
                 .map_err(|_| Error::Deadline)?
                 .map_err(|_| Error::Closed)?;
-        #[cfg(test)]
-        let permit = TestPermit::new(permit, self.control.metrics.clone(), 0, 1);
         self.control
             .call(command, Some(permit), None, deadline)
             .await
@@ -1095,17 +906,9 @@ struct Owner {
     addition: Option<Addition>,
     incoming: Option<(Key, DynamicSnapshotRequest)>,
     term: u64,
-    #[cfg(test)]
-    metrics: Arc<TestMetrics>,
-    #[cfg(test)]
-    cleanup: Option<String>,
 }
 impl Owner {
     fn execute(&mut self, command: Command, now: u64) -> Result<Reply> {
-        #[cfg(test)]
-        {
-            self.cleanup = None;
-        }
         match command {
             Command::Tick => {
                 self.node.poll(now)?;
@@ -1288,22 +1091,11 @@ impl Owner {
                         v.2 = true;
                     }
                 }
-                #[cfg(test)]
-                let mut feature_released = "null";
                 if let Some(a) = &mut self.addition {
                     if a.key == key && a.request.sequence == sequence && !a.negotiated {
-                        let result = self.node.timeout_feature_probe(a.request);
-                        #[cfg(test)]
-                        {
-                            feature_released = if result.is_ok() { "true" } else { "false" };
-                        }
-                        drop(result);
+                        let _ = self.node.timeout_feature_probe(a.request);
                         a.failed = true;
                     }
-                }
-                #[cfg(test)]
-                {
-                    self.cleanup = Some(format!("{{\"append_or_image_released\":{released},\"feature_released\":{feature_released},\"image_fallback_set\":{}}}", image && released));
                 }
                 Ok(Reply::Done)
             }
@@ -1363,17 +1155,7 @@ impl Owner {
             Command::Remove(key) => Ok(Reply::Change(self.node.remove_voter(key, now)?)),
             Command::Change => Ok(Reply::Change(self.node.change_status()?)),
             Command::Disconnected(source) => {
-                if let Some((_, _offer)) = self.incoming.filter(|(key, _)| *key == source) {
-                    #[cfg(test)]
-                    {
-                        self.cleanup = Some(format!(
-                            "{{\"aborted_dispatch_offer\":{{\"kind\":30,\"body_hex\":\"{}\"}}}}",
-                            TestTrace::body(
-                                &Message::Begin(_offer),
-                                self.config.limits.frame_bytes
-                            )?
-                        ));
-                    }
+                if self.incoming.is_some_and(|(key, _)| key == source) {
                     self.node.abort_snapshot()?;
                     self.incoming = None;
                 }
@@ -1400,10 +1182,6 @@ fn run_owner(
     start: std::time::Instant,
 ) -> Result<State> {
     let c = &control.config;
-    #[cfg(test)]
-    if control.metrics.clock.set(start).is_err() {
-        return Err(Error::InvalidConfig);
-    }
     let mut config = replication::Config::new(c.controller.clone());
     config.limits = c.storage.node()?;
     config.max_queued_requests = c.limits.client_slots;
@@ -1447,10 +1225,6 @@ fn run_owner(
         addition: None,
         incoming: None,
         term: 0,
-        #[cfg(test)]
-        metrics: control.metrics.clone(),
-        #[cfg(test)]
-        cleanup: None,
     };
     #[cfg(test)]
     let mut trace = TestTrace::open(&paths, c, receiver.max_capacity())?;
@@ -1465,8 +1239,6 @@ fn run_owner(
             deadline,
             #[cfg(test)]
             delivery_gate,
-            #[cfg(test)]
-            _counter,
         } = envelope;
         let stop = matches!(command, Command::Stop);
         let internal = matches!(
@@ -1596,8 +1368,6 @@ async fn supervise(
     let mut workers = JoinSet::new();
     let mut routes = Vec::new();
     let mut failure = None;
-    #[cfg(test)]
-    let (mut spawned, mut joined) = (0usize, 0usize);
     let incoming = Arc::new(Semaphore::new(control.config.limits.incoming));
     let identities: Arc<Vec<AtomicBool>> = Arc::new(
         control
@@ -1628,10 +1398,6 @@ async fn supervise(
             workers.spawn(async move {
                 outbound(c, p, rx).await;
             });
-            #[cfg(test)]
-            {
-                spawned += 1;
-            }
         }
         let mut tick = tokio::time::interval(Duration::from_millis(control.config.limits.tick_ms));
         tick.set_missed_tick_behavior(MissedTickBehavior::Skip);
@@ -1647,17 +1413,13 @@ async fn supervise(
                 accepted=listener.accept()=>{
                     match accepted {
                         Ok((socket,_))=>{
-                            if let Ok(permit)=incoming.clone().try_acquire_owned(){let c=control.clone();let keys=identities.clone();workers.spawn(async move{serve(c,socket,permit,keys).await;});
-                                #[cfg(test)] { spawned += 1; }}
+                            if let Ok(permit)=incoming.clone().try_acquire_owned(){let c=control.clone();let keys=identities.clone();workers.spawn(async move{serve(c,socket,permit,keys).await;});}
                             else{drop(socket);}
                         }
                         Err(_)=>{control.stop();break;}
                     }
                 }
-                result=workers.join_next(),if !workers.is_empty()=>{if let Some(result)=result {
-                    #[cfg(test)] { joined += 1; }
-                    if let Err(e)=result{failure=Some(Error::Join(e));control.stop();break;}
-                }}
+                joined=workers.join_next(),if !workers.is_empty()=>{if let Some(Err(e))=joined{failure=Some(Error::Join(e));control.stop();break;}}
             }
         }
     }
@@ -1665,10 +1427,6 @@ async fn supervise(
     drop(listener);
     drop(routes);
     while let Some(result) = workers.join_next().await {
-        #[cfg(test)]
-        {
-            joined += 1;
-        }
         if let Err(e) = result {
             if failure.is_none() {
                 failure = Some(Error::Join(e));
@@ -1680,18 +1438,6 @@ async fn supervise(
     stopped?;
     if let Some(error) = failure {
         return Err(error);
-    }
-    #[cfg(test)]
-    {
-        control
-            .metrics
-            .workers_spawned
-            .store(spawned, Ordering::Release);
-        control
-            .metrics
-            .workers_joined
-            .store(joined, Ordering::Release);
-        control.lifecycle("workers-owner-joined", spawned, joined, true, false, true)?;
     }
     Ok(state)
 }
@@ -1712,8 +1458,6 @@ async fn dispatch_votes(control: &Control, routes: &[(Key, mpsc::Sender<Job>)], 
 struct Counter {
     control: Arc<Control>,
     socket: bool,
-    #[cfg(test)]
-    _counter: TestCounter,
 }
 impl Counter {
     fn task(c: &Arc<Control>) -> Self {
@@ -1721,8 +1465,6 @@ impl Counter {
         Self {
             control: c.clone(),
             socket: false,
-            #[cfg(test)]
-            _counter: TestCounter::new(c.metrics.clone(), 2, 1),
         }
     }
     fn socket(c: &Arc<Control>) -> Self {
@@ -1730,8 +1472,6 @@ impl Counter {
         Self {
             control: c.clone(),
             socket: true,
-            #[cfg(test)]
-            _counter: TestCounter::new(c.metrics.clone(), 3, 1),
         }
     }
 }
@@ -1919,7 +1659,7 @@ async fn send_job(
     job: Job,
     id: &mut u64,
     deadline: Instant,
-    reservation: &Arc<AdmissionPermit>,
+    reservation: &Arc<OwnedSemaphorePermit>,
 ) -> Result<Message> {
     match job {
         Job::Vote(q) => rpc(socket, Message::Vote(q), id, control, deadline).await,
@@ -2099,35 +1839,6 @@ struct TestTrace {
 }
 #[cfg(test)]
 impl TestTrace {
-    fn capture_root(paths: &Paths, c: &Config) -> Result<Option<PathBuf>> {
-        let Some(base) = std::env::var_os("PL_PEER_RUNTIME_CAPTURE_DIR") else {
-            return Ok(None);
-        };
-        if base.as_encoded_bytes().len() > 4096 {
-            return Err(Error::InvalidConfig);
-        }
-        let case = paths
-            .wal
-            .parent()
-            .and_then(Path::file_name)
-            .and_then(|n| n.to_str())
-            .ok_or(Error::InvalidConfig)?;
-        Ok(Some(PathBuf::from(base).join(format!(
-            "{}-{case}-{}",
-            std::process::id(),
-            c.bootstrap.local().key().id
-        ))))
-    }
-    fn key(key: Key) -> Result<String> {
-        Ok(format!(
-            "{{\"id\":{},\"directory\":\"{}\"}}",
-            key.id,
-            Self::hex(&key.directory)?
-        ))
-    }
-    fn descriptor(d: snapshot::Descriptor) -> Result<String> {
-        Ok(format!("{{\"generation\":\"{}\",\"base_term\":{},\"base_index\":{},\"records\":{},\"payload_bytes\":{},\"bytes\":{},\"checksum\":{}}}", Self::hex(&d.generation)?, d.base.term, d.base.index, d.records, d.payload_bytes, d.bytes, d.checksum))
-    }
     fn open(paths: &Paths, c: &Config, command_queue_capacity: usize) -> Result<Option<Self>> {
         use std::io::Write;
         let Some(base) = std::env::var_os("PL_PEER_RUNTIME_CAPTURE_DIR") else {
@@ -2143,8 +1854,14 @@ impl TestTrace {
         if base.as_encoded_bytes().len() > 4096 {
             return Err(Error::InvalidConfig);
         }
+        let case = paths
+            .wal
+            .parent()
+            .and_then(Path::file_name)
+            .and_then(|n| n.to_str())
+            .ok_or(Error::InvalidConfig)?;
         let local = c.bootstrap.local().key();
-        let root = Self::capture_root(paths, c)?.ok_or(Error::InvalidConfig)?;
+        let root = PathBuf::from(base).join(format!("{}-{case}-{}", std::process::id(), local.id));
         std::fs::create_dir_all(&root)?;
         let mut file = std::fs::OpenOptions::new()
             .write(true)
@@ -2160,7 +1877,7 @@ impl TestTrace {
             return Err(Error::InvalidConfig);
         }
         writeln!(file,concat!(
-            "{{\"schema_version\":1,\"capture_revision\":2,\"source_sha\":\"{source}\",\"local_id\":{local_id},\"directory\":\"{directory}\",\"genesis_hex\":\"{genesis}\",",
+            "{{\"schema_version\":1,\"source_sha\":\"{source}\",\"local_id\":{local_id},\"directory\":\"{directory}\",\"genesis_hex\":\"{genesis}\",",
             "\"clock_basis\":\"process-local monotonic Instant; restart begins a new clock epoch\",\"pid\":{pid},",
             "\"trace_layer\":\"exclusive Node owner; typed bodies are not TCP packet captures\",",
             "\"runtime_settings\":{{\"frame_bytes\":{frame_bytes},\"record_bytes\":{record_bytes},\"chunk_bytes\":{chunk_bytes},",
@@ -2171,7 +1888,7 @@ impl TestTrace {
             "\"peer_mailbox_slots\":1,\"dns_admissions\":0,\"canonical_configuration_max_bytes\":{configuration_max},\"task_bound\":{task_bound},\"socket_bound_with_listener\":{socket_bound},",
             "\"quorum_ms\":{quorum_ms},\"quorum_timeout_ms\":{quorum_ms},\"election_min_ms\":{election_min_ms},\"election_max_ms\":{election_max_ms},",
             "\"tick_ms\":{tick_ms},\"heartbeat_ms\":{heartbeat_ms},\"connect_ms\":{connect_ms},\"rpc_ms\":{rpc_ms},\"transfer_ms\":{transfer_ms},\"command_ms\":{command_ms},",
-            "\"transport_charge_bytes\":{charge},\"transport_pool_bytes\":{pool},\"managed_bytes\":{managed},\"managed_ceiling_bytes\":{ceiling},\"extra_test_encode_hex_bytes\":{extra},\"test_resource_observation\":\"constructed RAII ownership high-water counters; excludes acquired-but-unpublished permit window, allocator, RSS and OS buffers\",\"command_owner_bound\":{command_owner_bound},\"test_counter_fixed_bytes\":{test_counter_fixed_bytes}}}}}"
+            "\"transport_charge_bytes\":{charge},\"transport_pool_bytes\":{pool},\"managed_bytes\":{managed},\"managed_ceiling_bytes\":{ceiling},\"extra_test_encode_hex_bytes\":{extra}}}}}"
         ),source=source,local_id=local.id,directory=Self::hex(&local.directory)?,genesis=Self::hex(&c.group.genesis)?,pid=std::process::id(),
             frame_bytes=c.limits.frame_bytes,record_bytes=c.storage.record_bytes,chunk_bytes=c.storage.chunk_bytes,
             live_entries=c.storage.live_entries,live_bytes=c.storage.live_bytes,operations=c.storage.operations,wal_bytes=c.storage.wal_bytes,fetch_bytes=c.storage.fetch_bytes,
@@ -2181,8 +1898,7 @@ impl TestTrace {
             configuration_max=MAX_CONFIGURATION_BYTES,task_bound=c.task_bound(),socket_bound=checked_sum(&[1,c.peers.len(),c.limits.incoming])?,
             quorum_ms=c.limits.quorum_ms,election_min_ms=c.limits.election_min_ms,election_max_ms=c.limits.election_max_ms,
             tick_ms=c.limits.tick_ms,heartbeat_ms=c.limits.heartbeat_ms,connect_ms=c.limits.connect_ms,rpc_ms=c.limits.rpc_ms,transfer_ms=c.limits.transfer_ms,command_ms=c.limits.command_ms,
-            charge=c.charge,pool=c.pool,managed=c.managed,ceiling=MANAGED_CEILING,extra=extra,
-            command_owner_bound=checked_sum(&[product(command_queue_capacity,2)?,1])?,test_counter_fixed_bytes=std::mem::size_of::<TestMetrics>())?;
+            charge=c.charge,pool=c.pool,managed=c.managed,ceiling=MANAGED_CEILING,extra=extra)?;
         file.sync_all()?;
         let disk_bytes = file.metadata()?.len();
         Ok(Some(Self {
@@ -2213,10 +1929,7 @@ impl TestTrace {
         )?;
         Self::hex(&bytes[24..bytes.len() - 4])
     }
-    fn input(
-        command: &Command,
-        limit: usize,
-    ) -> Result<(String, Option<(u8, String)>, Option<String>)> {
+    fn input(command: &Command, limit: usize) -> Result<(String, Option<(u8, String)>)> {
         let name = match command {
             Command::Tick => "tick",
             Command::State => "state",
@@ -2246,23 +1959,12 @@ impl TestTrace {
             Command::CancelVote(q) => Some((10, Self::body(&Message::Vote(*q), limit)?)),
             _ => None,
         };
-        let target = match command {
-            Command::Timeout(peer, sequence, image) => Some(format!(
-                "{{\"peer\":{},\"sequence\":{sequence},\"image\":{image}}}",
-                Self::key(*peer)?
-            )),
-            Command::Disconnected(peer) => Some(format!("{{\"peer\":{}}}", Self::key(*peer)?)),
-            Command::Prepare(peer) | Command::Add(peer) | Command::Remove(peer) => {
-                Some(format!("{{\"peer\":{}}}", Self::key(*peer)?))
-            }
-            _ => None,
-        };
-        Ok((name, typed, target))
+        Ok((name, typed))
     }
     fn record(
         &mut self,
         owner: &Owner,
-        input: (String, Option<(u8, String)>, Option<String>),
+        input: (String, Option<(u8, String)>),
         result: &Result<Reply>,
         now: u64,
         paths: &Paths,
@@ -2278,7 +1980,6 @@ impl TestTrace {
                     | "ack"
                     | "timeout"
                     | "cancel-vote"
-                    | "disconnect"
                     | "image-read"
                     | "add"
                     | "remove"
@@ -2311,7 +2012,6 @@ impl TestTrace {
             }
         }
         let command = input.0;
-        let target = input.2.unwrap_or_else(|| "null".into());
         let input = match input.1 {
             Some((kind, body)) => format!("{{\"kind\":{kind},\"body_hex\":\"{body}\"}}"),
             None => "null".into(),
@@ -2347,17 +2047,7 @@ impl TestTrace {
             ),
             Err(_) => (false, "null".into()),
         };
-        let selected = owner
-            .node
-            .selected_snapshot()
-            .ok()
-            .flatten()
-            .map(Self::descriptor)
-            .transpose()?
-            .unwrap_or_else(|| "null".into());
-        let cleanup = owner.cleanup.as_deref().unwrap_or("null");
-        let resources = owner.metrics.json()?;
-        let row=format!("{{\"ordinal\":{},\"now_ms\":{now},\"command\":\"{command}\",\"target\":{target},\"cleanup\":{cleanup},\"selected_snapshot\":{selected},\"resource_owners\":{resources},\"input\":{input},\"typed_output\":[{output}],\"result_ok\":{},\"term\":{},\"role\":\"{:?}\",\"ready\":{},\"poisoned\":{},\"last_term\":{},\"last_index\":{},\"committed_end\":{},\"voted_directory_available\":{vote_available},\"voted_for\":{vote},\"configuration_hex\":{voters},\"wal_ops\":{},\"election_states\":{}}}\n",self.ordinal,result.is_ok(),s.election.persistent.term,s.election.role,s.ready,s.poisoned,s.last_position.term,s.last_position.index,s.committed_end,s.wal_durable_ops,s.election_durable_states);
+        let row=format!("{{\"ordinal\":{},\"now_ms\":{now},\"command\":\"{command}\",\"input\":{input},\"typed_output\":[{output}],\"result_ok\":{},\"term\":{},\"role\":\"{:?}\",\"ready\":{},\"poisoned\":{},\"last_term\":{},\"last_index\":{},\"committed_end\":{},\"voted_directory_available\":{vote_available},\"voted_for\":{vote},\"configuration_hex\":{voters},\"wal_ops\":{},\"election_states\":{}}}\n",self.ordinal,result.is_ok(),s.election.persistent.term,s.election.role,s.ready,s.poisoned,s.last_position.term,s.last_position.index,s.committed_end,s.wal_durable_ops,s.election_durable_states);
         self.charge(row.len() as u64)?;
         self.file.write_all(row.as_bytes())?;
         self.file.sync_all()?;
@@ -2392,7 +2082,7 @@ impl TestTrace {
     }
     fn charge(&mut self, n: u64) -> Result<()> {
         self.disk_bytes = self.disk_bytes.checked_add(n).ok_or(Error::InvalidConfig)?;
-        if self.disk_bytes > 16 * 1024 * 1024 {
+        if self.disk_bytes > 128 * 1024 * 1024 {
             Err(Error::InvalidConfig)
         } else {
             Ok(())
@@ -2473,11 +2163,6 @@ mod ownership_tests {
             )?);
             let (tx, rx) = mpsc::channel(capacity);
             let (ready_tx, ready_rx) = watch::channel(0);
-            let paths = Paths::new(
-                root.join("metadata.wal"),
-                root.join("election.wal"),
-                root.join("images"),
-            )?;
             let control = Arc::new(Control {
                 stopped: AtomicBool::new(false),
                 notify: Notify::new(),
@@ -2487,10 +2172,13 @@ mod ownership_tests {
                 startup: ready_rx,
                 tasks: AtomicUsize::new(0),
                 sockets: AtomicUsize::new(0),
-                metrics: Arc::new(TestMetrics::default()),
-                capture_root: TestTrace::capture_root(&paths, &config)?,
                 config,
             });
+            let paths = Paths::new(
+                root.join("metadata.wal"),
+                root.join("election.wal"),
+                root.join("images"),
+            )?;
             let child_control = control.clone();
             let join = std::thread::spawn(move || {
                 run_owner(
@@ -2514,116 +2202,11 @@ mod ownership_tests {
                 root,
             })
         }
-        async fn fixture(&self, phase: &str, command: Command) -> TestResult<Result<Reply>> {
-            // Ownership setup/observation is not an ordinary latency-budget
-            // assertion. It uses reliable admission with a separate absolute
-            // test wait; production call/internal deadlines and the intentional
-            // 20ms Stop/expired-write controls retain their original behavior.
-            let deadline = Instant::now() + Duration::from_secs(2);
-            match tokio::time::timeout_at(deadline, self.control.reliable(command)).await {
-                Ok(reply) => Ok(reply),
-                Err(_) => Err(format!("fixture phase {phase}: absolute2s wait expired").into()),
-            }
-        }
         async fn state(&self) -> TestResult<State> {
-            match self.fixture("observe-state", Command::State).await?? {
+            match self.control.internal(Command::State).await? {
                 Reply::State(s) => Ok(s),
                 _ => Err("state reply".into()),
             }
-        }
-        async fn reject_vote(&self, phase: &str, response: Message) -> TestResult {
-            let before = self.state().await?;
-            match self.fixture(phase, Command::Acknowledge(response)).await? {
-                Err(Error::Node(replication::Error::InvalidPeer)) => {}
-                Err(other) => {
-                    return Err(format!("{phase}: expected Node InvalidPeer, got {other:?}").into());
-                }
-                Ok(_) => return Err(format!("{phase}: abandoned correlation was accepted").into()),
-            }
-            let after = self.state().await?;
-            assert_eq!(after.election.persistent, before.election.persistent);
-            assert_eq!(after.election.role, before.election.role);
-            assert_eq!(after.base_position, before.base_position);
-            assert_eq!(after.last_position, before.last_position);
-            assert_eq!(after.committed_end, before.committed_end);
-            assert_eq!(after.active_term, before.active_term);
-            assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
-            assert_eq!(
-                after.election_durable_states,
-                before.election_durable_states
-            );
-            assert_eq!(after.ready, before.ready);
-            assert_eq!(after.poisoned, before.poisoned);
-            Ok(())
-        }
-        fn assert_joined(&self) -> TestResult {
-            use std::io::Write;
-            // This owner helper never starts a listener, supervisor or network
-            // worker. Assert its actual constructed owners after thread join;
-            // its manually sized channel differs from the public runtime.
-            let capacity = self.control.commands.max_capacity();
-            let envelope_bound = checked_sum(&[product(capacity, 2)?, 1])?;
-            let bounds = [
-                self.control.config.limits.client_slots,
-                self.control.config.pool,
-                0,
-                0,
-                envelope_bound,
-            ];
-            for (gauge, bound) in self.control.metrics.gauges.iter().zip(bounds) {
-                assert_eq!(gauge.current.load(Ordering::Acquire), 0);
-                assert!(gauge.peak.load(Ordering::Acquire) <= bound);
-            }
-            assert_eq!(self.control.tasks.load(Ordering::Acquire), 0);
-            assert_eq!(self.control.sockets.load(Ordering::Acquire), 0);
-            assert_eq!(
-                self.control.metrics.workers_spawned.load(Ordering::Acquire),
-                0
-            );
-            assert_eq!(
-                self.control.metrics.workers_joined.load(Ordering::Acquire),
-                0
-            );
-            assert!(self.control.stopped.load(Ordering::Acquire));
-            assert_eq!(
-                self.control.clients.available_permits(),
-                self.control.config.limits.client_slots
-            );
-            assert_eq!(
-                self.control.bytes.available_permits(),
-                self.control.config.pool
-            );
-            let Some(root) = &self.control.capture_root else {
-                return Ok(());
-            };
-            let now_ms = u64::try_from(
-                self.control
-                    .metrics
-                    .clock
-                    .get()
-                    .ok_or("owner clock")?
-                    .elapsed()
-                    .as_millis(),
-            )?;
-            let text = format!(
-                "{{\"schema_version\":1,\"capture_revision\":2,\"scope\":\"direct blocking owner without network workers or supervisor\",\"pid\":{},\"stage\":\"direct-owner-joined\",\"now_ms\":{now_ms},\"clock_basis\":\"same exclusive owner process-local monotonic epoch\",\"source_sha\":\"{}\",\"local_id\":{},\"directory\":\"{}\",\"owner_joined\":true,\"supervisor_joined\":null,\"listener_closed\":null,\"network_workers_spawned\":0,\"network_workers_joined\":0,\"actual_mpsc_capacity\":{capacity},\"command_envelope_owner_bound\":{envelope_bound},\"resource_owners\":{},\"stopping\":true,\"available_client_permits\":{},\"available_transport_permits\":{}}}\n",
-                std::process::id(),
-                std::env::var("PL_PEER_RUNTIME_SOURCE_SHA")?,
-                self.control.config.bootstrap.local().key().id,
-                TestTrace::hex(&self.control.config.bootstrap.local().key().directory)?,
-                self.control.metrics.json()?,
-                self.control.clients.available_permits(),
-                self.control.bytes.available_permits()
-            );
-            assert!(text.len() <= 8192);
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(root.join("lifecycle-direct-owner-joined.json"))?;
-            file.write_all(text.as_bytes())?;
-            file.sync_all()?;
-            std::fs::File::open(root)?.sync_all()?;
-            Ok(())
         }
         async fn finish(mut self) -> TestResult {
             self.control.stop();
@@ -2635,7 +2218,6 @@ mod ownership_tests {
                 .join()
                 .map_err(|_| "owner panic")?;
             joined?;
-            self.assert_joined()?;
             std::fs::remove_dir_all(&self.root)?;
             Ok(())
         }
@@ -2655,7 +2237,6 @@ mod ownership_tests {
                         started: Arc::new(AtomicBool::new(false)),
                         deadline: None,
                         delivery_gate: None,
-                        _counter: None,
                     });
                     let _ = owner.join();
                 });
@@ -2685,7 +2266,6 @@ mod ownership_tests {
                 ready,
                 release: held,
             }),
-            _counter: None,
         };
         (envelope, rx, entered, release)
     }
@@ -2694,11 +2274,12 @@ mod ownership_tests {
         request: replication::DynamicVoteRequest,
     ) -> TestResult<Message> {
         match owner
-            .fixture(
-                "receive-genuine-vote",
-                Command::Inbound(request.context.leader, Message::Vote(request)),
-            )
-            .await??
+            .control
+            .internal(Command::Inbound(
+                request.context.leader,
+                Message::Vote(request),
+            ))
+            .await?
         {
             Reply::Message(m @ Message::VoteReply(_)) => Ok(m),
             _ => Err("actual vote response".into()),
@@ -2737,15 +2318,17 @@ mod ownership_tests {
         }
         for request in &requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], *request).await?;
-            source
-                .reject_vote("abandoned-vector-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "abandoned vector grant cannot remain correlated"
+            );
         }
         tokio::time::sleep(Duration::from_millis(3)).await;
-        let newer = match source
-            .fixture("next-campaign-tick", Command::Tick)
-            .await??
-        {
+        let newer = match source.control.internal(Command::Tick).await? {
             Reply::Votes(jobs) => jobs,
             _ => return Err("campaign reply".into()),
         };
@@ -2770,9 +2353,14 @@ mod ownership_tests {
         dispatch_votes(&source.control, &routes, newer).await;
         for request in new_requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], request).await?;
-            source
-                .reject_vote("full-route-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "failed route grant cannot remain correlated"
+            );
         }
         drop(routes);
         drop(receivers);
@@ -2804,7 +2392,6 @@ mod ownership_tests {
                 started: Arc::new(AtomicBool::new(false)),
                 deadline: Some(Instant::now() + Duration::from_millis(1)),
                 delivery_gate: None,
-                _counter: None,
             })
             .await
             .map_err(|_| "fill owner queue")?;
@@ -2831,7 +2418,6 @@ mod ownership_tests {
             .ok_or("owner join")?
             .join()
             .map_err(|_| "owner panic")??;
-        source.assert_joined()?;
         std::fs::remove_dir_all(&source.root)?;
         Ok(())
     }
@@ -3021,154 +2607,5 @@ mod ownership_tests {
         std::fs::remove_dir_all(root)?;
         drop(listeners);
         Ok(())
-    }
-    async fn owner_append_exchange(source: &LocalOwner, peer: &LocalOwner, key: Key) -> TestResult {
-        let request = match source.control.reliable(Command::Prepare(key)).await? {
-            Reply::Job(Some(Job::Append(q))) => q,
-            _ => return Err("actual prepared Append required".into()),
-        };
-        let response = match peer
-            .control
-            .reliable(Command::Inbound(
-                request.context.leader,
-                Message::Append(request),
-            ))
-            .await?
-        {
-            Reply::Message(m @ Message::AppendReply(_)) => m,
-            _ => return Err("actual follower Append reply".into()),
-        };
-        source
-            .control
-            .reliable(Command::Acknowledge(response))
-            .await?;
-        Ok(())
-    }
-    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-    async fn exact_append_timeout_rejects_real_late_ack_and_cannot_cancel_newer_request(
-    ) -> TestResult {
-        use std::io::Read;
-        fn bounded(path: &Path) -> TestResult<Vec<u8>> {
-            let mut bytes = Vec::new();
-            std::fs::File::open(path)?
-                .take(8 * 1024 * 1024 + 1)
-                .read_to_end(&mut bytes)?;
-            if bytes.len() > 8 * 1024 * 1024 {
-                return Err("actual control journal bound".into());
-            }
-            Ok(bytes)
-        }
-        let source = LocalOwner::open(0, 3, 16).await?;
-        let peer = LocalOwner::open(1, 3, 16).await?;
-        let second = LocalOwner::open(2, 3, 16).await?;
-        tokio::time::sleep(Duration::from_millis(3)).await;
-        let jobs = match source.control.reliable(Command::Tick).await? {
-            Reply::Votes(v) => v,
-            _ => return Err("actual campaign".into()),
-        };
-        assert_eq!(jobs.len(), 2);
-        for job in jobs {
-            let Job::Vote(q) = job else {
-                return Err("actual vote job".into());
-            };
-            let voter = if q.context.peer.id == 1 {
-                &peer
-            } else {
-                &second
-            };
-            let response = grant(voter, q).await?;
-            source
-                .control
-                .reliable(Command::Acknowledge(response))
-                .await?;
-        }
-        source.control.reliable(Command::Tick).await?;
-        let key = peer.control.config.bootstrap.local().key();
-        for _ in 0..2 {
-            owner_append_exchange(&source, &peer, key).await?;
-        }
-        assert!(source.state().await?.committed_end > 0);
-        source
-            .control
-            .reliable(Command::Propose(
-                b"synchronized real response abandoned before consume".to_vec(),
-            ))
-            .await?;
-        let request = match source.control.reliable(Command::Prepare(key)).await? {
-            Reply::Job(Some(Job::Append(q))) => q,
-            _ => return Err("actual prepared data request".into()),
-        };
-        let response = match peer
-            .control
-            .reliable(Command::Inbound(
-                request.context.leader,
-                Message::Append(request.clone()),
-            ))
-            .await?
-        {
-            Reply::Message(m @ Message::AppendReply(_)) => m,
-            _ => return Err("actual synchronized data reply".into()),
-        };
-        assert!(matches!(response,Message::AppendReply(r) if r.response.success));
-        let old_state = source.state().await?;
-        let old_wal = bounded(&source.root.join("metadata.wal"))?;
-        let old_election = bounded(&source.root.join("election.wal"))?;
-        // A real correct response exists, but its exact correlation is released
-        // before consumption. No denial or durable state is fabricated.
-        source
-            .control
-            .reliable(Command::Timeout(key, request.request.sequence, false))
-            .await?;
-        assert!(source
-            .control
-            .reliable(Command::Acknowledge(response))
-            .await
-            .is_err());
-        let after = source.state().await?;
-        assert_eq!(after.election.persistent, old_state.election.persistent);
-        assert_eq!(after.wal_durable_ops, old_state.wal_durable_ops);
-        assert_eq!(
-            after.election_durable_states,
-            old_state.election_durable_states
-        );
-        assert_eq!(bounded(&source.root.join("metadata.wal"))?, old_wal);
-        assert_eq!(bounded(&source.root.join("election.wal"))?, old_election);
-        let newer = match source.control.reliable(Command::Prepare(key)).await? {
-            Reply::Job(Some(Job::Append(q))) => q,
-            _ => return Err("newer retry request".into()),
-        };
-        assert!(newer.request.sequence > request.request.sequence);
-        let newer_response = match peer
-            .control
-            .reliable(Command::Inbound(
-                newer.context.leader,
-                Message::Append(newer.clone()),
-            ))
-            .await?
-        {
-            Reply::Message(m @ Message::AppendReply(_)) => m,
-            _ => return Err("newer actual receipt".into()),
-        };
-        // Current API returns Done even when this old timeout is rejected by
-        // Node. The capture outcome must say released=false; the newer ACK works.
-        source
-            .control
-            .reliable(Command::Timeout(key, request.request.sequence, false))
-            .await?;
-        source
-            .control
-            .reliable(Command::Acknowledge(newer_response))
-            .await?;
-        assert_eq!(
-            source.state().await?.committed_end,
-            newer
-                .request
-                .entries
-                .last()
-                .map_or(newer.request.previous.index, |r| r.index)
-        );
-        second.finish().await?;
-        peer.finish().await?;
-        source.finish().await
     }
 }

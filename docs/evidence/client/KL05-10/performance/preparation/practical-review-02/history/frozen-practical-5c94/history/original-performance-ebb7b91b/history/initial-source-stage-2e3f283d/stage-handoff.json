@@ -1,0 +1,55 @@
+{
+  "classification": "frozen PREPARED WORK-only performance source. No compiler/JVM/measurement outputs",
+  "declared_future_write_set": "benchmarks/sticky-partitioner/",
+  "files": {
+    "benchmarks/sticky-partitioner/Cargo.toml": {
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "bytes": 394,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/README.md": {
+      "sha256": "5d054687c7b83620163ea8236c22cdb28bb72b1f6a0218302eb16805748cba0d",
+      "bytes": 5229,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "bytes": 14117,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/audit.py": {
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "bytes": 8404,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/profiles.json": {
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "bytes": 6782,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/resource-forecast.json": {
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "bytes": 1464,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/run-cell.py": {
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "bytes": 13692,
+      "full_mode": 384
+    },
+    "benchmarks/sticky-partitioner/src/main.rs": {
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "bytes": 21992,
+      "full_mode": 384
+    },
+    "preparation-receipt.json": {
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "bytes": 1128,
+      "full_mode": 384
+    }
+  },
+  "total_bytes": 73202,
+  "source_qualified": false,
+  "no_repo_install_yet": true,
+  "ready_for_root_source_review": true
+}

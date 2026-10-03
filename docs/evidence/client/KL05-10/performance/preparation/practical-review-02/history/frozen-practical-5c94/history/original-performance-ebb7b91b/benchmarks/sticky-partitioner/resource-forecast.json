@@ -1,0 +1,29 @@
+{
+  "classification": "unexecuted conservative proposal; actual free space has not been granted for benchmarking",
+  "max_records": 10000000,
+  "row_bytes": 76,
+  "max_two_journals_bytes": 1520000016,
+  "broker_data_and_index_reserve_bytes": 2147483648,
+  "offline_SQLite_cap_bytes": 2147483648,
+  "temporary_journal_and_compression_reserve_bytes": 2147483648,
+  "logs_source_receipts_reserve_bytes": 67108864,
+  "global_floor_bytes": 367001600,
+  "per_cell_conservative_free_requirement_bytes": 8396561424,
+  "retained_30_cell_minimum_two_raw_journal_payload_bytes": 4605600480,
+  "host_capacity_issue": "current~1GBfree cannot satisfy this full cap. No execution until root grants actual budget/retention plan or reviewed smaller bound. Hitting10Mbefore60s fails honestly; never idle at cap to inflate duration.",
+  "memory": {
+    "bounded_public_send_window": 8192,
+    "Rust_verifier_expected_index_max_bytes_upper": 240000000,
+    "seen_flags_max": 10000000,
+    "SQLite_cache_bytes": 16777216,
+    "producer_heap_proposal": 536870912,
+    "Java_heap_proposal": 536870912
+  },
+  "time": {
+    "producer_max_each_phase_seconds": 300,
+    "verifier_seconds": 300,
+    "offline_audit_seconds": 1200,
+    "full_host_cell_deadline_proposed_seconds": 2400
+  },
+  "cleanup": "none authorized by prototype; preserve all executable inputs, raw failures, journals and receipts. Future exact per-cell owned topic/cache/image lifecycle must be coordinated separately"
+}

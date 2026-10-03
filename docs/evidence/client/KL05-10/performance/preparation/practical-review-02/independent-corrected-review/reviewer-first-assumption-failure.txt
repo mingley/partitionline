@@ -1,0 +1,6 @@
+The first independent review invocation stopped before completing controls because
+the reviewer incorrectly required qualification.json to be byte-identical.
+The derivative adds only SQLite_geometry_and_sidecars; its original qualification
+body remains equal after removing this additive prepared-allocation declaration.
+This is a reviewer assertion correction, not a benchmark or author control failure.
+No SQLite, process, compiler or benchmark operation was executed.

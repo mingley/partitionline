@@ -112,10 +112,8 @@ impl Drop for TestCounter {
 }
 #[cfg(test)]
 struct TestPermit {
-    // Rust drops fields in declaration order. Publish the logical decrement
-    // before returning semaphore capacity to the next constructed owner.
-    _counter: TestCounter,
     _permit: OwnedSemaphorePermit,
+    _counter: TestCounter,
 }
 #[cfg(test)]
 impl TestPermit {
@@ -126,8 +124,8 @@ impl TestPermit {
         amount: usize,
     ) -> Self {
         Self {
-            _counter: TestCounter::new(metrics, gauge, amount),
             _permit: permit,
+            _counter: TestCounter::new(metrics, gauge, amount),
         }
     }
 }
@@ -2514,116 +2512,11 @@ mod ownership_tests {
                 root,
             })
         }
-        async fn fixture(&self, phase: &str, command: Command) -> TestResult<Result<Reply>> {
-            // Ownership setup/observation is not an ordinary latency-budget
-            // assertion. It uses reliable admission with a separate absolute
-            // test wait; production call/internal deadlines and the intentional
-            // 20ms Stop/expired-write controls retain their original behavior.
-            let deadline = Instant::now() + Duration::from_secs(2);
-            match tokio::time::timeout_at(deadline, self.control.reliable(command)).await {
-                Ok(reply) => Ok(reply),
-                Err(_) => Err(format!("fixture phase {phase}: absolute2s wait expired").into()),
-            }
-        }
         async fn state(&self) -> TestResult<State> {
-            match self.fixture("observe-state", Command::State).await?? {
+            match self.control.internal(Command::State).await? {
                 Reply::State(s) => Ok(s),
                 _ => Err("state reply".into()),
             }
-        }
-        async fn reject_vote(&self, phase: &str, response: Message) -> TestResult {
-            let before = self.state().await?;
-            match self.fixture(phase, Command::Acknowledge(response)).await? {
-                Err(Error::Node(replication::Error::InvalidPeer)) => {}
-                Err(other) => {
-                    return Err(format!("{phase}: expected Node InvalidPeer, got {other:?}").into());
-                }
-                Ok(_) => return Err(format!("{phase}: abandoned correlation was accepted").into()),
-            }
-            let after = self.state().await?;
-            assert_eq!(after.election.persistent, before.election.persistent);
-            assert_eq!(after.election.role, before.election.role);
-            assert_eq!(after.base_position, before.base_position);
-            assert_eq!(after.last_position, before.last_position);
-            assert_eq!(after.committed_end, before.committed_end);
-            assert_eq!(after.active_term, before.active_term);
-            assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
-            assert_eq!(
-                after.election_durable_states,
-                before.election_durable_states
-            );
-            assert_eq!(after.ready, before.ready);
-            assert_eq!(after.poisoned, before.poisoned);
-            Ok(())
-        }
-        fn assert_joined(&self) -> TestResult {
-            use std::io::Write;
-            // This owner helper never starts a listener, supervisor or network
-            // worker. Assert its actual constructed owners after thread join;
-            // its manually sized channel differs from the public runtime.
-            let capacity = self.control.commands.max_capacity();
-            let envelope_bound = checked_sum(&[product(capacity, 2)?, 1])?;
-            let bounds = [
-                self.control.config.limits.client_slots,
-                self.control.config.pool,
-                0,
-                0,
-                envelope_bound,
-            ];
-            for (gauge, bound) in self.control.metrics.gauges.iter().zip(bounds) {
-                assert_eq!(gauge.current.load(Ordering::Acquire), 0);
-                assert!(gauge.peak.load(Ordering::Acquire) <= bound);
-            }
-            assert_eq!(self.control.tasks.load(Ordering::Acquire), 0);
-            assert_eq!(self.control.sockets.load(Ordering::Acquire), 0);
-            assert_eq!(
-                self.control.metrics.workers_spawned.load(Ordering::Acquire),
-                0
-            );
-            assert_eq!(
-                self.control.metrics.workers_joined.load(Ordering::Acquire),
-                0
-            );
-            assert!(self.control.stopped.load(Ordering::Acquire));
-            assert_eq!(
-                self.control.clients.available_permits(),
-                self.control.config.limits.client_slots
-            );
-            assert_eq!(
-                self.control.bytes.available_permits(),
-                self.control.config.pool
-            );
-            let Some(root) = &self.control.capture_root else {
-                return Ok(());
-            };
-            let now_ms = u64::try_from(
-                self.control
-                    .metrics
-                    .clock
-                    .get()
-                    .ok_or("owner clock")?
-                    .elapsed()
-                    .as_millis(),
-            )?;
-            let text = format!(
-                "{{\"schema_version\":1,\"capture_revision\":2,\"scope\":\"direct blocking owner without network workers or supervisor\",\"pid\":{},\"stage\":\"direct-owner-joined\",\"now_ms\":{now_ms},\"clock_basis\":\"same exclusive owner process-local monotonic epoch\",\"source_sha\":\"{}\",\"local_id\":{},\"directory\":\"{}\",\"owner_joined\":true,\"supervisor_joined\":null,\"listener_closed\":null,\"network_workers_spawned\":0,\"network_workers_joined\":0,\"actual_mpsc_capacity\":{capacity},\"command_envelope_owner_bound\":{envelope_bound},\"resource_owners\":{},\"stopping\":true,\"available_client_permits\":{},\"available_transport_permits\":{}}}\n",
-                std::process::id(),
-                std::env::var("PL_PEER_RUNTIME_SOURCE_SHA")?,
-                self.control.config.bootstrap.local().key().id,
-                TestTrace::hex(&self.control.config.bootstrap.local().key().directory)?,
-                self.control.metrics.json()?,
-                self.control.clients.available_permits(),
-                self.control.bytes.available_permits()
-            );
-            assert!(text.len() <= 8192);
-            let mut file = std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(root.join("lifecycle-direct-owner-joined.json"))?;
-            file.write_all(text.as_bytes())?;
-            file.sync_all()?;
-            std::fs::File::open(root)?.sync_all()?;
-            Ok(())
         }
         async fn finish(mut self) -> TestResult {
             self.control.stop();
@@ -2635,7 +2528,6 @@ mod ownership_tests {
                 .join()
                 .map_err(|_| "owner panic")?;
             joined?;
-            self.assert_joined()?;
             std::fs::remove_dir_all(&self.root)?;
             Ok(())
         }
@@ -2694,11 +2586,12 @@ mod ownership_tests {
         request: replication::DynamicVoteRequest,
     ) -> TestResult<Message> {
         match owner
-            .fixture(
-                "receive-genuine-vote",
-                Command::Inbound(request.context.leader, Message::Vote(request)),
-            )
-            .await??
+            .control
+            .internal(Command::Inbound(
+                request.context.leader,
+                Message::Vote(request),
+            ))
+            .await?
         {
             Reply::Message(m @ Message::VoteReply(_)) => Ok(m),
             _ => Err("actual vote response".into()),
@@ -2737,15 +2630,17 @@ mod ownership_tests {
         }
         for request in &requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], *request).await?;
-            source
-                .reject_vote("abandoned-vector-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "abandoned vector grant cannot remain correlated"
+            );
         }
         tokio::time::sleep(Duration::from_millis(3)).await;
-        let newer = match source
-            .fixture("next-campaign-tick", Command::Tick)
-            .await??
-        {
+        let newer = match source.control.internal(Command::Tick).await? {
             Reply::Votes(jobs) => jobs,
             _ => return Err("campaign reply".into()),
         };
@@ -2770,9 +2665,14 @@ mod ownership_tests {
         dispatch_votes(&source.control, &routes, newer).await;
         for request in new_requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], request).await?;
-            source
-                .reject_vote("full-route-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "failed route grant cannot remain correlated"
+            );
         }
         drop(routes);
         drop(receivers);
@@ -2804,7 +2704,6 @@ mod ownership_tests {
                 started: Arc::new(AtomicBool::new(false)),
                 deadline: Some(Instant::now() + Duration::from_millis(1)),
                 delivery_gate: None,
-                _counter: None,
             })
             .await
             .map_err(|_| "fill owner queue")?;
@@ -2831,7 +2730,6 @@ mod ownership_tests {
             .ok_or("owner join")?
             .join()
             .map_err(|_| "owner panic")??;
-        source.assert_joined()?;
         std::fs::remove_dir_all(&source.root)?;
         Ok(())
     }

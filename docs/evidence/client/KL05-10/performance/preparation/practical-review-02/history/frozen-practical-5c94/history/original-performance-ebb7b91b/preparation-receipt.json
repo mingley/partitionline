@@ -1,0 +1,15 @@
+{
+  "classification": "source-only preparation, uncompiled and unexecuted",
+  "repository_files_edited": false,
+  "Cargo_or_JVM_or_performance_executed": false,
+  "actual_source_reference": "04f6bc2968c1d721c6815a6389897a62e4ca76f1",
+  "Rust_format": "actual stable rustfmt --edition2021 exited0; syntax/format only",
+  "Python_syntax": "compile(source,...,exec) succeeded for audit.py/run-cell.py; neither main was run",
+  "Java_compile": "not executed; API/type correctness awaits real pinned SDK compilation",
+  "Cargo_lock": "absent; authorized preparation generation/push required before locked immutable build",
+  "measurements": "none",
+  "future_compiler_fixes": "retain source/failed-first logs, freeze/push before immutable qualification",
+  "source_only_preparation_failure": "Two functions.exec JavaScript parsing attempts were rejected before any shell/JVM launch. Subsequent source writes succeeded; these are not Java compilation or runtime results.",
+  "source_scope": "benchmarks/sticky-partitioner/ preparedWORK only. Parent formal claim amendment/install pending",
+  "prod_and_instrumentation_edits": false
+}

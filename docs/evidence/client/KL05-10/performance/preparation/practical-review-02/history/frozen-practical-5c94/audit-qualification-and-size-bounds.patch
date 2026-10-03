@@ -1,0 +1,76 @@
+--- original/audit.py
++++ practical/audit.py
+@@ -2,6 +2,7 @@
+ import argparse
+ import hashlib
+ import json
++import math
+ from pathlib import Path
+ import sqlite3
+ import struct
+@@ -52,7 +53,7 @@
+     return sha.hexdigest()
+ 
+ 
+-def audit(out):
++def audit(out, qualification=False):
+     deadline = time.monotonic() + 1200
+     complete = json.loads((out / 'producer-complete.json').read_text())
+     delivery = json.loads((out / 'delivery-complete.json').read_text())
+@@ -62,25 +63,32 @@
+     assert configuration['explicit_partition'] is False
+     for key, expected in [('acks', -1), ('idempotence', True), ('max_in_flight', 5),
+                           ('linger_ms', 5), ('batch_bytes', 1048576), ('compression', 'none'),
+-                          ('record_window', 8192), ('max_records', MAX_RECORDS)]:
++                          ('record_window', 8192)]:
+         assert configuration[key] == expected, key
++    purpose = 'qualification' if qualification else 'ranking'
++    assert configuration['purpose'] == purpose and configuration['performance_qualified'] is False
++    max_records = 24_576 if qualification else MAX_RECORDS
++    assert configuration['max_records'] == max_records
+     phases = complete['phases']
+     assert len(phases) == 2
+-    for phase, minimum, seconds in zip(phases, [10_000, 1_000_000], [15, 60]):
++    for phase, minimum, seconds in zip(phases, [8192, 16_384] if qualification else [10_000, 1_000_000], [0, 0] if qualification else [15, 60]):
+         assert phase['phase'] in (0, 1)
+         assert phase['acknowledged'] >= minimum
++        assert math.isfinite(phase['seconds_including_admission_and_drain_flush'])
+         assert phase['seconds_including_admission_and_drain_flush'] >= seconds
+         assert phase['end_monotonic_ns'] - phase['start_monotonic_ns'] >= seconds * 10**9
+     assert [phase['phase'] for phase in phases] == [0, 1]
+     total = complete['total_records']
+-    assert 1_010_000 <= total <= MAX_RECORDS
++    assert (24_576 <= total <= 24_576) if qualification else (1_010_000 <= total <= MAX_RECORDS)
++    for journal in ['producer-acks.bin', 'consumer-delivery.bin']:
++        assert (out / journal).stat().st_size == len(MAGIC) + total * ROW.size, 'Exact declared journal size; reject hostile/truncated extra rows before SQLite'
+     assert total == delivery['verified_records'] == sum(p['acknowledged'] for p in phases)
+     database = out / 'offline-audit.sqlite3'
+     assert not database.exists(), 'Preserve every prior failed audit'
+     conn = sqlite3.connect(database)
+     conn.execute('PRAGMA journal_mode=DELETE')
+     conn.execute('PRAGMA cache_size=-16384')  # 16MiB bounded SQLite page cache.
+-    conn.execute('PRAGMA max_page_count=524288')  # 2GiB hard database cap.
++    conn.execute('PRAGMA max_page_count=' + str(4096 if qualification else 524288))  # 2GiB hard database cap.
+     conn.execute('CREATE TABLE records(id INTEGER PRIMARY KEY,phase INTEGER,partition INTEGER,'
+                  'offset INTEGER,hash BLOB,seen INTEGER DEFAULT0,UNIQUE(partition,offset))'.replace('DEFAULT0', 'DEFAULT 0'))
+     try:
+@@ -131,7 +139,7 @@
+             skew[str(phase)] = {'counts': parts, 'max_to_mean': max(parts) / mean,
+                                 'min_to_mean': min(parts) / mean,
+                                 'coefficient_of_variation': (sum((x - mean)**2 for x in parts) / 6)**0.5 / mean}
+-        result = {'scope': 'actual public producer ack and independent consumer journal reconciliation only',
++        result = {'purpose': purpose, 'performance_qualified': False, 'scope': 'actual public producer ack and independent consumer journal reconciliation only',
+                   'profile': complete['profile'], 'records': total, 'phase_counts': counts,
+                   'skew': skew, 'duplicates': 0, 'offset_holes': 0, 'ID_hash_ack_offset_disagreements': 0,
+                   'producer_journal_sha256': file_hash(out / 'producer-acks.bin'),
+@@ -154,8 +162,9 @@
+ def main():
+     parser = argparse.ArgumentParser()
+     parser.add_argument('out')
++    parser.add_argument('--qualification', action='store_true')
+     args = parser.parse_args()
+-    print(json.dumps(audit(Path(args.out)), indent=2))
++    print(json.dumps(audit(Path(args.out), args.qualification), indent=2))
+ 
+ 
+ if __name__ == '__main__':

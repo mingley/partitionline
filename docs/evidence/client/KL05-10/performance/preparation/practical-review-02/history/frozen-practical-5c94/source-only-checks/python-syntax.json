@@ -1,0 +1,15 @@
+{
+  "classification": "Python built-in compile(source) only; no runner/audit main invoked, no pyc created",
+  "files": [
+    {
+      "path": "benchmarks/sticky-partitioner/audit.py",
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "syntax_compile_only_no_exec": true
+    },
+    {
+      "path": "benchmarks/sticky-partitioner/run-cell.py",
+      "sha256": "6bfe95dabfd4c63d133574b47fe5738be64eabb0cc89208066c635e7e28b383e",
+      "syntax_compile_only_no_exec": true
+    }
+  ]
+}

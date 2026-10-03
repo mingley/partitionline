@@ -1,0 +1,491 @@
+{
+  "schema_version": 1,
+  "scope": "offline source/semantic and invented-process controls; no Rust/Docker/runtime/cache operation",
+  "parent_handoff_sha256": "e4250889d4cd2e68818a21b19e6a68a8caeb7b516ad54643a24b34880a54591b",
+  "all20_prior_files_bytes_lengths_full07777_unchanged": true,
+  "runtime_source_sha256": "096ea362bea73ae3a83cdc12a3f0e4bb3dc06b5235321c23ea2bf99029ca5c00",
+  "semantic_drop_models": [
+    {
+      "source": "old",
+      "gauge_amount": 1,
+      "legal_schedules": [
+        {
+          "events": [
+            "old-permit-return",
+            "old-counter-drop",
+            "new-permit-acquire",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 4,
+              "published_peak": 4
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 3,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 4
+            }
+          ],
+          "peak": 4
+        },
+        {
+          "events": [
+            "old-permit-return",
+            "new-permit-acquire",
+            "old-counter-drop",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 4,
+              "published_peak": 4
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 4
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 4
+            }
+          ],
+          "peak": 4
+        },
+        {
+          "events": [
+            "old-permit-return",
+            "new-permit-acquire",
+            "new-counter-publish",
+            "old-counter-drop"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 4,
+              "published_peak": 4
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 4
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 5,
+              "published_peak": 5
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 5
+            }
+          ],
+          "peak": 5
+        }
+      ],
+      "max_peak": 5,
+      "bound": 4
+    },
+    {
+      "source": "old",
+      "gauge_amount": 4096,
+      "legal_schedules": [
+        {
+          "events": [
+            "old-permit-return",
+            "old-counter-drop",
+            "new-permit-acquire",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 16384,
+              "published_peak": 16384
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 3,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 16384
+            }
+          ],
+          "peak": 16384
+        },
+        {
+          "events": [
+            "old-permit-return",
+            "new-permit-acquire",
+            "old-counter-drop",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 16384,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 16384
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 16384
+            }
+          ],
+          "peak": 16384
+        },
+        {
+          "events": [
+            "old-permit-return",
+            "new-permit-acquire",
+            "new-counter-publish",
+            "old-counter-drop"
+          ],
+          "timeline": [
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 16384,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 20480,
+              "published_peak": 20480
+            },
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 20480
+            }
+          ],
+          "peak": 20480
+        }
+      ],
+      "max_peak": 20480,
+      "bound": 16384
+    },
+    {
+      "source": "candidate",
+      "gauge_amount": 1,
+      "legal_schedules": [
+        {
+          "events": [
+            "old-counter-drop",
+            "old-permit-return",
+            "new-permit-acquire",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 3,
+              "published_peak": 4
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 4,
+              "published_peak": 4
+            }
+          ],
+          "peak": 4
+        }
+      ],
+      "max_peak": 4,
+      "bound": 4
+    },
+    {
+      "source": "candidate",
+      "gauge_amount": 4096,
+      "legal_schedules": [
+        {
+          "events": [
+            "old-counter-drop",
+            "old-permit-return",
+            "new-permit-acquire",
+            "new-counter-publish"
+          ],
+          "timeline": [
+            {
+              "event": "old-counter-drop",
+              "genuine_occupied_permits": 4,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "old-permit-return",
+              "genuine_occupied_permits": 3,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-permit-acquire",
+              "genuine_occupied_permits": 4,
+              "published_current": 12288,
+              "published_peak": 16384
+            },
+            {
+              "event": "new-counter-publish",
+              "genuine_occupied_permits": 4,
+              "published_current": 16384,
+              "published_peak": 16384
+            }
+          ],
+          "peak": 16384
+        }
+      ],
+      "max_peak": 16384,
+      "bound": 16384
+    }
+  ],
+  "Envelope_original_literals": [
+    {
+      "line": 580,
+      "counter_present": true
+    },
+    {
+      "line": 622,
+      "counter_present": true
+    },
+    {
+      "line": 2542,
+      "counter_present": true
+    },
+    {
+      "line": 2569,
+      "counter_present": true
+    },
+    {
+      "line": 2699,
+      "counter_present": false
+    }
+  ],
+  "Envelope_candidate_literals": [
+    {
+      "line": 582,
+      "counter_present": true
+    },
+    {
+      "line": 624,
+      "counter_present": true
+    },
+    {
+      "line": 2614,
+      "counter_present": true
+    },
+    {
+      "line": 2641,
+      "counter_present": true
+    },
+    {
+      "line": 2771,
+      "counter_present": true
+    }
+  ],
+  "runner_original_order": {
+    "elf": 97,
+    "whole": 257,
+    "raw": 456,
+    "tmp": 647,
+    "parse": 48
+  },
+  "runner_candidate_order": {
+    "elf": 209,
+    "whole": 399,
+    "raw": 558,
+    "tmp": 749,
+    "parse": 1218
+  },
+  "process_controls": [
+    {
+      "name": "readable-no-reference",
+      "owners": 0,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-cwd",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-exe",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-cmdline",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-environ",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-maps",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "actual-reference-fd",
+      "owners": 1,
+      "faults": 0,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-stat",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-status",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-cmdline",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-environ",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-maps",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "unreadable-live-FD",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "missing-field-still-live",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "zombie-skip",
+      "owners": 0,
+      "faults": 0,
+      "zombies": 1
+    },
+    {
+      "name": "PID-replacement-refusal",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    },
+    {
+      "name": "bounded-read-refusal",
+      "owners": 0,
+      "faults": 1,
+      "zombies": 0
+    }
+  ],
+  "actual_rust_tests_executed": 0,
+  "actual_process_cache_inspections": 0,
+  "actual_cleanup_operations": 0,
+  "limitations": [
+    "Drop interleavings are a declaration-order semantic model, not observed Rust or Tokio scheduling.",
+    "New cfg(test) Rust paths remain uncompiled pending root source checkpoint and lease.",
+    "Process controls use fixture process files and synthetic read errors; optional exact daemon/Docker branch remains source-only and requires root review and actual future joined queries."
+  ]
+}

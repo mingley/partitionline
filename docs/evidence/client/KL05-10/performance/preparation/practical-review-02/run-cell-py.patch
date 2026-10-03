@@ -1,0 +1,215 @@
+--- frozen5c94/run-cell.py
++++ corrected/run-cell.py
+@@ -43,30 +43,60 @@
+         stream.write(data)
+ 
+ 
+-def members(pgid):
++class MembershipInspectionError(RuntimeError):
++    """Unknown membership is not a verified empty owned process group."""
++
++
++def members(pgid, owner_start_time=None):
+     result = []
+-    for directory in Path('/proc').iterdir():
++    try:
++        directories = list(Path('/proc').iterdir())
++    except OSError as error:
++        raise MembershipInspectionError('proc enumeration errno=' + str(error.errno)) from error
++    for directory in directories:
+         if not directory.name.isdigit():
+             continue
+         try:
+             raw = (directory / 'stat').read_text()
++        except (FileNotFoundError, ProcessLookupError) as vanished:
++            try:
++                os.kill(int(directory.name), 0)  # Existence check only; no signal is delivered.
++            except ProcessLookupError:
++                continue  # Independently confirmed vanished PID.
++            except OSError as error:
++                raise MembershipInspectionError('vanished PID unverifiable pid=' + directory.name
++                                                + ' errno=' + str(error.errno)) from error
++            raise MembershipInspectionError('stat missing for independently live PID=' + directory.name) from vanished
++        except OSError as error:
++            raise MembershipInspectionError('stat unreadable pid=' + directory.name
++                                            + ' errno=' + str(error.errno)) from error
++        try:
++            pid = int(directory.name)
++            assert int(raw[:raw.index('(')].strip()) == pid
+             fields = raw[raw.rfind(')') + 2:].split()
+-            if int(fields[2]) == pgid:
+-                result.append({'pid': int(directory.name), 'group': int(fields[2]),
+-                               'session': int(fields[3]), 'state': fields[0]})
+-        except (FileNotFoundError, PermissionError, ProcessLookupError):
+-            pass
++            assert len(fields) >= 20
++            group, session, start_time = int(fields[2]), int(fields[3]), int(fields[19])
++            if group != pgid:
++                continue
++            assert session == pgid, 'Owned start_new_session group must retain session identity'
++            assert owner_start_time is None or start_time >= owner_start_time
++            assert pid != pgid or owner_start_time is None or start_time == owner_start_time
++            result.append({'pid': pid, 'group': group, 'session': session,
++                           'state': fields[0], 'start_time_ticks': start_time})
++        except (AssertionError, IndexError, ValueError) as error:
++            raise MembershipInspectionError('stat malformed or ownership identity changed pid='
++                                            + directory.name) from error
+     return result
+ 
+ 
+-def stop(pgid):
+-    current = members(pgid)
+-    assert all(member['session'] == pgid for member in current), 'Do not signal other ownership'
++def stop(pgid, owner_start_time=None):
++    current = members(pgid, owner_start_time)
+     if current:
+         try:
+             os.killpg(pgid, signal.SIGKILL)
+         except ProcessLookupError:
+             pass
++    return current
+ 
+ 
+ def source_guard(source, expected, deadline):
+@@ -124,7 +154,7 @@
+     assert source != Path('/workspace/partitionline')
+     out = Path(args.out).resolve()
+     assert not out.exists() and not out.is_relative_to(source)
+-    forecast = json.loads((Path(__file__).parent / ('qualification-resource-forecast.json' if args.qualification else 'resource-forecast.json')).read_text())
++    forecast = json.loads((Path(__file__).parent / ('qualification-resource-forecast.json' if args.qualification else 'ranking-resource-forecast.json')).read_text())
+     required = forecast['per_cell_conservative_free_requirement_bytes']
+     assert shutil.disk_usage('/workspace').free >= required
+     origin_path = Path(args.origin_receipt).resolve()
+@@ -200,11 +230,49 @@
+         write(out / (label + '.command.json'), {'command': command, 'source_before': before})
+         process = subprocess.Popen(command, env=environment, cwd=own_root, stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE, start_new_session=True)
+-        history = [{'event': 'started', 'owned_pgid': process.pid, 'members': members(process.pid)}]
++        history = []
+         reasons = []
+-        if cancel_signals:
+-            reasons.append('host cancellation signals=' + str(cancel_signals))
+-            stop(process.pid)
++        owner_start_time = None
++        def inspect_owned(event):
++            try:
++                current = members(process.pid, owner_start_time)
++                snapshot = {'event': event, 'owned_pgid': process.pid,
++                            'membership_verified': True, 'members': current}
++            except MembershipInspectionError as error:
++                reasons.append('membership unverified: ' + str(error))
++                snapshot = {'event': event, 'owned_pgid': process.pid,
++                            'membership_verified': False, 'members': None,
++                            'inspection_error': str(error)}
++            history.append(snapshot)
++            return snapshot
++        def stop_owned():
++            try:
++                observed = stop(process.pid, owner_start_time)
++                history.append({'event': 'group stop after verified inspection',
++                                'owned_pgid': process.pid, 'members': observed})
++            except MembershipInspectionError as error:
++                reasons.append('group signal refused: ' + str(error))
++                history.append({'event': 'group stop refused; membership unknown',
++                                'owned_pgid': process.pid, 'members': None,
++                                'inspection_error': str(error)})
++                # Popen still owns its unreaped direct child. Do not claim descendant closure.
++                if process.poll() is None:
++                    try:
++                        process.kill()
++                        history.append({'event': 'known direct child only killed', 'pid': process.pid})
++                    except OSError as direct_error:
++                        reasons.append('direct child kill errno=' + str(direct_error.errno))
++        initial = inspect_owned('started')
++        if initial['membership_verified']:
++            leaders = [member for member in initial['members'] if member['pid'] == process.pid]
++            if leaders:
++                owner_start_time = leaders[0]['start_time_ticks']
++            elif initial['members']:
++                reasons.append('session leader identity unavailable before descendants inspection')
++        if reasons or cancel_signals:
++            if cancel_signals:
++                reasons.append('host cancellation signals=' + str(cancel_signals))
++            stop_owned()
+         samples = []
+         finished = threading.Event()
+         # Pipes bound captured output immediately without limiting legitimate journal/database files.
+@@ -218,11 +286,11 @@
+                         written += len(data)
+                         if written > CAPTURE:
+                             reasons.append('captured stream1MiB cap; prefix retained, overflow caused failure')
+-                            stop(process.pid)
++                            stop_owned()
+                             return
+             except OSError as error:
+                 reasons.append('capture IO failure errno=' + str(error.errno))
+-                stop(process.pid)
++                stop_owned()
+             finally:
+                 pipe.close()
+         readers = [threading.Thread(target=capture, args=(pipe, out / (label + suffix)), daemon=True)
+@@ -242,11 +310,11 @@
+                 samples.append(sample)
+                 if cancel_signals:
+                     reasons.append('host cancellation signals=' + str(cancel_signals))
+-                    stop(process.pid)
++                    stop_owned()
+                     return
+                 if free < FLOOR + STOP_MARGIN or time.monotonic() >= runtime_deadline:
+                     reasons.append('physical350MiB floor+16MiB stop margin or whole-cell runtime deadline with90s proof tail')
+-                    stop(process.pid)
++                    stop_owned()
+                     return
+         watcher = threading.Thread(target=monitor, daemon=True)
+         watcher.start()
+@@ -254,35 +322,39 @@
+             code = process.wait(timeout=max(0.1, min(seconds, runtime_deadline-time.monotonic())))
+         except subprocess.TimeoutExpired:
+             reasons.append('per-command/whole-cell runtime timeout; bounded90s proof tail reserved')
+-            stop(process.pid)
++            stop_owned()
+             code = process.wait(timeout=10)
+         except BaseException as error:
+             reasons.append('host wait failure type=' + type(error).__name__)
+-            stop(process.pid)
++            stop_owned()
+             code = process.wait(timeout=10)
+         finally:
+             finished.set()
+             watcher.join()
+-        current = members(process.pid)
+-        if current:
+-            stop(process.pid)
+-            closure = time.monotonic() + 5
+-            while current and time.monotonic() < closure:
++        closure_snapshot = inspect_owned('closure inspection')
++        if not closure_snapshot['membership_verified'] or closure_snapshot['members']:
++            stop_owned()
++            closure_deadline = time.monotonic() + 5
++            while (not closure_snapshot['membership_verified'] or closure_snapshot['members']) and time.monotonic() < closure_deadline:
+                 time.sleep(0.1)
+-                current = members(process.pid)
++                closure_snapshot = inspect_owned('closure retry')
+         for reader in readers:
+             reader.join(timeout=5)
+-        history.append({'event': 'closed', 'owned_pgid': process.pid, 'members': current})
++        closure_verified = closure_snapshot['membership_verified'] and not closure_snapshot['members']
++        history.append({'event': 'closed', 'owned_pgid': process.pid,
++                        'closure_verified': closure_verified,
++                        'members': closure_snapshot['members']})
+         write(out / (label + '.exit.json'), {'exit': code, 'stop_reasons': reasons,
+               'period_seconds': 0.2, 'physical_floor_bytes': FLOOR, 'stop_margin_bytes': STOP_MARGIN,
+               'resource_samples': samples, 'owned_process_history': history,
+               'whole_cell_proof_tail_seconds': PROOF_TAIL_SECONDS,
+-              'host_cancellation_signals': cancel_signals})
++              'host_cancellation_signals': cancel_signals,
++              'closure_verified': closure_verified})
+         after = source_guard(source, expected, deadline)
+         inputs_unchanged = all(identity(Path(path)) == old for path, old in inputs.items())
+         write(out / (label + '.after.json'), {'source': after, 'input_identities_unchanged': inputs_unchanged})
+         assert inputs_unchanged
+-        assert all(not reader.is_alive() for reader in readers) and not current
++        assert all(not reader.is_alive() for reader in readers) and closure_verified
+         assert not reasons and code == 0, 'Retain this actual failed cell; never count it qualified'
+     if args.profile.startswith('java-'):
+         run('producer', [java, '-Xms64m' if args.qualification else '-Xms128m', '-Xmx256m' if args.qualification else '-Xmx512m', '-XX:MaxMetaspaceSize=128m',

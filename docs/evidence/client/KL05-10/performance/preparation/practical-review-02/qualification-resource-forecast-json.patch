@@ -1,0 +1,61 @@
+--- frozen5c94/qualification-resource-forecast.json
++++ corrected/qualification-resource-forecast.json
+@@ -1,19 +1,21 @@
+ {
+-  "classification": "unexecuted qualification runtime forecast only; original ranking8.4GB forecast unchanged",
++  "classification": "Unexecuted derivative forecast fixing page geometry and simultaneous rollback journal; frozen5c94 and original ranking forecast preserved",
+   "components": {
+     "two_journals_bytes": 3735568,
+     "sqlite_file_cap_bytes": 16777216,
+     "six_stdout_stderr_file_caps_bytes": 6291456,
+     "source_guards_monitors_receipts_bytes": 4194304,
+     "filesystem_directory_and_small_file_reserve_bytes": 4194304,
+-    "already_ready_broker_incremental_append_allowance_bytes": 67108864
++    "already_ready_broker_incremental_append_allowance_bytes": 67108864,
++    "SQLite_DELETE_rollback_journal_header_allocation_reserve_bytes": 33554432,
++    "SQLite_statement_subjournal_allocation_reserve_bytes": 33554432
+   },
+-  "per_cell_generated_allocation_upper_bound_bytes": 102301712,
++  "per_cell_generated_allocation_upper_bound_bytes": 169410576,
+   "physical_floor_bytes": 367001600,
+   "stop_margin_bytes": 16777216,
+   "other_lane_growth_reserve_bytes": 134217728,
+-  "per_cell_conservative_free_requirement_bytes": 620298256,
+-  "six_cells_worst_case_accumulated_allocation_bytes": 613810272,
++  "per_cell_conservative_free_requirement_bytes": 687407120,
++  "six_cells_worst_case_accumulated_allocation_bytes": 1016463456,
+   "one_small_cell_can_fit_current_approximately1GB_free": true,
+   "all_six_guaranteed_fit_without_recheck": false,
+   "already_ready_broker_precondition": "Fresh six-partition topic and broker/image initialization must be complete with actual identity and physical allocation receipt before this free-space check. No image pull, VFS expansion, broker cold start, topic creation or preallocation cost is silently included as zero.",
+@@ -25,8 +27,11 @@
+     "send_window": 8192,
+     "expected_ID_index_bytes_upper": 589824,
+     "seen_bytes_upper": 24576,
++    "Java_heap_limit": 268435456,
+     "SQLite_cache_bytes": 16777216,
+-    "Java_heap_limit": 268435456
++    "SQLite_cache_bytes_is_configured_target_not_hard_RAM_cap": true,
++    "SQLite_dirty_page_bytes_upper": 16777216,
++    "SQLite_dirty_and_statement_image_bytes_upper": 33554432
+   },
+   "time": {
+     "Rust_absolute_phase_seconds": 90,
+@@ -40,5 +45,17 @@
+     "whole_host_proof_tail_seconds": 90,
+     "whole_host_runtime_deadline_seconds": 910
+   },
+-  "cleanup": "none in the driver. Future own artifact/topic lifecycle requires root coordination; preserved original sources/ELFs/raw histories unchanged"
++  "cleanup": "none in the driver. Future own artifact/topic lifecycle requires root coordination; preserved original sources/ELFs/raw histories unchanged",
++  "SQLite_contract": {
++    "page_bytes": 4096,
++    "database_max_pages": 4096,
++    "journal_mode": "DELETE",
++    "synchronous": "FULL",
++    "cache_spill": "OFF",
++    "journal_reserve_bytes": 33554432,
++    "dirty_cache": "16MiB configured target is not a hard memory cap; retained dirty pages bounded by16MiB DB plus page/cache overhead",
++    "temp_store": "MEMORY",
++    "statement_subjournal_reserve_bytes": 33554432,
++    "sidecar_forecast": "Conservative unobserved normal and statement rollback reserves; cache_spill OFF does not prove every statement/temp-file category absent"
++  }
+ }

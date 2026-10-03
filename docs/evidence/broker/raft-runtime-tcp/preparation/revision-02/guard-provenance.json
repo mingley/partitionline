@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "baseline_guard": {
+    "path": "/workspace/work/raft-runtime-76/diagnostic-runner-02/guard-functions.py",
+    "sha256": "4c7f8396a9ae51f326cf643268f77584fa723d7cbad918bcc126525dd326f55b",
+    "original_frozen_provenance": "/workspace/work/raft-runtime-76/diagnostic-runner-02/guard-provenance.json"
+  },
+  "extracted_sha256": "4bc27b5198f6e21b478a788d1f16dffe4707f0c522c921b126d4411bb8e20ab7",
+  "change": "only executed_elfs is replaced with actual test-harness parser; all other original function bytes preserved",
+  "artifact_parser_sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+  "cache_provider": {
+    "path": "/workspace/work/raft-runtime-76/coverage-proposal-01/run-selective-candidate-03.py",
+    "sha256": "70c18f71949f209af62133dad7478061c63f874f323d3f119fc30e86fc587faf",
+    "functions": [
+      "free_bytes",
+      "guard_write",
+      "work_inodes",
+      "verify_rows",
+      "cache_map",
+      "combined_forecast",
+      "preserve_whole_cache",
+      "decode_cache_receipt",
+      "validate_reference_archive"
+    ]
+  },
+  "cache_functions_sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+  "cache_change": "dynamic selected-step reserves for raw/scenario/generated/retention; original cache map and archive verification semantics retained"
+}

@@ -1,0 +1,32 @@
+--- before/partitionline-broker/src/raft/runtime.rs
++++ candidate/partitionline-broker/src/raft/runtime.rs
+@@ -67,13 +67,13 @@
+             if index > 0 {
+                 out.push(',');
+             }
+-            write!(
+-                out,
+-                "{{\"current\":{},\"peak\":{}}}",
+-                g.current.load(Ordering::Acquire),
+-                g.peak.load(Ordering::Acquire)
+-            )
+-            .map_err(|_| Error::Peer)?;
++            // A constructor may be preempted between its current increment
++            // and peak publication. This observed current value is itself a
++            // genuine high-water observation; publish it before emitting both.
++            let current = g.current.load(Ordering::Acquire);
++            let peak = g.peak.fetch_max(current, Ordering::AcqRel).max(current);
++            write!(out, "{{\"current\":{},\"peak\":{}}}", current, peak)
++                .map_err(|_| Error::Peer)?;
+         }
+         out.push_str("]}");
+         Ok(out)
+@@ -2390,7 +2390,7 @@
+     }
+     fn charge(&mut self, n: u64) -> Result<()> {
+         self.disk_bytes = self.disk_bytes.checked_add(n).ok_or(Error::InvalidConfig)?;
+-        if self.disk_bytes > 128 * 1024 * 1024 {
++        if self.disk_bytes > 16 * 1024 * 1024 {
+             Err(Error::InvalidConfig)
+         } else {
+             Ok(())

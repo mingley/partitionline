@@ -1,0 +1,227 @@
+--- before/partitionline-broker/tests/common/raft_runtime.rs
++++ candidate/partitionline-broker/tests/common/raft_runtime.rs
+@@ -171,6 +171,8 @@
+             let cfg = config(local, &routes, active)?;
+             let configured_task_bound = cfg.task_bound();
+             let configured_managed_bytes = cfg.managed_bytes();
++            let configured_client_slots = 4;
++            let configured_socket_bound = 2 * routes.len().saturating_sub(1).max(1);
+             let mut runtime = Runtime::start(listener, cfg, paths(&root)?)?;
+             runtime.wait_ready().await?;
+             let handle = runtime.handle();
+@@ -179,6 +181,10 @@
+             let mut sampled_peaks = [0usize; 4];
+             loop {
+                 let observed = handle.diagnostics();
++                assert!(observed.network_tasks <= configured_task_bound);
++                assert!(observed.sockets <= configured_socket_bound);
++                assert!(observed.transport_bytes <= configured_managed_bytes);
++                assert!(observed.client_slots <= configured_client_slots);
+                 for (peak, value) in sampled_peaks.iter_mut().zip([
+                     observed.network_tasks, observed.sockets, observed.transport_bytes, observed.client_slots
+                 ]) { *peak = (*peak).max(value); }
+@@ -257,6 +263,7 @@
+                         assert_eq!(handle.diagnostics().network_tasks, 0);
+                         assert_eq!(handle.diagnostics().sockets, 0);
+                         assert_eq!(handle.diagnostics().transport_bytes, 0);
++                        assert_eq!(handle.diagnostics().client_slots, 0);
+                         let final_diagnostics = handle.diagnostics();
+                         let receipt = format!("{{\"schema_version\":1,\"source_sha\":\"{}\",\"pid\":{},\"local_id\":{local},\"directory\":\"{}\",\"genesis_voter_count\":{active},\"configured_route_count\":{},\"configured_task_bound\":{configured_task_bound},\"configured_managed_bytes\":{configured_managed_bytes},\"supervisor_shutdown_returned\":true,\"sampled_peak_network_tasks\":{},\"sampled_peak_sockets\":{},\"sampled_peak_transport_bytes\":{},\"sampled_peak_client_slots\":{},\"sampled_peak_limit\":\"20ms observer samples are lower bounds; lib owner metrics retain logical lifetime high-water counters\",\"final_network_tasks\":{},\"final_sockets\":{},\"final_transport_bytes\":{},\"final_client_slots\":{},\"stopping\":{}}}\n", std::env::var("PL_PEER_RUNTIME_SOURCE_SHA").unwrap_or_else(|_| "unqualified-test".into()), std::process::id(), hex(&[(local+1) as u8;16])?, routes.len(), sampled_peaks[0],sampled_peaks[1],sampled_peaks[2],sampled_peaks[3],final_diagnostics.network_tasks,final_diagnostics.sockets,final_diagnostics.transport_bytes,final_diagnostics.client_slots,final_diagnostics.stopping);
+                         write_text(&root.join("joined-receipt.json"), &receipt)?;
+@@ -279,6 +286,8 @@
+     delay: Vec<AtomicU64>,
+     capture: Option<PathBuf>,
+     clock: std::time::Instant,
++    captured_bytes: AtomicU64,
++    capture_failed: AtomicBool,
+ }
+ impl Gate {
+     fn new(count: usize, capture: Option<PathBuf>) -> Self {
+@@ -288,7 +297,33 @@
+             delay: (0..count * count).map(|_| AtomicU64::new(0)).collect(),
+             capture,
+             clock: std::time::Instant::now(),
+-        }
++            captured_bytes: AtomicU64::new(0),
++            capture_failed: AtomicBool::new(false),
++        }
++    }
++    fn capture_file(&self, name: &str, bytes: &[u8]) -> TestResult {
++        let result = (|| -> TestResult {
++            let Some(root) = &self.capture else {
++                return Ok(());
++            };
++            let size = u64::try_from(bytes.len())?;
++            self.captured_bytes
++                .fetch_update(Ordering::AcqRel, Ordering::Acquire, |n| {
++                    n.checked_add(size).filter(|next| *next <= 16 * 1024 * 1024)
++                })
++                .map_err(|_| "finite per-case proxy capture bytes")?;
++            let mut file = fs::OpenOptions::new()
++                .write(true)
++                .create_new(true)
++                .open(root.join(name))?;
++            file.write_all(bytes)?;
++            file.sync_all()?;
++            Ok(())
++        })();
++        if result.is_err() {
++            self.capture_failed.store(true, Ordering::Release);
++        }
++        result
+     }
+     fn set(&self, a: usize, b: usize, value: bool) {
+         self.allowed[a * self.count + b].store(value, Ordering::Release);
+@@ -311,6 +346,28 @@
+     bytes.resize(n + 4, 0);
+     r.read_exact(&mut bytes[4..]).await?;
+     Ok(bytes)
++}
++struct ForwardReceipt {
++    source: usize,
++    target: usize,
++    connection: u64,
++    reply: bool,
++    ordinal: u64,
++    received_ms: u128,
++    delay_ms: u64,
++    forward_started_ms: Option<u128>,
++    forward_finished_ms: Option<u128>,
++    write_ok: Option<bool>,
++    disposition: &'static str,
++}
++impl Gate {
++    fn forward_receipt(&self, name: &str, bytes: &[u8], r: ForwardReceipt) -> TestResult {
++        let rpc = u64::from_be_bytes(bytes[16..24].try_into()?);
++        let time = |v: Option<u128>| v.map_or_else(|| "null".into(), |n| n.to_string());
++        let ok = r.write_ok.map_or_else(|| "null".into(), |b| b.to_string());
++        let metadata = format!("{{\"schema_version\":2,\"packet_file\":\"{name}\",\"proxy_pid\":{},\"clock_basis\":\"parent proxy process monotonic Instant epoch; not owner process clock\",\"source\":{},\"target\":{},\"connection\":{},\"reply\":{},\"ordinal\":{},\"kind\":{},\"rpc\":{rpc},\"received_ms\":{},\"selected_delay_ms\":{},\"forward_started_ms\":{},\"forward_finished_ms\":{},\"forward_write_ok\":{ok},\"disposition\":\"{}\"}}}\n", std::process::id(), r.source, r.target, r.connection, r.reply, r.ordinal, bytes[14], r.received_ms, r.delay_ms, time(r.forward_started_ms), time(r.forward_finished_ms), r.disposition);
++        self.capture_file(&format!("{name}.forward.json"), metadata.as_bytes())
++    }
+ }
+ async fn pipe<R: AsyncRead + Unpin, W: AsyncWrite + Unpin>(
+     mut r: R,
+@@ -326,39 +383,60 @@
+     loop {
+         let bytes = tokio::select! {_ = stop.changed()=>return Ok(()),p=packet(&mut r)=>p?};
+         let received_ms = gate.clock.elapsed().as_millis();
+-        if !gate.permits(source, target) {
+-            return Ok(());
+-        }
++        let name = format!(
++            "wire-{source}-{target}-{connection}-{}-{ordinal}.bin",
++            if reply { "response" } else { "request" }
++        );
++        // Capture actual read bytes before waiting, including a response whose
++        // source times out while the proxy is holding it. Forwarding is a later
++        // fact; only the owner's ACK command proves response consumption.
++        gate.capture_file(&name, &bytes)?;
+         let delay = if reply {
+             gate.delay[source * gate.count + target].swap(0, Ordering::AcqRel)
+         } else {
+             0
+         };
++        let mut receipt = ForwardReceipt {
++            source,
++            target,
++            connection,
++            reply,
++            ordinal,
++            received_ms,
++            delay_ms: delay,
++            forward_started_ms: None,
++            forward_finished_ms: None,
++            write_ok: None,
++            disposition: "partition-drop",
++        };
++        if !gate.permits(source, target) {
++            gate.forward_receipt(&name, &bytes, receipt)?;
++            return Ok(());
++        }
+         if delay > 0 {
+-            tokio::select! {_ = stop.changed()=>return Ok(()),_ = tokio::time::sleep(Duration::from_millis(delay))=>{}}
++            tokio::select! {
++                _ = stop.changed()=>{
++                    receipt.disposition="shutdown-before-forward";
++                    gate.forward_receipt(&name, &bytes, receipt)?;
++                    return Ok(());
++                },
++                _ = tokio::time::sleep(Duration::from_millis(delay))=>{}
++            }
+         }
+         if !gate.permits(source, target) {
++            gate.forward_receipt(&name, &bytes, receipt)?;
+             return Ok(());
+         }
+-        let name = format!(
+-            "wire-{source}-{target}-{connection}-{}-{ordinal}.bin",
+-            if reply { "response" } else { "request" }
+-        );
+-        let forward_started_ms = gate.clock.elapsed().as_millis();
+-        if let Some(root) = &gate.capture {
+-            let mut file = File::create(root.join(&name))?;
+-            file.write_all(&bytes)?;
+-            file.sync_all()?;
+-        }
+-        // Retained bytes and successful socket write still do not prove owner
+-        // consumption. The independent checker binds consumed owner ACK bodies.
++        receipt.forward_started_ms = Some(gate.clock.elapsed().as_millis());
+         let result = w.write_all(&bytes).await;
+-        let forward_finished_ms = gate.clock.elapsed().as_millis();
+-        if let Some(root) = &gate.capture {
+-            let rpc = u64::from_be_bytes(bytes[16..24].try_into()?);
+-            let metadata = format!("{{\"schema_version\":1,\"packet_file\":\"{name}\",\"proxy_pid\":{},\"clock_basis\":\"parent proxy process monotonic Instant epoch; not owner process clock\",\"source\":{source},\"target\":{target},\"connection\":{connection},\"reply\":{reply},\"ordinal\":{ordinal},\"kind\":{},\"rpc\":{rpc},\"received_ms\":{received_ms},\"selected_delay_ms\":{delay},\"forward_started_ms\":{forward_started_ms},\"forward_finished_ms\":{forward_finished_ms},\"forward_write_ok\":{}}}\n", std::process::id(), bytes[14], result.is_ok());
+-            write_text(&root.join(format!("{name}.forward.json")), &metadata)?;
+-        }
++        receipt.forward_finished_ms = Some(gate.clock.elapsed().as_millis());
++        receipt.write_ok = Some(result.is_ok());
++        receipt.disposition = if result.is_ok() {
++            "forward-write-ok"
++        } else {
++            "forward-write-error"
++        };
++        gate.forward_receipt(&name, &bytes, receipt)?;
+         result?;
+         ordinal += 1;
+         if ordinal > 10000 {
+@@ -389,9 +467,14 @@
+                     let source=u32::from_be_bytes(first[28..32].try_into()?) as usize;
+                     if !gate.permits(source,target){return Ok(());}
+                     let mut server=TcpStream::connect(backend).await?;server.write_all(&first).await?;
+-                    if let Some(root)=&gate.capture{let mut file=File::create(root.join(format!("hello-{source}-{target}-{id}.bin")))?;file.write_all(&first)?;file.sync_all()?;}
++                    gate.capture_file(&format!("hello-{source}-{target}-{id}.bin"), &first)?;
+                     let (cr,cw)=client.into_split();let (sr,sw)=server.into_split();
+-                    tokio::select!{r=pipe(cr,sw,gate.clone(),source,target,false,id,stop.clone())=>r,r=pipe(sr,cw,gate,source,target,true,id,stop)=>r}
++                    // EOF in one direction must not cancel the other future
++                    // while it holds an already-read delayed response. Dropping
++                    // its write half shuts down that direction; stop also wakes
++                    // both pipes, so proxy shutdown still joins every task.
++                    let (request,response)=tokio::join!(pipe(cr,sw,gate.clone(),source,target,false,id,stop.clone()),pipe(sr,cw,gate,source,target,true,id,stop));
++                    request.and(response)
+                 });
+             }
+             _ = tasks.join_next(),if !tasks.is_empty()=>{}
+@@ -710,6 +793,10 @@
+         while let Some(p) = self.proxies.pop() {
+             p.await??;
+         }
++        assert!(
++            !self.gate.capture_failed.load(Ordering::Acquire),
++            "every actual packet/forward receipt must fit and persist"
++        );
+         Ok(())
+     }
+ }
+@@ -749,6 +836,12 @@
+     }
+     let checkpoint = cluster.command(leader, "checkpoint 62").await?;
+     assert!(checkpoint.starts_with("image "));
++    let image_bytes: u64 = checkpoint
++        .split_whitespace()
++        .nth(3)
++        .ok_or("image byte count")?
++        .parse()?;
++    assert!(image_bytes > 64 * 1024, "real transfer must exceed 64KiB");
+     let base: u64 = checkpoint
+         .split_whitespace()
+         .nth(2)

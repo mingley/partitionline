@@ -1,0 +1,176 @@
+--- frozen-ebb7/src/main.rs
++++ practical-497f/src/main.rs
+@@ -18,6 +18,9 @@
+ const VALUE_MAGIC: &[u8; 8] = b"PLSTKVAL";
+ const ROW_BYTES: usize = 76;
+ const MAX_RECORDS: u64 = 10_000_000;
++const QUALIFICATION_RECORDS: u64 = 24_576;
++const QUALIFICATION_WARMUP: u64 = 8192;
++const QUALIFICATION_EXERCISE: u64 = 16_384;
+ const MIN_MEASURE_RECORDS: u64 = 1_000_000;
+ const WINDOW: usize = 8192;
+ const FLOOR: u64 = 350 * 1024 * 1024; // The future host coordinator enforces this physical floor.
+@@ -86,11 +89,12 @@
+         .checked_add(system)
+         .ok_or_else(|| fail("CPU tick overflow"))?)
+ }
+-fn require_measurement_cpu() -> Outcome<()> {
++fn require_producer_cpu(qualification: bool) -> Outcome<()> {
+     let status = std::fs::read_to_string("/proc/self/status")?;
+-    if !status.lines().any(|line| line == "Cpus_allowed_list:\t3") {
++    let expected = if qualification { "Cpus_allowed_list:\t0-1" } else { "Cpus_allowed_list:\t3" };
++    if !status.lines().any(|line| line == expected) {
+         return Err(fail(
+-            "measurement producer requires exclusive taskset CPU3 lease",
++            "producer CPU affinity differs from qualification0,1 or ranking3 lease",
+         ));
+     }
+     Ok(())
+@@ -111,13 +115,14 @@
+     topic: String,
+     out: PathBuf,
+     seed: u64,
++    qualification: bool,
+ }
+ impl Settings {
+     fn read() -> Outcome<Self> {
+         let args: Vec<String> = std::env::args().collect();
+-        if args.len() != 7 || args[1] != "produce" && args[1] != "verify" {
++        if args.len() != 7 || !["produce", "verify", "qualify-produce", "qualify-verify"].contains(&args[1].as_str()) {
+             return Err(fail(
+-                "usage: sticky-benchmark produce|verify PROFILE BOOTSTRAP TOPIC OUT SEED",
++                "usage: sticky-benchmark produce|verify|qualify-produce|qualify-verify PROFILE BOOTSTRAP TOPIC OUT SEED",
+             ));
+         }
+         let profile = args[2].clone();
+@@ -146,7 +151,14 @@
+             topic: args[4].clone(),
+             out: args[5].clone().into(),
+             seed: args[6].parse()?,
++            qualification: args[1].starts_with("qualify-"),
+         })
++    }
++    fn max_records(&self) -> u64 {
++        if self.qualification { QUALIFICATION_RECORDS } else { MAX_RECORDS }
++    }
++    fn exercise_minimum(&self) -> u64 {
++        if self.qualification { QUALIFICATION_EXERCISE } else { MIN_MEASURE_RECORDS }
+     }
+     fn keyed(&self) -> bool {
+         self.profile.ends_with("-keyed")
+@@ -194,13 +206,12 @@
+     next_id: &mut u64,
+     phase: u32,
+ ) -> Outcome<Value> {
+-    let duration = Duration::from_secs(if phase == 0 { 15 } else { 60 });
++    let duration = Duration::from_secs(if settings.qualification { 0 } else if phase == 0 { 15 } else { 60 });
+     let minimum = if phase == 0 {
+-        10_000
+-    } else {
+-        MIN_MEASURE_RECORDS
+-    };
++        if settings.qualification { QUALIFICATION_WARMUP } else { 10_000 }
++    } else { settings.exercise_minimum() };
+     let phase_start = Instant::now();
++    let deadline = phase_start + Duration::from_secs(if settings.qualification { 90 } else { 300 });
+     let phase_start_ns = ns(epoch)?;
+     let cpu_ticks_before = process_cpu_ticks()?;
+     let mut futures = JoinSet::new();
+@@ -209,15 +220,15 @@
+     let mut partition_counts = BTreeMap::<i32, u64>::new();
+     let mut packed_record_upper_sum = 0_u64;
+     loop {
+-        if phase_start.elapsed() > Duration::from_secs(300) {
++        if Instant::now() >= deadline {
+             return Err(fail(
+                 "bounded phase timeout; outstanding sends are ambiguous until close",
+             ));
+         }
+         let complete_admission = admitted >= minimum && phase_start.elapsed() >= duration;
+         if !complete_admission && futures.len() < WINDOW {
+-            if *next_id >= MAX_RECORDS {
+-                return Err(fail("10M total record cap reached before duration/minimum; run is unqualified, enlarge forecast separately"));
++            if *next_id >= settings.max_records() {
++                return Err(fail("bounded record cap reached before required count/time; unqualified, preserve history"));
+             }
+             let id = *next_id;
+             *next_id += 1;
+@@ -271,7 +282,7 @@
+             }
+             continue;
+         }
+-        if let Some(completed) = futures.join_next().await {
++        if let Some(completed) = tokio::time::timeout(deadline.saturating_duration_since(Instant::now()), futures.join_next()).await? {
+             let ack = completed??;
+             if ack.partition < 0 || ack.offset < 0 {
+                 return Err(fail("invalid public ack metadata"));
+@@ -284,7 +295,9 @@
+             break;
+         }
+     }
+-    producer.flush_timeout(Duration::from_secs(120)).await?;
++    let remaining = deadline.saturating_duration_since(Instant::now());
++    if remaining.is_zero() { return Err(fail("phase absolute deadline before flush")); }
++    producer.flush_timeout(remaining.min(Duration::from_secs(120))).await?;
+     journal.flush()?;
+     let seconds = phase_start.elapsed().as_secs_f64();
+     if admitted != acknowledged || acknowledged < minimum || seconds < duration.as_secs_f64() {
+@@ -296,14 +309,15 @@
+         json!({"phase":phase,"start_monotonic_ns":phase_start_ns,"end_monotonic_ns":ns(epoch)?,
+         "acknowledged":acknowledged,"seconds_including_admission_and_drain_flush":seconds,
+         "process_cpu_ticks_delta":process_cpu_ticks()?.checked_sub(cpu_ticks_before).ok_or_else(||fail("CPU ticks regressed"))?,
+-        "acknowledged_records_per_second":acknowledged as f64/seconds,
++        "acknowledged_records_per_second":if settings.qualification { None } else { Some(acknowledged as f64/seconds) },
++        "performance_qualified":false,"purpose":if settings.qualification {"qualification"} else {"ranking"},
+         "partition_counts":partition_counts,"sum_record_size_upper_bound":packed_record_upper_sum,
+         "sticky_61_byte_cohort_overheads":"unobserved by public API; not added to this sum",
+         "latency_scope":"individual public send invocation to its ack; closed-loop window, not CO-corrected/open-loop claim"}),
+     )
+ }
+ async fn produce(settings: &Settings) -> Outcome<()> {
+-    require_measurement_cpu()?;
++    require_producer_cpu(settings.qualification)?;
+     if settings.profile.starts_with("java-") {
+         return Err(fail("Java profiles require genuine Java driver"));
+     }
+@@ -312,10 +326,11 @@
+         &settings.out,
+         "configuration",
+         &json!({"classification":"executed only when separately authorized; no source preparation measurement",
+-        "profile":settings.profile,"seed":settings.seed,"topic":settings.topic,"value_bytes":100,"key_bytes":if settings.keyed(){16}else{0},
++        "profile":settings.profile,"purpose":if settings.qualification {"qualification"} else {"ranking"},
++        "performance_qualified":false,"seed":settings.seed,"topic":settings.topic,"value_bytes":100,"key_bytes":if settings.keyed(){16}else{0},
+         "key_presence":if settings.keyed(){"non-null"}else{"null"},"explicit_partition":false,
+         "acks":-1,"idempotence":true,"max_in_flight":5,"linger_ms":5,"batch_bytes":1048576,
+-        "compression":"none","connections_per_leader":1,"record_window":WINDOW,"max_records":MAX_RECORDS,
++        "compression":"none","connections_per_leader":1,"record_window":WINDOW,"max_records":settings.max_records(),
+         "record_accounting":"public Rust conservative per-record upper bound; real sticky policy adds61 per cohort",
+         "producer_policy":if settings.profile.starts_with("rust-uniform"){"Java4.3 uniform/adaptive=false state machine; Rust packed accounting"}else{"existing global round-robin null/murmur2 keyed"},
+         "host_physical_disk_floor_required":FLOOR,"cpu_lease_required":"exclusive CPU3; no builds/JIT or broker on3 during measurement"}),
+@@ -413,7 +428,7 @@
+         return Err(fail("incomplete bounded ack journal"));
+     }
+     let total = (length - 8) / u64::try_from(ROW_BYTES)?;
+-    if total > MAX_RECORDS {
++    if total > settings.max_records() {
+         return Err(fail("record count exceeds verifier memory bound"));
+     }
+     let count = usize::try_from(total)?;
+@@ -443,7 +458,7 @@
+         expected[index] = Some((take_i32(&bytes[12..16])?, take_i64(&bytes[16..24])?, phase));
+         phase_counts[usize::try_from(phase)?] += 1;
+     }
+-    if phase_counts[1] < MIN_MEASURE_RECORDS || expected.iter().any(Option::is_none) {
++    if phase_counts[1] < settings.exercise_minimum() || expected.iter().any(Option::is_none) {
+         return Err(fail("missing dense IDs or measured floor"));
+     }
+     let mut config = ConsumerConfig::bootstrap([settings.bootstrap.clone()]);
+@@ -545,7 +560,7 @@
+ #[tokio::main(flavor = "current_thread")]
+ async fn main() -> Outcome<()> {
+     let settings = Settings::read()?;
+-    if std::env::args().nth(1).as_deref() == Some("produce") {
++    if std::env::args().nth(1).is_some_and(|action| action.ends_with("produce")) {
+         produce(&settings).await
+     } else {
+         verify(&settings).await

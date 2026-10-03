@@ -1,0 +1,247 @@
+{
+  "actual_review_scope": {
+    "CPU_set": [
+      2,
+      4
+    ],
+    "historical_retained_actual_Cargo_log_parser_replays": 3,
+    "new_Cargo_compiler_test_javac_JVM_SDK_listener_socket_process_signal_cleanup_repository_operations": 0,
+    "source_memory_semantic_controls": 37
+  },
+  "all20_payload_hash_bytes_full07777_unchanged_before_after": true,
+  "classification": "Independent frozen WORK source review and extracted Python/semantic controls only. Broader76 has not been compiled or executed by review; no actual TCP/image/ownership qualification.",
+  "disposition": "Do not call broader original32737/e425 source or runner acceptance passed. Two cfg(test) source corrections and two future runner guard/retention corrections are concrete; author preparing preserved additive derivative. Coherent image/late-reply intent remains uncompiled/unexecuted, with LocalOwner/canonical causal gaps explicit. Root owns publication and future leases.",
+  "frozen20_payloads": {
+    "1.85.0-check.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/1.85.0-check.log"
+    },
+    "README.md": {
+      "bytes": 6073,
+      "full07777": 384,
+      "sha256": "f92d5274ad47b554d3f7df140b465cd062d62c0fc806f17b2080b4047977758c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/README.md"
+    },
+    "artifact-parser-validation.json": {
+      "bytes": 1541,
+      "full07777": 384,
+      "sha256": "e0eacc479aff6e782224f10e7f9cf42b9f0ab51787ead14e69145951c727c9b2",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/artifact-parser-validation.json"
+    },
+    "artifact_paths.py": {
+      "bytes": 1600,
+      "full07777": 384,
+      "sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/artifact_paths.py"
+    },
+    "before-manifest.json": {
+      "bytes": 864,
+      "full07777": 384,
+      "sha256": "9c6d442a308772ee1a080529292cc19d800ea77ff22fe223d7104cdbf53b482a",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/before-manifest.json"
+    },
+    "cache-guards.py": {
+      "bytes": 10074,
+      "full07777": 384,
+      "sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/cache-guards.py"
+    },
+    "candidate/partitionline-broker/src/raft/runtime.rs": {
+      "bytes": 113949,
+      "full07777": 384,
+      "sha256": "32737ccc7565dc1b44b63444c2d33885ee3a248cd3a35e7999e6b95126260ba1",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/candidate/partitionline-broker/src/raft/runtime.rs"
+    },
+    "candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "bytes": 44171,
+      "full07777": 384,
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/candidate/partitionline-broker/tests/common/raft_runtime.rs"
+    },
+    "check-parser.py": {
+      "bytes": 2166,
+      "full07777": 384,
+      "sha256": "c7070bddf4eeace6f95ff1498b7d00cd75ec5c9b77d1b459b41c02c6c81cb088",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/check-parser.py"
+    },
+    "guard-functions.py": {
+      "bytes": 13075,
+      "full07777": 384,
+      "sha256": "4bc27b5198f6e21b478a788d1f16dffe4707f0c522c921b126d4411bb8e20ab7",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/guard-functions.py"
+    },
+    "guard-provenance.json": {
+      "bytes": 1347,
+      "full07777": 384,
+      "sha256": "ad35308e2e02f5422110ed3e5989becedae7d501a5ce7e3a84b31d13491987a9",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/guard-provenance.json"
+    },
+    "next-run-plan.json": {
+      "bytes": 7152,
+      "full07777": 384,
+      "sha256": "7605e1f7d357d734adc3def88016def9052489414b096fc75368a49f100afecf",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/next-run-plan.json"
+    },
+    "prepare-runner.py": {
+      "bytes": 2997,
+      "full07777": 384,
+      "sha256": "542fd0828417f6eed68578dc13346fa22b8a52ca81639162cfb40d7ece9dbe51",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/prepare-runner.py"
+    },
+    "prepare-source.py": {
+      "bytes": 9825,
+      "full07777": 384,
+      "sha256": "5cdddb65870cbf269f33b06ae89d22fc4d000bb6e6027814b532043d0b4ea8c2",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/prepare-source.py"
+    },
+    "raft_runtime.rs.patch": {
+      "bytes": 12200,
+      "full07777": 384,
+      "sha256": "84be6e99e428d8fe51e510fb04e344f5b721ed6eb3d917c545dd949562b2d00c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/raft_runtime.rs.patch"
+    },
+    "run-next-focused.py": {
+      "bytes": 10276,
+      "full07777": 384,
+      "sha256": "329a24ac80c29f4322e519fd484491539a824ab40cfc90332a6001f65d3448a5",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/run-next-focused.py"
+    },
+    "runtime.rs.patch": {
+      "bytes": 1351,
+      "full07777": 384,
+      "sha256": "ad61812f003e2fd3c70b327a1d74620d4ae7ddd7e01bc9b481a57e406e9ca33a",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/runtime.rs.patch"
+    },
+    "source-validation.json": {
+      "bytes": 2359,
+      "full07777": 384,
+      "sha256": "be838ca68f4a03b748d0bf9c0e8366084eb37db419816313977877b6f6e90d0c",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/source-validation.json"
+    },
+    "stable-check.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/stable-check.log"
+    },
+    "stable-format.log": {
+      "bytes": 0,
+      "full07777": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": "/workspace/work/raft-runtime-76/tcp-qualification-02/stable-format.log"
+    }
+  },
+  "frozen_handoff": {
+    "bytes": 6442,
+    "full07777": 384,
+    "path": "/workspace/work/raft-runtime-76/tcp-qualification-02/handoff.json",
+    "sha256": "e4250889d4cd2e68818a21b19e6a68a8caeb7b516ad54643a24b34880a54591b"
+  },
+  "future_runner_findings": [
+    {
+      "class": "Failure-retention blocker for future execution",
+      "correction": "Retain all current executed/generated output bytes/full modes before parser qualification; keep parser failures as failures with complete retention receipt.",
+      "id": "parser-before-retention",
+      "path": "run-next-focused.py",
+      "support": "executed_elfs(output,name) precedes retain_cache and preserve_whole_cache. A parser exception can bypass all newly generated ELF/cache-delta preservation and reach only outer save(). The control reproduces this ordering; retained real logs now parse correctly but do not prove every future log will parse."
+    },
+    {
+      "class": "Future no-active-cache-owner/cleanup authority blocker",
+      "correction": "Fail closed on uncertain live inspections; retain positive references even if later fields fail, and use only root-reviewed exact platform exceptions with explicit uninspected fields. No actual process inspection/cache ownership result was claimed by this review.",
+      "id": "unknown-process-owner-suppressed",
+      "path": "guard-functions.py",
+      "support": "cache_owners catches broad OSError and continues; fd failures are also skipped. Exact extracted function with fake live cmdline positively referencing CARGO_TARGET_DIR then unreadable maps returns[] and discards known reference."
+    }
+  ],
+  "handoff_itself_bytes": 6442,
+  "historical_authentic_log_parser_replay": {
+    "bytes": 1598,
+    "full07777": 384,
+    "path": "/workspace/work/integration/raft-runtime-broader-review-02/authentic-parser-controls.json",
+    "sha256": "bc93e773383946361ef9a1f1b7dcd941b50fbc5c1a1251e7853c92a1aff492c2"
+  },
+  "logical20_payload_bytes": 241020,
+  "narrow_core_context": {
+    "membership_test_SHA256": "a4ffda2a35c905c9510278feac6a404c8caf12ff4c1d000fcad38da9b3e9a77d",
+    "replication_SHA256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+    "scope": "Earlier independently reviewed offline local-core4 passing tests and retention-only supplement are separate actual proof; no transfer of that qualification to broader TCP runtime32737/common-testea7a. No original failed receipt relabeled.",
+    "these_current_repository_bytes_read_only_match": true
+  },
+  "preservation": "All original20/241020B,6442B handoff and historical red/parser-failure/retention-only/narrow-positive sources remain unchanged. Review creates only bounded WORK text files.",
+  "prospective_resources": {
+    "arithmetically_verified_stage_minima_bytes": {
+      "image-five": 765919232,
+      "image-three": 715456512,
+      "owner-controls": 883752960
+    },
+    "components": "350MiB floor +96MiB generated-growth forecast +112MiB future delta/ELF retention +configured raw capture caps +32/48/64MiB temp data +12MiB source/audit metadata. Cache delta and newly unretained ELF gzip forecast are added at actual preflight.",
+    "excluded_or_pending": "Actual complete current pushed source materialization/audit and changed compiler/dependency inputs must already be provisioned or separately charged. These are serial unobserved compile-growth forecasts, not measured hard bounds or whole stable/MSRV/full-broker budgets. Revalidate inherited cache composition/retention, exact origin/current+ea9 full source guards, process exceptions, active CPU/disk lease and aggregate concurrent reserve before launch.",
+    "future_command_scope": "Initial stages select1image-three,1image-five and5owner controls only. Complete7 integration functions includes1 parent no-op child launcher; library12 includes7 shared plus5 ownership. No51/61 whole-broker qualification is implied.",
+    "not_execution_authority": true,
+    "sampled_review_free_bytes": 747638784
+  },
+  "review_control_source": {
+    "bytes": 12262,
+    "full07777": 384,
+    "path": "/workspace/work/integration/raft-runtime-broader-review-02/source-controls.py",
+    "sha256": "45660fd83a180cc7d7baa002511dfef300d632e260f56adcb2f1203b1abacd8e"
+  },
+  "review_controls": {
+    "bytes": 11129,
+    "full07777": 384,
+    "path": "/workspace/work/integration/raft-runtime-broader-review-02/controls.json",
+    "sha256": "7f6a0b92c3914d437c17f27f59636d53f370206656d05707b84742c45c762cd5"
+  },
+  "schema_version": 1,
+  "source_findings": [
+    {
+      "class": "cfg(test) instrumentation correctness blocker",
+      "control": "In-memory exact destruction/acquisition interleaving reproduced; this is not an observed Rust runtime event or production budget violation.",
+      "correction": "Drop TestCounter before returning semaphore capacity; preserve original32737 bytes and model. No peak should include stale released ownership.",
+      "id": "TestPermit-drop-order",
+      "path": "candidate/partitionline-broker/src/raft/runtime.rs",
+      "support": "TestPermit declares _permit before _counter; Rust fields drop in declaration order. Legal multithread interleaving: held4/current4 -> old permit release held3/current4 -> new acquire/construct held4/current5/peak5 -> old counter drop current4/peak5. lifecycle then rejects peak5 against client_slots4 even though acquired resources stayed<=4. Charged transport bytes have the same scaled issue."
+    },
+    {
+      "class": "Statically supported missing required cfg(test) field; actual compiler remains unrun",
+      "correction": "Add _counter:None to this manual test literal in an additive derivative.",
+      "description": "Queued Envelope inside reliable_stop_waits_for_saturated_owner_even_after_command_deadline omits newly required _counter. All other scanned literals have it. lib tests enable the field, so formatting alone cannot qualify compilation.",
+      "id": "Envelope-counter-missing",
+      "path": "candidate/partitionline-broker/src/raft/runtime.rs",
+      "support": [
+        {
+          "has_required_counter": true,
+          "line": 580
+        },
+        {
+          "has_required_counter": true,
+          "line": 622
+        },
+        {
+          "has_required_counter": true,
+          "line": 2542
+        },
+        {
+          "has_required_counter": true,
+          "line": 2569
+        },
+        {
+          "has_required_counter": false,
+          "line": 2699
+        }
+      ]
+    }
+  ],
+  "source_review": {
+    "LocalOwner_gap": "13 direct-owner control epochs still lack after-join zero-gauge/join receipts: LocalOwner.finish joins std owner and removes temp root without such assertions/receipt, while Stop trace is before its envelope counter drops. This is an explicit coverage limitation, not an observed leak. Either retain raw-only scope or add a truthful local-owner joined receipt without fabricated supervisor/network joins.",
+    "capture_bounds": "Each PID owner trace16MiB and each proxy case16MiB aggregate bytes are charged before writing; owner checkpoints copy bounded actual WAL/election/images when durable counts change. Proxy cap/I/O errors mark capture_failed and prevent successful cluster shutdown. These byte caps do not establish disk allocation overhead/RSS or completed runtime outcome.",
+    "causal_scope": "Frame counts/public base alone do not establish canonical image integrity, Install WAL selection, exact request/context/sequence response consumption or independent new-set majority causality. New captures/checker runs must bind them.2->3 and4->5 additions retain cardinal thresholds2 and3; no old-majority-only insufficiency claim follows. Existing removed-leader histories are a separate later stage.",
+    "exact_owner_timeout": "Direct owner control obtains a real successful follower Append reply, releases exact peer+sequence then rejects late acknowledgement with unchanged WAL/election/counters; a later request has greater sequence, stale timeout cannot remove it, and newer acknowledgement commits. Trace includes exact timeout peer/directory,sequence,image and released/feature/fallback outcomes. is_err asserts rejection without an exact serialized error variant; actual causal/error receipts remain pending.",
+    "late_reply": "Proxy writes captured bytes immediately after complete bounded read, before any delay. Both pipe futures join so request-direction EOF does not silently cancel a held reply. Revision2 sidecars distinguish successful/failed forward writes, partition drops and shutdown-before-forward; unattempted write timestamps/result are null. Forward success never proves owner ACK consumption. Delayed800ms vs configured500ms RPC is parent-clock timing; owner now_ms clocks are PID-local and reset on restart.",
+    "metrics_scope": "RAII gauges cover constructed client permits, transport charges, network tasks, sockets and pending/executing command envelopes. Counter repair must precede qualification. They exclude acquired-but-unpublished windows, allocator/RSS/OS buffers; public20ms diagnostics are sampled lower bounds. Runtime lifecycle requires actual spawn=join, zero current gauges and peak bounds, and emits supervisor receipt only after await succeeds.",
+    "runtime_deadlines_and_owned_cancellation": "Frame reads/writes, client admission and ordinary calls have absolute configured deadlines. Outbound response failure takes its socket and reliably cancels the exact job; reliable cleanup/Stop intentionally await blocking owner completion rather than fabricate a joined result on expiry. Public Runtime.shutdown awaits network workers and sole owner, then actual supervisor. No native Kafka wire/authentication/discovery contract is added.",
+    "true_observer_images": "Shared source starts3/5 total peers with2/4 genesis voters and one configured non-genesis observer. Two40KiB committed Data values feed a checkpoint>64KiB with image chunk cap32KiB (WAL chunk_bytes256KiB is a distinct limit). Public add_voter then requires selected image base,>=3 captured Chunk32 frames and real Finish34/Finished35 frames when capture is enabled; observer exits88, reopens, compares prefix/base and commits a subsequent suffix through all resulting peers."
+  }
+}

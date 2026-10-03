@@ -1,0 +1,11 @@
+from pathlib import Path
+p=Path('/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/run-cell.py')
+s=p.read_text()
+s=s.replace("runtime_deadline = deadline - PROOF_TAIL_SECONDS", "runtime_deadline = deadline - PROOF_TAIL_SECONDS\n    cancel_signals = []\n    # Signal handlers set state instead of raising between process creation and ownership capture.\n    def cancelled(signum, _frame):\n        cancel_signals.append(signum)\n    signal.signal(signal.SIGTERM, cancelled)\n    signal.signal(signal.SIGINT, cancelled)")
+s=s.replace("assert time.monotonic() < runtime_deadline, 'Reserve bounded source/input/process-closure proof tail'", "assert not cancel_signals, 'Host cancelled before launch; no owned process created'\n        assert time.monotonic() < runtime_deadline, 'Reserve bounded source/input/process-closure proof tail'")
+s=s.replace("reasons = []\n        samples = []", "reasons = []\n        if cancel_signals:\n            reasons.append('host cancellation signals=' + str(cancel_signals))\n            stop(process.pid)\n        samples = []")
+s=s.replace("except FileNotFoundError:\n                    pass", "except OSError:\n                    pass")
+s=s.replace("if free < FLOOR + STOP_MARGIN or time.monotonic() >= runtime_deadline:","if cancel_signals:\n                    reasons.append('host cancellation signals=' + str(cancel_signals))\n                    stop(process.pid)\n                    return\n                if free < FLOOR + STOP_MARGIN or time.monotonic() >= runtime_deadline:")
+s=s.replace("code = process.wait(timeout=10)\n        finally:", "code = process.wait(timeout=10)\n        except BaseException as error:\n            reasons.append('host wait failure type=' + type(error).__name__)\n            stop(process.pid)\n            code = process.wait(timeout=10)\n        finally:")
+s=s.replace("'whole_cell_proof_tail_seconds': PROOF_TAIL_SECONDS}", "'whole_cell_proof_tail_seconds': PROOF_TAIL_SECONDS,\n              'host_cancellation_signals': cancel_signals}")
+p.write_text(s)

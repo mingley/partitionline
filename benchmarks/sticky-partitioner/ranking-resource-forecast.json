@@ -1,0 +1,24 @@
+{
+  "classification": "Unexecuted supplemental ranking forecast; frozen original8.4GB source remains byte-for-byte. No original historical resource claim rewritten.",
+  "original_forecast_file": "resource-forecast.json",
+  "original_forecast_sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+  "original_requirement_bytes": 8396561424,
+  "SQLite_DELETE_rollback_journal_header_allocation_reserve_bytes": 2164260864,
+  "per_cell_conservative_free_requirement_bytes": 12725083152,
+  "SQLite_contract": {
+    "page_bytes": 4096,
+    "database_max_pages": 524288,
+    "journal_mode": "DELETE",
+    "synchronous": "FULL",
+    "cache_spill": "OFF",
+    "configured_cache_target_bytes": 16777216,
+    "dirty_page_bytes_upper": 2147483648,
+    "temp_store": "MEMORY",
+    "statement_journal_bytes_upper": 2164260864,
+    "dirty_and_statement_image_bytes_upper": 4294967296
+  },
+  "archive_reserve_not_reused_for_rollback_journal": true,
+  "limits": "No Cargo/JVM/runtime/ranking lease; original>=60s/>=1M independent delivered/5paired gates unchanged. Any future mutually exclusive journal/archive budget reuse requires separately reviewed enforced lifecycle.",
+  "build_or_image_provisioning_included": false,
+  "SQLite_statement_subjournal_allocation_reserve_bytes": 2164260864
+}

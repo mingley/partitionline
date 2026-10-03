@@ -1,0 +1,188 @@
+{
+  "classification": "Source and memory controls only; zero Cargo/runtime/process operations",
+  "count": 34,
+  "controls": [
+    {
+      "name": "all runtime source before test-only ownership module byte-identical to03",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "fixture is separately absolute bounded reliable actor wait",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Err', 'Deadline')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Err', 'Closed')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Err', 'Peer')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Err', 'Node', 'Corrupt')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Err', 'Node', 'Poisoned')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact rejection refuses ('Ok', 'Done')",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact intended domain rejection accepted",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "exact runtime NodeInvalidPeer pattern and all other results fail",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged election.persistent",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged election.role",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged base_position",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged last_position",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged committed_end",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged active_term",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged wal_durable_ops",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged election_durable_states",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged ready",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "rejection unchanged poisoned",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "both vector/full-route checks use exact reject helper, no broad is_err",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "production command20ms setting retained",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "intentional expiry/Stop test body unchanged async fn reliable_stop_waits_for_saturated_owner_even_after_command_deadline",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "intentional expiry/Stop test body unchanged async fn expired_outer_budget_cannot_admit_a_genuine_leader_write",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "commit retains absolute15s and original success/prefix predicate",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "all11 commit sites individually phase labeled",
+      "passed": true,
+      "details": [
+        "observer-prefix-on-genesis",
+        "observer-addition-all",
+        "observer-addition-reopen-all",
+        "observer-post-reopen-suffix",
+        "fault-initial-all",
+        "fault-after-process-exit-majority",
+        "fault-restarted-follower-all",
+        "fault-delayed-old-reply-all",
+        "fault-partition-new-majority",
+        "fault-healed-partition-all",
+        "fault-removed-leader-new-set"
+      ]
+    },
+    {
+      "name": "all prior15s helper values unchanged",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "diagnostics retain actual child status and control sequence",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "state read bounded before firstline projection",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "error diagnostics output ceiling uses UTF8-safe truncation",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bounded valid UTF8 diagnostic model 'ascii'",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bounded valid UTF8 diagnostic model '\u03bb\u03bb\u03bb\u03bb\u03bb'",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bounded valid UTF8 diagnostic model '\ufffd\ufffd\ufffd\ufffd\ufffd'",
+      "passed": true,
+      "details": null
+    },
+    {
+      "name": "bounded valid UTF8 diagnostic model '\\\\x00\\\\'",
+      "passed": true,
+      "details": null
+    }
+  ]
+}

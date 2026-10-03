@@ -1,0 +1,42 @@
+{
+  "classification": "unexecuted qualification runtime forecast only; original ranking8.4GB forecast unchanged",
+  "components": {
+    "two_journals_bytes": 3735568,
+    "sqlite_file_cap_bytes": 16777216,
+    "six_stdout_stderr_file_caps_bytes": 6291456,
+    "source_guards_monitors_receipts_bytes": 4194304,
+    "filesystem_directory_and_small_file_reserve_bytes": 4194304,
+    "already_ready_broker_incremental_append_allowance_bytes": 67108864
+  },
+  "per_cell_generated_allocation_upper_bound_bytes": 102301712,
+  "physical_floor_bytes": 367001600,
+  "stop_margin_bytes": 16777216,
+  "other_lane_growth_reserve_bytes": 134217728,
+  "per_cell_conservative_free_requirement_bytes": 620298256,
+  "six_cells_worst_case_accumulated_allocation_bytes": 613810272,
+  "one_small_cell_can_fit_current_approximately1GB_free": true,
+  "all_six_guaranteed_fit_without_recheck": false,
+  "already_ready_broker_precondition": "Fresh six-partition topic and broker/image initialization must be complete with actual identity and physical allocation receipt before this free-space check. No image pull, VFS expansion, broker cold start, topic creation or preallocation cost is silently included as zero.",
+  "broker_budget": "64MiB per-cell append allowance; actual ready topic footprint already measured separately. If real allocation exceeds reserve, stop own cell at physical floor+16MiB margin, preserve failure.",
+  "build_cache_included": false,
+  "archive_transient_included": false,
+  "runtime_only_inputs": "verified retained actual executable/classes and ready broker. Do not overlap new Cargo or image growth.",
+  "memory": {
+    "send_window": 8192,
+    "expected_ID_index_bytes_upper": 589824,
+    "seen_bytes_upper": 24576,
+    "SQLite_cache_bytes": 16777216,
+    "Java_heap_limit": 268435456
+  },
+  "time": {
+    "Rust_absolute_phase_seconds": 90,
+    "Java_phase_check_seconds": 90,
+    "Java_synchronous_send_max_block_seconds": 5,
+    "Java_close_seconds": 30,
+    "producer_host_hard_seconds": 360,
+    "consumer_host_hard_seconds": 360,
+    "audit_host_hard_seconds": 180,
+    "whole_host_hard_seconds": 1000
+  },
+  "cleanup": "none in the driver. Future own artifact/topic lifecycle requires root coordination; preserved original sources/ELFs/raw histories unchanged"
+}

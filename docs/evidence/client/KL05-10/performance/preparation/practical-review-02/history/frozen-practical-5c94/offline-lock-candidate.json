@@ -1,0 +1,733 @@
+{
+  "classification": "WORK-only manual lock graph candidate; Cargo resolver unexecuted",
+  "root_lock_sha256": "d35e6ba903c4f8b811997d06b9edf4e3612c3636dede83d07dda86570eddbca9",
+  "peer_lock_sha256": "f3aa51f847987c5b169eb3fa5cec7dfe3444e976364a101a2f4f70574d07fa01",
+  "candidate_lock_sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+  "packages": 88,
+  "root_bindings_retained": 80,
+  "added_peer_packages": [
+    [
+      "serde_json",
+      "1.0.149"
+    ],
+    [
+      "itoa",
+      "1.0.18"
+    ],
+    [
+      "memchr",
+      "2.8.3"
+    ],
+    [
+      "serde",
+      "1.0.228"
+    ],
+    [
+      "serde_core",
+      "1.0.228"
+    ],
+    [
+      "serde_derive",
+      "1.0.228"
+    ],
+    [
+      "zmij",
+      "1.0.23"
+    ]
+  ],
+  "registry_archive_checksum_checks": [
+    {
+      "name": "adler2",
+      "version": "2.0.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/adler2-2.0.1.crate",
+      "sha256": "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa",
+      "bytes": 13366,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "base64",
+      "version": "0.23.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/base64-0.23.1.crate",
+      "sha256": "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5",
+      "bytes": 93605,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "bitflags",
+      "version": "2.13.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/bitflags-2.13.1.crate",
+      "sha256": "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da",
+      "bytes": 51395,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "block-buffer",
+      "version": "0.12.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/block-buffer-0.12.1.crate",
+      "sha256": "d2f6c7dbe95a6ed67ad9f18e57daf93a2f034c524b99fd2b76d18fdfeb6660aa",
+      "bytes": 15902,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1.crate",
+      "sha256": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "bytes": 75667,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "cc",
+      "version": "1.4.4",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cc-1.4.4.crate",
+      "sha256": "0ad534f4357a5264cce5019c989cf66a4f0dc4e0d1b1d15f8aacec0ff7360273",
+      "bytes": 100602,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "cfg-if",
+      "version": "1.0.4",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cfg-if-1.0.4.crate",
+      "sha256": "9330f8b2ff13f34540b44e946ef35111825727b38d33286ef986142615121801",
+      "bytes": 9360,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "cmov",
+      "version": "0.5.4",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cmov-0.5.4.crate",
+      "sha256": "0c9ea0ac24bc397ab3c98583a3c9ba74fa56b09a4449bbe172b9b1ddb016027a",
+      "bytes": 27367,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "const-oid",
+      "version": "0.10.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/const-oid-0.10.2.crate",
+      "sha256": "a6ef517f0926dd24a1582492c791b6a4818a4d94e789a334894aa15b0d12f55c",
+      "bytes": 61449,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "cpufeatures",
+      "version": "0.3.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/cpufeatures-0.3.1.crate",
+      "sha256": "5ca28b0ae3115b884660db4118d803791fd6756b6e88f39c0f3f7859060d7566",
+      "bytes": 14272,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "crc32c",
+      "version": "0.6.8",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/crc32c-0.6.8.crate",
+      "sha256": "3a47af21622d091a8f0fb295b88bc886ac74efcc613efc19f5d0b21de5c89e47",
+      "bytes": 9647,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "crc32fast",
+      "version": "1.5.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/crc32fast-1.5.1.crate",
+      "sha256": "8498c871161e1742aaa9d52551b2d6ebdd4c3d45a3be423e3728f33b955be550",
+      "bytes": 47893,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "crypto-common",
+      "version": "0.2.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/crypto-common-0.2.2.crate",
+      "sha256": "ce6e4c961d6cd6c9a86db418387425e8bdeaf05b3c8bc1411e6dca4c252f1453",
+      "bytes": 15449,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "ctutils",
+      "version": "0.4.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/ctutils-0.4.2.crate",
+      "sha256": "7d5515a3834141de9eafb9717ad39eea8247b5674e6066c404e8c4b365d2a29e",
+      "bytes": 32739,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "digest",
+      "version": "0.11.3",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/digest-0.11.3.crate",
+      "sha256": "f1dd6dbb5841937940781866fa1281a1ff7bd3bf827091440879f9994983d5c2",
+      "bytes": 28955,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "errno",
+      "version": "0.3.14",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/errno-0.3.14.crate",
+      "sha256": "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb",
+      "bytes": 12002,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "find-msvc-tools",
+      "version": "0.1.11",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/find-msvc-tools-0.1.11.crate",
+      "sha256": "d45db016d36b838f563236e9193d0ee6ce38f3f68b6c94e914b4929c96bbb890",
+      "bytes": 31517,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "flate2",
+      "version": "1.1.10",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/flate2-1.1.10.crate",
+      "sha256": "6e634e2e0ebac1ee034020da1ca582e17ffe4e0f5e985823721e168928136dcb",
+      "bytes": 80244,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "getrandom",
+      "version": "0.2.17",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.2.17.crate",
+      "sha256": "ff2abc00be7fca6ebc474524697ae276ad847ad0a6b3faa4bcb027e9a4614ad0",
+      "bytes": 40780,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "getrandom",
+      "version": "0.4.3",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/getrandom-0.4.3.crate",
+      "sha256": "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099",
+      "bytes": 52437,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "hmac",
+      "version": "0.13.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/hmac-0.13.0.crate",
+      "sha256": "6303bc9732ae41b04cb554b844a762b4115a61bfaa81e3e83050991eeb56863f",
+      "bytes": 45167,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "hybrid-array",
+      "version": "0.4.14",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/hybrid-array-0.4.14.crate",
+      "sha256": "707114b52a152fa7bdb290cd7cd5912d9467273b6d74e21b8d81aca1f8533f6b",
+      "bytes": 36777,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "itoa",
+      "version": "1.0.18",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/itoa-1.0.18.crate",
+      "sha256": "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682",
+      "bytes": 15935,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "libc",
+      "version": "0.2.189",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/libc-0.2.189.crate",
+      "sha256": "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2",
+      "bytes": 851502,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "lock_api",
+      "version": "0.4.14",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/lock_api-0.4.14.crate",
+      "sha256": "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965",
+      "bytes": 29249,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "lz4_flex",
+      "version": "0.14.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/lz4_flex-0.14.0.crate",
+      "sha256": "ecbdfe44b1bd960b68170b417450a628c43f7cf56bb3c5317e61cb230ee7f226",
+      "bytes": 45637,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "memchr",
+      "version": "2.8.3",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/memchr-2.8.3.crate",
+      "sha256": "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98",
+      "bytes": 99165,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "miniz_oxide",
+      "version": "0.9.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/miniz_oxide-0.9.1.crate",
+      "sha256": "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c",
+      "bytes": 70519,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "mio",
+      "version": "1.2.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/mio-1.2.2.crate",
+      "sha256": "30d65c71f1ce40ab09135ce117d742b9f8a19ff91a41a8b57ed50bc2de59c427",
+      "bytes": 111363,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "once_cell",
+      "version": "1.21.4",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4.crate",
+      "sha256": "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50",
+      "bytes": 35010,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "parking_lot",
+      "version": "0.12.5",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/parking_lot-0.12.5.crate",
+      "sha256": "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a",
+      "bytes": 46735,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "parking_lot_core",
+      "version": "0.9.12",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/parking_lot_core-0.9.12.crate",
+      "sha256": "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1",
+      "bytes": 34110,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "pbkdf2",
+      "version": "0.13.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/pbkdf2-0.13.0.crate",
+      "sha256": "112d82ceb8c5bf524d9af484d4e4970c9fd5a0cc15ba14ad93dccd28873b0629",
+      "bytes": 22716,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "pin-project-lite",
+      "version": "0.2.17",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/pin-project-lite-0.2.17.crate",
+      "sha256": "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd",
+      "bytes": 31034,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "proc-macro2",
+      "version": "1.0.107",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/proc-macro2-1.0.107.crate",
+      "sha256": "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9",
+      "bytes": 59588,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "quote",
+      "version": "1.0.47",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/quote-1.0.47.crate",
+      "sha256": "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001",
+      "bytes": 31622,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "r-efi",
+      "version": "6.0.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/r-efi-6.0.0.crate",
+      "sha256": "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf",
+      "bytes": 65303,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "redox_syscall",
+      "version": "0.5.18",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/redox_syscall-0.5.18.crate",
+      "sha256": "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d",
+      "bytes": 30747,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "ring",
+      "version": "0.17.14",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/ring-0.17.14.crate",
+      "sha256": "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7",
+      "bytes": 1502610,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "rustc_version",
+      "version": "0.4.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/rustc_version-0.4.1.crate",
+      "sha256": "cfcb3a22ef46e85b45de6ee7e79d063319ebb6594faafcf1c225ea92ab6e9b92",
+      "bytes": 12245,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "rustls",
+      "version": "0.23.45",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/rustls-0.23.45.crate",
+      "sha256": "0d41d731c7d2f962d1ccc364cec258de3c0e93b38c2fb3ba97ac74513048d634",
+      "bytes": 378933,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "rustls-pki-types",
+      "version": "1.15.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/rustls-pki-types-1.15.1.crate",
+      "sha256": "2f4925028c7eb5d1fcdaf196971378ed9d2c1c4efc7dc5d011256f76c99c0a96",
+      "bytes": 39322,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "rustls-webpki",
+      "version": "0.103.15",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/rustls-webpki-0.103.15.crate",
+      "sha256": "f3c3cf1d8b1e7d4927e2d154c3fcb02979afb9939629c62cd9048d4f07b60ac2",
+      "bytes": 87465,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "scopeguard",
+      "version": "1.2.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/scopeguard-1.2.0.crate",
+      "sha256": "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49",
+      "bytes": 11619,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "semver",
+      "version": "1.0.28",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/semver-1.0.28.crate",
+      "sha256": "8a7852d02fc848982e0c167ef163aaff9cd91dc640ba85e263cb1ce46fae51cd",
+      "bytes": 33064,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "serde",
+      "version": "1.0.228",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde-1.0.228.crate",
+      "sha256": "9a8e94ea7f378bd32cbbd37198a4a91436180c5bb472411e48b5ec2e2124ae9e",
+      "bytes": 83652,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "serde_core",
+      "version": "1.0.228",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_core-1.0.228.crate",
+      "sha256": "41d385c7d4ca58e59fc732af25c3983b67ac852c1a25000afe1175de458b67ad",
+      "bytes": 63111,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "serde_derive",
+      "version": "1.0.228",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_derive-1.0.228.crate",
+      "sha256": "d540f220d3187173da220f885ab66608367b6574e925011a9353e4badda91d79",
+      "bytes": 59605,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "serde_json",
+      "version": "1.0.149",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/serde_json-1.0.149.crate",
+      "sha256": "83fc039473c5595ace860d8c4fafa220ff474b3fc6bfdb4293327f1a37e94d86",
+      "bytes": 155994,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "sha2",
+      "version": "0.11.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/sha2-0.11.0.crate",
+      "sha256": "446ba717509524cb3f22f17ecc096f10f4822d76ab5c0b9822c5f9c284e825f4",
+      "bytes": 33969,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "shlex",
+      "version": "2.0.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/shlex-2.0.1.crate",
+      "sha256": "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba",
+      "bytes": 19332,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "signal-hook-registry",
+      "version": "1.4.8",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/signal-hook-registry-1.4.8.crate",
+      "sha256": "c4db69cba1110affc0e9f7bcd48bbf87b3f4fc7c61fc9155afd4c469eb3d6c1b",
+      "bytes": 21668,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "simd-adler32",
+      "version": "0.3.10",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/simd-adler32-0.3.10.crate",
+      "sha256": "3a219298ac11a56ea9a6d2120044824d6f01aeb034955e7af7bc16858527deea",
+      "bytes": 18760,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "smallvec",
+      "version": "1.15.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/smallvec-1.15.2.crate",
+      "sha256": "8ed6a63f02c8539c91a8685a86f4099661ba3da017932f6ebbea6de3f0fa7c90",
+      "bytes": 34899,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "snap",
+      "version": "1.1.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/snap-1.1.2.crate",
+      "sha256": "199905e6153d6405f9728fe44daace35f8f837bbf830bb6e85fbd5828709a886",
+      "bytes": 34083,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "socket2",
+      "version": "0.6.5",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/socket2-0.6.5.crate",
+      "sha256": "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4",
+      "bytes": 60031,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "subtle",
+      "version": "2.6.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/subtle-2.6.1.crate",
+      "sha256": "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292",
+      "bytes": 14562,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "syn",
+      "version": "2.0.119",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/syn-2.0.119.crate",
+      "sha256": "872831b642d1a07999a962a351ed35b955ea2cfc8f3862091e2a240a84f17297",
+      "bytes": 307407,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "syn",
+      "version": "3.0.4",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/syn-3.0.4.crate",
+      "sha256": "e6275cddf4610d1775e6d1fe9469b2e77d0f39fd98fb7450901b821e0c53649f",
+      "bytes": 313047,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tokio",
+      "version": "1.53.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1.crate",
+      "sha256": "202caea871b69668250d242070849eb495be178ed697a3e98aebce5bc81a0bed",
+      "bytes": 920101,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tokio-macros",
+      "version": "2.7.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tokio-macros-2.7.2.crate",
+      "sha256": "78773a2a397f451582ce068015985c33193cf6dea8b74d2a639fe457b2f07b0e",
+      "bytes": 16081,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tokio-rustls",
+      "version": "0.26.5",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tokio-rustls-0.26.5.crate",
+      "sha256": "b0c85f2c3ef0b1cd58b36682f4b17aaa995f0e5db534d85692b4903abce21f67",
+      "bytes": 29077,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tracing",
+      "version": "0.1.44",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tracing-0.1.44.crate",
+      "sha256": "63e71662fa4b2a2c3a26f570f037eb95bb1f85397f3cd8076caed2f026a6d100",
+      "bytes": 463135,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tracing-attributes",
+      "version": "0.1.31",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tracing-attributes-0.1.31.crate",
+      "sha256": "7490cfa5ec963746568740651ac6781f701c9c5ea257c58e057f3ba8cf69e8da",
+      "bytes": 39733,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "tracing-core",
+      "version": "0.1.36",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/tracing-core-0.1.36.crate",
+      "sha256": "db97caf9d906fbde555dd62fa95ddba9eecfd14cb388e4f491a66d74cd5fb79a",
+      "bytes": 63967,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "twox-hash",
+      "version": "2.1.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/twox-hash-2.1.2.crate",
+      "sha256": "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c",
+      "bytes": 35641,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "typenum",
+      "version": "1.20.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/typenum-1.20.1.crate",
+      "sha256": "b6f5e870be6c3b371b77fe0ee0bafb859fa4964b4404c27de1d380043c4dda20",
+      "bytes": 105479,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "unicode-ident",
+      "version": "1.0.24",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/unicode-ident-1.0.24.crate",
+      "sha256": "e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75",
+      "bytes": 49298,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "untrusted",
+      "version": "0.9.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/untrusted-0.9.0.crate",
+      "sha256": "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1",
+      "bytes": 14447,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "wasi",
+      "version": "0.11.1+wasi-snapshot-preview1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/wasi-0.11.1+wasi-snapshot-preview1.crate",
+      "sha256": "ccf3ec651a847eb01de73ccad15eb7d99f80485de043efb2f370cd654f4ea44b",
+      "bytes": 28477,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "webpki-roots",
+      "version": "1.0.9",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/webpki-roots-1.0.9.crate",
+      "sha256": "7dcd9d09a39985f5344844e66b0c530a33843579125f23e21e9f0f220850f22a",
+      "bytes": 217462,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows-link",
+      "version": "0.2.1",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-link-0.2.1.crate",
+      "sha256": "f0805222e57f7521d6a62e36fa9163bc891acd422f971defe97d64e70d0a4fe5",
+      "bytes": 6133,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.52.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.52.0.crate",
+      "sha256": "282be5f36a8ce781fad8c8ae18fa3f9beff57ec1b52cb3de0789201425d9a33d",
+      "bytes": 2576877,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows-sys",
+      "version": "0.61.2",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-sys-0.61.2.crate",
+      "sha256": "ae137229bcbd6cdf0f7b80a31df61766145077ddf49416a728b02cb3921ff3fc",
+      "bytes": 2517186,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows-targets",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows-targets-0.52.6.crate",
+      "sha256": "9b724f72796e036ab90c1021d4780d4d3d648aca59e491e6b98e725b84e99973",
+      "bytes": 6403,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_aarch64_gnullvm",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_aarch64_gnullvm-0.52.6.crate",
+      "sha256": "32a4622180e7a0ec044bb555404c800bc9fd9ec262ec147edd5989ccd0c02cd3",
+      "bytes": 435718,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_aarch64_msvc",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_aarch64_msvc-0.52.6.crate",
+      "sha256": "09ec2a7bb152e2252b53fa7803150007879548bc709c039df7627cabbd05d469",
+      "bytes": 832615,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_i686_gnu",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_gnu-0.52.6.crate",
+      "sha256": "8e9b5ad5ab802e97eb8e295ac6720e509ee4c243f69d781394014ebfe8bbfa0b",
+      "bytes": 880402,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_i686_gnullvm",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_gnullvm-0.52.6.crate",
+      "sha256": "0eee52d38c090b3caa76c563b86c3a4bd71ef1a819287c19d586d7334ae8ed66",
+      "bytes": 475940,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_i686_msvc",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_i686_msvc-0.52.6.crate",
+      "sha256": "240948bc05c5e7c6dabba28bf89d89ffce3e303022809e73deaefe4f6ec56c66",
+      "bytes": 901163,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_x86_64_gnu",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_gnu-0.52.6.crate",
+      "sha256": "147a5c80aabfbf0c7d901cb5895d1de30ef2907eb21fbbab29ca94c5b08b1a78",
+      "bytes": 836363,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_x86_64_gnullvm",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_gnullvm-0.52.6.crate",
+      "sha256": "24d5b23dc417412679681396f2b49f3de8c1473deb516bd34410872eff51ed0d",
+      "bytes": 435707,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "windows_x86_64_msvc",
+      "version": "0.52.6",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/windows_x86_64_msvc-0.52.6.crate",
+      "sha256": "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec",
+      "bytes": 832564,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "zeroize",
+      "version": "1.9.0",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/zeroize-1.9.0.crate",
+      "sha256": "e13c156562582aa81c60cb29407084cdb54c4164760106ab78e6c5b0858cf64e",
+      "bytes": 24480,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "zlib-rs",
+      "version": "0.6.8",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/zlib-rs-0.6.8.crate",
+      "sha256": "b268e58e7c693d7c271f93ffc4ba3b380412554231c85bf61ca7af91042a4112",
+      "bytes": 215857,
+      "Cargo_lock_checksum_match": true
+    },
+    {
+      "name": "zmij",
+      "version": "1.0.23",
+      "archive": "/workspace/work/cargo/registry/cache/index.crates.io-1949cf8c6b5b557f/zmij-1.0.23.crate",
+      "sha256": "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b",
+      "bytes": 28612,
+      "Cargo_lock_checksum_match": true
+    }
+  ],
+  "missing_archive_count": 0,
+  "sum_checked_cached_archive_bytes": 18751123,
+  "offline_lock_validation_pending": true,
+  "Cargo_commands_executed": false,
+  "future_step": "Root-authorized cargo generate-lockfile --offline in shallow WORK adopter bound to actual immutable client. Compare real resolved lock; freeze/push any correction before final --offline --locked compile."
+}

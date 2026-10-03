@@ -723,48 +723,7 @@ impl Cluster {
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
     }
-    fn commit_diagnostics(&mut self, phase: &str, index: u64, ids: &[usize]) -> String {
-        let mut text =
-            format!("commit deadline phase={phase} index={index} ids={ids:?} budget_ms=15000;");
-        for (id, process) in self.processes.iter_mut().enumerate() {
-            let Some(process) = process else {
-                text.push_str(&format!(" node{id}=closed;"));
-                continue;
-            };
-            let status = match process.child.try_wait() {
-                Ok(None) => format!("running(pid={})", process.child.id()),
-                Ok(Some(code)) => format!("exited({code})"),
-                Err(error) => format!("status-error({error})"),
-            };
-            let mut bytes = Vec::new();
-            let header = match File::open(process.root.join("state"))
-                .and_then(|file| file.take(2048).read_to_end(&mut bytes))
-            {
-                Ok(count) => format!(
-                    "read{count}B firstline={:?}",
-                    String::from_utf8_lossy(&bytes).lines().next().unwrap_or("")
-                ),
-                Err(error) => format!("state-read-error({error})"),
-            };
-            text.push_str(&format!(
-                " node{id}={status} control_next={} {header};",
-                process.next
-            ));
-            // Error diagnostics are test evidence, not a full state image. A
-            // fixed ceiling also covers larger permitted route tables.
-            if text.len() > 16 * 1024 {
-                let mut end = 16 * 1024 - " [diagnostic truncated]".len();
-                while !text.is_char_boundary(end) {
-                    end -= 1;
-                }
-                text.truncate(end);
-                text.push_str(" [diagnostic truncated]");
-                break;
-            }
-        }
-        text
-    }
-    async fn commit(&mut self, phase: &str, index: u64, ids: &[usize]) -> TestResult {
+    async fn commit(&self, index: u64, ids: &[usize]) -> TestResult {
         let deadline = Instant::now() + Duration::from_secs(15);
         loop {
             if ids
@@ -788,7 +747,7 @@ impl Cluster {
                 return Ok(());
             }
             if Instant::now() >= deadline {
-                return Err(self.commit_diagnostics(phase, index, ids).into());
+                return Err("commit deadline".into());
             }
             tokio::time::sleep(Duration::from_millis(20)).await;
         }
@@ -873,9 +832,7 @@ async fn observer_image_history(total: usize) -> TestResult {
             .nth(2)
             .ok_or("proposal response")?
             .parse()?;
-        cluster
-            .commit("observer-prefix-on-genesis", committed, &voters)
-            .await?;
+        cluster.commit(committed, &voters).await?;
     }
     let checkpoint = cluster.command(leader, "checkpoint 62").await?;
     assert!(checkpoint.starts_with("image "));
@@ -903,9 +860,7 @@ async fn observer_image_history(total: usize) -> TestResult {
         .ok_or("addition position")?
         .parse()?;
     let all = (0..total).collect::<Vec<_>>();
-    cluster
-        .commit("observer-addition-all", addition, &all)
-        .await?;
+    cluster.commit(addition, &all).await?;
     assert_eq!(
         cluster.image_base(observer)?.1,
         base,
@@ -916,9 +871,7 @@ async fn observer_image_history(total: usize) -> TestResult {
     cluster.crash(observer).await?;
     cluster.spawn(observer)?;
     cluster.ready().await?;
-    cluster
-        .commit("observer-addition-reopen-all", addition, &all)
-        .await?;
+    cluster.commit(addition, &all).await?;
     assert_eq!(
         cluster.image_base(observer)?.1,
         base,
@@ -951,9 +904,7 @@ async fn observer_image_history(total: usize) -> TestResult {
         .nth(2)
         .ok_or("suffix position")?
         .parse()?;
-    cluster
-        .commit("observer-post-reopen-suffix", suffix, &all)
-        .await?;
+    cluster.commit(suffix, &all).await?;
     cluster.shutdown().await
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -980,7 +931,7 @@ async fn fault_history(count: usize) -> TestResult {
         .ok_or("proposal response")?
         .parse()?;
     let all = (0..count).collect::<Vec<_>>();
-    cluster.commit("fault-initial-all", index, &all).await?;
+    cluster.commit(index, &all).await?;
     let follower = (leader + 1) % count;
     cluster.crash(follower).await?;
     let answer = cluster
@@ -999,18 +950,14 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != follower)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-after-process-exit-majority", after, &majority)
-        .await?;
+    cluster.commit(after, &majority).await?;
     assert!(cluster
         .command(leader, "checkpoint 21")
         .await?
         .starts_with("image "));
     cluster.spawn(follower)?;
     cluster.ready().await?;
-    cluster
-        .commit("fault-restarted-follower-all", after, &all)
-        .await?;
+    cluster.commit(after, &all).await?;
     // One delayed old response crosses its source RPC deadline and a reconnect.
     // Actual proxy packets and owner ACKs distinguish forward attempts from receipts.
     cluster.gate.delay[leader * count + follower].store(800, Ordering::Release);
@@ -1022,9 +969,7 @@ async fn fault_history(count: usize) -> TestResult {
         .nth(2)
         .ok_or("proposal response")?
         .parse()?;
-    cluster
-        .commit("fault-delayed-old-reply-all", reordered, &all)
-        .await?;
+    cluster.commit(reordered, &all).await?;
     // Isolate the prior leader bidirectionally. Majority elects autonomously;
     // the isolated writer cannot gain a committed divergent prefix.
     for id in 0..count {
@@ -1072,9 +1017,7 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != leader)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-partition-new-majority", committed, &surviving)
-        .await?;
+    cluster.commit(committed, &surviving).await?;
     let lease_deadline = Instant::now() + Duration::from_secs(5);
     while cluster.state(leader)?.1 == "Leader" {
         if Instant::now() >= lease_deadline {
@@ -1093,9 +1036,7 @@ async fn fault_history(count: usize) -> TestResult {
         cluster.gate.set(leader, id, true);
         cluster.gate.set(id, leader, true);
     }
-    cluster
-        .commit("fault-healed-partition-all", committed, &all)
-        .await?;
+    cluster.commit(committed, &all).await?;
     // A committed removed leader cannot contribute a match in the new set.
     let current = cluster.leader(&[]).await?;
     let removed = cluster
@@ -1112,9 +1053,7 @@ async fn fault_history(count: usize) -> TestResult {
         .copied()
         .filter(|i| *i != current)
         .collect::<Vec<_>>();
-    cluster
-        .commit("fault-removed-leader-new-set", removal, &remaining)
-        .await?;
+    cluster.commit(removal, &remaining).await?;
     let next = cluster.leader(&[current]).await?;
     assert_ne!(current, next);
     cluster.shutdown().await?;

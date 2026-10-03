@@ -1,0 +1,45 @@
+--- frozen5c94/README.md
++++ corrected/README.md
+@@ -19,15 +19,21 @@
+ retaining the actual 350 MiB floor. Rust close is 30 seconds in qualification.
+ Source guards and process cleanup remain part of that host budget.
+ 
+-The qualification forecast requires 620,298,256 free bytes (about 592 MiB) before
++The qualification forecast requires 687,407,120 free bytes (about 656 MiB) before
+ one cell, including the 350 MiB floor, 16 MiB stop margin, 128 MiB shared-growth
+-reserve, 3.74 MB two journals, a 16 MiB SQLite cap, bounded logs and a 64 MiB ready
++reserve, 3.74 MB two journals, a fixed-page 16 MiB SQLite DB cap, separate
++32 MiB normal rollback and 32 MiB statement/subjournal reserves, bounded logs
++and a 64 MiB ready
+ broker append allowance. Six cells recheck real free space; worst-case cumulative
+ allocation can prevent the sixth and is not claimed to fit automatically.
+ No image pull, broker cold start, new topic/index preallocation or compile cache
+ is silently counted as zero: a broker and fresh six-partition topic must already
+ be ready with actual physical-allocation receipt before this runtime check.
+ The original 8.4 GB ranking forecast remains byte-for-byte in resource-forecast.json.
++The runner now uses the supplemental ranking-resource-forecast.json, requiring
++12,725,083,152 bytes for its unchanged 10M record cap. This includes both SQLite
++sidecar reserves; it does not reuse the separate archive allowance. Ranking remains
++held until this real budget and the independent CPU 3 lease are available.
+ 
+ Cargo.lock here is a manual WORK graph candidate, not a Cargo-resolved artifact.
+ It preserves all 80 root-lock bindings, adds seven pinned serde_json-closure
+@@ -133,3 +139,18 @@
+ reserve, 16 MiB metadata, 16 MiB stop margin and 350 MiB floor requires
+ 914,358,272 free bytes before an authorized cold compilation. It is a forecast,
+ not an observed build; actual cache growth can still stop the cell.
++
++SQLite page_size=4096 and max_page_count are read back before any schema creation.
++The checker also verifies DELETE journal mode, FULL synchronization, disabled
++cache spill and MEMORY temp store. Normal rollback and statement/subjournal
++allowances are conservative proposals, not observed allocations. The 16 MiB
++cache_size is a configured soft target: dirty pages may exceed it up to the DB
++cap, with additional statement-page and allocator overhead. No hard 16 MiB RAM
++cap is claimed. The connection closes even when configuration checks fail.
++
++Process-group inspection now fails closed on unreadable or malformed PID state,
++wrong PID/session or changed owner starttime. A missing stat must also pass an
++existence probe confirming the PID vanished. Unknown membership is recorded as
++null/unverified, never an empty closed group, and refuses group signalling. The
++wrapper may kill its known unreaped direct Popen child while recording that
++descendant closure remains unverified. No daemon exception silently hides a PID.

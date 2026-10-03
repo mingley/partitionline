@@ -1,0 +1,45 @@
+{
+  "classification": "Frozen-source findings addressed in additive WORK derivative; no repo/Cargo/JVM/SQLite/process/audit/main/benchmark execution",
+  "original_stage_sha256": "5c94ab5065e12bdc174fdd3abfd3520ee0ed893553a6f301d9719344995f37a1",
+  "findings": [
+    {
+      "source": "OpenLoop independent63 pure source/semantic controls",
+      "problem": "4096 max pages did not bind4096-byte page geometry and DELETE rollback journal was unbudgeted",
+      "fix": "Explicit verified4096 page geometry/max_page_count before schema; verified DELETE/FULL/cache_spill OFF/temp MEMORY; separate conservative normal and statement sidecars; configuration failure closes connection",
+      "limits": "No real SQLite allocation/control executed. Cache target16MiB is soft; dirty/statement pages can exceed it. Future positive/raw mutation controls and actual allocation receipts still required."
+    },
+    {
+      "source": "OpenLoop independent PermissionError counterexample",
+      "problem": "members() dropped unreadable live PID state and could claim an empty closed group",
+      "fix": "Only independently confirmed vanished PIDs may be absent. Unknown/malformed/changed PID/session/starttime fails closed; group stop refused and closure_verified=false; known direct child only kill may settle parent without claiming descendant closure",
+      "limits": "No real proc inspection/group signal/process lifecycle executed. Future genuine own process/cancellation/output/deadline controls still required."
+    }
+  ],
+  "executed_pure_semantic_controls": {
+    "count": 44,
+    "receipt": "source-semantic-controls.json",
+    "classification": "AST extracted helper definitions with FakeConnection/FakePath/FakeOS only; no actual SQLite/proc/processes",
+    "first_attempt": "history/control-attempt-01-syntax contains actual parse failure before control execution; corrected run passes38",
+    "nested_failure_path_controls": "Six actual extracted inspect_owned/stop_owned fixtures verify unknown remains null, recovered-empty still retains failed cell, only known direct child mock kill after group refusal, changed identity refusal, and verified group/empty distinctions."
+  },
+  "qualification_forecast_bytes": 687407120,
+  "supplemental_ranking_forecast_bytes": 12725083152,
+  "original_ranking_resource_forecast_unchanged_bytes": 8396561424,
+  "ranking_minima_unchanged": {
+    "seconds": 60,
+    "independent_delivered_measure_records": 1000000,
+    "paired_blocks": 5
+  },
+  "cold_compilation_forecast_unchanged_bytes": 914358272,
+  "bench_Rust_Java_and_Cargo_sources_unchanged_from_frozen5c94": true,
+  "new_ranking_forecast_is_effective_launch_guard": true,
+  "no_archive_reserve_reuse_for_journals": true,
+  "future_required_gates": [
+    "Root independent source review/install/push",
+    "Actual offline Cargo resolver validation of manual lock",
+    "Strict actual immutable stable/MSRV default/all package recompilation",
+    "Actual genuine Java build and six small live delivery cells plus raw negative controls",
+    "Separate CPU3/ranking resource lease and complete>=60s/>=1M/5paired measurements"
+  ],
+  "card_status_or_performance_claim_changed": false
+}

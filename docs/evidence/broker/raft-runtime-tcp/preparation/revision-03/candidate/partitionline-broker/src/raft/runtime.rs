@@ -2514,47 +2514,11 @@ mod ownership_tests {
                 root,
             })
         }
-        async fn fixture(&self, phase: &str, command: Command) -> TestResult<Result<Reply>> {
-            // Ownership setup/observation is not an ordinary latency-budget
-            // assertion. It uses reliable admission with a separate absolute
-            // test wait; production call/internal deadlines and the intentional
-            // 20ms Stop/expired-write controls retain their original behavior.
-            let deadline = Instant::now() + Duration::from_secs(2);
-            match tokio::time::timeout_at(deadline, self.control.reliable(command)).await {
-                Ok(reply) => Ok(reply),
-                Err(_) => Err(format!("fixture phase {phase}: absolute2s wait expired").into()),
-            }
-        }
         async fn state(&self) -> TestResult<State> {
-            match self.fixture("observe-state", Command::State).await?? {
+            match self.control.internal(Command::State).await? {
                 Reply::State(s) => Ok(s),
                 _ => Err("state reply".into()),
             }
-        }
-        async fn reject_vote(&self, phase: &str, response: Message) -> TestResult {
-            let before = self.state().await?;
-            match self.fixture(phase, Command::Acknowledge(response)).await? {
-                Err(Error::Node(replication::Error::InvalidPeer)) => {}
-                Err(other) => {
-                    return Err(format!("{phase}: expected Node InvalidPeer, got {other:?}").into());
-                }
-                Ok(_) => return Err(format!("{phase}: abandoned correlation was accepted").into()),
-            }
-            let after = self.state().await?;
-            assert_eq!(after.election.persistent, before.election.persistent);
-            assert_eq!(after.election.role, before.election.role);
-            assert_eq!(after.base_position, before.base_position);
-            assert_eq!(after.last_position, before.last_position);
-            assert_eq!(after.committed_end, before.committed_end);
-            assert_eq!(after.active_term, before.active_term);
-            assert_eq!(after.wal_durable_ops, before.wal_durable_ops);
-            assert_eq!(
-                after.election_durable_states,
-                before.election_durable_states
-            );
-            assert_eq!(after.ready, before.ready);
-            assert_eq!(after.poisoned, before.poisoned);
-            Ok(())
         }
         fn assert_joined(&self) -> TestResult {
             use std::io::Write;
@@ -2694,11 +2658,12 @@ mod ownership_tests {
         request: replication::DynamicVoteRequest,
     ) -> TestResult<Message> {
         match owner
-            .fixture(
-                "receive-genuine-vote",
-                Command::Inbound(request.context.leader, Message::Vote(request)),
-            )
-            .await??
+            .control
+            .internal(Command::Inbound(
+                request.context.leader,
+                Message::Vote(request),
+            ))
+            .await?
         {
             Reply::Message(m @ Message::VoteReply(_)) => Ok(m),
             _ => Err("actual vote response".into()),
@@ -2737,15 +2702,17 @@ mod ownership_tests {
         }
         for request in &requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], *request).await?;
-            source
-                .reject_vote("abandoned-vector-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "abandoned vector grant cannot remain correlated"
+            );
         }
         tokio::time::sleep(Duration::from_millis(3)).await;
-        let newer = match source
-            .fixture("next-campaign-tick", Command::Tick)
-            .await??
-        {
+        let newer = match source.control.internal(Command::Tick).await? {
             Reply::Votes(jobs) => jobs,
             _ => return Err("campaign reply".into()),
         };
@@ -2770,9 +2737,14 @@ mod ownership_tests {
         dispatch_votes(&source.control, &routes, newer).await;
         for request in new_requests {
             let response = grant(&peers[request.context.peer.id as usize - 1], request).await?;
-            source
-                .reject_vote("full-route-genuine-grant", response)
-                .await?;
+            assert!(
+                source
+                    .control
+                    .internal(Command::Acknowledge(response))
+                    .await
+                    .is_err(),
+                "failed route grant cannot remain correlated"
+            );
         }
         drop(routes);
         drop(receivers);

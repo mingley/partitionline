@@ -1,0 +1,45 @@
+{
+  "classification": "PREPARED plan; no Cargo/compiler/JVM/cleanup command executed",
+  "lease": "Root must release the existing Avro CPU0,1 lease and grant a bounded source-specific slot",
+  "source": "Install/review only the declared benchmarks/sticky-partitioner prefix, push, materialize one actual immutable full tree via existing verified reuse",
+  "manual_lock": {
+    "file": "benchmarks/sticky-partitioner/Cargo.lock",
+    "status": "88-package WORK graph candidate, not Cargo validated",
+    "archives": "All86 registry archives present and SHA256-equal to lock checksums;18,751,123bytes checked",
+    "future_resolver": "First run cargo generate-lockfile --offline in a shallow WORK adopter whose partitionline path points at actual immutable client. Copy existing candidate lock there. No whole source duplicate.",
+    "failure": "Retain initial source/lock/command/stdout/stderr/exit if resolver differs. Freeze/push corrected actual lock before final immutable --offline --locked commands."
+  },
+  "first_focused_compile": [
+    "Format first with explicit work RUSTUP_HOME/absolute stable and1.85 formatters",
+    "Retain/inventory every existing executable/ELF in the exclusively assigned cache before package clean",
+    "Force partitionline and partitionline-sticky-benchmark package recompilation; reuse only dependencies with matching toolchain/profile/features",
+    "Stable default cargo check --offline --locked --manifest-path benchmarks/sticky-partitioner/Cargo.toml",
+    "Stable default cargo clippy --offline --locked --manifest-path benchmarks/sticky-partitioner/Cargo.toml --all-targets -- -D warnings",
+    "Stable allfeature repeat with --all-features (driver tracing forwards partitionline/tracing)",
+    "Preserve actual first compiler/linter failures, fix only owned bench source, freeze/push then retry on a new immutable source",
+    "MSRV1.85 default/allfeature strict cells, same source/held/sourceguard proof, clean profile only after verified ELF retention"
+  ],
+  "development_cache_forecast": {
+    "current_cache_reuse_not_assumed": true,
+    "cold_single_graph_peak_generated_bytes_proposed": 471859200,
+    "retained_executable_and_rawlog_reserve_bytes": 41943040,
+    "source_overlay_and_minimal_metadata_reserve_bytes": 16777216,
+    "physical_floor_bytes": 367001600,
+    "minimum_free_before_cold_graph_bytes": 897581056,
+    "live_stop_margin_bytes": 16777216,
+    "toolchain_profile_switch": "one owned target serially; exact retained ELF hash/fullmode inventory before any future root-authorized generated-cache cleanup",
+    "actual_growth_monitor_required": true,
+    "release_build": "Separate later lease/budget; debug compile is correctness prep and never release performance qualification"
+  },
+  "qualification_runtime": {
+    "cache_overlap": "Do not overlap cold Cargo or image provisioning with six runtime cells",
+    "broker": "Already-ready genuine compatible Kafka broker/fresh six-partition topic with actual version/artifact/config/allocation receipt; current host budget excludes image/VFS/startup costs",
+    "mode": "Purposequalification on CPU0,1; exact8192+16384records; no >=60s/1M/five-paired ranking claim",
+    "one_cell_free_requirement_bytes": 620298256,
+    "all_six_fit_guaranteed": false,
+    "recheck": "Initialfree, shared physical floor+16MiB stop margin, source/inputSHA/fullmode guard and ownPGID closure every cell",
+    "negative_controls": "After actual small positive output exists, duplicate/missing/changedID/hash/offset/phase/shortbody/unknownpurpose controls can exercise independent checker; no invented raw SDK output"
+  },
+  "ranking": "Original resource-forecast8,396,561,424bytes and profiles>=60s/>=1M independent delivery/5paired blocks remain unchanged, separate CPU3 lease",
+  "repository_and_product_edits_performed": false
+}

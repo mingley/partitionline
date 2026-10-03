@@ -1,0 +1,11 @@
+{
+  "classification": "Actual first pure-control script parse failure before any control/SQLite/proc/process/audit/main execution",
+  "command": [
+    "python3",
+    "/workspace/work/client-sticky-performance-practical-review-02/source-semantic-controls.py"
+  ],
+  "exit": 1,
+  "script_sha256": "b660348904725f49f7ad1efa6d14d813fb601726f1dbc14cf0931e1afdb7d3b4",
+  "script_full_mode": 384,
+  "stderr": "Exact diagnostic retained from actual tool output; no compiler/runtime outcome inferred"
+}

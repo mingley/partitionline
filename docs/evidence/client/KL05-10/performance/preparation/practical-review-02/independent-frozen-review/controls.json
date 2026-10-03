@@ -1,0 +1,843 @@
+{
+  "classification": "Independent extracted-source/semantic controls only; zero Cargo/javac/JVM/SDK/native/SQLite/benchmark/process/cleanup executions",
+  "controls": [
+    {
+      "detail": null,
+      "name": "six exact distinct qualification profiles",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "five genuine planned paired permutations",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification exact counts versus ranking minima",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "journal row and byte forecast",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "runtime additive forecast arithmetic",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "cold graph forecast arithmetic",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "broker provisioning remains an explicit separate precondition",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum8192 drain1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum8192 drain37",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum8192 drain8192",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum16384 drain1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum16384 drain37",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "qualification admission/drain model minimum16384 drain8192",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id0 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id0 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id8191 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id8191 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id8192 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id8192 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id24575 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id24575 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id9223372036854775807 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed0 id9223372036854775807 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id0 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id0 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id8191 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id8191 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id8192 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id8192 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id24575 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id24575 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id9223372036854775807 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed79443 id9223372036854775807 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id0 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id0 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id8191 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id8191 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id8192 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id8192 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id24575 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id24575 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id9223372036854775807 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed9223372036854775808 id9223372036854775807 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id0 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id0 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id8191 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id8191 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id8192 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id8192 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id24575 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id24575 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id9223372036854775807 key0",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "public source-input projection seed18446744073709551615 id9223372036854775807 key1",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "extracted readable matching process membership",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "extracted owned group would receive only intended signal",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "extracted readable unrelated group excluded",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "extracted vanished entry is excluded",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "extracted session mismatch refuses signal",
+      "passed": true
+    },
+    {
+      "detail": {
+        "meaning": "The frozen source treats unknown membership as proven absence; this is the review counterexample, not a real process event.",
+        "returned_members": [],
+        "signals": []
+      },
+      "name": "reproduced frozen-source unreadable false-empty counterexample",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "frozen SQLite source leaves page_size unspecified",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "frozen SQLite source uses separate DELETE rollback journal",
+      "passed": true
+    },
+    {
+      "detail": {
+        "actual_SQLite_connections_or_disk_files": 0,
+        "advertised_database_cap_bytes": 16777216,
+        "legal_page_size_bytes": 65536,
+        "max_page_count": 4096,
+        "possible_database_cap_bytes": 268435456
+      },
+      "name": "reproduced SQLite cap arithmetic counterexample",
+      "passed": true
+    },
+    {
+      "detail": null,
+      "name": "DELETE journal is uncharged by explicit SQLite component",
+      "passed": true
+    }
+  ],
+  "cpu_set": [
+    2,
+    4
+  ],
+  "extracted_AST_SHA256": {
+    "expected_hash": "1c71d5de95a2e2e5fc16364bd7a2b520146a21dd718dcc9cee464f36eb35db64",
+    "members": "4de5290cb50e589410416f6df4b1197086ad4769dba1a84ba20dc9a89357ff94",
+    "stop": "7274de0bdeb1085190eea89add2acba44cd5cacfeffc236b86823bad142de46c"
+  },
+  "logical_payload_bytes": 532957,
+  "passed_control_count": 63,
+  "payload_count": 71,
+  "source_manifest_sha256": "5c94ab5065e12bdc174fdd3abfd3520ee0ed893553a6f301d9719344995f37a1",
+  "source_payloads": {
+    "adapt-practical-java.py": {
+      "bytes": 4361,
+      "full_mode": 384,
+      "sha256": "5bfaf30d105a6faf1883a86d96857144edf9bd97a9de85ab0c96b3b751c4136b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/adapt-practical-java.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/adapt-practical-java.py"
+    },
+    "adapt-practical-source.py": {
+      "bytes": 5183,
+      "full_mode": 384,
+      "sha256": "7741bf75ce8eb34c1e8528383dc2c0f80c3f52b16b9e3e008d6a24a87e46ca41",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/adapt-practical-source.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/adapt-practical-source.py"
+    },
+    "add-host-cancellation.py": {
+      "bytes": 2073,
+      "full_mode": 384,
+      "sha256": "ec071ca974c63983f2b66a06eb85c78e802f77b8e939290e76563da8fc7604db",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/add-host-cancellation.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/add-host-cancellation.py"
+    },
+    "audit-qualification-and-size-bounds.patch": {
+      "bytes": 4309,
+      "full_mode": 384,
+      "sha256": "795a47d5a65059fe5f0bcdb42230b94da5a6d82f1f4785b7e889c028c5ed69b1",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/audit-qualification-and-size-bounds.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/audit-qualification-and-size-bounds.patch"
+    },
+    "benchmarks/sticky-partitioner/Cargo.lock": {
+      "bytes": 19857,
+      "full_mode": 384,
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/Cargo.lock",
+      "target": "benchmarks/sticky-partitioner/Cargo.lock"
+    },
+    "benchmarks/sticky-partitioner/Cargo.toml": {
+      "bytes": 455,
+      "full_mode": 384,
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/Cargo.toml",
+      "target": "benchmarks/sticky-partitioner/Cargo.toml"
+    },
+    "benchmarks/sticky-partitioner/README.md": {
+      "bytes": 9098,
+      "full_mode": 384,
+      "sha256": "4990798c8d485f6924b6674118b17112164b306c7b4d3ed94e0fdc013513fc7c",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/README.md",
+      "target": "benchmarks/sticky-partitioner/README.md"
+    },
+    "benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "bytes": 16109,
+      "full_mode": 384,
+      "sha256": "0d59194a790d6e543074fab724a3aa52a40d670c1afc8341ac45eb82d69650db",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/StickyBenchmark.java",
+      "target": "benchmarks/sticky-partitioner/StickyBenchmark.java"
+    },
+    "benchmarks/sticky-partitioner/audit.py": {
+      "bytes": 9282,
+      "full_mode": 384,
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/audit.py",
+      "target": "benchmarks/sticky-partitioner/audit.py"
+    },
+    "benchmarks/sticky-partitioner/profiles.json": {
+      "bytes": 6782,
+      "full_mode": 384,
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/profiles.json",
+      "target": "benchmarks/sticky-partitioner/profiles.json"
+    },
+    "benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "bytes": 2367,
+      "full_mode": 384,
+      "sha256": "11e8be8093c8ee65b30b0499abfcd8dc71d00691fe9b3cf6d032d5fdf26600e2",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/qualification-resource-forecast.json",
+      "target": "benchmarks/sticky-partitioner/qualification-resource-forecast.json"
+    },
+    "benchmarks/sticky-partitioner/qualification.json": {
+      "bytes": 4019,
+      "full_mode": 384,
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/qualification.json",
+      "target": "benchmarks/sticky-partitioner/qualification.json"
+    },
+    "benchmarks/sticky-partitioner/resource-forecast.json": {
+      "bytes": 1464,
+      "full_mode": 384,
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/resource-forecast.json",
+      "target": "benchmarks/sticky-partitioner/resource-forecast.json"
+    },
+    "benchmarks/sticky-partitioner/run-cell.py": {
+      "bytes": 16919,
+      "full_mode": 384,
+      "sha256": "6bfe95dabfd4c63d133574b47fe5738be64eabb0cc89208066c635e7e28b383e",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/run-cell.py",
+      "target": "benchmarks/sticky-partitioner/run-cell.py"
+    },
+    "benchmarks/sticky-partitioner/src/main.rs": {
+      "bytes": 24446,
+      "full_mode": 384,
+      "sha256": "e75cfebc4c1bf1268046f17b69dc6e8d417fb92895afd08920bd3353ec808a65",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/benchmarks/sticky-partitioner/src/main.rs",
+      "target": "benchmarks/sticky-partitioner/src/main.rs"
+    },
+    "finish-practical-review.py": {
+      "bytes": 10063,
+      "full_mode": 384,
+      "sha256": "862093e5126b8aa2d8149a23ce5665125ea1a1613bff2b7ec7a47d1e91215fd5",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/finish-practical-review.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/finish-practical-review.py"
+    },
+    "freeze-practical-stage.py": {
+      "bytes": 5283,
+      "full_mode": 384,
+      "sha256": "5353daa0aa63ea70bd8e3e60851f65f24c4ff32213fc134a1bf7cb16d3f48117",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/freeze-practical-stage.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/freeze-practical-stage.py"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml": {
+      "bytes": 394,
+      "full_mode": 384,
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/Cargo.toml"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/README.md": {
+      "bytes": 5277,
+      "full_mode": 384,
+      "sha256": "6428f309e9dcd66d192559b856968a055e82831bdabe6aecb2f8840ef737d2b0",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/README.md",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/README.md"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "bytes": 14117,
+      "full_mode": 384,
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/StickyBenchmark.java",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/StickyBenchmark.java"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/audit.py": {
+      "bytes": 8404,
+      "full_mode": 384,
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/audit.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/audit.py"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/profiles.json": {
+      "bytes": 6782,
+      "full_mode": 384,
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/profiles.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/profiles.json"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "bytes": 1464,
+      "full_mode": 384,
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/resource-forecast.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/resource-forecast.json"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/run-cell.py": {
+      "bytes": 13692,
+      "full_mode": 384,
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/run-cell.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/run-cell.py"
+    },
+    "history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/src/main.rs": {
+      "bytes": 21992,
+      "full_mode": 384,
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/src/main.rs",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/benchmarks/sticky-partitioner/src/main.rs"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml": {
+      "bytes": 394,
+      "full_mode": 384,
+      "sha256": "a723d8a630ff705ccf6880ac5db0b3a0e67ed45fafbe7f5f7c719b69c75e6bd9",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/Cargo.toml"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md": {
+      "bytes": 5229,
+      "full_mode": 384,
+      "sha256": "5d054687c7b83620163ea8236c22cdb28bb72b1f6a0218302eb16805748cba0d",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/README.md"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "bytes": 14117,
+      "full_mode": 384,
+      "sha256": "bd0e74f1dcdb1aa4f38b4bb03913c0e19d408b0c98f637b52c214c86d66b2895",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/StickyBenchmark.java"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py": {
+      "bytes": 8404,
+      "full_mode": 384,
+      "sha256": "9bbf8603b99e908b66107804e72800d3386c56c8a6b5715a80347518799491c1",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/audit.py"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json": {
+      "bytes": 6782,
+      "full_mode": 384,
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/profiles.json"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "bytes": 1464,
+      "full_mode": 384,
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/resource-forecast.json"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py": {
+      "bytes": 13692,
+      "full_mode": 384,
+      "sha256": "4a7e206870b1ba68593cb263dcca55d71f001f792d1937fc4c06b98f85c95a93",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/run-cell.py"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs": {
+      "bytes": 21992,
+      "full_mode": 384,
+      "sha256": "8a2da5ea9cc6e441ae1b9de7810c5f34478b17a186a3a6c04bb1ef92a98d7477",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/benchmarks/sticky-partitioner/src/main.rs"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/preparation-receipt.json": {
+      "bytes": 1128,
+      "full_mode": 384,
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/preparation-receipt.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/preparation-receipt.json"
+    },
+    "history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/stage-handoff.json": {
+      "bytes": 1989,
+      "full_mode": 384,
+      "sha256": "2e3f283d72fbda834d0311b46305d930b4c330cb61f9fae3d042de19e913d876",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/stage-handoff.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/history/initial-source-stage-2e3f283d/stage-handoff.json"
+    },
+    "history/original-performance-ebb7b91b/preparation-receipt.json": {
+      "bytes": 1128,
+      "full_mode": 384,
+      "sha256": "f95ef23072d864e756bb2962525887bad39a5468f575c831f2674bb6774a767a",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/preparation-receipt.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/preparation-receipt.json"
+    },
+    "history/original-performance-ebb7b91b/stage-handoff.json": {
+      "bytes": 4723,
+      "full_mode": 384,
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/original-performance-ebb7b91b/stage-handoff.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/original-performance-ebb7b91b/stage-handoff.json"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock": {
+      "bytes": 19857,
+      "full_mode": 384,
+      "sha256": "d1e8cb76b82db196b84eea196d0dd05bba79023e138c1f958b08692fe88610c6",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.lock"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml": {
+      "bytes": 455,
+      "full_mode": 384,
+      "sha256": "d60ab0addf8374bed8fd42fba72507e38f06871460d7a46263c4c97a52d98cc1",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/Cargo.toml"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/README.md": {
+      "bytes": 7928,
+      "full_mode": 384,
+      "sha256": "4bd0c00783c8aff6d6efd48abb964df1843018e37b60367dbb079dba6e57df05",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/README.md",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/README.md"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/StickyBenchmark.java": {
+      "bytes": 15359,
+      "full_mode": 384,
+      "sha256": "af825cf0832ef22b235100e8949ab9136ce9ce6e0ddc938c577b06666f68ff96",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/StickyBenchmark.java",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/StickyBenchmark.java"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/audit.py": {
+      "bytes": 9282,
+      "full_mode": 384,
+      "sha256": "79d50256e34970f1c914fae0e5585f88ad9c2fed5ddacab37072523ecf9296cc",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/audit.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/audit.py"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/profiles.json": {
+      "bytes": 6782,
+      "full_mode": 384,
+      "sha256": "01ebe3a343794acabe4be51d1217226db4d0f6349af58a66c75afaa47bd06663",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/profiles.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/profiles.json"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/qualification-resource-forecast.json": {
+      "bytes": 2278,
+      "full_mode": 384,
+      "sha256": "099d3172011f4ca61dc9752e9f592e2def55958d95f05ec1ea347ab06f67e74b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/qualification-resource-forecast.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/qualification-resource-forecast.json"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/qualification.json": {
+      "bytes": 4019,
+      "full_mode": 384,
+      "sha256": "d655acff2979d16d9f6f2e40acc1e267a7bddb09bbeda92a51a20d9b2815dc58",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/qualification.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/qualification.json"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/resource-forecast.json": {
+      "bytes": 1464,
+      "full_mode": 384,
+      "sha256": "ae2a1184c74c217c9ca0482322111891d438befb0d33f3d264ecd1868a0b847b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/resource-forecast.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/resource-forecast.json"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/run-cell.py": {
+      "bytes": 15189,
+      "full_mode": 384,
+      "sha256": "50c1b315968a406fb3e413db27f91484f9313b5a259fa2b0a497e29591a37186",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/run-cell.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/run-cell.py"
+    },
+    "history/practical-review-01/benchmarks/sticky-partitioner/src/main.rs": {
+      "bytes": 24140,
+      "full_mode": 384,
+      "sha256": "97a986997978a90ea4f0e57c4901b5e8871014a9b44d3fe3af45206504a36921",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/src/main.rs",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/benchmarks/sticky-partitioner/src/main.rs"
+    },
+    "history/practical-review-01/java-qualification.patch": {
+      "bytes": 10823,
+      "full_mode": 384,
+      "sha256": "a65e0eb6f296863a97b7599db6c5a3c7b3935a9e18194bdb94e28ae2d9949d06",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/java-qualification.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/java-qualification.patch"
+    },
+    "history/practical-review-01/offline-compile-plan.json": {
+      "bytes": 3833,
+      "full_mode": 384,
+      "sha256": "de246825b9818a6f4d4e52d68a22739dd61331e15e99415f40a9d3263085e62d",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/offline-compile-plan.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/offline-compile-plan.json"
+    },
+    "history/practical-review-01/preservation.json": {
+      "bytes": 2580,
+      "full_mode": 384,
+      "sha256": "5c66dbb7b32687b68cb210a47ae724bfb2576b15a1a5f439705dcd2a943b4bec",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/preservation.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/preservation.json"
+    },
+    "history/practical-review-01/rust-qualification-and-deadline.patch": {
+      "bytes": 9111,
+      "full_mode": 384,
+      "sha256": "12c45b1d7df03ceaa5a5306501e21d3110ae4e4044906333f19141ed68ff8531",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/history/practical-review-01/rust-qualification-and-deadline.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/history/practical-review-01/rust-qualification-and-deadline.patch"
+    },
+    "host-qualification-and-failure-paths.patch": {
+      "bytes": 14509,
+      "full_mode": 384,
+      "sha256": "ce008eb45071d9186b3fe6b660d13a068054318ba67e353a7faaf6431330c43a",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/host-qualification-and-failure-paths.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/host-qualification-and-failure-paths.patch"
+    },
+    "java-qualification.patch": {
+      "bytes": 14183,
+      "full_mode": 384,
+      "sha256": "0e73f19fe9f33638f01b2dba152fa8061d6d385175087a6a70c1ebe9b200f848",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/java-qualification.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/java-qualification.patch"
+    },
+    "offline-compile-plan.json": {
+      "bytes": 3898,
+      "full_mode": 384,
+      "sha256": "8c231ed6bf31c017f132ab2fd87ee3a725d52e6357394437e37edd3556df85aa",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/offline-compile-plan.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/offline-compile-plan.json"
+    },
+    "offline-lock-candidate.json": {
+      "bytes": 29362,
+      "full_mode": 384,
+      "sha256": "217641997e418fd0c8041915f532997ee6dd77bf29a4d72836f233a73d8636e7",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/offline-lock-candidate.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/offline-lock-candidate.json"
+    },
+    "original-preservation.json": {
+      "bytes": 372,
+      "full_mode": 384,
+      "sha256": "4e17325514fded1f7ae3f4f0afde6bcc9f8131e18e0ebd5bc973f60cbbfa3f5d",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/original-preservation.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/original-preservation.json"
+    },
+    "original-stage-ebb7b91b.json": {
+      "bytes": 4723,
+      "full_mode": 384,
+      "sha256": "ebb7b91be278179ac2d38ed00678177fa0c915be84ac24a0597a4ab57a0e9ac0",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/original-stage-ebb7b91b.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/original-stage-ebb7b91b.json"
+    },
+    "prepare-lock-candidate.py": {
+      "bytes": 4378,
+      "full_mode": 384,
+      "sha256": "68132d73b9f85ee76e85292dd7c773172acc7e6ccc85702348248a8d8715e592",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/prepare-lock-candidate.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/prepare-lock-candidate.py"
+    },
+    "review-and-seal-preparation.py": {
+      "bytes": 9940,
+      "full_mode": 384,
+      "sha256": "1777827d540a6ffda7385a50a7beff0410b03f0711604db1803400555bf5bdb6",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/review-and-seal-preparation.py",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/review-and-seal-preparation.py"
+    },
+    "rust-qualification-and-deadline.patch": {
+      "bytes": 12649,
+      "full_mode": 384,
+      "sha256": "86f8d7cd3bdbd315aa7c20faef108cd093fbc280f4c4d3b1531b6fdd15506c3d",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/rust-qualification-and-deadline.patch",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/rust-qualification-and-deadline.patch"
+    },
+    "source-identity.json": {
+      "bytes": 1734,
+      "full_mode": 384,
+      "sha256": "5b68cfb537acb67c39fb1eed72c9341a56de91b6fbd4603ced68d1041ac6216a",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-identity.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-identity.json"
+    },
+    "source-only-checks/msrv.json": {
+      "bytes": 440,
+      "full_mode": 384,
+      "sha256": "d4a71639f875d4bff42b588d2610d96a1ab3adc95882d899dd3a1ae6f43859c7",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/msrv.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/msrv.json"
+    },
+    "source-only-checks/msrv.stderr": {
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/msrv.stderr",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/msrv.stderr"
+    },
+    "source-only-checks/msrv.stdout": {
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/msrv.stdout",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/msrv.stdout"
+    },
+    "source-only-checks/preservation-after.json": {
+      "bytes": 1607,
+      "full_mode": 384,
+      "sha256": "59d454f9d9d367953d2302c4c04cd5db75983eb813241bef942184b87af1496a",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/preservation-after.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/preservation-after.json"
+    },
+    "source-only-checks/python-syntax.json": {
+      "bytes": 519,
+      "full_mode": 384,
+      "sha256": "e0b9129e00f6ffcecf57554ed360bb9481510621d905252258177c14a130bd1b",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/python-syntax.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/python-syntax.json"
+    },
+    "source-only-checks/stable.json": {
+      "bytes": 442,
+      "full_mode": 384,
+      "sha256": "7b2c09c16eb8a448a8770a26fa5210a90f81b344e6c20c6ae91ca7ee4c99814f",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/stable.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/stable.json"
+    },
+    "source-only-checks/stable.stderr": {
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/stable.stderr",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/stable.stderr"
+    },
+    "source-only-checks/stable.stdout": {
+      "bytes": 0,
+      "full_mode": 384,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-only-checks/stable.stdout",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-only-checks/stable.stdout"
+    },
+    "source-review.json": {
+      "bytes": 5867,
+      "full_mode": 384,
+      "sha256": "5282381f2ac4b19b1b8980579b06c7db8061006804c1a3d01518a207fbff9103",
+      "source_path": "/workspace/work/client-sticky-performance-practical-497f/source-review.json",
+      "target": "docs/evidence/client/KL05-10/performance/preparation/practical-497f/source-review.json"
+    }
+  },
+  "source_payloads_unchanged_before_after": true
+}

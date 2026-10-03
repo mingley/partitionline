@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "classification": "Independent mechanical03 source checkpoint review; no Rust typing/runtime/hosted correction qualification",
+  "handoff": {
+    "path": "/workspace/work/raft-runtime-76/tcp-qualification-03/handoff.json",
+    "sha256": "c745ffa88433439b7e3d785be8c64a0d81ec936e413c029f94160f34a98507cf",
+    "bytes": 9430,
+    "full07777": 384
+  },
+  "all29_new_and20_original_files_bytes_full07777_unchanged": true,
+  "rows": {
+    "1.85.0-format-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "README.md": {
+      "sha256": "7964cbdfe3a36a9644250562ff2e4af89313ea4f100b7e442d5390c1e51d6409",
+      "bytes": 2791,
+      "full07777": 384
+    },
+    "artifact-parser-validation.json": {
+      "sha256": "e0eacc479aff6e782224f10e7f9cf42b9f0ab51787ead14e69145951c727c9b2",
+      "bytes": 1541,
+      "full07777": 384
+    },
+    "artifact_paths.py": {
+      "sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+      "bytes": 1600,
+      "full07777": 384
+    },
+    "before-format/candidate/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "3207dffe9780a18a2029f2640120f11b0851ee5ff82e67ad54a4750c422eb056",
+      "bytes": 117676,
+      "full07777": 384
+    },
+    "before-format/candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "bytes": 44171,
+      "full07777": 384
+    },
+    "before-format-derivative-controls.json": {
+      "sha256": "279c169a407d9236c58a457b65d37bcb8352bbebbc47ef6583d6f53d34a4d635",
+      "bytes": 12526,
+      "full07777": 384
+    },
+    "before-format.json": {
+      "sha256": "fc00df6c398cf85e9e9d731a94f9268417d9afc413946c1d840b382f313d82b0",
+      "bytes": 804,
+      "full07777": 384
+    },
+    "cache-guards.py": {
+      "sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+      "bytes": 10074,
+      "full07777": 384
+    },
+    "candidate/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "096ea362bea73ae3a83cdc12a3f0e4bb3dc06b5235321c23ea2bf99029ca5c00",
+      "bytes": 117768,
+      "full07777": 384
+    },
+    "candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "bytes": 44171,
+      "full07777": 384
+    },
+    "check-derivative.py": {
+      "sha256": "6fd5fa14a8faa969783700c60ab0b8adfc935d97d7d70035a9166bc5a79169a9",
+      "bytes": 9320,
+      "full07777": 384
+    },
+    "check-parser.py": {
+      "sha256": "c7070bddf4eeace6f95ff1498b7d00cd75ec5c9b77d1b459b41c02c6c81cb088",
+      "bytes": 2166,
+      "full07777": 384
+    },
+    "derivative-controls.json": {
+      "sha256": "709e775be50d730c82a839a5f6c8b5f186b4c3d1f7871fd0fe776c31e335dbd5",
+      "bytes": 12526,
+      "full07777": 384
+    },
+    "guard-functions.py": {
+      "sha256": "0f86ff586c6e0e1e70d3cc9315fa061c8c99e3e2661dad95b5756b92b3c9685e",
+      "bytes": 11943,
+      "full07777": 384
+    },
+    "guard-functions.py.patch": {
+      "sha256": "6b13005185432d0c52b70a617b6abdcb0f705c7eebd094c22f6782994a3e6acb",
+      "bytes": 3271,
+      "full07777": 384
+    },
+    "guard-provenance.json": {
+      "sha256": "6219acdd8105e08ce37863002f4f3f56939b70962b1a90f5320be5dd4ed71d30",
+      "bytes": 1844,
+      "full07777": 384
+    },
+    "next-run-plan.json": {
+      "sha256": "c5d2ff489d25d753a560b9cd3b24f1a5f4ff28fe225c041043a3025b9c28eda7",
+      "bytes": 7832,
+      "full07777": 384
+    },
+    "prepare-runner-fixes.py": {
+      "sha256": "97d1b18d05017732a86b80be4a80f702ca14904e94c02cb384c37e50aae53d95",
+      "bytes": 5775,
+      "full07777": 384
+    },
+    "process_guards.py": {
+      "sha256": "af1dd54cecfa39c091fa012ffece5869a67dd4b9fa7606d9ce2fde898d6d7407",
+      "bytes": 8007,
+      "full07777": 384
+    },
+    "remote-ci-b814-source/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "e4eb1a02577adf83f735ed827234105be1c109001d22d579a6dfdb3e8d854d53",
+      "bytes": 96127,
+      "full07777": 384
+    },
+    "remote-ci-b814-source/partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "84a24fc9b8b3e45a9d67baa62c810a4632868ad7577f122d43426f3ed3a5d047",
+      "bytes": 31258,
+      "full07777": 384
+    },
+    "remote-ci-source.json": {
+      "sha256": "1d869b03f87794459919ec84a4911645edd2c102313acdaf2ce10bbcfda2e3f0",
+      "bytes": 995,
+      "full07777": 384
+    },
+    "run-next-focused.py": {
+      "sha256": "2dd3d65a2994a42e2bab3ed8e8c4971e95d9313bae92c717d61d8ad5b407b0c6",
+      "bytes": 10934,
+      "full07777": 384
+    },
+    "run-next-focused.py.patch": {
+      "sha256": "6165c139f57366ef22fe254b6b4fad359ee7f73cf1768fd4fdcb15c9f1ab6088",
+      "bytes": 4958,
+      "full07777": 384
+    },
+    "runtime.rs.patch": {
+      "sha256": "468b0be1976d6b8d3d2776ce4d4302dd2f611b4bd5c30f07637a40ab87cbfbbf",
+      "bytes": 5467,
+      "full07777": 384
+    },
+    "stable-format-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "stable-format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "syntax-format-validation.json": {
+      "sha256": "ae44a6adb2984cf3abac9d4de6aafd48e2dae91bbb64f645da15eca8b76c1d13",
+      "bytes": 1938,
+      "full07777": 384
+    }
+  },
+  "previous_rows": {
+    "candidate/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "32737ccc7565dc1b44b63444c2d33885ee3a248cd3a35e7999e6b95126260ba1",
+      "bytes": 113949,
+      "full07777": 384
+    },
+    "candidate/partitionline-broker/tests/common/raft_runtime.rs": {
+      "sha256": "ea7a8396fdd3c2016ad7b8cb5e022ffa2db92afdc89d87bdd1484f9de3a05162",
+      "bytes": 44171,
+      "full07777": 384
+    },
+    "before-manifest.json": {
+      "sha256": "9c6d442a308772ee1a080529292cc19d800ea77ff22fe223d7104cdbf53b482a",
+      "bytes": 864,
+      "full07777": 384
+    },
+    "runtime.rs.patch": {
+      "sha256": "ad61812f003e2fd3c70b327a1d74620d4ae7ddd7e01bc9b481a57e406e9ca33a",
+      "bytes": 1351,
+      "full07777": 384
+    },
+    "raft_runtime.rs.patch": {
+      "sha256": "84be6e99e428d8fe51e510fb04e344f5b721ed6eb3d917c545dd949562b2d00c",
+      "bytes": 12200,
+      "full07777": 384
+    },
+    "source-validation.json": {
+      "sha256": "be838ca68f4a03b748d0bf9c0e8366084eb37db419816313977877b6f6e90d0c",
+      "bytes": 2359,
+      "full07777": 384
+    },
+    "stable-format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "stable-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "1.85.0-check.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full07777": 384
+    },
+    "artifact_paths.py": {
+      "sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+      "bytes": 1600,
+      "full07777": 384
+    },
+    "artifact-parser-validation.json": {
+      "sha256": "e0eacc479aff6e782224f10e7f9cf42b9f0ab51787ead14e69145951c727c9b2",
+      "bytes": 1541,
+      "full07777": 384
+    },
+    "check-parser.py": {
+      "sha256": "c7070bddf4eeace6f95ff1498b7d00cd75ec5c9b77d1b459b41c02c6c81cb088",
+      "bytes": 2166,
+      "full07777": 384
+    },
+    "guard-functions.py": {
+      "sha256": "4bc27b5198f6e21b478a788d1f16dffe4707f0c522c921b126d4411bb8e20ab7",
+      "bytes": 13075,
+      "full07777": 384
+    },
+    "cache-guards.py": {
+      "sha256": "78faaba23fe80bd40daea04d244a25290fae67f10862b02bf1696e020aa4e387",
+      "bytes": 10074,
+      "full07777": 384
+    },
+    "guard-provenance.json": {
+      "sha256": "ad35308e2e02f5422110ed3e5989becedae7d501a5ce7e3a84b31d13491987a9",
+      "bytes": 1347,
+      "full07777": 384
+    },
+    "run-next-focused.py": {
+      "sha256": "329a24ac80c29f4322e519fd484491539a824ab40cfc90332a6001f65d3448a5",
+      "bytes": 10276,
+      "full07777": 384
+    },
+    "next-run-plan.json": {
+      "sha256": "7605e1f7d357d734adc3def88016def9052489414b096fc75368a49f100afecf",
+      "bytes": 7152,
+      "full07777": 384
+    },
+    "README.md": {
+      "sha256": "f92d5274ad47b554d3f7df140b465cd062d62c0fc806f17b2080b4047977758c",
+      "bytes": 6073,
+      "full07777": 384
+    },
+    "prepare-source.py": {
+      "sha256": "5cdddb65870cbf269f33b06ae89d22fc4d000bb6e6027814b532043d0b4ea8c2",
+      "bytes": 9825,
+      "full07777": 384
+    },
+    "prepare-runner.py": {
+      "sha256": "542fd0828417f6eed68578dc13346fa22b8a52ca81639162cfb40d7ece9dbe51",
+      "bytes": 2997,
+      "full07777": 384
+    }
+  },
+  "controls": {
+    "path": "/workspace/work/integration/raft-runtime-broader-review-03/controls.json",
+    "sha256": "5c7e32579c9c04f69ba90f688b2ce4385c4e3ec64824766713d95ea0b50acd02",
+    "bytes": 14641,
+    "full07777": 384
+  },
+  "resolved_source_findings": [
+    "Counter decreases before permit return",
+    "All required Envelope counter fields supplied",
+    "ELF/cache/raw/temporary preservation before parser and post-source qualification",
+    "Unreadable live cache process refuses; known cache references retained",
+    "Direct-owner successful join now checks scoped current0/peak and emits honest direct-owner receipt"
+  ],
+  "source_checkpoint_no_remaining_mechanical_blocker": true,
+  "pending": [
+    "04 exact fixture waiting/typed InvalidPeer/commit phase diagnostics",
+    "Actual compilation of new cfg(test) bodies",
+    "Actual genuine observer multichunk TCP Finish/Finished/selected image/reopen and causal decoder qualification",
+    "Optional exact Docker branch requires its future joined actual query; no exemption executed here",
+    "Complete source/compiler/materialization/concurrent resource budgets at future frozen pin"
+  ],
+  "not_executed": [
+    "Cargo/compiler/Rustfmt",
+    "SDK/JVM/native",
+    "real proc/cache/Docker/process inspection or cleanup",
+    "TCP/listener/runtime or main mutation"
+  ]
+}

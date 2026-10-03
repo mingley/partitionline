@@ -1,0 +1,37 @@
+{
+  "scope": "source/Python-only parser controls on retained real Cargo logs; no Rust launch",
+  "parser_sha256": "c8e4dfb9ef5d585cdf2813e5970ed6c17bca6200746f9524e0d43f9bef721bb5",
+  "actual_log_cases": 3,
+  "negative_controls": 4,
+  "results": [
+    {
+      "actual_log": "/workspace/work/raft-runtime-76/development/incoming-lifetime-candidate47a9-01/candidate-four-regressions/command.log",
+      "sha256": "63683e429fdf87112bb2578add44fdfdb68df40a24ae7c160d9d524e6754b29d",
+      "harnesses": [
+        "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180"
+      ]
+    },
+    {
+      "actual_log": "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/stable-default-runtime-tests/command.log",
+      "sha256": "52269cbf10b043f3bb21c238a57accdb998fd0bf610d228d0980ee9e90b84830",
+      "harnesses": [
+        "/workspace/work/target-broker-segments/debug/deps/raft_runtime-10d4014cbed1908f"
+      ]
+    },
+    {
+      "actual_log": "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/stable-default-runtime-lib-tests/command.log",
+      "sha256": "3a18f97f2e5d6806c69ab91d3b4cbe31d8c89e02992cac10f97fb47d9c75e1db",
+      "harnesses": [
+        "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc"
+      ]
+    },
+    {
+      "negative_path": "/elsewhere/debug/deps/raft_runtime-abcdef",
+      "rejected": true
+    },
+    {
+      "negative_path": "/workspace/work/target-broker-segments/debug/deps/rustc",
+      "rejected": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "scope": "source-only inline helper after successful three rustfmt commands; no compiler/runtime",
+  "exit_code": 1,
+  "stderr": "Traceback (most recent call last):\n  File \"<stdin>\", line 12, in <module>\nAssertionError\n",
+  "incorrect_helper_predicate": "prior.count('Duration::from_secs(15)') == current.count('Duration::from_secs(15)') == 3",
+  "observed_prior_occurrences": 4,
+  "observed_candidate_occurrences": 4,
+  "classification": "helper count assumption was incorrect; all actual 15-second values remain unchanged",
+  "rustfmt_commands": "all three already exited0; not repeated for this helper correction",
+  "rust_tests_executed": 0
+}

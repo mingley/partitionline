@@ -1,0 +1,12 @@
+{
+  "actual_read_only_byte_fullmode_verification": true,
+  "paths": [
+    "src/main.rs",
+    "StickyBenchmark.java",
+    "Cargo.toml",
+    "Cargo.lock",
+    "profiles.json",
+    "resource-forecast.json"
+  ],
+  "format_receipts": "Historical stable/MSRV rustfmt check applies only to unchanged Rust body; no compile/runtime qualification inferred"
+}

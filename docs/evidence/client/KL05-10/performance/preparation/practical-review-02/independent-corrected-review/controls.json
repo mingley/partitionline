@@ -1,0 +1,654 @@
+{
+  "classification": "Pure extracted definitions and memory fixtures only; zero SQLite, proc, signals, subprocess, compiler, SDK or benchmark execution",
+  "author_fixture_replay_count": 44,
+  "independent_control_count": 24,
+  "author_fixture_replay": [
+    {
+      "name": "Qualification explicit4096 geometry before first schema",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "byte_cap": 16777216,
+        "pragma_calls": [
+          "PRAGMA page_size=4096",
+          "PRAGMA page_size",
+          "PRAGMA journal_mode=DELETE",
+          "PRAGMA synchronous=FULL",
+          "PRAGMA synchronous",
+          "PRAGMA cache_spill=OFF",
+          "PRAGMA cache_spill",
+          "PRAGMA temp_store=MEMORY",
+          "PRAGMA temp_store",
+          "PRAGMA cache_size=-16384",
+          "PRAGMA max_page_count=4096",
+          "PRAGMA max_page_count"
+        ],
+        "journal_reserve": 33554432,
+        "statement_reserve": 33554432
+      },
+      "pass": true
+    },
+    {
+      "name": "Ranking explicit4096 geometry before first schema",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "byte_cap": 2147483648,
+        "pragma_calls": [
+          "PRAGMA page_size=4096",
+          "PRAGMA page_size",
+          "PRAGMA journal_mode=DELETE",
+          "PRAGMA synchronous=FULL",
+          "PRAGMA synchronous",
+          "PRAGMA cache_spill=OFF",
+          "PRAGMA cache_spill",
+          "PRAGMA temp_store=MEMORY",
+          "PRAGMA temp_store",
+          "PRAGMA cache_size=-16384",
+          "PRAGMA max_page_count=524288",
+          "PRAGMA max_page_count"
+        ],
+        "journal_reserve": 2164260864,
+        "statement_reserve": 2164260864
+      },
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size 512",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size 1024",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size 8192",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size 65536",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size True",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size 4096",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject ignored/wrong page_size MISSING_ROW",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted journal_mode=wal",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted journal_mode=off",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted synchronous=0",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted cache_spill=1",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted temp_store=0",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted max_page_count=4097",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Reject unforecasted max_page_count=False",
+      "expected": "refuse/unknown",
+      "observed_exception": "AssertionError",
+      "pass": true
+    },
+    {
+      "name": "Readable matching PGID/session/starttime",
+      "expected": "accepted exact semantic result",
+      "observed": [
+        {
+          "pid": 123,
+          "group": 123,
+          "session": 123,
+          "state": "S",
+          "start_time_ticks": 17
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "Readable nonmatching group ignored",
+      "expected": "accepted exact semantic result",
+      "observed": [],
+      "pass": true
+    },
+    {
+      "name": "Nonnumeric proc metadata skipped",
+      "expected": "accepted exact semantic result",
+      "observed": [],
+      "pass": true
+    },
+    {
+      "name": "Confirmed vanished PID ENOENT",
+      "expected": "accepted exact semantic result",
+      "observed": [],
+      "pass": true
+    },
+    {
+      "name": "Confirmed vanished PID ESRCH",
+      "expected": "accepted exact semantic result",
+      "observed": [],
+      "pass": true
+    },
+    {
+      "name": "Live unreadable owned PID is unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Unrelated unreadable PID cannot prove empty group",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Stat absent but independently live PID is unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Stat absent but existence permission unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Other stat IO error is unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Proc enumeration denied is unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Malformed numeric PID stat is unknown",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Stat PID identity differs from path",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Session identity differs from owned PGID",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Leader starttime changed despite same PID/PGID",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Descendant predates captured owner",
+      "expected": "refuse/unknown",
+      "observed_exception": "MembershipInspectionError",
+      "pass": true
+    },
+    {
+      "name": "Descendant newer than captured owner remains member",
+      "expected": "accepted exact semantic result",
+      "observed": [
+        {
+          "pid": 124,
+          "group": 123,
+          "session": 123,
+          "state": "S",
+          "start_time_ticks": 19
+        }
+      ],
+      "pass": true
+    },
+    {
+      "name": "Verified group mock signal permitted",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "group_signal_calls": [
+          [
+            "mock-group-signal",
+            123,
+            9
+          ]
+        ],
+        "verified_members": [
+          {
+            "pid": 123,
+            "group": 123,
+            "session": 123,
+            "state": "S",
+            "start_time_ticks": 17
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Empty verified group sends no signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "group_signal_calls": [],
+        "verified_members": []
+      },
+      "pass": true
+    },
+    {
+      "name": "Permission uncertainty refuses group signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "group_signal_calls": [],
+        "refused": true
+      },
+      "pass": true
+    },
+    {
+      "name": "Changed leader identity refuses group signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "group_signal_calls": [],
+        "refused": true
+      },
+      "pass": true
+    },
+    {
+      "name": "Verified group vanished before mock signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "group_signal_calls": [
+          [
+            "mock-group-signal",
+            123,
+            9
+          ]
+        ],
+        "verified_members": [
+          {
+            "pid": 123,
+            "group": 123,
+            "session": 123,
+            "state": "S",
+            "start_time_ticks": 17
+          }
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper unknown membership is null/unverified",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat unreadable pid=123 errno=13"
+        },
+        "final": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat unreadable pid=123 errno=13"
+        },
+        "would_accept_closure_and_cell": false,
+        "direct_child_mock_kills": 0,
+        "group_mock_calls": [],
+        "failure_reasons": [
+          "membership unverified: stat unreadable pid=123 errno=13"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper unknown stop kills only known direct child",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat unreadable pid=123 errno=13"
+        },
+        "final": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat unreadable pid=123 errno=13"
+        },
+        "would_accept_closure_and_cell": false,
+        "direct_child_mock_kills": 1,
+        "group_mock_calls": [],
+        "failure_reasons": [
+          "membership unverified: stat unreadable pid=123 errno=13",
+          "group signal refused: stat unreadable pid=123 errno=13"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper recovered empty membership retains prior failure",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat unreadable pid=123 errno=13"
+        },
+        "final": {
+          "event": "fixture recovered inspection",
+          "owned_pgid": 123,
+          "membership_verified": true,
+          "members": []
+        },
+        "would_accept_closure_and_cell": false,
+        "direct_child_mock_kills": 1,
+        "group_mock_calls": [],
+        "failure_reasons": [
+          "membership unverified: stat unreadable pid=123 errno=13",
+          "group signal refused: stat unreadable pid=123 errno=13"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper changed owner identity retains failure/no group signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat malformed or ownership identity changed pid=123"
+        },
+        "final": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": false,
+          "members": null,
+          "inspection_error": "stat malformed or ownership identity changed pid=123"
+        },
+        "would_accept_closure_and_cell": false,
+        "direct_child_mock_kills": 1,
+        "group_mock_calls": [],
+        "failure_reasons": [
+          "membership unverified: stat malformed or ownership identity changed pid=123",
+          "group signal refused: stat malformed or ownership identity changed pid=123"
+        ]
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper verified owned group only group mock signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": true,
+          "members": [
+            {
+              "pid": 123,
+              "group": 123,
+              "session": 123,
+              "state": "S",
+              "start_time_ticks": 17
+            }
+          ]
+        },
+        "final": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": true,
+          "members": [
+            {
+              "pid": 123,
+              "group": 123,
+              "session": 123,
+              "state": "S",
+              "start_time_ticks": 17
+            }
+          ]
+        },
+        "would_accept_closure_and_cell": false,
+        "direct_child_mock_kills": 0,
+        "group_mock_calls": [
+          [
+            "mock-group-signal",
+            123,
+            9
+          ]
+        ],
+        "failure_reasons": []
+      },
+      "pass": true
+    },
+    {
+      "name": "Wrapper verified empty group can close without signal",
+      "expected": "accepted exact semantic result",
+      "observed": {
+        "initial": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": true,
+          "members": []
+        },
+        "final": {
+          "event": "fixture inspection",
+          "owned_pgid": 123,
+          "membership_verified": true,
+          "members": []
+        },
+        "would_accept_closure_and_cell": true,
+        "direct_child_mock_kills": 0,
+        "group_mock_calls": [],
+        "failure_reasons": []
+      },
+      "pass": true
+    }
+  ],
+  "independent_controls": [
+    {
+      "name": "preserved public producer/consumer/graph/ranking StickyBenchmark.java",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "preserved public producer/consumer/graph/ranking src/main.rs",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "preserved public producer/consumer/graph/ranking Cargo.toml",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "preserved public producer/consumer/graph/ranking Cargo.lock",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "preserved public producer/consumer/graph/ranking profiles.json",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "preserved public producer/consumer/graph/ranking resource-forecast.json",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "qualification only adds explicit SQLite geometry/reserves",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "all original 71 frozen payloads preserved",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "old original stage manifest copied exactly",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "separate journal and statement reserves cover conservative geometry True",
+      "pass_": true,
+      "detail": {
+        "database": 16777216,
+        "one_old_image_journal_bound": 16875520,
+        "each_reserve": 33554432
+      }
+    },
+    {
+      "name": "separate journal and statement reserves cover conservative geometry False",
+      "pass_": true,
+      "detail": {
+        "database": 2147483648,
+        "one_old_image_journal_bound": 2151743488,
+        "each_reserve": 2164260864
+      }
+    },
+    {
+      "name": "strict pragma scalar refuses page_size 4096.0",
+      "pass_": true,
+      "detail": {
+        "exception": "AssertionError"
+      }
+    },
+    {
+      "name": "strict pragma scalar refuses synchronous True",
+      "pass_": true,
+      "detail": {
+        "exception": "AssertionError"
+      }
+    },
+    {
+      "name": "strict pragma scalar refuses cache_spill False",
+      "pass_": true,
+      "detail": {
+        "exception": "AssertionError"
+      }
+    },
+    {
+      "name": "strict pragma scalar refuses temp_store '2'",
+      "pass_": true,
+      "detail": {
+        "exception": "AssertionError"
+      }
+    },
+    {
+      "name": "strict pragma scalar refuses max_page_count 4096.0",
+      "pass_": true,
+      "detail": {
+        "exception": "AssertionError"
+      }
+    },
+    {
+      "name": "known member plus unreadable later PID is unknown",
+      "pass_": true,
+      "detail": {
+        "exception": "MembershipInspectionError"
+      }
+    },
+    {
+      "name": "owned member with truncated stat is unknown",
+      "pass_": true,
+      "detail": {
+        "exception": "MembershipInspectionError"
+      }
+    },
+    {
+      "name": "unknown matching session cannot be a known member",
+      "pass_": true,
+      "detail": {
+        "exception": "MembershipInspectionError"
+      }
+    },
+    {
+      "name": "space-rich stat comm is parsed from final parenthesis",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "recovered empty preserves PermissionError failure",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "recovered empty preserves OSError failure",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "qualification all additive components and explicit floor",
+      "pass_": true,
+      "detail": null
+    },
+    {
+      "name": "ranking original untouched with separate new reserves",
+      "pass_": true,
+      "detail": null
+    }
+  ]
+}
