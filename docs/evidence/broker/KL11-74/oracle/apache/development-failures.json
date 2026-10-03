@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "failures": [
+    {
+      "attempt": "development/attempt-1",
+      "classification": "wrong TimestampType namespace in probe; compilation rejected before execution",
+      "product_failure": false
+    },
+    {
+      "attempt": "development/attempt-2",
+      "classification": "missing InterruptedException handling around scheduler shutdown in probe; compilation rejected",
+      "product_failure": false
+    },
+    {
+      "attempt": "development/attempt-3",
+      "classification": "resolved InetSocketAddress performs reverse host mapping to localhost; endpoint assertion assumed a literal host",
+      "product_failure": false
+    },
+    {
+      "attempt": "development/attempt-5",
+      "classification": "resolved in-memory endpoint differed from unresolved endpoint decoded from the actual native control record. Using an explicitly unresolved public loopback address makes transport metadata equal without changing library behavior.",
+      "product_failure": false
+    },
+    {
+      "attempt": "pinned-development-1",
+      "classification": "relative capture path launched under different cwd;125 actual assertions passed before runner failed fixture copy. All actual native captures retained.",
+      "product_failure": false
+    }
+  ]
+}

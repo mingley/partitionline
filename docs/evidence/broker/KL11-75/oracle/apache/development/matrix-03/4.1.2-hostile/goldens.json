@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "release": "4.1.2",
+  "cases": [
+    {
+      "name": "hostile-protected-crc",
+      "file": "hostile-protected-crc.bin",
+      "bytes": 143,
+      "sha256": "14bdbc6c9a4d3e610be4302e9306477d9315770c77a63a7ab013770545d309a2",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_corrupt_crc",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "org.apache.kafka.common.errors.CorruptRecordException",
+        "message": "Record is corrupt (stored crc = 3792741739, computed crc = 276506216)"
+      }
+    },
+    {
+      "name": "hostile-count-negative",
+      "file": "hostile-count-negative.bin",
+      "bytes": 143,
+      "sha256": "a4fe2b144d4cd5d1b2c9392b80b572e3438261000dbd8e937bb5e94155221e20",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_negative_count",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record count -1 in magic v2 batch"
+      }
+    },
+    {
+      "name": "hostile-count-huge",
+      "file": "hostile-count-huge.bin",
+      "bytes": 143,
+      "sha256": "f9825b061a8f6a3a98696490d9bab846cc3e037bc00857d394dddf00ab840e11",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_count_or_work_budget",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Incorrect declared batch size, premature EOF reached"
+      }
+    },
+    {
+      "name": "hostile-count-zero-with-record-bytes",
+      "file": "hostile-count-zero-with-record-bytes.bin",
+      "bytes": 143,
+      "sha256": "28f5449c0d163c65f7bcc8e49a1accd955fd68c4fb8de2fbb150ba7f11d552ef",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_zero_count_trailing_record_bytes",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-negative-last-delta",
+      "file": "hostile-negative-last-delta.bin",
+      "bytes": 143,
+      "sha256": "7c512c89fcbb778f41aac8769bcd8c3b3cf5990f0409bccc5facee7512824795",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_negative_logical_extent",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-record-outside-extent",
+      "file": "hostile-record-outside-extent.bin",
+      "bytes": 143,
+      "sha256": "29cb39641ca93b9ce0610d0228abb73be4e4d4c5347636f6c6f325cdf966319c",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_record_outside_extent",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-offset-overflow",
+      "file": "hostile-offset-overflow.bin",
+      "bytes": 143,
+      "sha256": "66b83c83afda7c26d2fa060da6a7376db2814b2e2daed785171259d83481dc21",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_checked_offset_overflow",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          -9223372036854775807,
+          -9223372036854775805,
+          -9223372036854775804,
+          -9223372036854775802
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-record-length-varint",
+      "file": "hostile-record-length-varint.bin",
+      "bytes": 143,
+      "sha256": "3975b3f5d376b4c34473d44fd881c3b4c3c4b89da3f2db885c76a9c1e1deadaa",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_record_varint",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "Varint is too long, the most significant bit in the 5th byte is set, converted value: 0"
+      }
+    },
+    {
+      "name": "hostile-trailing-byte",
+      "file": "hostile-trailing-byte.bin",
+      "bytes": 144,
+      "sha256": "13cd0a9d86618b2586f11241e04b93ab7692bee9066fb934d52cd5295eb41830",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_full_consumption",
+      "apache_outcome": {
+        "bytes": 144,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    }
+  ]
+}

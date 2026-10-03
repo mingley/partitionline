@@ -1,0 +1,24 @@
+{
+  "source_sha256": "0e3c143997e3ade5fee704d8c469027471dedf3b9425f8900bbde66ed70559a7",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/attempt-2/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/ApacheMembershipProbe.java"
+      ],
+      "exit_code": 1
+    }
+  ]
+}

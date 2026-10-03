@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "scope": "Retained unexpected preparation failures; distinct from the nine successful deliberate wrong-policy controls.",
+  "failures": [
+    {
+      "path": "development/attempt-1/compile.log",
+      "classification": "Initial probe imported Throttler from server.util instead of the official storage.internals.utils package; strict compilation failed before component execution.",
+      "source": "development/attempt-1/ApacheCompactionProbe.java",
+      "correction": "Use the exact package in the pinned Cleaner source. Attempt2 strict compile and 86 actual checks passed."
+    },
+    {
+      "path": "development/matrix-02/driver.log",
+      "classification": "Additive fixture publication used mkdir without exist_ok against the previous owned development corpus. Both first-release component replays and its negative controls had passed; the runner failed before replacing any canonical fixture.",
+      "source": "development/matrix-02/source/prepare-and-run.py",
+      "correction": "Permit the owned existing fixture directory. Fresh matrix03 fully reran all three releases and both replays, then published the additive 108-case corpus."
+    }
+  ],
+  "accepted_development_component_failures": 0,
+  "retained_superseded_proofs": [
+    "development/attempt-2/corpus/goldens.json: initial 18-case Apache4.3.1 probe",
+    "development/matrix-01/validation.json: initial 90-case three-release proof before sealed-protected-suffix and explicit null-input cases",
+    "development/matrix-02/validation.json: partial first-release additive replay, not counted as final complete matrix"
+  ]
+}

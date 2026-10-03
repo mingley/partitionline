@@ -1,0 +1,21 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "java",
+    "-Xmx128m",
+    "--add-modules",
+    "jdk.compiler",
+    "com.sun.tools.javac.Main",
+    "-Xlint:all",
+    "-Werror",
+    "-cp",
+    "/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+    "-d",
+    "/workspace/work/compaction-apache/attempt-2/classes",
+    "/workspace/work/compaction-apache/attempt-2/ApacheCompactionProbe.java"
+  ],
+  "exit_code": 0,
+  "source_sha256": "2df1aefa8b74d5f079f52267e16b5fb824bb872640601c6ec5781ef3422085ce"
+}

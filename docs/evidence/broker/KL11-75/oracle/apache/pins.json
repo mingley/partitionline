@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.1.2/kafka_2.13-4.1.2.tgz",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "client_jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "retained_source_files_sha256": {
+        "clients/src/main/java/org/apache/kafka/common/record/DefaultRecord.java": "9087920656db6de2820ad7b3a7b347c2da0cdec1f22f87078d14b0f96d58489a",
+        "clients/src/main/java/org/apache/kafka/common/record/DefaultRecordBatch.java": "0a1e6bce9bcccfe5e9e08c388f807c18fc0747fb418d9b76a5d2b43c212f388b",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecords.java": "91e2bdf8c50b8c4b18711faa0f9155ba36594baaece33c9d8f08ec81b3eb53fd",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecordsBuilder.java": "a2767bf34aa79fcfee7d914bebd8abc17d53a7a8004a65009ad34aaacf1edc58",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/Cleaner.java": "c6a7dcc178334b6d1672315caed8b899f41a67c8e56e3b2dc98750628e4955c4",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/CleanerStats.java": "3b095a2adcca8d3ff67adb5be97b25b8d8f5a7e08af94cbdb6decd6f6b174855",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogCleaner.java": "4b15f49a530ea8a2b0523499e427d8ff51553a78a4207aab61e3e288780e2073",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogToClean.java": "2a233990920f98c7a74e6d94c84f5484170a16353b0973f3bfbfb6b23ed5712c",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/OffsetMap.java": "e6de841fd257d7657834e49b6b5d7e2ff34b475b4d797919c42ceeb140de962e",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/SkimpyOffsetMap.java": "e88da7a29400c7cc81e00ed4161267c1c335a2ea5ee9acd82c212397e5364ffe"
+      },
+      "jars": {
+        "kafka-storage-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-4.1.2.jar",
+          "bytes": 591039,
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        "kafka-storage-api-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-api-4.1.2.jar",
+          "bytes": 26987,
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        "kafka-server-common-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar",
+          "bytes": 371073,
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        "kafka-clients-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.2.1/kafka_2.13-4.2.1.tgz",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "client_jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "retained_source_files_sha256": {
+        "clients/src/main/java/org/apache/kafka/common/record/DefaultRecord.java": "9087920656db6de2820ad7b3a7b347c2da0cdec1f22f87078d14b0f96d58489a",
+        "clients/src/main/java/org/apache/kafka/common/record/DefaultRecordBatch.java": "0a1e6bce9bcccfe5e9e08c388f807c18fc0747fb418d9b76a5d2b43c212f388b",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecords.java": "819fe7e89337dd0b3feb9b95ca9db9686598c62e2f184a4a8ef7f0e797ff85d8",
+        "clients/src/main/java/org/apache/kafka/common/record/MemoryRecordsBuilder.java": "a2767bf34aa79fcfee7d914bebd8abc17d53a7a8004a65009ad34aaacf1edc58",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/Cleaner.java": "231ca43bbbb58b16fd13fbfcd5591d4b35edf56fb7564048c797f604eb477098",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/CleanerStats.java": "3b095a2adcca8d3ff67adb5be97b25b8d8f5a7e08af94cbdb6decd6f6b174855",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogCleaner.java": "e0b051d31524828b9498c5291785d6609d846c0f33364e2547db22ba1347ad20",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogToClean.java": "2a233990920f98c7a74e6d94c84f5484170a16353b0973f3bfbfb6b23ed5712c",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/OffsetMap.java": "e6de841fd257d7657834e49b6b5d7e2ff34b475b4d797919c42ceeb140de962e",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/SkimpyOffsetMap.java": "09333c9a869b7ee39f3cac7bf1fcd61938fc57692686c8e80c659506f41ff8ae"
+      },
+      "jars": {
+        "kafka-storage-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-4.2.1.jar",
+          "bytes": 604826,
+          "sha256": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767"
+        },
+        "kafka-storage-api-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-api-4.2.1.jar",
+          "bytes": 28388,
+          "sha256": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d"
+        },
+        "kafka-server-common-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-server-common-4.2.1.jar",
+          "bytes": 384007,
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        "kafka-clients-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "embedded_client_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_url": "https://codeload.github.com/apache/kafka/tar.gz/26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_url": "https://archive.apache.org/dist/kafka/4.3.1/kafka_2.13-4.3.1.tgz",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "client_jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "retained_source_files_sha256": {
+        "clients/src/main/java/org/apache/kafka/common/record/internal/DefaultRecord.java": "1607410b88c4d486940fb7924643011c1ffeb8fd7cff54fbca4969b04ead892c",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/DefaultRecordBatch.java": "4b1b50c2fd6d94db1a525f3c3de64eccaa42ec01fcadf023c806032edad24f53",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/MemoryRecords.java": "a2bd3ba79511315971eeaac6645722b249bf9b1ac83549522442cd5f3e33d724",
+        "clients/src/main/java/org/apache/kafka/common/record/internal/MemoryRecordsBuilder.java": "fde4120e4f38044a83da87e9a4669f002519dc1d39fc5ef65fb8b9feeff90a7f",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/Cleaner.java": "256833361974b8d8e77ba170a9ed24dc158cafd395c44a6ee145d40981bf549b",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/CleanerStats.java": "3b095a2adcca8d3ff67adb5be97b25b8d8f5a7e08af94cbdb6decd6f6b174855",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogCleaner.java": "e0b051d31524828b9498c5291785d6609d846c0f33364e2547db22ba1347ad20",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/LogToClean.java": "2a233990920f98c7a74e6d94c84f5484170a16353b0973f3bfbfb6b23ed5712c",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/OffsetMap.java": "e6de841fd257d7657834e49b6b5d7e2ff34b475b4d797919c42ceeb140de962e",
+        "storage/src/main/java/org/apache/kafka/storage/internals/log/SkimpyOffsetMap.java": "09333c9a869b7ee39f3cac7bf1fcd61938fc57692686c8e80c659506f41ff8ae"
+      },
+      "jars": {
+        "kafka-storage-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-4.3.1.jar",
+          "bytes": 610223,
+          "sha256": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7"
+        },
+        "kafka-storage-api-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-api-4.3.1.jar",
+          "bytes": 28500,
+          "sha256": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9"
+        },
+        "kafka-server-common-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-server-common-4.3.1.jar",
+          "bytes": 389964,
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        "kafka-clients-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "embedded_client_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1"
+    }
+  ],
+  "scope": "Unmodified official Apache release archives; source references separate from actual Cleaner/MemoryRecords outcomes.",
+  "official_distribution_extraction_receipt": {
+    "path": "docs/evidence/broker/KL11-10/oracle/apache/final-4ffd7557/components/validation.json",
+    "sha256": "5d2b78cc200bf873829c19f1746b00ac0898a2d2a4fb56184ca136dcd3a0528d",
+    "scope": "Previously executed official distribution checksum validation/extraction;75 reruns verify all exact jar hashes, not a replacement library."
+  }
+}

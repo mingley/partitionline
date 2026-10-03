@@ -1,0 +1,16 @@
+{
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "java",
+    "-Xmx128m",
+    "-cp",
+    "/workspace/work/compaction-apache/attempt-2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+    "ApacheCompactionProbe",
+    "4.3.1",
+    "/workspace/work/compaction-apache/attempt-2/states",
+    "docs/evidence/broker/KL11-75/oracle/apache/development/attempt-2/corpus"
+  ],
+  "exit_code": 0
+}

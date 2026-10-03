@@ -1,0 +1,1 @@
+{"bytes":143,"valid_bytes":143,"batches":1,"iterated_offsets":[],"exception":"java.lang.IllegalArgumentException","message":"Varint is too long, the most significant bit in the 5th byte is set, converted value: 0"}

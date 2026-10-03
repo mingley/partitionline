@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "id": "catch-up-component-boundary",
+  "release": "4.1.2",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "permissive_component_requires_outer_fencing",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "catch-up-component-boundary",
+      "operation": "bootstrap",
+      "file": "catch-up-component-boundary-11-bootstrap.control.bin",
+      "bytes": 247,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "catch-up-component-boundary-11-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "catch-up-component-boundary-11-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "catch-up-component-boundary-11-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "catch-up-component-boundary-11-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "catch-up-component-boundary",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": -1,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "catch-up-component-boundary",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "catch-up-component-boundary",
+      "operation": "progress-1-2",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "catch-up-component-boundary.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "catch-up-component-boundary",
+      "operation": "replica-progress",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "catch-up-component-boundary",
+      "operation": "progress-3-2",
+      "now_ms": 106,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "catch-up-component-boundary",
+      "operation": "replica-progress",
+      "now_ms": 107,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "end": 1
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "catch-up-component-boundary",
+      "operation": "progress-3-1",
+      "now_ms": 107,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "component.regressed-offset-retains-catch-up",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "component.before-one-hour",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "component.exact-one-hour-expires",
+      "actual": "false",
+      "expected": "false",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "component.wrong-directory-not-caught-up",
+      "actual": "false",
+      "expected": "false",
+      "passed": true
+    }
+  ]
+}

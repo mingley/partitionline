@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "id": "remove-only-voter",
+  "release": "4.3.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "one_change_component_behavior",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "remove-only-voter",
+      "operation": "bootstrap",
+      "file": "remove-only-voter-22-bootstrap.control.bin",
+      "bytes": 144,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "remove-only-voter-22-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "remove-only-voter-22-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "remove-only-voter-22-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "remove-only-voter-22-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "remove-only-voter",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "remove-only-voter.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "remove-only-voter",
+      "operation": "remove-request",
+      "now_ms": 100,
+      "inputs": {
+        "replica": {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        }
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "remove.cannot-empty-voter-set",
+      "actual": "127",
+      "expected": "127",
+      "passed": true
+    }
+  ]
+}

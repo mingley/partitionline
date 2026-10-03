@@ -1,0 +1,8 @@
+{"event":"control-batch","scenario":"add-new-majority","operation":"bootstrap","file":"add-new-majority-0-bootstrap.control.bin","bytes":247}
+{"event":"state","scenario":"add-new-majority","operation":"initial","now_ms":100,"voters":"[0:AAAAAAAAAAEAAAAAAAAAAQ, 1:AAAAAAAAAAEAAAAAAAAAAg, 2:AAAAAAAAAAEAAAAAAAAAAw]","latest_voters_offset":1,"hw":-1,"leo":2,"pending":false,"leader_resign":false}
+{"event":"state","scenario":"add-new-majority","operation":"progress-1-2","now_ms":105,"voters":"[0:AAAAAAAAAAEAAAAAAAAAAQ, 1:AAAAAAAAAAEAAAAAAAAAAg, 2:AAAAAAAAAAEAAAAAAAAAAw]","latest_voters_offset":1,"hw":2,"leo":2,"pending":false,"leader_resign":false}
+{"event":"assertion","case":"add-new-majority.prior-config-committed","actual":"2","expected":"2","passed":true}
+{"event":"state","scenario":"add-new-majority","operation":"progress-3-2","now_ms":106,"voters":"[0:AAAAAAAAAAEAAAAAAAAAAQ, 1:AAAAAAAAAAEAAAAAAAAAAg, 2:AAAAAAAAAAEAAAAAAAAAAw]","latest_voters_offset":1,"hw":2,"leo":2,"pending":false,"leader_resign":false}
+{"event":"assertion","case":"add.observer-caught-up","actual":"true","expected":"true","passed":true}
+{"event":"assertion","case":"discovery.request-is-api18","actual":"18","expected":"18","passed":true}
+{"event":"assertion","case":"discovery.synthetic-endpoint","actual":"localhost","expected":"127.0.0.1","passed":false}

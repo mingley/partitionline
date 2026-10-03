@@ -1,0 +1,21 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+{"case":"ordinary-mixed-input.file-budget","actual":"true","expected":"true","passed":true}
+{"case":"ordinary-mixed-input.full-consumption","actual":"227","expected":"227","passed":true}
+{"case":"filter.first.offsets","actual":"[2, 4, 5, 7]","expected":"[2, 4, 5, 7]","passed":true}
+{"case":"filter.first.delete-horizon","actual":"3000","expected":"3000","passed":true}
+{"case":"filter.first.original-extent","actual":"7","expected":"7","passed":true}
+{"case":"filter.first.timestamps","actual":"1013","expected":"1013","passed":true}
+{"case":"filter-first-horizon-sparse.file-budget","actual":"true","expected":"true","passed":true}
+{"case":"filter-first-horizon-sparse.full-consumption","actual":"143","expected":"143","passed":true}
+{"case":"filter.expired.offsets","actual":"[2, 5]","expected":"[2, 5]","passed":true}
+{"case":"filter.expired.horizon-preserved","actual":"3000","expected":"3000","passed":true}
+{"case":"filter.expired.max-recomputed","actual":"1011","expected":"1011","passed":true}
+{"case":"filter-horizon-no-tombstones-sparse.file-budget","actual":"true","expected":"true","passed":true}
+{"case":"filter-horizon-no-tombstones-sparse.full-consumption","actual":"103","expected":"103","passed":true}
+{"case":"filter.empty.bytes","actual":"61","expected":"0","passed":false}
+Exception in thread "main" java.lang.AssertionError: filter.empty.bytes
+	at ApacheCompactionProbe.check(ApacheCompactionProbe.java:65)
+	at ApacheCompactionProbe.filters(ApacheCompactionProbe.java:147)
+	at ApacheCompactionProbe.main(ApacheCompactionProbe.java:308)

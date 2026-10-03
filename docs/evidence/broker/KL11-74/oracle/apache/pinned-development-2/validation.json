@@ -1,0 +1,765 @@
+{
+  "schema_version": 1,
+  "scope": "Official Apache membership components and actual control-record local log; no partitionline74 execution or replicated durable/network claim",
+  "passed": true,
+  "probe_sha256": "062eff9fcfaec0fcd7469269cd9f8b66e5ef0bb7f7d8821ab89ccbea9bf15647",
+  "runner_sha256": "e08ebb5136de5ec44dce3a7be3bc08e0c240ee16d4431a9d76ef9459a222a7ed",
+  "pins_sha256": "42fa1ead0bd878a2f52a4c1f1bc3e0044cf4f44cdfdcaee8e371ba15566d1d08",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "source_archive_sha256": "22e7e13834390b3a7e38670a1115618ac1e82bf4c5a1bb9cc6dbf6390d0f235a",
+      "distribution_sha256": "18795e0b9a89de0ed8443ad83365e26f6407813afec4fe139c1acb0c3364e6dc",
+      "distribution_sha512": "78ac6e488b1071122f9608dfdb363f6fe50e1dbbc492347002c0398dfbf77e0d8caa5bf794c5937379721004dfe92025937d238b0faf4eb715529417fd43b491",
+      "jars_sha256": {
+        "commons-validator-1.10.1.jar": "ed74711a78d793ca37f6075e4a1e93d107233dfd20d0bb17e32bad88d38e56aa",
+        "kafka-clients-4.1.2.jar": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+        "kafka-raft-4.1.2.jar": "bcbfd5ab4ef8a140b89c6fc98b2e1539f4eca943bc7ac5db746f71f022d886f7",
+        "kafka-server-4.1.2.jar": "1b1d9338047620908e23297d18b966c901f958c889e02feda5f0f56d83a737c5",
+        "kafka-server-common-4.1.2.jar": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1",
+        "kafka-storage-4.1.2.jar": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8",
+        "kafka-storage-api-4.1.2.jar": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059",
+        "kafka_2.13-4.1.2.jar": "7bb9b7db4d7877d2ab4c0a7ae40ad2cf96a4c5735b9f68432cce30157f4aeabd",
+        "log4j-api-2.25.3.jar": "e886682920fa0fb9d6eb6395dcb4de088443f8646c89c5e5846e168e327f406f",
+        "log4j-core-2.25.3.jar": "362b7fcb65b73aa46cc4bc53abf4eb216f444a83b5d1a037cb6fdfff0ae9f0f9",
+        "metrics-core-2.2.0.jar": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c",
+        "scala-library-2.13.16.jar": "1ebb2b6f9e4eb4022497c19b1e1e825019c08514f962aaac197145f88ed730f1",
+        "scala-logging_2.13-3.9.5.jar": "87a3017d3f43e6ace7566fe4c3d615134c6914ff871c8d64bb32ca1d996d0545",
+        "slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      "embedded_client_version_properties": "commitId=c82fd9b934b4c1e6\nversion=4.1.2",
+      "retained_archive": "apache-membership-4.1.2.tar.gz",
+      "retained_archive_sha256": "8b0c82a5585e6f3b0b4ba33ced1dc4cbd5dbe5651105888729e2b8c7cf12f437",
+      "retained_sources_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/KRaftVersionRecord.json": "8961b54d1e68b5021bbd73c5ee4eedc6545f4f36389fe1a6178942d05bfb3f66",
+        "clients/src/main/resources/common/message/VotersRecord.json": "f0d564ea97f83225b766716dbaf4f79888b63d3d80ae3031361840cf6e49c731",
+        "core/src/main/scala/kafka/raft/KafkaMetadataLog.scala": "ef8dd6dbb259343258bc11166e0c74543c89c0c41b7baac3f5e4230683f3429c",
+        "raft/src/main/java/org/apache/kafka/raft/Endpoints.java": "95cd8cbb68c8baa8da89550739f7adde34f27c86240356f6b45eae7738ebe2cb",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "ce29d89883f722aaf7dbd9377acbc075dc4dd42ee9b295359e8e86ec21a9b755",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "b9855165ce2e6db25eba8fdbe2d2292fa6755bf6ce86c500592872fb5f8a0ebd",
+        "raft/src/main/java/org/apache/kafka/raft/MetadataLogConfig.java": "4d3a910bfc1b459dab27c2556729e9c0da9cf4d60d87121e9807cdce9fde5199",
+        "raft/src/main/java/org/apache/kafka/raft/ReplicaKey.java": "781980840a9e683ced73e1e19256d3ac7291cdb717bc121256e34e6cf8f00d5d",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java": "49803738cafe4e3c3ec016d70b9169b0a23661741b5669e535dd169c7311f409",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandlerState.java": "18fd9a836ec2b22b27aaebb61435e51b348ad290218628d0332a67dc10a2aeb9",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "14b2a31ed3e71e41c47a54929e4cda4fffa74320b2ea2711eb914d6ef0baa64c",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KRaftControlRecordStateMachine.java": "cb6bc60760a2e6f56a29899ebd2b0ec9099be9e5b0f591cebbd13c8a286a2a17",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "f337713700684ca2958917269c75c3c0470be1a5e35ab82ec8fb84c184a55cf2",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java": "56865d7e6a37cb0709f8d0f54670edc461fff24c0f99cdf8bf6083a99ff5662b",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandlerState.java": "451ca9e5eb308cf83fd849ab43a9e1139d84804e5fc6a8330690f22cd4418395",
+        "raft/src/main/java/org/apache/kafka/raft/internals/TreeMapLogHistory.java": "f1ffb8ae3e7b9cdf030000adb2dcc514b6153741bfbfe365427fdb3b8f03dbbf",
+        "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientReconfigTest.java": "475f6cd3db17a863a20d387ab5995edeefd8a35957f4968df721c27e01d35007",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "1fc6ee521ac5d958f768570bea4dc09d463180341ee6c618227c5ecb9b1e4e5d",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "77da9121c83a77c43ea4b0a12a8c0d5cbb32123c5041f66cf3ed39ff7f976240"
+      },
+      "adapted_source": "ApacheMembershipProbe-4.1.2.adapted.java",
+      "adapted_source_sha256": "1eb2a0234c576a1e1ca5a800d218b0218dff98803ce41ad093e342ed9196fec2",
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 3
+        },
+        {
+          "from": "org.apache.kafka.raft.internals.KafkaRaftLog",
+          "to": "kafka.raft.KafkaMetadataLog",
+          "occurrences": 1
+        },
+        {
+          "from": "KafkaRaftLog",
+          "to": "KafkaMetadataLog",
+          "occurrences": 4
+        },
+        {
+          "from": "KafkaMetadataLog.createLog(",
+          "to": "KafkaMetadataLog.apply(",
+          "occurrences": 1
+        },
+        {
+          "from": "newer ackWhenCommitted=false scenario",
+          "to": "not available in 4.1.2"
+        },
+        {
+          "from": "voter(id).listeners(), true, clock.now",
+          "to": "voter(id).listeners(), clock.now",
+          "occurrences": 1
+        },
+        {
+          "from": "Endpoints.empty(), true, h.clock.now",
+          "to": "Endpoints.empty(), h.clock.now",
+          "occurrences": 1
+        }
+      ],
+      "class_files_sha256": {
+        "org/apache/kafka/raft/ApacheMembershipProbe$Clock.class": "5e8b594eed7442d78fa031b5dd9a049c651c4b54c8e35f9f3d527bb236bc59be",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Harness.class": "841506a80fac253219160861498c658de339c9795f3987dac30ab0a27576b16f",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Sender.class": "652578bcb3ac5f48dcb173c3749a6391a1a4bc51734cf967e4fb907591722719",
+        "org/apache/kafka/raft/ApacheMembershipProbe.class": "872c4451efd811dbb5b694de64b90c7dc7a8c17f7ec5bf84306ae1a5599d758e"
+      },
+      "fixture_manifest_sha256": "49b935b9c7c4bd6ac9c696f0a8c5a82f00c726606361064c968d8afdf246c0ff",
+      "fixture_cases": 18,
+      "positive_assertions_per_replay": 125,
+      "positive_replays": 2,
+      "negative_variants": [
+        {
+          "variant": "wrong-old-majority",
+          "failed_assertion": "add.two-of-four-insufficient"
+        },
+        {
+          "variant": "wrong-early-resign",
+          "failed_assertion": "remove.no-early-resign"
+        },
+        {
+          "variant": "wrong-history-rejects",
+          "failed_assertion": "history.bare-helper-accepts-disjoint"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "source_archive_sha256": "faa55f0602830e89dcaaa5923b7d9cd76fd03751ec40767c6b065453b475b955",
+      "distribution_sha256": "cff839a5994a8fd9b026b554d09852807a6ef9fd4d8246ef151732631da49dfa",
+      "distribution_sha512": "f643e31266268e920aa98ead9a061026c98dac2886932ad468565ba59bcb7fb4f98a4c4f62727367e1bd87515f3b016e6f6ccccad8b12bdef8b091b0fb577170",
+      "jars_sha256": {
+        "commons-validator-1.10.1.jar": "ed74711a78d793ca37f6075e4a1e93d107233dfd20d0bb17e32bad88d38e56aa",
+        "kafka-clients-4.2.1.jar": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+        "kafka-raft-4.2.1.jar": "1837a0a97128d73429e564de894f3a7e00310dbd33b051b8b0f035ae348d1e2a",
+        "kafka-server-4.2.1.jar": "ed8e28f941d31c8601f73d41f9f2098b5fdb5192631596d0c5f12ef99fe4e8bb",
+        "kafka-server-common-4.2.1.jar": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f",
+        "kafka-storage-4.2.1.jar": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767",
+        "kafka-storage-api-4.2.1.jar": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d",
+        "kafka_2.13-4.2.1.jar": "455851ef38d70851a0f624ec6391f5ea29ce7df33c242731b59e599af86f752b",
+        "log4j-api-2.25.4.jar": "c4b642a7f047275215de117e0e3847eb2c7711d84a0aa7433e7b3c096daf341d",
+        "log4j-core-2.25.4.jar": "10fee2c0485d54fa44ee75d314f6295508f7b932281873db61a91b88073200e6",
+        "metrics-core-2.2.0.jar": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c",
+        "scala-library-2.13.17.jar": "b7822c4225243215f185925724a6edff92cf18777a136cc738276c4446fac76c",
+        "scala-logging_2.13-3.9.6.jar": "0ad0c3f4d89d538b3b6c300158555e266aa69cf1b5f6522aba8b5bad238eb994",
+        "slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      "embedded_client_version_properties": "commitId=18d5ecd939c8d510\nversion=4.2.1",
+      "retained_archive": "apache-membership-4.2.1.tar.gz",
+      "retained_archive_sha256": "36d51ba37e1e91f8ca7287a36effa862bdfbf2289bdab3a1243c35d9fc7050b2",
+      "retained_sources_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/KRaftVersionRecord.json": "8961b54d1e68b5021bbd73c5ee4eedc6545f4f36389fe1a6178942d05bfb3f66",
+        "clients/src/main/resources/common/message/VotersRecord.json": "f0d564ea97f83225b766716dbaf4f79888b63d3d80ae3031361840cf6e49c731",
+        "core/src/main/scala/kafka/raft/KafkaMetadataLog.scala": "ef8dd6dbb259343258bc11166e0c74543c89c0c41b7baac3f5e4230683f3429c",
+        "raft/src/main/java/org/apache/kafka/raft/Endpoints.java": "95cd8cbb68c8baa8da89550739f7adde34f27c86240356f6b45eae7738ebe2cb",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "d982c3101fa8a65923896bfe516c361d512d1f13f1d3c0d1bed400f8ae57d9ae",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "89369d898ff9ac5307232f6102b7de4d3f73b32e067528e7fa16113727e4f1f0",
+        "raft/src/main/java/org/apache/kafka/raft/MetadataLogConfig.java": "4d3a910bfc1b459dab27c2556729e9c0da9cf4d60d87121e9807cdce9fde5199",
+        "raft/src/main/java/org/apache/kafka/raft/ReplicaKey.java": "781980840a9e683ced73e1e19256d3ac7291cdb717bc121256e34e6cf8f00d5d",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java": "7052a17a67788fc2f0187f6442513cd495ba934ead1b44ba3d164bf8d86ddb1c",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandlerState.java": "530140dd021a7be5a79f455743d5ea25d41f81efde3dc4d112d699d1bcbe7b72",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "0a9f803f110fcba0121619b88307448be3e7f8cf709004d454caeeeeb08e956d",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KRaftControlRecordStateMachine.java": "cb6bc60760a2e6f56a29899ebd2b0ec9099be9e5b0f591cebbd13c8a286a2a17",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "9b4b840ab051165763b1d16c3be4307021b45a2bbcc52564d0d9de355f83325d",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java": "e0188e3d6fb3187eb80cc6908e37c7987e486690316e473acbaf3030dc6fa086",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandlerState.java": "451ca9e5eb308cf83fd849ab43a9e1139d84804e5fc6a8330690f22cd4418395",
+        "raft/src/main/java/org/apache/kafka/raft/internals/TreeMapLogHistory.java": "f1ffb8ae3e7b9cdf030000adb2dcc514b6153741bfbfe365427fdb3b8f03dbbf",
+        "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientReconfigTest.java": "c88c00b18621d97943c8ef48c6723048c2266af20f6e0ee1a4a76a59c92872ba",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "3f81cd5137965258006ac14d0be8bf3abe5b33ca52e2754e10694fa0edbc0858"
+      },
+      "adapted_source": "ApacheMembershipProbe-4.2.1.adapted.java",
+      "adapted_source_sha256": "81e0dc7c0ddcb94931c9b76aff7e94b1d09a0c152cab7b6a427ddb2fb2df52d5",
+      "api_adaptations": [
+        {
+          "from": "org.apache.kafka.common.record.internal.",
+          "to": "org.apache.kafka.common.record.",
+          "occurrences": 3
+        },
+        {
+          "from": "org.apache.kafka.raft.internals.KafkaRaftLog",
+          "to": "kafka.raft.KafkaMetadataLog",
+          "occurrences": 1
+        },
+        {
+          "from": "KafkaRaftLog",
+          "to": "KafkaMetadataLog",
+          "occurrences": 4
+        },
+        {
+          "from": "KafkaMetadataLog.createLog(",
+          "to": "KafkaMetadataLog.apply(",
+          "occurrences": 1
+        }
+      ],
+      "class_files_sha256": {
+        "org/apache/kafka/raft/ApacheMembershipProbe$Clock.class": "5e8b594eed7442d78fa031b5dd9a049c651c4b54c8e35f9f3d527bb236bc59be",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Harness.class": "92b4546a3ae2675e7f28ea06181f7986bfb61b668b4218cfda35506c36f30a6c",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Sender.class": "652578bcb3ac5f48dcb173c3749a6391a1a4bc51734cf967e4fb907591722719",
+        "org/apache/kafka/raft/ApacheMembershipProbe.class": "126020d1d60d9a5abf4e8bbea72b7c88c2355840021bbcf74c4920f31b4be0dd"
+      },
+      "fixture_manifest_sha256": "369b37865e270167a6893b6c70a5c5c4f12f111940a0080c88aca532d0c1d69c",
+      "fixture_cases": 19,
+      "positive_assertions_per_replay": 133,
+      "positive_replays": 2,
+      "negative_variants": [
+        {
+          "variant": "wrong-old-majority",
+          "failed_assertion": "add.two-of-four-insufficient"
+        },
+        {
+          "variant": "wrong-early-resign",
+          "failed_assertion": "remove.no-early-resign"
+        },
+        {
+          "variant": "wrong-history-rejects",
+          "failed_assertion": "history.bare-helper-accepts-disjoint"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "source_archive_sha256": "4b5a65a52cbfdabe217856b6b4eb7cad7067f250524a38592ff27ee315824ea2",
+      "distribution_sha256": "f118328b2d053497350d5befd82c08db7ffd710327ff52943dd5caaa1b25db21",
+      "distribution_sha512": "c7d7b2318cb51aa0c61d3246a51c349210073c5c9b754947ef965a439f2f939e8600f204e134a75ac31faf3829c9370960ef7c6a9886c8a1dbf0339a21f4c54c",
+      "jars_sha256": {
+        "kafka-clients-4.3.1.jar": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+        "kafka-raft-4.3.1.jar": "6561ca329cdde1b835c9dc44dba4e473ab51b7d516c426fbdacd709c11a4b9cf",
+        "kafka-server-common-4.3.1.jar": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654",
+        "kafka-storage-4.3.1.jar": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7",
+        "kafka-storage-api-4.3.1.jar": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9",
+        "metrics-core-2.2.0.jar": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c",
+        "slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+      },
+      "embedded_client_version_properties": "commitId=26b251a451ce941d\nversion=4.3.1",
+      "retained_archive": "apache-membership-4.3.1.tar.gz",
+      "retained_archive_sha256": "49a90881afdbc416032023000f5307024bb94ae10eee789d719a96b049fdac83",
+      "retained_sources_sha256": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "11a23c7823a4547fda7567c458328bd77dc7326ac734c6c139b01f1538a8a38a",
+        "clients/src/main/java/org/apache/kafka/common/utils/Time.java": "4334062997f971c162e312491be28a22d0be1852359d4e188ec40754481a77ad",
+        "clients/src/main/resources/common/message/KRaftVersionRecord.json": "8961b54d1e68b5021bbd73c5ee4eedc6545f4f36389fe1a6178942d05bfb3f66",
+        "clients/src/main/resources/common/message/VotersRecord.json": "f0d564ea97f83225b766716dbaf4f79888b63d3d80ae3031361840cf6e49c731",
+        "raft/src/main/java/org/apache/kafka/raft/Endpoints.java": "95cd8cbb68c8baa8da89550739f7adde34f27c86240356f6b45eae7738ebe2cb",
+        "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java": "16a0abb19225a1b7c75790954010cf925a0d754e4d3955f5663d1c5348c932e8",
+        "raft/src/main/java/org/apache/kafka/raft/LeaderState.java": "0038bec6cb5a0477ad39040f65ff6402e8cdc6918b867a6e0b0d191365edc0ef",
+        "raft/src/main/java/org/apache/kafka/raft/MetadataLogConfig.java": "78f6fb0b7096ba1059d7db335a8b820ad0cf53d2ac188f1ee49087a2e86dc460",
+        "raft/src/main/java/org/apache/kafka/raft/ReplicaKey.java": "781980840a9e683ced73e1e19256d3ac7291cdb717bc121256e34e6cf8f00d5d",
+        "raft/src/main/java/org/apache/kafka/raft/VoterSet.java": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java": "7052a17a67788fc2f0187f6442513cd495ba934ead1b44ba3d164bf8d86ddb1c",
+        "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandlerState.java": "530140dd021a7be5a79f455743d5ea25d41f81efde3dc4d112d699d1bcbe7b72",
+        "raft/src/main/java/org/apache/kafka/raft/internals/BatchAccumulator.java": "5f094da63a2e88983806bf5b506893efca8876b21f762ec2b7e181fc9138fa95",
+        "raft/src/main/java/org/apache/kafka/raft/internals/IdentitySerde.java": "9e20e5b8311c5a1a1c5292d3b28dc73053908b54a5f9f4d1b38faece56d5c8be",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KRaftControlRecordStateMachine.java": "3c2c61f268b3646018620913781381c66033799dc7f23450bdd83050090aacb4",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftLog.java": "b4cd293d41be46c9270060cb31d139c3f1e1344ef96e2527c2d3abce5fe040ab",
+        "raft/src/main/java/org/apache/kafka/raft/internals/KafkaRaftMetrics.java": "99b3264ef881e4944723b4be5251220009191625d0a8e0b3b5f5ebfd1108791e",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java": "e0188e3d6fb3187eb80cc6908e37c7987e486690316e473acbaf3030dc6fa086",
+        "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandlerState.java": "451ca9e5eb308cf83fd849ab43a9e1139d84804e5fc6a8330690f22cd4418395",
+        "raft/src/main/java/org/apache/kafka/raft/internals/TreeMapLogHistory.java": "f1ffb8ae3e7b9cdf030000adb2dcc514b6153741bfbfe365427fdb3b8f03dbbf",
+        "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+        "raft/src/test/java/org/apache/kafka/raft/KafkaRaftClientReconfigTest.java": "5654b43c3999658764868f80e3d265c235a01c2b10d922990c30a494d8c2a84e",
+        "raft/src/test/java/org/apache/kafka/raft/LeaderStateTest.java": "b5502bfbfcd570e17dfd8a360bd6f558c75c6ae930c0f05a5935f7174e33156c",
+        "raft/src/test/java/org/apache/kafka/raft/VoterSetTest.java": "3f81cd5137965258006ac14d0be8bf3abe5b33ca52e2754e10694fa0edbc0858"
+      },
+      "adapted_source": "ApacheMembershipProbe-4.3.1.adapted.java",
+      "adapted_source_sha256": "062eff9fcfaec0fcd7469269cd9f8b66e5ef0bb7f7d8821ab89ccbea9bf15647",
+      "api_adaptations": [],
+      "class_files_sha256": {
+        "org/apache/kafka/raft/ApacheMembershipProbe$Clock.class": "5e8b594eed7442d78fa031b5dd9a049c651c4b54c8e35f9f3d527bb236bc59be",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Harness.class": "f12891922fb8119efdff29da32ddbe3a9ad91f8419e63b50915cd76c7c5fd946",
+        "org/apache/kafka/raft/ApacheMembershipProbe$Sender.class": "652578bcb3ac5f48dcb173c3749a6391a1a4bc51734cf967e4fb907591722719",
+        "org/apache/kafka/raft/ApacheMembershipProbe.class": "ca007faf1e3cf5719546dacb36e8eab234ddc73ed2889c7e49fd754408a5fee6"
+      },
+      "fixture_manifest_sha256": "dd471d49d30396f389319c24b2a186c4a4633549059795feb319bf6a1f77bb1e",
+      "fixture_cases": 19,
+      "positive_assertions_per_replay": 133,
+      "positive_replays": 2,
+      "negative_variants": [
+        {
+          "variant": "wrong-old-majority",
+          "failed_assertion": "add.two-of-four-insufficient"
+        },
+        {
+          "variant": "wrong-early-resign",
+          "failed_assertion": "remove.no-early-resign"
+        },
+        {
+          "variant": "wrong-history-rejects",
+          "failed_assertion": "history.bare-helper-accepts-disjoint"
+        }
+      ]
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.032,
+      "stdout": "java-version.stdout",
+      "stderr": "java-version.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2",
+        "/workspace/work/membership-apache/pinned-development-2/adapted/4.1.2/ApacheMembershipProbe.java"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.878,
+      "stdout": "4.1.2-compile.stdout",
+      "stderr": "4.1.2-compile.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "32a54b22d3774b3a881105a6d91bf37c8ba167a2677dfdde29530ed62a93cebd"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.1.2-replay-1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.1.2-replay-1-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 1.125,
+      "stdout": "4.1.2-replay-1.stdout",
+      "stderr": "4.1.2-replay-1.stderr",
+      "stdout_sha256": "ad79ff68be0588b0c4e41b7718d0fe56156ffc8937000740267f735cc0f256d8",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.1.2-replay-2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.1.2-replay-2-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 1.073,
+      "stdout": "4.1.2-replay-2.stdout",
+      "stderr": "4.1.2-replay-2.stderr",
+      "stdout_sha256": "ad79ff68be0588b0c4e41b7718d0fe56156ffc8937000740267f735cc0f256d8",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.1.2-wrong-old-majority",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.1.2-wrong-old-majority-native",
+        "wrong-old-majority"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: add.two-of-four-insufficient",
+      "accepted": true,
+      "elapsed_seconds": 0.818,
+      "stdout": "4.1.2-wrong-old-majority.stdout",
+      "stderr": "4.1.2-wrong-old-majority.stderr",
+      "stdout_sha256": "f5a47f918abe69e45ba3582fa5147566d26dd0e390c36196f5937ed9a63ef9fa",
+      "stderr_sha256": "8f73d13087e899774779f04f3bd6c2c53b063df29bd8202db113af9a69e0c870"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.1.2-wrong-early-resign",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.1.2-wrong-early-resign-native",
+        "wrong-early-resign"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: remove.no-early-resign",
+      "accepted": true,
+      "elapsed_seconds": 0.968,
+      "stdout": "4.1.2-wrong-early-resign.stdout",
+      "stderr": "4.1.2-wrong-early-resign.stderr",
+      "stdout_sha256": "b2629ae0c1f3d2c2286c5781f222871b262ab9f4334c2bbe0db632aca630f169",
+      "stderr_sha256": "e147738f93c0bb9056731abc72afe35c9c7291e3e11f15d7f82333a9f9e0ffed"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.1.2:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-raft-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/kafka_2.13-4.1.2.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-api-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/log4j-core-2.25.3.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-library-2.13.16.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/scala-logging_2.13-3.9.5.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.1.2-wrong-history-rejects",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.1.2-wrong-history-rejects-native",
+        "wrong-history-rejects"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: history.bare-helper-accepts-disjoint",
+      "accepted": true,
+      "elapsed_seconds": 1.072,
+      "stdout": "4.1.2-wrong-history-rejects.stdout",
+      "stderr": "4.1.2-wrong-history-rejects.stderr",
+      "stdout_sha256": "0c56c7bc44d9a1be5484099cda38667c8da78fb7afa8c9c98abdb36f90655b15",
+      "stderr_sha256": "bbd843e003d353c0f495ebbe43a7ace48973a421a9e6c40624ec191886461221"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1",
+        "/workspace/work/membership-apache/pinned-development-2/adapted/4.2.1/ApacheMembershipProbe.java"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 1.072,
+      "stdout": "4.2.1-compile.stdout",
+      "stderr": "4.2.1-compile.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "32a54b22d3774b3a881105a6d91bf37c8ba167a2677dfdde29530ed62a93cebd"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.2.1-replay-1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.2.1-replay-1-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 1.123,
+      "stdout": "4.2.1-replay-1.stdout",
+      "stderr": "4.2.1-replay-1.stderr",
+      "stdout_sha256": "adeb8860f12f5653d78b28a7144954b4327fe07a9f7973a0a504c5277f78cb49",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.2.1-replay-2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.2.1-replay-2-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 1.126,
+      "stdout": "4.2.1-replay-2.stdout",
+      "stderr": "4.2.1-replay-2.stderr",
+      "stdout_sha256": "adeb8860f12f5653d78b28a7144954b4327fe07a9f7973a0a504c5277f78cb49",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.2.1-wrong-old-majority",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.2.1-wrong-old-majority-native",
+        "wrong-old-majority"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: add.two-of-four-insufficient",
+      "accepted": true,
+      "elapsed_seconds": 0.874,
+      "stdout": "4.2.1-wrong-old-majority.stdout",
+      "stderr": "4.2.1-wrong-old-majority.stderr",
+      "stdout_sha256": "f5a47f918abe69e45ba3582fa5147566d26dd0e390c36196f5937ed9a63ef9fa",
+      "stderr_sha256": "2b5a5496faa2971b841947a3716197933b1111f43cd32906ac64452aae986fe7"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.2.1-wrong-early-resign",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.2.1-wrong-early-resign-native",
+        "wrong-early-resign"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: remove.no-early-resign",
+      "accepted": true,
+      "elapsed_seconds": 1.031,
+      "stdout": "4.2.1-wrong-early-resign.stdout",
+      "stderr": "4.2.1-wrong-early-resign.stderr",
+      "stdout_sha256": "63285502ec51cb4b743ce296e041e7e4e81c1a47a8812d09fefa39958ce7fc38",
+      "stderr_sha256": "f4b91d4189b74b97ccaf93c6bb710b813b372ce9ef0623310cff8a4f28f00710"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.2.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/commons-validator-1.10.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-raft-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/kafka_2.13-4.2.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-api-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/log4j-core-2.25.4.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-library-2.13.17.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/scala-logging_2.13-3.9.6.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.2.1-wrong-history-rejects",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.2.1-wrong-history-rejects-native",
+        "wrong-history-rejects"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: history.bare-helper-accepts-disjoint",
+      "accepted": true,
+      "elapsed_seconds": 1.173,
+      "stdout": "4.2.1-wrong-history-rejects.stdout",
+      "stderr": "4.2.1-wrong-history-rejects.stderr",
+      "stdout_sha256": "23b9acc7780ece116661050cfb0292d1956ae189ed2e80c5e3b11586856dd5fa",
+      "stderr_sha256": "06c55577137a4d48e11a6b17eea477c5bb981d968e0d60d2fd60c1ed30919edd"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1",
+        "/workspace/work/membership-apache/pinned-development-2/adapted/4.3.1/ApacheMembershipProbe.java"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.871,
+      "stdout": "4.3.1-compile.stdout",
+      "stderr": "4.3.1-compile.stderr",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.3.1-replay-1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.3.1-replay-1-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.922,
+      "stdout": "4.3.1-replay-1.stdout",
+      "stderr": "4.3.1-replay-1.stderr",
+      "stdout_sha256": "adeb8860f12f5653d78b28a7144954b4327fe07a9f7973a0a504c5277f78cb49",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.3.1-replay-2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.3.1-replay-2-native"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.921,
+      "stdout": "4.3.1-replay-2.stdout",
+      "stderr": "4.3.1-replay-2.stderr",
+      "stdout_sha256": "adeb8860f12f5653d78b28a7144954b4327fe07a9f7973a0a504c5277f78cb49",
+      "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.3.1-wrong-old-majority",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.3.1-wrong-old-majority-native",
+        "wrong-old-majority"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: add.two-of-four-insufficient",
+      "accepted": true,
+      "elapsed_seconds": 0.72,
+      "stdout": "4.3.1-wrong-old-majority.stdout",
+      "stderr": "4.3.1-wrong-old-majority.stderr",
+      "stdout_sha256": "f5a47f918abe69e45ba3582fa5147566d26dd0e390c36196f5937ed9a63ef9fa",
+      "stderr_sha256": "2b5a5496faa2971b841947a3716197933b1111f43cd32906ac64452aae986fe7"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.3.1-wrong-early-resign",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.3.1-wrong-early-resign-native",
+        "wrong-early-resign"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: remove.no-early-resign",
+      "accepted": true,
+      "elapsed_seconds": 0.826,
+      "stdout": "4.3.1-wrong-early-resign.stdout",
+      "stderr": "4.3.1-wrong-early-resign.stderr",
+      "stdout_sha256": "63285502ec51cb4b743ce296e041e7e4e81c1a47a8812d09fefa39958ce7fc38",
+      "stderr_sha256": "f4b91d4189b74b97ccaf93c6bb710b813b372ce9ef0623310cff8a4f28f00710"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/pinned-development-2/classes/4.3.1:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/pinned-development-2/4.3.1-wrong-history-rejects",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/pinned-development-2/4.3.1-wrong-history-rejects-native",
+        "wrong-history-rejects"
+      ],
+      "cwd": "/workspace/work/membership-apache/pinned-development-2",
+      "exit_code": 1,
+      "expected": "AssertionError: history.bare-helper-accepts-disjoint",
+      "accepted": true,
+      "elapsed_seconds": 0.919,
+      "stdout": "4.3.1-wrong-history-rejects.stdout",
+      "stderr": "4.3.1-wrong-history-rejects.stderr",
+      "stdout_sha256": "23b9acc7780ece116661050cfb0292d1956ae189ed2e80c5e3b11586856dd5fa",
+      "stderr_sha256": "06c55577137a4d48e11a6b17eea477c5bb981d968e0d60d2fd60c1ed30919edd"
+    }
+  ],
+  "positive_component_assertions": 782,
+  "deliberate_failing_executions": 9,
+  "limitations": [
+    "No actual Apache networked quorum or partitionline membership runtime is executed.",
+    "RequestSender captures actual discovery request creation but performs no TCP exchange.",
+    "LeaderState catch-up history permits regressed reported offsets and uses a one-hour fetch horizon; correlated durable-prefix ACK safety needs independent runtime evidence.",
+    "Control record history helper logs but accepts disjoint voter sets. One-change protocol handlers and durable runtime admission supply separate prerequisites.",
+    "Apache local-log reopen preserves control records but resets the component high watermark; this is not durable replicated-commit proof.",
+    "Newer ackWhenCommitted=false is tested only4.2.1/4.3.1 and is explicitly unsupported by the local common commit-ACK profile.",
+    "Negative variants alter only expected assertions, never the pinned Apache jars."
+  ]
+}

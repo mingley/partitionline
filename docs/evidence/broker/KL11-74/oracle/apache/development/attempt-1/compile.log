@@ -1,0 +1,11 @@
+/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/ApacheMembershipProbe.java:35: error: cannot find symbol
+import org.apache.kafka.common.record.internal.TimestampType;
+                                              ^
+  symbol:   class TimestampType
+  location: package org.apache.kafka.common.record.internal
+/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/ApacheMembershipProbe.java:116: error: cannot find symbol
+            RecordBatch.CURRENT_MAGIC_VALUE, Compression.NONE, TimestampType.CREATE_TIME, 0, 1000,
+                                                               ^
+  symbol:   variable TimestampType
+  location: class ApacheMembershipProbe
+2 errors

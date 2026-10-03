@@ -1,0 +1,2005 @@
+{
+  "schema_version": 1,
+  "release": "4.2.1",
+  "passed": true,
+  "assertions": 114,
+  "cases": [
+    {
+      "name": "ordinary-mixed-input",
+      "file": "ordinary-mixed-input.bin",
+      "bytes": 227,
+      "sha256": "b7e1d0b52666efb84879cadf15a65a6411d74b751618f47ae13141cf73e5ba7e",
+      "origin": "Actual Apache MemoryRecords.withRecords",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 8,
+          "bytes": 227,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": 1007,
+              "key_hex": null,
+              "value_hex": "6e756c6c2d6b6579",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 3,
+              "timestamp": 1007,
+              "key_hex": "62",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 6,
+              "timestamp": 1012,
+              "key_hex": null,
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-first-horizon-sparse",
+      "file": "filter-first-horizon-sparse.bin",
+      "bytes": 143,
+      "sha256": "29c04e78881e69a931533b6abb6abe5d007f8b25509eda327b0cd54806ff5ad6",
+      "origin": "Actual Apache filterTo with declared offset-selection predicate",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-horizon-no-tombstones-sparse",
+      "file": "filter-horizon-no-tombstones-sparse.bin",
+      "bytes": 103,
+      "sha256": "da669f0d74b914cf93d3cc36156fc71e9e2687a85abb94fc782342794d61745c",
+      "origin": "Actual Apache filterTo with declared offset-selection predicate",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-retain-empty-61",
+      "file": "filter-retain-empty-61.bin",
+      "bytes": 61,
+      "sha256": "d64b3622d3c6387bf732aaaa64624725e6eabce978b61d319c6977ab93f97b90",
+      "origin": "Actual Apache filterTo RETAIN_EMPTY",
+      "handler_policy": "sparse_empty_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ]
+    },
+    {
+      "name": "filter-delete-empty-output",
+      "file": "filter-delete-empty-output.bin",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "Actual Apache filterTo DELETE_EMPTY",
+      "handler_policy": "no_batch_output",
+      "batches": []
+    },
+    {
+      "name": "filter-ordinary-unchanged",
+      "file": "filter-ordinary-unchanged.bin",
+      "bytes": 101,
+      "sha256": "c27f4891b6a9179d7b0825bc881d91bdb3944290d9f11f157b26f1f0e813dcdf",
+      "origin": "Actual Apache filterTo unchanged fast path",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 32,
+          "last_offset": 33,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 101,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1010,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 32,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "78",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 33,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": "79",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-leading-gap",
+      "file": "filter-leading-gap.bin",
+      "bytes": 81,
+      "sha256": "115e3b4ce8166160818082f3673feecd8eaf130d1037a606927922f3df0719f1",
+      "origin": "Actual Apache filterTo declared offset-selection",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 32,
+          "last_offset": 33,
+          "logical_span": 2,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 0,
+          "base_timestamp": 1010,
+          "max_timestamp": 1010,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 33,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": "79",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-trailing-gap",
+      "file": "filter-trailing-gap.bin",
+      "bytes": 81,
+      "sha256": "9716430d933d310db97f5d1cacfe133960e8cb3a9d8e03f88cb2de75e092e296",
+      "origin": "Actual Apache filterTo declared offset-selection",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 32,
+          "last_offset": 33,
+          "logical_span": 2,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1000,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 32,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "78",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-empty-key-sparse",
+      "file": "filter-empty-key-sparse.bin",
+      "bytes": 79,
+      "sha256": "5db336f298f5e67d9e9370d2c720b3bafd0d2700bb8ec5f69e803a79dfc6e159",
+      "origin": "Actual Apache filterTo retains a present zero-length key/value",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 1,
+          "bytes": 79,
+          "attributes": 0,
+          "base_timestamp": 1011,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "filter-unknown-time-horizon",
+      "file": "filter-unknown-time-horizon.bin",
+      "bytes": 106,
+      "sha256": "1896a616ca823e61f5a4b70c587f2db07ed50f1b7e451331e7909728d51ef4a8",
+      "origin": "Actual Apache filterTo unknown record times/tombstone",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 106,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": -1,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": -1,
+              "key_hex": "75",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": -1,
+              "key_hex": "76",
+              "value_hex": "76616c7565",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-mixed-active-protected",
+      "file": "cleaner-mixed-active-protected.bin",
+      "bytes": 118,
+      "sha256": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+      "origin": "Actual UnifiedLog active8\u20139 bytes; not cleaned",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 8,
+          "last_offset": 9,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 118,
+          "attributes": 0,
+          "base_timestamp": 1014,
+          "max_timestamp": 1015,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 8,
+              "timestamp": 1014,
+              "key_hex": "61",
+              "value_hex": "70726f746563746564",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 9,
+              "timestamp": 1015,
+              "key_hex": null,
+              "value_hex": "6163746976652d6e756c6c",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-mixed-input",
+      "file": "cleaner-mixed-input.bin",
+      "bytes": 227,
+      "sha256": "c1a8e6c66a3b6c2aa0de07fb953906f3c07ac9585fcd13d12a57e5ea8f0e4e88",
+      "origin": "Actual UnifiedLog pre-compaction selected bytes",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 8,
+          "bytes": 227,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": 1007,
+              "key_hex": null,
+              "value_hex": "6e756c6c2d6b6579",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 3,
+              "timestamp": 1007,
+              "key_hex": "62",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 6,
+              "timestamp": 1012,
+              "key_hex": null,
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-first-horizon-sparse",
+      "file": "cleaner-first-horizon-sparse.bin",
+      "bytes": 143,
+      "sha256": "e4a56bc8bfefa3450eca12dc7740cf23c03cbebc4a2a8bfdfac3487aed227697",
+      "origin": "Actual Cleaner.doClean map/filter/segment swap",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-before-horizon-sparse",
+      "file": "cleaner-before-horizon-sparse.bin",
+      "bytes": 143,
+      "sha256": "e4a56bc8bfefa3450eca12dc7740cf23c03cbebc4a2a8bfdfac3487aed227697",
+      "origin": "Actual Cleaner.doClean before tombstone horizon",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-equal-horizon-sparse",
+      "file": "cleaner-equal-horizon-sparse.bin",
+      "bytes": 103,
+      "sha256": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+      "origin": "Actual Cleaner.doClean equality expires tombstones",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-after-horizon-sparse",
+      "file": "cleaner-after-horizon-sparse.bin",
+      "bytes": 103,
+      "sha256": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+      "origin": "Actual Cleaner.doClean after horizon",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 2,
+          "bytes": 103,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1011,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-allremoved-active-protected",
+      "file": "cleaner-allremoved-active-protected.bin",
+      "bytes": 86,
+      "sha256": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+      "origin": "Actual UnifiedLog active3 bytes; not cleaned",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 3,
+          "last_offset": 3,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 86,
+          "attributes": 0,
+          "base_timestamp": 1003,
+          "max_timestamp": 1003,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 3,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "616374697665",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-allremoved-input",
+      "file": "cleaner-allremoved-input.bin",
+      "bytes": 187,
+      "sha256": "3281c7a9e6a5a1d5d4af6a9f9a978d742c7ae7ba02cf4a60e446b0ba05d6f62e",
+      "origin": "Actual UnifiedLog two ordinary pre-clean batches",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 107,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "6f6c6430",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": 1001,
+              "key_hex": "61",
+              "value_hex": "6f6c6431",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 80,
+          "attributes": 0,
+          "base_timestamp": 1002,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-intermediate-empty-dropped",
+      "file": "cleaner-intermediate-empty-dropped.bin",
+      "bytes": 81,
+      "sha256": "6b019ea8e8eac561d0cdd466b6edb53da701339303fbe9b8a1f33259d8225677",
+      "origin": "Actual Cleaner drops ordinary intermediate empty batch; retains last cleaning-round batch",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 81,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "61",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-last-empty-61",
+      "file": "cleaner-last-empty-61.bin",
+      "bytes": 61,
+      "sha256": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+      "origin": "Actual Cleaner last cleaning-round ordinary empty batch retained",
+      "handler_policy": "sparse_empty_read_only",
+      "batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ]
+    },
+    {
+      "name": "cleaner-nullonly-input",
+      "file": "cleaner-nullonly-input.bin",
+      "bytes": 102,
+      "sha256": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+      "origin": "Actual UnifiedLog existing null-key records before compact policy",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 102,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": 1000,
+              "key_hex": null,
+              "value_hex": "76616c7565",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": 1001,
+              "key_hex": null,
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-nullonly-active-protected",
+      "file": "cleaner-nullonly-active-protected.bin",
+      "bytes": 90,
+      "sha256": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+      "origin": "Actual UnifiedLog active2 bytes; not cleaned",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 2,
+          "last_offset": 2,
+          "logical_span": 1,
+          "record_count": 1,
+          "bytes": 90,
+          "attributes": 0,
+          "base_timestamp": 1002,
+          "max_timestamp": 1002,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1002,
+              "key_hex": "616374697665",
+              "value_hex": "76616c7565",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-nullonly-empty-61",
+      "file": "cleaner-nullonly-empty-61.bin",
+      "bytes": 61,
+      "sha256": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+      "origin": "Actual Cleaner discards null keys but preserves last round extent",
+      "handler_policy": "sparse_empty_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 1,
+          "logical_span": 2,
+          "record_count": 0,
+          "bytes": 61,
+          "attributes": 0,
+          "base_timestamp": -1,
+          "max_timestamp": 1001,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": []
+        }
+      ]
+    },
+    {
+      "name": "cleaner-protected-sealed-input",
+      "file": "cleaner-protected-sealed-input.bin",
+      "bytes": 227,
+      "sha256": "c1a8e6c66a3b6c2aa0de07fb953906f3c07ac9585fcd13d12a57e5ea8f0e4e88",
+      "origin": "Actual UnifiedLog bounded cleanable prefix0\u20137",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 8,
+          "bytes": 227,
+          "attributes": 0,
+          "base_timestamp": 1000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 0,
+              "timestamp": 1000,
+              "key_hex": "61",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 1,
+              "timestamp": 1007,
+              "key_hex": null,
+              "value_hex": "6e756c6c2d6b6579",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 3,
+              "timestamp": 1007,
+              "key_hex": "62",
+              "value_hex": "6f6c64",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 6,
+              "timestamp": 1012,
+              "key_hex": null,
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-protected-sealed-suffix",
+      "file": "cleaner-protected-sealed-suffix.bin",
+      "bytes": 131,
+      "sha256": "4532b77da2860e6e4743cbe12aaceb7bc63fa38c64a5f0e177e32096333ba12b",
+      "origin": "Actual UnifiedLog sealed8\u20139 beyond cleaning window; not cleaned",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 8,
+          "last_offset": 9,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 131,
+          "attributes": 0,
+          "base_timestamp": 1014,
+          "max_timestamp": 1015,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 8,
+              "timestamp": 1014,
+              "key_hex": "61",
+              "value_hex": "7365616c65642d70726f746563746564",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 9,
+              "timestamp": 1015,
+              "key_hex": "62",
+              "value_hex": "7365616c65642d70726f746563746564",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-protected-active-suffix",
+      "file": "cleaner-protected-active-suffix.bin",
+      "bytes": 111,
+      "sha256": "36ff4c4b4418203cb020b17c4aa8d5863209a486e344924a23234de52a3e94a9",
+      "origin": "Actual UnifiedLog active10\u201311; not cleaned",
+      "handler_policy": "contiguous_produce_and_sparse_read",
+      "batches": [
+        {
+          "base_offset": 10,
+          "last_offset": 11,
+          "logical_span": 2,
+          "record_count": 2,
+          "bytes": 111,
+          "attributes": 0,
+          "base_timestamp": 1016,
+          "max_timestamp": 1017,
+          "delete_horizon_ms": null,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 10,
+              "timestamp": 1016,
+              "key_hex": "61",
+              "value_hex": "616374697665",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 11,
+              "timestamp": 1017,
+              "key_hex": "62",
+              "value_hex": "616374697665",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cleaner-protected-sealed-first-sparse",
+      "file": "cleaner-protected-sealed-first-sparse.bin",
+      "bytes": 143,
+      "sha256": "e4a56bc8bfefa3450eca12dc7740cf23c03cbebc4a2a8bfdfac3487aed227697",
+      "origin": "Actual Cleaner.doClean bounded prefix with untouched sealed/active suffixes",
+      "handler_policy": "sparse_read_only",
+      "batches": [
+        {
+          "base_offset": 0,
+          "last_offset": 7,
+          "logical_span": 8,
+          "record_count": 4,
+          "bytes": 143,
+          "attributes": 64,
+          "base_timestamp": 3000,
+          "max_timestamp": 1013,
+          "delete_horizon_ms": 3000,
+          "producer_id": -1,
+          "records": [
+            {
+              "offset": 2,
+              "timestamp": 1003,
+              "key_hex": "61",
+              "value_hex": "6e6577",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 4,
+              "timestamp": 1010,
+              "key_hex": "62",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 5,
+              "timestamp": 1011,
+              "key_hex": "",
+              "value_hex": "",
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            },
+            {
+              "offset": 7,
+              "timestamp": 1013,
+              "key_hex": "63",
+              "value_hex": null,
+              "headers": [
+                {
+                  "key": "dup",
+                  "value_hex": "61"
+                },
+                {
+                  "key": "dup",
+                  "value_hex": null
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hostile-protected-crc",
+      "file": "hostile-protected-crc.bin",
+      "bytes": 143,
+      "sha256": "14bdbc6c9a4d3e610be4302e9306477d9315770c77a63a7ab013770545d309a2",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_corrupt_crc",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "org.apache.kafka.common.errors.CorruptRecordException",
+        "message": "Record is corrupt (stored crc = 3792741739, computed crc = 276506216)"
+      }
+    },
+    {
+      "name": "hostile-count-negative",
+      "file": "hostile-count-negative.bin",
+      "bytes": 143,
+      "sha256": "a4fe2b144d4cd5d1b2c9392b80b572e3438261000dbd8e937bb5e94155221e20",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_negative_count",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Found invalid record count -1 in magic v2 batch"
+      }
+    },
+    {
+      "name": "hostile-count-huge",
+      "file": "hostile-count-huge.bin",
+      "bytes": 143,
+      "sha256": "f9825b061a8f6a3a98696490d9bab846cc3e037bc00857d394dddf00ab840e11",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_count_or_work_budget",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": "org.apache.kafka.common.InvalidRecordException",
+        "message": "Incorrect declared batch size, premature EOF reached"
+      }
+    },
+    {
+      "name": "hostile-count-zero-with-record-bytes",
+      "file": "hostile-count-zero-with-record-bytes.bin",
+      "bytes": 143,
+      "sha256": "28f5449c0d163c65f7bcc8e49a1accd955fd68c4fb8de2fbb150ba7f11d552ef",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_zero_count_trailing_record_bytes",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-negative-last-delta",
+      "file": "hostile-negative-last-delta.bin",
+      "bytes": 143,
+      "sha256": "7c512c89fcbb778f41aac8769bcd8c3b3cf5990f0409bccc5facee7512824795",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_negative_logical_extent",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-record-outside-extent",
+      "file": "hostile-record-outside-extent.bin",
+      "bytes": 143,
+      "sha256": "29cb39641ca93b9ce0610d0228abb73be4e4d4c5347636f6c6f325cdf966319c",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_record_outside_extent",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-offset-overflow",
+      "file": "hostile-offset-overflow.bin",
+      "bytes": 143,
+      "sha256": "66b83c83afda7c26d2fa060da6a7376db2814b2e2daed785171259d83481dc21",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_checked_offset_overflow",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          -9223372036854775807,
+          -9223372036854775805,
+          -9223372036854775804,
+          -9223372036854775802
+        ],
+        "exception": null,
+        "message": null
+      }
+    },
+    {
+      "name": "hostile-record-length-varint",
+      "file": "hostile-record-length-varint.bin",
+      "bytes": 143,
+      "sha256": "3975b3f5d376b4c34473d44fd881c3b4c3c4b89da3f2db885c76a9c1e1deadaa",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_record_varint",
+      "apache_outcome": {
+        "bytes": 143,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [],
+        "exception": "java.lang.IllegalArgumentException",
+        "message": "Varint is too long, the most significant bit in the 5th byte is set, converted value: 0"
+      }
+    },
+    {
+      "name": "hostile-trailing-byte",
+      "file": "hostile-trailing-byte.bin",
+      "bytes": 144,
+      "sha256": "13cd0a9d86618b2586f11241e04b93ab7692bee9066fb934d52cd5295eb41830",
+      "origin": "Declared mutation of an independently Apache-filtered valid batch; actual official parser outcome retained.",
+      "handler_policy": "reject_full_consumption",
+      "apache_outcome": {
+        "bytes": 144,
+        "valid_bytes": 143,
+        "batches": 1,
+        "iterated_offsets": [
+          2,
+          4,
+          5,
+          7
+        ],
+        "exception": null,
+        "message": null
+      }
+    }
+  ],
+  "contexts": {
+    "ordinary_profile": "magic2/uncompressed/CreateTime/producer=-1; no transactional/control/producer-state cleaning claim",
+    "delete_retention_ms": 1000,
+    "null_key_seed": "Existing delete-policy log receives null keys, then switches to compact config before actual Cleaner.doClean; this does not claim compact-topic Produce admission accepts null keys.",
+    "scenarios": [
+      {
+        "name": "mixed",
+        "input": "cleaner-mixed-input",
+        "active": "cleaner-mixed-active-protected",
+        "logical_floor": 0,
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 8,
+        "high_watermark": 10,
+        "round_last_batch_last_offset": 7,
+        "rounds": [
+          {
+            "now_ms": 2000,
+            "output": "cleaner-first-horizon-sparse",
+            "retained_offsets": [
+              2,
+              4,
+              5,
+              7
+            ]
+          },
+          {
+            "now_ms": 2999,
+            "output": "cleaner-before-horizon-sparse",
+            "retained_offsets": [
+              2,
+              4,
+              5,
+              7
+            ]
+          },
+          {
+            "now_ms": 3000,
+            "output": "cleaner-equal-horizon-sparse",
+            "retained_offsets": [
+              2,
+              5
+            ]
+          },
+          {
+            "now_ms": 3001,
+            "output": "cleaner-after-horizon-sparse",
+            "retained_offsets": [
+              2,
+              5
+            ]
+          }
+        ]
+      },
+      {
+        "name": "allremoved",
+        "input": "cleaner-allremoved-input",
+        "active": "cleaner-allremoved-active-protected",
+        "logical_floor": 0,
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 3,
+        "high_watermark": 4,
+        "round_last_batch_last_offset": 2,
+        "rounds": [
+          {
+            "now_ms": 2000,
+            "output": "cleaner-intermediate-empty-dropped",
+            "retained_offsets": [
+              2
+            ]
+          },
+          {
+            "now_ms": 3000,
+            "output": "cleaner-last-empty-61",
+            "retained_offsets": []
+          }
+        ]
+      },
+      {
+        "name": "nullonly",
+        "input": "cleaner-nullonly-input",
+        "active": "cleaner-nullonly-active-protected",
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 2,
+        "high_watermark": 3,
+        "round_last_batch_last_offset": 1,
+        "now_ms": 2000,
+        "output": "cleaner-nullonly-empty-61",
+        "retained_offsets": []
+      },
+      {
+        "name": "protectedsealed",
+        "input": "cleaner-protected-sealed-input",
+        "active": "cleaner-protected-active-suffix",
+        "sealed_protected_suffix": "cleaner-protected-sealed-suffix",
+        "logical_floor": 0,
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 8,
+        "high_watermark": 12,
+        "round_last_batch_last_offset": 7,
+        "now_ms": 2000,
+        "output": "cleaner-protected-sealed-first-sparse",
+        "retained_offsets": [
+          2,
+          4,
+          5,
+          7
+        ]
+      }
+    ],
+    "filter_only_cases": "Caller supplies an explicit keep-offset predicate and RETAIN_EMPTY/DELETE_EMPTY; Apache filterTo performs actual serialization. These cases are not relabeled as genuine Cleaner policy execution.",
+    "malformed_cases": "Checksum-valid mutations except the named CRC case; actual official parser/iteration outcomes retained. Any permissive Apache outcome remains separate from stricter local ordinary-read safety policy."
+  }
+}

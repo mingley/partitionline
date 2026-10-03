@@ -1,0 +1,39 @@
+{
+  "source_sha256": "bcf775b1cd05c6a27cc10407f9e6f9678fb0a7f991f0c9a2e0afaa4707461ca1",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/attempt-3/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/ApacheMembershipProbe.java"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/attempt-3/classes:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/attempt-3/logs",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/development/attempt-3/captures"
+      ],
+      "exit_code": 1
+    }
+  ]
+}

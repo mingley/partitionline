@@ -1,0 +1,10 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.AssertionError: discovery.synthetic-endpoint: localhost != 127.0.0.1
+	at org.apache.kafka.raft.ApacheMembershipProbe.check(ApacheMembershipProbe.java:69)
+	at org.apache.kafka.raft.ApacheMembershipProbe$Sender.send(ApacheMembershipProbe.java:97)
+	at org.apache.kafka.raft.internals.AddVoterHandler.handleAddVoterRequest(AddVoterHandler.java:160)
+	at org.apache.kafka.raft.ApacheMembershipProbe$Harness.requestAdd(ApacheMembershipProbe.java:213)
+	at org.apache.kafka.raft.ApacheMembershipProbe.addCases(ApacheMembershipProbe.java:267)
+	at org.apache.kafka.raft.ApacheMembershipProbe.main(ApacheMembershipProbe.java:373)

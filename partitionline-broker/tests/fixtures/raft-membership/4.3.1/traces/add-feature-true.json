@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "id": "add-feature-true",
+  "release": "4.3.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "one_change_component_behavior",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "add-feature-true",
+      "operation": "bootstrap",
+      "file": "add-feature-true-5-bootstrap.control.bin",
+      "bytes": 247,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "add-feature-true-5-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "add-feature-true-5-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "add-feature-true-5-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "add-feature-true-5-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "add-feature-true",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": -1,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "add-feature-true",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "add-feature-true",
+      "operation": "progress-1-2",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "add-feature-true.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-feature-true",
+      "operation": "replica-progress",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "add-feature-true",
+      "operation": "progress-3-2",
+      "now_ms": 106,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "add-feature-true",
+      "operation": "add-request",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "ack_when_committed": true
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.request-is-api18",
+      "actual": "18",
+      "expected": "18",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.synthetic-loopback-endpoint",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.synthetic-port",
+      "actual": "19203",
+      "expected": "19203",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-feature-true",
+      "operation": "feature-reply",
+      "now_ms": 106,
+      "inputs": {
+        "source_id": 3,
+        "feature_present": false,
+        "min": -1,
+        "max": -1
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "add.missing-or-incompatible-feature-true",
+      "actual": "42",
+      "expected": "42",
+      "passed": true
+    }
+  ]
+}

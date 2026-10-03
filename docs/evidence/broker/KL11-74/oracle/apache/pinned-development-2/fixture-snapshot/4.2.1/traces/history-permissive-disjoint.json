@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "id": "history-permissive-disjoint",
+  "release": "4.2.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "permissive_component_requires_outer_fencing",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "history-permissive-disjoint",
+      "operation": "bootstrap",
+      "file": "history-permissive-disjoint-23-bootstrap.control.bin",
+      "bytes": 247,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "history-permissive-disjoint-23-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "history-permissive-disjoint-23-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "history-permissive-disjoint-23-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "history-permissive-disjoint-23-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "history-permissive-disjoint",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": -1,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "history-permissive-disjoint",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "history-permissive-disjoint",
+      "operation": "progress-1-2",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "history-permissive-disjoint.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history.disjoint-majorities",
+      "actual": "false",
+      "expected": "false",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "history-permissive-disjoint",
+      "operation": "raw-helper-configuration",
+      "now_ms": 105,
+      "inputs": {
+        "voters": [
+          {
+            "id": 10,
+            "directory_id": "0000000000000001000000000000000b"
+          },
+          {
+            "id": 11,
+            "directory_id": "0000000000000001000000000000000c"
+          },
+          {
+            "id": 12,
+            "directory_id": "0000000000000001000000000000000d"
+          }
+        ]
+      }
+    },
+    {
+      "event": "control-batch",
+      "scenario": "history-permissive-disjoint",
+      "operation": "raw-helper-configuration",
+      "file": "history-permissive-disjoint-24-raw-helper-configuration.control.bin",
+      "bytes": 231,
+      "records": [
+        {
+          "native_offset": 2,
+          "native_epoch": 5,
+          "key_file": "history-permissive-disjoint-24-raw-helper-configuration.control.bin.offset-2.key.bin",
+          "value_file": "history-permissive-disjoint-24-raw-helper-configuration.control.bin.offset-2.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "history-permissive-disjoint",
+      "operation": "raw-helper-applied",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 10,
+          "directory_id": "0000000000000001000000000000000b"
+        },
+        {
+          "id": 11,
+          "directory_id": "0000000000000001000000000000000c"
+        },
+        {
+          "id": 12,
+          "directory_id": "0000000000000001000000000000000d"
+        }
+      ],
+      "latest_voters_offset": 2,
+      "hw": 2,
+      "leo": 3,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "history.bare-helper-accepts-disjoint",
+      "actual": "VoterSet(voters={12=VoterNode(voterKey=ReplicaKey(id=12, directoryId=AAAAAAAAAAEAAAAAAAAADQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19212}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 10=VoterNode(voterKey=ReplicaKey(id=10, directoryId=AAAAAAAAAAEAAAAAAAAACw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19210}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 11=VoterNode(voterKey=ReplicaKey(id=11, directoryId=AAAAAAAAAAEAAAAAAAAADA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19211}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "expected": "VoterSet(voters={12=VoterNode(voterKey=ReplicaKey(id=12, directoryId=AAAAAAAAAAEAAAAAAAAADQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19212}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 10=VoterNode(voterKey=ReplicaKey(id=10, directoryId=AAAAAAAAAAEAAAAAAAAACw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19210}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 11=VoterNode(voterKey=ReplicaKey(id=11, directoryId=AAAAAAAAAAEAAAAAAAAADA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19211}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history.bare-helper-uncommitted-active",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history-permissive-disjoint.replay-voter-set",
+      "actual": "VoterSet(voters={12=VoterNode(voterKey=ReplicaKey(id=12, directoryId=AAAAAAAAAAEAAAAAAAAADQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19212}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 10=VoterNode(voterKey=ReplicaKey(id=10, directoryId=AAAAAAAAAAEAAAAAAAAACw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19210}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 11=VoterNode(voterKey=ReplicaKey(id=11, directoryId=AAAAAAAAAAEAAAAAAAAADA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19211}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "expected": "VoterSet(voters={12=VoterNode(voterKey=ReplicaKey(id=12, directoryId=AAAAAAAAAAEAAAAAAAAADQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19212}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 10=VoterNode(voterKey=ReplicaKey(id=10, directoryId=AAAAAAAAAAEAAAAAAAAACw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19210}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 11=VoterNode(voterKey=ReplicaKey(id=11, directoryId=AAAAAAAAAAEAAAAAAAAADA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19211}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history-permissive-disjoint.replay-config-offset",
+      "actual": "OptionalLong[2]",
+      "expected": "OptionalLong[2]",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history-permissive-disjoint.reopen-end",
+      "actual": "3",
+      "expected": "3",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "history-permissive-disjoint.storage-HW-not-quorum-proof",
+      "actual": "0",
+      "expected": "0",
+      "passed": true
+    }
+  ]
+}

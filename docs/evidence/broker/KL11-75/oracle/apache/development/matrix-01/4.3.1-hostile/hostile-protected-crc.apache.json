@@ -1,0 +1,1 @@
+{"bytes":143,"valid_bytes":143,"batches":1,"iterated_offsets":[],"exception":"org.apache.kafka.common.errors.CorruptRecordException","message":"Record is corrupt (stored crc = 3792741739, computed crc = 276506216)"}

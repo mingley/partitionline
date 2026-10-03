@@ -1,0 +1,5 @@
+{
+  "product_failure": false,
+  "classification": "oracle runner passed a relative capture path to a JVM with a different cwd; official compile and125 assertions succeeded, fixture copying failed. Fixed runner resolves all argument paths before launching JVM.",
+  "raw_captures_retained": "4.1.2-replay-1-native"
+}

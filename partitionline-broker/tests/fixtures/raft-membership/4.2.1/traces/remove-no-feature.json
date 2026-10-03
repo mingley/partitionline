@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "id": "remove-no-feature",
+  "release": "4.2.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "one_change_component_behavior",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "remove-no-feature",
+      "operation": "bootstrap",
+      "file": "remove-no-feature-22-bootstrap.control.bin",
+      "bytes": 247,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "remove-no-feature-22-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "remove-no-feature-22-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "remove-no-feature-22-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "remove-no-feature-22-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "remove-no-feature",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": -1,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "remove-no-feature",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "remove-no-feature",
+      "operation": "progress-1-2",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "remove-no-feature.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "remove-no-feature",
+      "operation": "remove-request",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "remove.cluster-feature-zero",
+      "actual": "35",
+      "expected": "35",
+      "passed": true
+    }
+  ]
+}

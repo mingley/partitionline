@@ -1,0 +1,4 @@
+/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/ApacheMembershipProbe.java:250: error: unreported exception InterruptedException; must be caught or declared to be thrown
+            leader.close(); log.close(); buffers.close(); metrics.close(); scheduler.shutdown();
+                                                                                             ^
+1 error

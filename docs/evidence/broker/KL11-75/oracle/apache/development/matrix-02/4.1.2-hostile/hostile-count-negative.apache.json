@@ -1,0 +1,1 @@
+{"bytes":143,"valid_bytes":143,"batches":1,"iterated_offsets":[],"exception":"org.apache.kafka.common.InvalidRecordException","message":"Found invalid record count -1 in magic v2 batch"}

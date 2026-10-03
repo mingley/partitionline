@@ -1,0 +1,825 @@
+{
+  "schema_version": 1,
+  "classification": "Source references are read-only provenance; executed component traces are separate.",
+  "releases": [
+    {
+      "release": "4.1.2",
+      "retained_archive": "pinned-development-3/apache-membership-4.1.2.tar.gz",
+      "retained_archive_sha256": "8b0c82a5585e6f3b0b4ba33ced1dc4cbd5dbe5651105888729e2b8c7cf12f437",
+      "references": [
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java",
+          "sha256": "49803738cafe4e3c3ec016d70b9169b0a23661741b5669e535dd169c7311f409",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 93,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 129,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 202,
+              "excerpt": "        Node source,\n        Errors error,\n        Optional<ApiVersionsResponseData.SupportedFeatureKey> supportedKraftVersions,\n        long currentTimeMs\n    ) {\n        Optional<AddVoterHandlerState> handlerState = leaderState.addVoterHandlerState();\n        if (handlerState.isEmpty()) {\n            // There are no pending add operation just ignore the api response\n            return true;\n        }\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 247,
+              "excerpt": "        // Check that the new voter supports the kraft.version for reconfiguration\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();\n        if (!validVersionRange(kraftVersion, supportedKraftVersions)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since kraft.version range {} doesn't \" +\n                \"support reconfiguration\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 253,
+              "excerpt": "                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n\n            leaderState.resetAddVoterHandlerState(\n                Errors.INVALID_REQUEST,\n                String.format(\n                    \"Aborted add voter operation for %s since the %s range %s doesn't \" +\n                    \"support the finalized version %s\",\n                    current.voterKey(),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 263,
+              "excerpt": "                    current.voterKey(),\n                    KRaftVersion.FEATURE_NAME,\n                    supportedKraftVersions\n                        .map(\n                            range -> String.format(\n                                \"(min: %s, max: %s\",\n                                range.minVersion(),\n                                range.maxVersion()\n                            )\n                        )\n                        .orElse(\"(min: 0, max: 0)\"),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 309,
+              "excerpt": "                    current.voterEndpoints(),\n                    new SupportedVersionRange(\n                        supportedKraftVersions.get().minVersion(),\n                        supportedKraftVersions.get().maxVersion()\n                    )\n                )\n            )\n            .orElseThrow(() ->\n                new IllegalStateException(\n                    String.format(\n                        \"Unable to add %s to the set of voters %s\","
+            },
+            {
+              "searched_token": "isReplicaCaughtUp",
+              "line": 281,
+              "excerpt": "\n        // Check that the new voter is caught up to the LEO to avoid delays in HWM increases\n        if (!leaderState.isReplicaCaughtUp(current.voterKey(), currentTimeMs)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since it is lagging behind: {}\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                leaderState.getReplicaState(current.voterKey())\n            );\n\n            leaderState.resetAddVoterHandlerState("
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 323,
+              "excerpt": "                )\n            );\n        current.setLastOffset(leaderState.appendVotersRecord(newVoters, currentTimeMs));\n\n        return true;\n    }\n\n    public void highWatermarkUpdated(LeaderState<?> leaderState) {\n        leaderState.addVoterHandlerState().ifPresent(current -> {\n            leaderState.highWatermark().ifPresent(highWatermark -> {\n                current.lastOffset().ifPresent(lastOffset -> {"
+            },
+            {
+              "searched_token": "highWatermark.offset() > lastOffset",
+              "line": 332,
+              "excerpt": "            leaderState.highWatermark().ifPresent(highWatermark -> {\n                current.lastOffset().ifPresent(lastOffset -> {\n                    if (highWatermark.offset() > lastOffset) {\n                        // VotersRecord with the added voter was committed; complete the RPC\n                        leaderState.resetAddVoterHandlerState(Errors.NONE, null, Optional.empty());\n                    }\n                });\n            });\n        });\n    }\n"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java",
+          "sha256": "56865d7e6a37cb0709f8d0f54670edc461fff24c0f99cdf8bf6083a99ff5662b",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 83,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 119,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 85,
+              "excerpt": "        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n\n        // Check that the leader has established a HWM and committed the current epoch\n        Optional<Long> highWatermark = leaderState.highWatermark().map(LogOffsetMetadata::offset);"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 96,
+              "excerpt": "        if (highWatermark.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to establish HWM and fence previous voter changes\"\n                )\n            );\n        }\n\n        // Check that the cluster supports kraft.version >= 1\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 107,
+              "excerpt": "        if (!kraftVersion.isReconfigSupported()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.UNSUPPORTED_VERSION,\n                    String.format(\n                        \"Cluster doesn't support removing voter because the %s feature is %s\",\n                        kraftVersion.featureName(),\n                        kraftVersion.featureLevel()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 122,
+              "excerpt": "        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 134,
+              "excerpt": "\n        // Remove the voter from the set of voters\n        Optional<VoterSet> newVoters = votersEntry.get().value().removeVoter(voterKey);\n        if (newVoters.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.VOTER_NOT_FOUND,\n                    String.format(\n                        \"Cannot remove voter %s from the set of voters %s\",\n                        voterKey,\n                        votersEntry.get().value().voterKeys()"
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 150,
+              "excerpt": "        // Append the record to the log\n        RemoveVoterHandlerState state = new RemoveVoterHandlerState(\n            leaderState.appendVotersRecord(newVoters.get(), currentTimeMs),\n            time.timer(requestTimeoutMs)\n        );\n        leaderState.resetRemoveVoterHandlerState(Errors.UNKNOWN_SERVER_ERROR, null, Optional.of(state));\n\n        return state.future();\n    }\n\n    public void highWatermarkUpdated(LeaderState<?> leaderState) {"
+            },
+            {
+              "searched_token": "highWatermark.offset() > current.lastOffset()",
+              "line": 161,
+              "excerpt": "        leaderState.removeVoterHandlerState().ifPresent(current -> {\n            leaderState.highWatermark().ifPresent(highWatermark -> {\n                if (highWatermark.offset() > current.lastOffset()) {\n                    // VotersRecord with the removed voter was committed; complete the RPC\n                    leaderState.resetRemoveVoterHandlerState(Errors.NONE, null, Optional.empty());\n\n                    // Resign if the leader is not part of the new committed voter set\n                    VoterSet voters = partitionState.lastVoterSet();\n                    ReplicaKey localKey = localReplicaKey.orElseThrow(\n                        () -> new IllegalStateException(\n                            String.format("
+            },
+            {
+              "searched_token": "requestResign",
+              "line": 182,
+              "excerpt": "                        );\n\n                        leaderState.requestResign();\n                    }\n                }\n            });\n        });\n    }\n}"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/LeaderState.java",
+          "sha256": "b9855165ce2e6db25eba8fdbe2d2292fa6755bf6ce86c500592872fb5f8a0ebd",
+          "references": [
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 304,
+              "excerpt": "    }\n\n    public long maybeExpirePendingOperation(long currentTimeMs) {\n        // First abort any expired operations\n        long timeUntilAddVoterExpiration = addVoterHandlerState()\n            .map(state -> state.timeUntilOperationExpiration(currentTimeMs))\n            .orElse(Long.MAX_VALUE);\n\n        if (timeUntilAddVoterExpiration == 0) {\n            resetAddVoterHandlerState(Errors.REQUEST_TIMED_OUT, null, Optional.empty());\n        }"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 334,
+              "excerpt": "\n    public boolean isOperationPending(long currentTimeMs) {\n        maybeExpirePendingOperation(currentTimeMs);\n        return addVoterHandlerState.isPresent() || removeVoterHandlerState.isPresent();\n    }\n\n    private static List<Voter> convertToVoters(Set<Integer> voterIds) {\n        return voterIds.stream()\n            .map(follower -> new Voter().setVoterId(follower))\n            .collect(Collectors.toList());\n    }"
+            },
+            {
+              "searched_token": "lastCaughtUpTimestamp > 0",
+              "line": 470,
+              "excerpt": "        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }\n\n    public void requestResign() {\n        this.resignRequested = true;"
+            },
+            {
+              "searched_token": "HOURS.toMillis(1)",
+              "line": 467,
+              "excerpt": "        // In summary, let's consider a replica caught up for add voter, if they\n        // have fetched within the last hour\n        long anHourInMs = TimeUnit.HOURS.toMillis(1);\n        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 960,
+              "excerpt": "        private Optional<LogOffsetMetadata> endOffset;\n        private long lastFetchTimestamp;\n        private long lastFetchLeaderLogEndOffset;\n        private long lastCaughtUpTimestamp;\n        private boolean hasAcknowledgedLeader;\n\n        public ReplicaState(ReplicaKey replicaKey, boolean hasAcknowledgedLeader, Endpoints listeners) {\n            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 969,
+              "excerpt": "            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }\n"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1052,
+              "excerpt": "            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`.\n            // This allows us to use the previous value for `lastFetchTimestamp` if the\n            // follower was able to catch up to `lastFetchLeaderLogEndOffset` on this fetch.\n            leaderEndOffsetOpt.ifPresent(leaderEndOffset -> {\n                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1056,
+              "excerpt": "                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1057,
+              "excerpt": "                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 968,
+              "excerpt": "            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 1063,
+              "excerpt": "            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 967,
+              "excerpt": "            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1042,
+              "excerpt": "            // For the leader, we only update the end offset. The remaining fields\n            // (such as the caught up time) are determined implicitly.\n            this.endOffset = Optional.of(endOffsetMetadata);\n        }\n\n        void updateFollowerState(\n            long currentTimeMs,\n            LogOffsetMetadata fetchOffsetMetadata,\n            Optional<LogOffsetMetadata> leaderEndOffsetOpt\n        ) {\n            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`."
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1064,
+              "excerpt": "\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);\n            else if (this.endOffset.isEmpty())"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java",
+          "sha256": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+          "references": [
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 62,
+              "excerpt": "            // all replicas.\n            VoterSet lastVoterSet = lastEntry.get().value();\n            if (!lastVoterSet.hasOverlappingMajority(voters)) {\n                logger.info(\n                    \"Last voter set ({}) doesn't have an overlapping majority with the new voter set ({})\",\n                    lastVoterSet,\n                    voters\n                );\n            }\n        }\n"
+            },
+            {
+              "searched_token": "votersHistory.addAt",
+              "line": 71,
+              "excerpt": "        }\n\n        votersHistory.addAt(offset, voters);\n    }\n\n    /**\n     * Computes the value of the voter set at a given offset.\n     *\n     * This function will only return values provided through {@code addAt} and it would never\n     * include the {@code staticVoterSet} provided through the constructor.\n     *"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java",
+          "sha256": "ce29d89883f722aaf7dbd9377acbc075dc4dd42ee9b295359e8e86ec21a9b755",
+          "references": [
+            {
+              "searched_token": "private long pollLeader",
+              "line": 3092,
+              "excerpt": "    }\n\n    private long pollLeader(long currentTimeMs) {\n        LeaderState<T> state = quorum.leaderStateOrThrow();\n        maybeFireLeaderChange(state);\n\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }"
+            },
+            {
+              "searched_token": "state.isResignRequested()",
+              "line": 3097,
+              "excerpt": "\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }\n\n        long timeUtilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 3102,
+              "excerpt": "        }\n\n        long timeUtilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,\n            currentTimeMs\n        );\n\n        long timeUntilNextBeginQuorumSend = maybeSendBeginQuorumEpochRequests(\n            state,"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/VoterSet.java",
+          "sha256": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+          "references": [
+            {
+              "searched_token": "addVoter",
+              "line": 199,
+              "excerpt": "     * @return a new voter set if the voter was added, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> addVoter(VoterNode voter) {\n        if (voters.containsKey(voter.voterKey().id())) {\n            return Optional.empty();\n        }\n\n        HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n        newVoters.put(voter.voterKey().id(), voter);\n\n        return Optional.of(new VoterSet(newVoters));"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 221,
+              "excerpt": "     * @return a new voter set if the voter was removed, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> removeVoter(ReplicaKey voterKey) {\n        VoterNode oldVoter = voters.get(voterKey.id());\n        if (oldVoter != null &&\n            Objects.equals(oldVoter.voterKey(), voterKey) &&\n            voters.size() > 1\n        ) {\n            HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n            newVoters.remove(voterKey.id());\n"
+            },
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 319,
+              "excerpt": "     * @return true if they have an overlapping majority, false otherwise\n     */\n    public boolean hasOverlappingMajority(VoterSet that) {\n        Set<ReplicaKey> thisReplicaKeys = voterKeys();\n        Set<ReplicaKey> thatReplicaKeys = that.voterKeys();\n\n        if (Utils.diff(HashSet::new, thisReplicaKeys, thatReplicaKeys).size() > 1) return false;\n        return Utils.diff(HashSet::new, thatReplicaKeys, thisReplicaKeys).size() <= 1;\n    }\n\n    /**"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "retained_archive": "pinned-development-3/apache-membership-4.2.1.tar.gz",
+      "retained_archive_sha256": "36d51ba37e1e91f8ca7287a36effa862bdfbf2289bdab3a1243c35d9fc7050b2",
+      "references": [
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java",
+          "sha256": "7052a17a67788fc2f0187f6442513cd495ba934ead1b44ba3d164bf8d86ddb1c",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 94,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 130,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 204,
+              "excerpt": "        Node source,\n        Errors error,\n        Optional<ApiVersionsResponseData.SupportedFeatureKey> supportedKraftVersions,\n        long currentTimeMs\n    ) {\n        Optional<AddVoterHandlerState> handlerState = leaderState.addVoterHandlerState();\n        if (handlerState.isEmpty()) {\n            // There are no pending add operation just ignore the api response\n            return true;\n        }\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 249,
+              "excerpt": "        // Check that the new voter supports the kraft.version for reconfiguration\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();\n        if (!validVersionRange(kraftVersion, supportedKraftVersions)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since kraft.version range {} doesn't \" +\n                \"support reconfiguration\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 255,
+              "excerpt": "                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n\n            leaderState.resetAddVoterHandlerState(\n                Errors.INVALID_REQUEST,\n                String.format(\n                    \"Aborted add voter operation for %s since the %s range %s doesn't \" +\n                    \"support the finalized version %s\",\n                    current.voterKey(),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 265,
+              "excerpt": "                    current.voterKey(),\n                    KRaftVersion.FEATURE_NAME,\n                    supportedKraftVersions\n                        .map(\n                            range -> String.format(\n                                \"(min: %s, max: %s\",\n                                range.minVersion(),\n                                range.maxVersion()\n                            )\n                        )\n                        .orElse(\"(min: 0, max: 0)\"),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 311,
+              "excerpt": "                    current.voterEndpoints(),\n                    new SupportedVersionRange(\n                        supportedKraftVersions.get().minVersion(),\n                        supportedKraftVersions.get().maxVersion()\n                    )\n                )\n            )\n            .orElseThrow(() ->\n                new IllegalStateException(\n                    String.format(\n                        \"Unable to add %s to the set of voters %s\","
+            },
+            {
+              "searched_token": "isReplicaCaughtUp",
+              "line": 283,
+              "excerpt": "\n        // Check that the new voter is caught up to the LEO to avoid delays in HWM increases\n        if (!leaderState.isReplicaCaughtUp(current.voterKey(), currentTimeMs)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since it is lagging behind: {}\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                leaderState.getReplicaState(current.voterKey())\n            );\n\n            leaderState.resetAddVoterHandlerState("
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 325,
+              "excerpt": "                )\n            );\n        current.setLastOffset(leaderState.appendVotersRecord(newVoters, currentTimeMs));\n        if (!current.ackWhenCommitted()) {\n            // complete the future to send response, but do not reset the state,\n            // since the new voter set is not yet committed\n            current.future().complete(RaftUtil.addVoterResponse(Errors.NONE, null));\n        }\n        return true;\n    }\n"
+            },
+            {
+              "searched_token": "highWatermark.offset() > lastOffset",
+              "line": 338,
+              "excerpt": "            leaderState.highWatermark().ifPresent(highWatermark ->\n                current.lastOffset().ifPresent(lastOffset -> {\n                    if (highWatermark.offset() > lastOffset) {\n                        // VotersRecord with the added voter was committed; complete the RPC\n                        leaderState.resetAddVoterHandlerState(Errors.NONE, null, Optional.empty());\n                    }\n                })\n            )\n        );\n    }\n"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java",
+          "sha256": "e0188e3d6fb3187eb80cc6908e37c7987e486690316e473acbaf3030dc6fa086",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 83,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 119,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 85,
+              "excerpt": "        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n\n        // Check that the leader has established a HWM and committed the current epoch\n        Optional<Long> highWatermark = leaderState.highWatermark().map(LogOffsetMetadata::offset);"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 96,
+              "excerpt": "        if (highWatermark.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to establish HWM and fence previous voter changes\"\n                )\n            );\n        }\n\n        // Check that the cluster supports kraft.version >= 1\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 107,
+              "excerpt": "        if (!kraftVersion.isReconfigSupported()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.UNSUPPORTED_VERSION,\n                    String.format(\n                        \"Cluster doesn't support removing voter because the %s feature is %s\",\n                        kraftVersion.featureName(),\n                        kraftVersion.featureLevel()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 122,
+              "excerpt": "        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 134,
+              "excerpt": "\n        // Remove the voter from the set of voters\n        Optional<VoterSet> newVoters = votersEntry.get().value().removeVoter(voterKey);\n        if (newVoters.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.VOTER_NOT_FOUND,\n                    String.format(\n                        \"Cannot remove voter %s from the set of voters %s\",\n                        voterKey,\n                        votersEntry.get().value().voterKeys()"
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 150,
+              "excerpt": "        // Append the record to the log\n        RemoveVoterHandlerState state = new RemoveVoterHandlerState(\n            leaderState.appendVotersRecord(newVoters.get(), currentTimeMs),\n            time.timer(requestTimeoutMs)\n        );\n        leaderState.resetRemoveVoterHandlerState(Errors.UNKNOWN_SERVER_ERROR, null, Optional.of(state));\n\n        return state.future();\n    }\n\n    public void highWatermarkUpdated(LeaderState<?> leaderState) {"
+            },
+            {
+              "searched_token": "highWatermark.offset() > current.lastOffset()",
+              "line": 161,
+              "excerpt": "        leaderState.removeVoterHandlerState().ifPresent(current ->\n            leaderState.highWatermark().ifPresent(highWatermark -> {\n                if (highWatermark.offset() > current.lastOffset()) {\n                    // VotersRecord with the removed voter was committed; complete the RPC\n                    leaderState.resetRemoveVoterHandlerState(Errors.NONE, null, Optional.empty());\n\n                    // Resign if the leader is not part of the new committed voter set\n                    VoterSet voters = partitionState.lastVoterSet();\n                    ReplicaKey localKey = localReplicaKey.orElseThrow(\n                        () -> new IllegalStateException(\n                            String.format("
+            },
+            {
+              "searched_token": "requestResign",
+              "line": 182,
+              "excerpt": "                        );\n\n                        leaderState.requestResign();\n                    }\n                }\n            })\n        );\n    }\n}"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/LeaderState.java",
+          "sha256": "89369d898ff9ac5307232f6102b7de4d3f73b32e067528e7fa16113727e4f1f0",
+          "references": [
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 327,
+              "excerpt": "    }\n\n    public long maybeExpirePendingOperation(long currentTimeMs) {\n        // First abort any expired operations\n        long timeUntilAddVoterExpiration = addVoterHandlerState()\n            .map(state -> state.timeUntilOperationExpiration(currentTimeMs))\n            .orElse(Long.MAX_VALUE);\n\n        if (timeUntilAddVoterExpiration == 0) {\n            resetAddVoterHandlerState(Errors.REQUEST_TIMED_OUT, null, Optional.empty());\n        }"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 357,
+              "excerpt": "\n    public boolean isOperationPending(long currentTimeMs) {\n        maybeExpirePendingOperation(currentTimeMs);\n        return addVoterHandlerState.isPresent() || removeVoterHandlerState.isPresent();\n    }\n\n    private static List<Voter> convertToVoters(Set<Integer> voterIds) {\n        return voterIds.stream()\n            .map(follower -> new Voter().setVoterId(follower))\n            .collect(Collectors.toList());\n    }"
+            },
+            {
+              "searched_token": "lastCaughtUpTimestamp > 0",
+              "line": 493,
+              "excerpt": "        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }\n\n    public void requestResign() {\n        this.resignRequested = true;"
+            },
+            {
+              "searched_token": "HOURS.toMillis(1)",
+              "line": 490,
+              "excerpt": "        // In summary, let's consider a replica caught up for add voter, if they\n        // have fetched within the last hour\n        long anHourInMs = TimeUnit.HOURS.toMillis(1);\n        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 983,
+              "excerpt": "        private Optional<LogOffsetMetadata> endOffset;\n        private long lastFetchTimestamp;\n        private long lastFetchLeaderLogEndOffset;\n        private long lastCaughtUpTimestamp;\n        private boolean hasAcknowledgedLeader;\n\n        public ReplicaState(ReplicaKey replicaKey, boolean hasAcknowledgedLeader, Endpoints listeners) {\n            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 992,
+              "excerpt": "            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }\n"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1075,
+              "excerpt": "            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`.\n            // This allows us to use the previous value for `lastFetchTimestamp` if the\n            // follower was able to catch up to `lastFetchLeaderLogEndOffset` on this fetch.\n            leaderEndOffsetOpt.ifPresent(leaderEndOffset -> {\n                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1079,
+              "excerpt": "                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1080,
+              "excerpt": "                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 991,
+              "excerpt": "            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 1086,
+              "excerpt": "            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 990,
+              "excerpt": "            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1065,
+              "excerpt": "            // For the leader, we only update the end offset. The remaining fields\n            // (such as the caught up time) are determined implicitly.\n            this.endOffset = Optional.of(endOffsetMetadata);\n        }\n\n        void updateFollowerState(\n            long currentTimeMs,\n            LogOffsetMetadata fetchOffsetMetadata,\n            Optional<LogOffsetMetadata> leaderEndOffsetOpt\n        ) {\n            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`."
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1087,
+              "excerpt": "\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);\n            else if (this.endOffset.isEmpty())"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java",
+          "sha256": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+          "references": [
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 62,
+              "excerpt": "            // all replicas.\n            VoterSet lastVoterSet = lastEntry.get().value();\n            if (!lastVoterSet.hasOverlappingMajority(voters)) {\n                logger.info(\n                    \"Last voter set ({}) doesn't have an overlapping majority with the new voter set ({})\",\n                    lastVoterSet,\n                    voters\n                );\n            }\n        }\n"
+            },
+            {
+              "searched_token": "votersHistory.addAt",
+              "line": 71,
+              "excerpt": "        }\n\n        votersHistory.addAt(offset, voters);\n    }\n\n    /**\n     * Computes the value of the voter set at a given offset.\n     *\n     * This function will only return values provided through {@code addAt} and it would never\n     * include the {@code staticVoterSet} provided through the constructor.\n     *"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java",
+          "sha256": "d982c3101fa8a65923896bfe516c361d512d1f13f1d3c0d1bed400f8ae57d9ae",
+          "references": [
+            {
+              "searched_token": "private long pollLeader",
+              "line": 3166,
+              "excerpt": "    }\n\n    private long pollLeader(long currentTimeMs) {\n        LeaderState<T> state = quorum.leaderStateOrThrow();\n        maybeFireLeaderChange(state);\n\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }"
+            },
+            {
+              "searched_token": "state.isResignRequested()",
+              "line": 3171,
+              "excerpt": "\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }\n\n        long timeUntilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 3176,
+              "excerpt": "        }\n\n        long timeUntilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,\n            currentTimeMs\n        );\n\n        long timeUntilNextBeginQuorumSend = maybeSendBeginQuorumEpochRequests(\n            state,"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/VoterSet.java",
+          "sha256": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+          "references": [
+            {
+              "searched_token": "addVoter",
+              "line": 199,
+              "excerpt": "     * @return a new voter set if the voter was added, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> addVoter(VoterNode voter) {\n        if (voters.containsKey(voter.voterKey().id())) {\n            return Optional.empty();\n        }\n\n        HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n        newVoters.put(voter.voterKey().id(), voter);\n\n        return Optional.of(new VoterSet(newVoters));"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 221,
+              "excerpt": "     * @return a new voter set if the voter was removed, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> removeVoter(ReplicaKey voterKey) {\n        VoterNode oldVoter = voters.get(voterKey.id());\n        if (oldVoter != null &&\n            Objects.equals(oldVoter.voterKey(), voterKey) &&\n            voters.size() > 1\n        ) {\n            HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n            newVoters.remove(voterKey.id());\n"
+            },
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 319,
+              "excerpt": "     * @return true if they have an overlapping majority, false otherwise\n     */\n    public boolean hasOverlappingMajority(VoterSet that) {\n        Set<ReplicaKey> thisReplicaKeys = voterKeys();\n        Set<ReplicaKey> thatReplicaKeys = that.voterKeys();\n\n        if (Utils.diff(HashSet::new, thisReplicaKeys, thatReplicaKeys).size() > 1) return false;\n        return Utils.diff(HashSet::new, thatReplicaKeys, thisReplicaKeys).size() <= 1;\n    }\n\n    /**"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "retained_archive": "pinned-development-3/apache-membership-4.3.1.tar.gz",
+      "retained_archive_sha256": "49a90881afdbc416032023000f5307024bb94ae10eee789d719a96b049fdac83",
+      "references": [
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/AddVoterHandler.java",
+          "sha256": "7052a17a67788fc2f0187f6442513cd495ba934ead1b44ba3d164bf8d86ddb1c",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 94,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 130,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.addVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 204,
+              "excerpt": "        Node source,\n        Errors error,\n        Optional<ApiVersionsResponseData.SupportedFeatureKey> supportedKraftVersions,\n        long currentTimeMs\n    ) {\n        Optional<AddVoterHandlerState> handlerState = leaderState.addVoterHandlerState();\n        if (handlerState.isEmpty()) {\n            // There are no pending add operation just ignore the api response\n            return true;\n        }\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 249,
+              "excerpt": "        // Check that the new voter supports the kraft.version for reconfiguration\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();\n        if (!validVersionRange(kraftVersion, supportedKraftVersions)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since kraft.version range {} doesn't \" +\n                \"support reconfiguration\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 255,
+              "excerpt": "                current.voterKey(),\n                current.voterEndpoints(),\n                supportedKraftVersions\n            );\n\n            leaderState.resetAddVoterHandlerState(\n                Errors.INVALID_REQUEST,\n                String.format(\n                    \"Aborted add voter operation for %s since the %s range %s doesn't \" +\n                    \"support the finalized version %s\",\n                    current.voterKey(),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 265,
+              "excerpt": "                    current.voterKey(),\n                    KRaftVersion.FEATURE_NAME,\n                    supportedKraftVersions\n                        .map(\n                            range -> String.format(\n                                \"(min: %s, max: %s\",\n                                range.minVersion(),\n                                range.maxVersion()\n                            )\n                        )\n                        .orElse(\"(min: 0, max: 0)\"),"
+            },
+            {
+              "searched_token": "supportedKraftVersions",
+              "line": 311,
+              "excerpt": "                    current.voterEndpoints(),\n                    new SupportedVersionRange(\n                        supportedKraftVersions.get().minVersion(),\n                        supportedKraftVersions.get().maxVersion()\n                    )\n                )\n            )\n            .orElseThrow(() ->\n                new IllegalStateException(\n                    String.format(\n                        \"Unable to add %s to the set of voters %s\","
+            },
+            {
+              "searched_token": "isReplicaCaughtUp",
+              "line": 283,
+              "excerpt": "\n        // Check that the new voter is caught up to the LEO to avoid delays in HWM increases\n        if (!leaderState.isReplicaCaughtUp(current.voterKey(), currentTimeMs)) {\n            logger.info(\n                \"Aborting add voter operation for {} at {} since it is lagging behind: {}\",\n                current.voterKey(),\n                current.voterEndpoints(),\n                leaderState.getReplicaState(current.voterKey())\n            );\n\n            leaderState.resetAddVoterHandlerState("
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 325,
+              "excerpt": "                )\n            );\n        current.setLastOffset(leaderState.appendVotersRecord(newVoters, currentTimeMs));\n        if (!current.ackWhenCommitted()) {\n            // complete the future to send response, but do not reset the state,\n            // since the new voter set is not yet committed\n            current.future().complete(RaftUtil.addVoterResponse(Errors.NONE, null));\n        }\n        return true;\n    }\n"
+            },
+            {
+              "searched_token": "highWatermark.offset() > lastOffset",
+              "line": 338,
+              "excerpt": "            leaderState.highWatermark().ifPresent(highWatermark ->\n                current.lastOffset().ifPresent(lastOffset -> {\n                    if (highWatermark.offset() > lastOffset) {\n                        // VotersRecord with the added voter was committed; complete the RPC\n                        leaderState.resetAddVoterHandlerState(Errors.NONE, null, Optional.empty());\n                    }\n                })\n            )\n        );\n    }\n"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/RemoveVoterHandler.java",
+          "sha256": "e0188e3d6fb3187eb80cc6908e37c7987e486690316e473acbaf3030dc6fa086",
+          "references": [
+            {
+              "searched_token": "isOperationPending",
+              "line": 83,
+              "excerpt": "    ) {\n        // Check if there are any pending voter change requests\n        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n"
+            },
+            {
+              "searched_token": "lastVoterSetEntry",
+              "line": 119,
+              "excerpt": "\n        // Check that there are no uncommitted VotersRecord\n        Optional<LogHistory.Entry<VoterSet>> votersEntry = partitionState.lastVoterSetEntry();\n        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 85,
+              "excerpt": "        if (leaderState.isOperationPending(currentTimeMs)) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to handle previous voter change request\"\n                )\n            );\n        }\n\n        // Check that the leader has established a HWM and committed the current epoch\n        Optional<Long> highWatermark = leaderState.highWatermark().map(LogOffsetMetadata::offset);"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 96,
+              "excerpt": "        if (highWatermark.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    \"Request timed out waiting for leader to establish HWM and fence previous voter changes\"\n                )\n            );\n        }\n\n        // Check that the cluster supports kraft.version >= 1\n        KRaftVersion kraftVersion = partitionState.lastKraftVersion();"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 107,
+              "excerpt": "        if (!kraftVersion.isReconfigSupported()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.UNSUPPORTED_VERSION,\n                    String.format(\n                        \"Cluster doesn't support removing voter because the %s feature is %s\",\n                        kraftVersion.featureName(),\n                        kraftVersion.featureLevel()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 122,
+              "excerpt": "        if (votersEntry.isEmpty() || votersEntry.get().offset() >= highWatermark.get()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.REQUEST_TIMED_OUT,\n                    String.format(\n                        \"Request timed out waiting for voters to commit the latest voter change at %s with HWM %d\",\n                        votersEntry.map(LogHistory.Entry::offset),\n                        highWatermark.get()\n                    )\n                )\n            );"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 134,
+              "excerpt": "\n        // Remove the voter from the set of voters\n        Optional<VoterSet> newVoters = votersEntry.get().value().removeVoter(voterKey);\n        if (newVoters.isEmpty()) {\n            return CompletableFuture.completedFuture(\n                RaftUtil.removeVoterResponse(\n                    Errors.VOTER_NOT_FOUND,\n                    String.format(\n                        \"Cannot remove voter %s from the set of voters %s\",\n                        voterKey,\n                        votersEntry.get().value().voterKeys()"
+            },
+            {
+              "searched_token": "appendVotersRecord",
+              "line": 150,
+              "excerpt": "        // Append the record to the log\n        RemoveVoterHandlerState state = new RemoveVoterHandlerState(\n            leaderState.appendVotersRecord(newVoters.get(), currentTimeMs),\n            time.timer(requestTimeoutMs)\n        );\n        leaderState.resetRemoveVoterHandlerState(Errors.UNKNOWN_SERVER_ERROR, null, Optional.of(state));\n\n        return state.future();\n    }\n\n    public void highWatermarkUpdated(LeaderState<?> leaderState) {"
+            },
+            {
+              "searched_token": "highWatermark.offset() > current.lastOffset()",
+              "line": 161,
+              "excerpt": "        leaderState.removeVoterHandlerState().ifPresent(current ->\n            leaderState.highWatermark().ifPresent(highWatermark -> {\n                if (highWatermark.offset() > current.lastOffset()) {\n                    // VotersRecord with the removed voter was committed; complete the RPC\n                    leaderState.resetRemoveVoterHandlerState(Errors.NONE, null, Optional.empty());\n\n                    // Resign if the leader is not part of the new committed voter set\n                    VoterSet voters = partitionState.lastVoterSet();\n                    ReplicaKey localKey = localReplicaKey.orElseThrow(\n                        () -> new IllegalStateException(\n                            String.format("
+            },
+            {
+              "searched_token": "requestResign",
+              "line": 182,
+              "excerpt": "                        );\n\n                        leaderState.requestResign();\n                    }\n                }\n            })\n        );\n    }\n}"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/LeaderState.java",
+          "sha256": "0038bec6cb5a0477ad39040f65ff6402e8cdc6918b867a6e0b0d191365edc0ef",
+          "references": [
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 327,
+              "excerpt": "    }\n\n    public long maybeExpirePendingOperation(long currentTimeMs) {\n        // First abort any expired operations\n        long timeUntilAddVoterExpiration = addVoterHandlerState()\n            .map(state -> state.timeUntilOperationExpiration(currentTimeMs))\n            .orElse(Long.MAX_VALUE);\n\n        if (timeUntilAddVoterExpiration == 0) {\n            resetAddVoterHandlerState(Errors.REQUEST_TIMED_OUT, null, Optional.empty());\n        }"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 357,
+              "excerpt": "\n    public boolean isOperationPending(long currentTimeMs) {\n        maybeExpirePendingOperation(currentTimeMs);\n        return addVoterHandlerState.isPresent() || removeVoterHandlerState.isPresent();\n    }\n\n    private static List<Voter> convertToVoters(Set<Integer> voterIds) {\n        return voterIds.stream()\n            .map(follower -> new Voter().setVoterId(follower))\n            .collect(Collectors.toList());\n    }"
+            },
+            {
+              "searched_token": "lastCaughtUpTimestamp > 0",
+              "line": 493,
+              "excerpt": "        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }\n\n    public void requestResign() {\n        this.resignRequested = true;"
+            },
+            {
+              "searched_token": "HOURS.toMillis(1)",
+              "line": 490,
+              "excerpt": "        // In summary, let's consider a replica caught up for add voter, if they\n        // have fetched within the last hour\n        long anHourInMs = TimeUnit.HOURS.toMillis(1);\n        return Optional.ofNullable(observerStates.get(replicaKey))\n            .map(state ->\n                state.lastCaughtUpTimestamp > 0 &&\n                state.lastFetchTimestamp > 0 &&\n                state.lastFetchTimestamp > currentTimeMs - anHourInMs\n            )\n            .orElse(false);\n    }"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 983,
+              "excerpt": "        private Optional<LogOffsetMetadata> endOffset;\n        private long lastFetchTimestamp;\n        private long lastFetchLeaderLogEndOffset;\n        private long lastCaughtUpTimestamp;\n        private boolean hasAcknowledgedLeader;\n\n        public ReplicaState(ReplicaKey replicaKey, boolean hasAcknowledgedLeader, Endpoints listeners) {\n            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 992,
+              "excerpt": "            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }\n"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1075,
+              "excerpt": "            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`.\n            // This allows us to use the previous value for `lastFetchTimestamp` if the\n            // follower was able to catch up to `lastFetchLeaderLogEndOffset` on this fetch.\n            leaderEndOffsetOpt.ifPresent(leaderEndOffset -> {\n                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1079,
+              "excerpt": "                if (fetchOffsetMetadata.offset() >= leaderEndOffset.offset()) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);"
+            },
+            {
+              "searched_token": "lastFetchLeaderLogEndOffset",
+              "line": 1080,
+              "excerpt": "                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, currentTimeMs);\n                } else if (lastFetchLeaderLogEndOffset > 0\n                    && fetchOffsetMetadata.offset() >= lastFetchLeaderLogEndOffset) {\n                    lastCaughtUpTimestamp = Math.max(lastCaughtUpTimestamp, lastFetchTimestamp);\n                }\n                lastFetchLeaderLogEndOffset = leaderEndOffset.offset();\n            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 991,
+              "excerpt": "            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;\n        }"
+            },
+            {
+              "searched_token": "lastFetchTimestamp =",
+              "line": 1086,
+              "excerpt": "            });\n\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 990,
+              "excerpt": "            this.replicaKey = replicaKey;\n            this.listeners = listeners;\n            this.endOffset = Optional.empty();\n            this.lastFetchTimestamp = -1;\n            this.lastFetchLeaderLogEndOffset = -1;\n            this.lastCaughtUpTimestamp = -1;\n            this.hasAcknowledgedLeader = hasAcknowledgedLeader;\n        }\n\n        public ReplicaKey replicaKey() {\n            return replicaKey;"
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1065,
+              "excerpt": "            // For the leader, we only update the end offset. The remaining fields\n            // (such as the caught up time) are determined implicitly.\n            this.endOffset = Optional.of(endOffsetMetadata);\n        }\n\n        void updateFollowerState(\n            long currentTimeMs,\n            LogOffsetMetadata fetchOffsetMetadata,\n            Optional<LogOffsetMetadata> leaderEndOffsetOpt\n        ) {\n            // Update the `lastCaughtUpTimestamp` before we update the `lastFetchTimestamp`."
+            },
+            {
+              "searched_token": "endOffset =",
+              "line": 1087,
+              "excerpt": "\n            lastFetchTimestamp = Math.max(lastFetchTimestamp, currentTimeMs);\n            endOffset = Optional.of(fetchOffsetMetadata);\n            hasAcknowledgedLeader = true;\n        }\n\n        @Override\n        public int compareTo(ReplicaState that) {\n            if (this.endOffset.equals(that.endOffset))\n                return this.replicaKey.compareTo(that.replicaKey);\n            else if (this.endOffset.isEmpty())"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/internals/VoterSetHistory.java",
+          "sha256": "2c0084141f1015ea05080d3711441e1bb913e9adf059ac79c743cb6648e6535e",
+          "references": [
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 62,
+              "excerpt": "            // all replicas.\n            VoterSet lastVoterSet = lastEntry.get().value();\n            if (!lastVoterSet.hasOverlappingMajority(voters)) {\n                logger.info(\n                    \"Last voter set ({}) doesn't have an overlapping majority with the new voter set ({})\",\n                    lastVoterSet,\n                    voters\n                );\n            }\n        }\n"
+            },
+            {
+              "searched_token": "votersHistory.addAt",
+              "line": 71,
+              "excerpt": "        }\n\n        votersHistory.addAt(offset, voters);\n    }\n\n    /**\n     * Computes the value of the voter set at a given offset.\n     *\n     * This function will only return values provided through {@code addAt} and it would never\n     * include the {@code staticVoterSet} provided through the constructor.\n     *"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/KafkaRaftClient.java",
+          "sha256": "16a0abb19225a1b7c75790954010cf925a0d754e4d3955f5663d1c5348c932e8",
+          "references": [
+            {
+              "searched_token": "private long pollLeader",
+              "line": 3172,
+              "excerpt": "    }\n\n    private long pollLeader(long currentTimeMs) {\n        LeaderState<T> state = quorum.leaderStateOrThrow();\n        maybeFireLeaderChange(state);\n\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }"
+            },
+            {
+              "searched_token": "state.isResignRequested()",
+              "line": 3177,
+              "excerpt": "\n        long timeUntilCheckQuorumExpires = state.timeUntilCheckQuorumExpires(currentTimeMs);\n        if (shutdown.get() != null || state.isResignRequested() || timeUntilCheckQuorumExpires == 0) {\n            transitionToResigned(state.nonLeaderVotersByDescendingFetchOffset());\n            return 0L;\n        }\n\n        long timeUntilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,"
+            },
+            {
+              "searched_token": "maybeExpirePendingOperation",
+              "line": 3182,
+              "excerpt": "        }\n\n        long timeUntilVoterChangeExpires = state.maybeExpirePendingOperation(currentTimeMs);\n\n        long timeUntilFlush = maybeAppendBatches(\n            state,\n            currentTimeMs\n        );\n\n        long timeUntilNextBeginQuorumSend = maybeSendBeginQuorumEpochRequests(\n            state,"
+            }
+          ]
+        },
+        {
+          "file": "raft/src/main/java/org/apache/kafka/raft/VoterSet.java",
+          "sha256": "f873f4ffde331049973a95145508f68df10a7a61f42960f0eef37bd3989a2ec4",
+          "references": [
+            {
+              "searched_token": "addVoter",
+              "line": 199,
+              "excerpt": "     * @return a new voter set if the voter was added, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> addVoter(VoterNode voter) {\n        if (voters.containsKey(voter.voterKey().id())) {\n            return Optional.empty();\n        }\n\n        HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n        newVoters.put(voter.voterKey().id(), voter);\n\n        return Optional.of(new VoterSet(newVoters));"
+            },
+            {
+              "searched_token": "removeVoter",
+              "line": 221,
+              "excerpt": "     * @return a new voter set if the voter was removed, otherwise {@code Optional.empty()}\n     */\n    public Optional<VoterSet> removeVoter(ReplicaKey voterKey) {\n        VoterNode oldVoter = voters.get(voterKey.id());\n        if (oldVoter != null &&\n            Objects.equals(oldVoter.voterKey(), voterKey) &&\n            voters.size() > 1\n        ) {\n            HashMap<Integer, VoterNode> newVoters = new HashMap<>(voters);\n            newVoters.remove(voterKey.id());\n"
+            },
+            {
+              "searched_token": "hasOverlappingMajority",
+              "line": 319,
+              "excerpt": "     * @return true if they have an overlapping majority, false otherwise\n     */\n    public boolean hasOverlappingMajority(VoterSet that) {\n        Set<ReplicaKey> thisReplicaKeys = voterKeys();\n        Set<ReplicaKey> thatReplicaKeys = that.voterKeys();\n\n        if (Utils.diff(HashSet::new, thisReplicaKeys, thatReplicaKeys).size() > 1) return false;\n        return Utils.diff(HashSet::new, thatReplicaKeys, thisReplicaKeys).size() <= 1;\n    }\n\n    /**"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "semantic_findings": [
+    {
+      "finding": "One appended VotersRecord becomes active immediately; the new set majority must commit its exclusive end.",
+      "executed_cases": [
+        "add-new-majority",
+        "remove-leader",
+        "remove-follower"
+      ]
+    },
+    {
+      "finding": "Known current-epoch HW and strictly committed prior VotersRecord are required; pending or uncommitted changes block another.",
+      "executed_cases": [
+        "add-prerequisites",
+        "add-no-config",
+        "add-timeout-uncommitted",
+        "remove-prerequisites",
+        "remove-no-config"
+      ]
+    },
+    {
+      "finding": "Bare LeaderState catch-up uses observed timestamps and a strict one-hour fetch horizon, permits reported end regression; owner correlation and durable prefix validation are additional checks.",
+      "executed_cases": [
+        "catch-up-component-boundary"
+      ]
+    },
+    {
+      "finding": "VoterSetHistory logs but accepts disjoint configurations. Helper acceptance does not prove a safe transition.",
+      "executed_cases": [
+        "history-permissive-disjoint"
+      ]
+    },
+    {
+      "finding": "Common commit ACK is supported across all3. Newer early ACK completes before commit while retaining pending state; the local common profile explicitly excludes it.",
+      "executed_cases": [
+        "add-newer-early-ack"
+      ]
+    },
+    {
+      "finding": "Normal leader-removal resigns after new-majority commit; if its RPC state expires first, bare component late commit does not request resign. Local committed-membership fencing must remain independent of an expired request. KafkaRaftClient poll source is retained but no full poll/network runtime is claimed.",
+      "executed_cases": [
+        "remove-leader",
+        "remove-leader-timeout-late-commit"
+      ]
+    },
+    {
+      "finding": "Native epoch5 maps to normalized local term6; VotersRecord nativeoffsetN-1 maps to one-based inclusive indexN/nativeexclusiveendN.",
+      "executed_cases": [
+        "add-new-majority",
+        "history-truncate-uncommitted"
+      ]
+    },
+    {
+      "finding": "Actual local Apache log replay retains voter control records but resets its component HW to0; no durable replicated commit or application snapshot safety inference.",
+      "executed_cases": [
+        "add-new-majority",
+        "remove-leader",
+        "history-truncate-uncommitted"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,332 @@
+{
+  "schema_version": 1,
+  "id": "add-timeout-uncommitted",
+  "release": "4.3.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "one_change_component_behavior",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "bootstrap",
+      "file": "add-timeout-uncommitted-8-bootstrap.control.bin",
+      "bytes": 247,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "add-timeout-uncommitted-8-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "add-timeout-uncommitted-8-bootstrap.control.bin.offset-0.value.bin"
+        },
+        {
+          "native_offset": 1,
+          "native_epoch": 5,
+          "key_file": "add-timeout-uncommitted-8-bootstrap.control.bin.offset-1.key.bin",
+          "value_file": "add-timeout-uncommitted-8-bootstrap.control.bin.offset-1.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": -1,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "progress-1-2",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "add-timeout-uncommitted.prior-config-committed",
+      "actual": "2",
+      "expected": "2",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "replica-progress",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "end": 2
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "progress-3-2",
+      "now_ms": 106,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": 1,
+      "hw": 2,
+      "leo": 2,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "add-request",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "ack_when_committed": true
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.request-is-api18",
+      "actual": "18",
+      "expected": "18",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.synthetic-loopback-endpoint",
+      "actual": "true",
+      "expected": "true",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "discovery.synthetic-port",
+      "actual": "19203",
+      "expected": "19203",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "add-request",
+      "now_ms": 106,
+      "inputs": {
+        "replica": {
+          "id": 4,
+          "directory_id": "00000000000000010000000000000005"
+        },
+        "ack_when_committed": true
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "add.concurrent-request",
+      "actual": "7",
+      "expected": "7",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "feature-reply",
+      "now_ms": 106,
+      "inputs": {
+        "source_id": 3,
+        "feature_present": true,
+        "min": 0,
+        "max": 1
+      }
+    },
+    {
+      "event": "control-batch",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "appended",
+      "file": "add-timeout-uncommitted-9-appended.control.bin",
+      "bytes": 282,
+      "records": [
+        {
+          "native_offset": 2,
+          "native_epoch": 5,
+          "key_file": "add-timeout-uncommitted-9-appended.control.bin.offset-2.key.bin",
+          "value_file": "add-timeout-uncommitted-9-appended.control.bin.offset-2.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "local-appended",
+      "now_ms": 106,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        },
+        {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        }
+      ],
+      "latest_voters_offset": 2,
+      "hw": 2,
+      "leo": 3,
+      "pending": true,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "add.timeout-after-config-append",
+      "actual": "7",
+      "expected": "7",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "add.timed-out-config-stays-active",
+      "actual": "4",
+      "expected": "4",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "add-request",
+      "now_ms": 1106,
+      "inputs": {
+        "replica": {
+          "id": 4,
+          "directory_id": "00000000000000010000000000000005"
+        },
+        "ack_when_committed": true
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "add.uncommitted-prior-config-blocks-retry",
+      "actual": "7",
+      "expected": "7",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-timeout-uncommitted",
+      "operation": "remove-request",
+      "now_ms": 1106,
+      "inputs": {
+        "replica": {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "remove.uncommitted-prior-config-blocks-retry",
+      "actual": "7",
+      "expected": "7",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "add-timeout-uncommitted.replay-voter-set",
+      "actual": "VoterSet(voters={0=VoterNode(voterKey=ReplicaKey(id=0, directoryId=AAAAAAAAAAEAAAAAAAAAAQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19200}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 1=VoterNode(voterKey=ReplicaKey(id=1, directoryId=AAAAAAAAAAEAAAAAAAAAAg), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19201}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 2=VoterNode(voterKey=ReplicaKey(id=2, directoryId=AAAAAAAAAAEAAAAAAAAAAw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19202}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 3=VoterNode(voterKey=ReplicaKey(id=3, directoryId=AAAAAAAAAAEAAAAAAAAABA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19203}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "expected": "VoterSet(voters={0=VoterNode(voterKey=ReplicaKey(id=0, directoryId=AAAAAAAAAAEAAAAAAAAAAQ), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19200}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 1=VoterNode(voterKey=ReplicaKey(id=1, directoryId=AAAAAAAAAAEAAAAAAAAAAg), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19201}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 2=VoterNode(voterKey=ReplicaKey(id=2, directoryId=AAAAAAAAAAEAAAAAAAAAAw), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19202}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1]), 3=VoterNode(voterKey=ReplicaKey(id=3, directoryId=AAAAAAAAAAEAAAAAAAAABA), listeners=Endpoints(endpoints={ListenerName(CONTROLLER)=127.0.0.1/<unresolved>:19203}), supportedKRaftVersion=SupportedVersionRange[min_version:0, max_version:1])})",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "add-timeout-uncommitted.replay-config-offset",
+      "actual": "OptionalLong[2]",
+      "expected": "OptionalLong[2]",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "add-timeout-uncommitted.reopen-end",
+      "actual": "3",
+      "expected": "3",
+      "passed": true
+    },
+    {
+      "event": "assertion",
+      "case": "add-timeout-uncommitted.storage-HW-not-quorum-proof",
+      "actual": "0",
+      "expected": "0",
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+/workspace/work/compaction-apache/attempt-1/ApacheCompactionProbe.java:29: error: cannot find symbol
+import org.apache.kafka.server.util.Throttler;
+                                   ^
+  symbol:   class Throttler
+  location: package org.apache.kafka.server.util
+/workspace/work/compaction-apache/attempt-1/ApacheCompactionProbe.java:197: error: cannot find symbol
+                new Throttler(Double.MAX_VALUE, 300, "compaction-oracle-io", "bytes", clock), clock,
+                    ^
+  symbol:   class Throttler
+  location: class Fixture
+2 errors

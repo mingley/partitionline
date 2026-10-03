@@ -1,0 +1,1508 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Actual official Cleaner.doClean and MemoryRecords.filterTo/parser components; no Rust implementation imports or Kafka broker/live session claim.",
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-version"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.031,
+      "log": "java-version.log",
+      "log_sha256": "bf61371a588e139353579c26bedbc9693004380fe8e053aa012cb6f7d2c43f20"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/ApacheCompactionProbe.java",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/InspectCompacted.java"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.769,
+      "log": "4.1.2-compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.1.2",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/states-1",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-replay-1"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.431,
+      "log": "4.1.2-replay-1.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.1.2",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/states-2",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-replay-2"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.483,
+      "log": "4.1.2-replay-2.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-protected-crc.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-protected-crc.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.09,
+      "log": "4.1.2-hostile-protected-crc.log",
+      "log_sha256": "8b7beef9ee70a72305d4148b284bf722466ece9c732f51bf1f53d719c55b1a3b"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-negative.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-negative.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.092,
+      "log": "4.1.2-hostile-count-negative.log",
+      "log_sha256": "16293c6df326874a861f0241f9cdc1429561c3b81729e53c6b32aa9981bd23db"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-huge.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-huge.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.103,
+      "log": "4.1.2-hostile-count-huge.log",
+      "log_sha256": "fce6c648e9afd461c5991c08ae217c74ec5fa74f94d76eb54fab42fda5cad824"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-zero-with-record-bytes.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-count-zero-with-record-bytes.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.093,
+      "log": "4.1.2-hostile-count-zero-with-record-bytes.log",
+      "log_sha256": "445787b6abbcd0d7c8698c275b2446139a639fc9b5323a18352b39f8d98d9267"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-negative-last-delta.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-negative-last-delta.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.092,
+      "log": "4.1.2-hostile-negative-last-delta.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-record-outside-extent.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-record-outside-extent.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.092,
+      "log": "4.1.2-hostile-record-outside-extent.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-offset-overflow.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-offset-overflow.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.105,
+      "log": "4.1.2-hostile-offset-overflow.log",
+      "log_sha256": "003aa328c869f34960a0a3832dcb999dc12d07e7afd047f222892f6f65638f69"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-record-length-varint.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-record-length-varint.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.077,
+      "log": "4.1.2-hostile-record-length-varint.log",
+      "log_sha256": "113b7a7124fded33f3fdbd567326d94b5719267ad2cfdf43cf5ad9d9c9bb64c2"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-trailing-byte.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.1.2-hostile/hostile-trailing-byte.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.089,
+      "log": "4.1.2-hostile-trailing-byte.log",
+      "log_sha256": "242305c2c46b436af70755be26a98e55f569b67e709250dc3b1496678da42cf3"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.1.2",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/negative-state--wrong-null",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.1.2--wrong-null",
+        "--wrong-null"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.409,
+      "log": "4.1.2--wrong-null.log",
+      "log_sha256": "ef251999c0eea5f3060c76e1e11d599e8b3d19df90b3dad48bcdbf75787329bd"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.1.2",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/negative-state--wrong-equality",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.1.2--wrong-equality",
+        "--wrong-equality"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.416,
+      "log": "4.1.2--wrong-equality.log",
+      "log_sha256": "3b6b38004de18ca528485494f7736b094b730727955531a0272ecf8fc5f836e7"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-clients-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.1.2/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.1.2",
+        "/workspace/work/compaction-apache/matrix-01/4.1.2/negative-state--wrong-empty",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.1.2--wrong-empty",
+        "--wrong-empty"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.141,
+      "log": "4.1.2--wrong-empty.log",
+      "log_sha256": "1abdf7bb7799940ed8ec3c7e837341f2f6f757eced5d23b5d0ac715651ec248d"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/ApacheCompactionProbe.java",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/InspectCompacted.java"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.738,
+      "log": "4.2.1-compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.2.1",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/states-1",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-replay-1"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.451,
+      "log": "4.2.1-replay-1.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.2.1",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/states-2",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-replay-2"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.422,
+      "log": "4.2.1-replay-2.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-protected-crc.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-protected-crc.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.079,
+      "log": "4.2.1-hostile-protected-crc.log",
+      "log_sha256": "8b7beef9ee70a72305d4148b284bf722466ece9c732f51bf1f53d719c55b1a3b"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-negative.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-negative.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.076,
+      "log": "4.2.1-hostile-count-negative.log",
+      "log_sha256": "16293c6df326874a861f0241f9cdc1429561c3b81729e53c6b32aa9981bd23db"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-huge.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-huge.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.091,
+      "log": "4.2.1-hostile-count-huge.log",
+      "log_sha256": "fce6c648e9afd461c5991c08ae217c74ec5fa74f94d76eb54fab42fda5cad824"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-zero-with-record-bytes.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-count-zero-with-record-bytes.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.076,
+      "log": "4.2.1-hostile-count-zero-with-record-bytes.log",
+      "log_sha256": "445787b6abbcd0d7c8698c275b2446139a639fc9b5323a18352b39f8d98d9267"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-negative-last-delta.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-negative-last-delta.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.088,
+      "log": "4.2.1-hostile-negative-last-delta.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-record-outside-extent.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-record-outside-extent.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.087,
+      "log": "4.2.1-hostile-record-outside-extent.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-offset-overflow.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-offset-overflow.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.091,
+      "log": "4.2.1-hostile-offset-overflow.log",
+      "log_sha256": "003aa328c869f34960a0a3832dcb999dc12d07e7afd047f222892f6f65638f69"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-record-length-varint.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-record-length-varint.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.075,
+      "log": "4.2.1-hostile-record-length-varint.log",
+      "log_sha256": "113b7a7124fded33f3fdbd567326d94b5719267ad2cfdf43cf5ad9d9c9bb64c2"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-trailing-byte.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.2.1-hostile/hostile-trailing-byte.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.095,
+      "log": "4.2.1-hostile-trailing-byte.log",
+      "log_sha256": "242305c2c46b436af70755be26a98e55f569b67e709250dc3b1496678da42cf3"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.2.1",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/negative-state--wrong-null",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.2.1--wrong-null",
+        "--wrong-null"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.379,
+      "log": "4.2.1--wrong-null.log",
+      "log_sha256": "ef251999c0eea5f3060c76e1e11d599e8b3d19df90b3dad48bcdbf75787329bd"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.2.1",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/negative-state--wrong-equality",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.2.1--wrong-equality",
+        "--wrong-equality"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.415,
+      "log": "4.2.1--wrong-equality.log",
+      "log_sha256": "3b6b38004de18ca528485494f7736b094b730727955531a0272ecf8fc5f836e7"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-clients-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.2.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.2.1",
+        "/workspace/work/compaction-apache/matrix-01/4.2.1/negative-state--wrong-empty",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.2.1--wrong-empty",
+        "--wrong-empty"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.173,
+      "log": "4.2.1--wrong-empty.log",
+      "log_sha256": "1abdf7bb7799940ed8ec3c7e837341f2f6f757eced5d23b5d0ac715651ec248d"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/ApacheCompactionProbe.java",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/InspectCompacted.java"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.738,
+      "log": "4.3.1-compile.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.3.1",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/states-1",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-replay-1"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.431,
+      "log": "4.3.1-replay-1.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.3.1",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/states-2",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-replay-2"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.471,
+      "log": "4.3.1-replay-2.log",
+      "log_sha256": "a2b19f5f35a2fe841a3dd8351a7874afbec90a29894d18479ec6019a39e79188"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-protected-crc.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-protected-crc.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.091,
+      "log": "4.3.1-hostile-protected-crc.log",
+      "log_sha256": "8b7beef9ee70a72305d4148b284bf722466ece9c732f51bf1f53d719c55b1a3b"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-negative.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-negative.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.088,
+      "log": "4.3.1-hostile-count-negative.log",
+      "log_sha256": "16293c6df326874a861f0241f9cdc1429561c3b81729e53c6b32aa9981bd23db"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-huge.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-huge.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.111,
+      "log": "4.3.1-hostile-count-huge.log",
+      "log_sha256": "fce6c648e9afd461c5991c08ae217c74ec5fa74f94d76eb54fab42fda5cad824"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-zero-with-record-bytes.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-count-zero-with-record-bytes.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.083,
+      "log": "4.3.1-hostile-count-zero-with-record-bytes.log",
+      "log_sha256": "445787b6abbcd0d7c8698c275b2446139a639fc9b5323a18352b39f8d98d9267"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-negative-last-delta.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-negative-last-delta.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.102,
+      "log": "4.3.1-hostile-negative-last-delta.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-record-outside-extent.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-record-outside-extent.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.094,
+      "log": "4.3.1-hostile-record-outside-extent.log",
+      "log_sha256": "eddaa37b42bb6697431ddce79fc3944fb332016a856e3d6c56a0d813809190e4"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-offset-overflow.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-offset-overflow.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.101,
+      "log": "4.3.1-hostile-offset-overflow.log",
+      "log_sha256": "003aa328c869f34960a0a3832dcb999dc12d07e7afd047f222892f6f65638f69"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-record-length-varint.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-record-length-varint.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.093,
+      "log": "4.3.1-hostile-record-length-varint.log",
+      "log_sha256": "113b7a7124fded33f3fdbd567326d94b5719267ad2cfdf43cf5ad9d9c9bb64c2"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "InspectCompacted",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-trailing-byte.bin",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/4.3.1-hostile/hostile-trailing-byte.apache.json"
+      ],
+      "exit_code": 0,
+      "expected": "zero",
+      "accepted": true,
+      "elapsed_seconds": 0.099,
+      "log": "4.3.1-hostile-trailing-byte.log",
+      "log_sha256": "242305c2c46b436af70755be26a98e55f569b67e709250dc3b1496678da42cf3"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.3.1",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/negative-state--wrong-null",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.3.1--wrong-null",
+        "--wrong-null"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.464,
+      "log": "4.3.1--wrong-null.log",
+      "log_sha256": "ef251999c0eea5f3060c76e1e11d599e8b3d19df90b3dad48bcdbf75787329bd"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.3.1",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/negative-state--wrong-equality",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.3.1--wrong-equality",
+        "--wrong-equality"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.433,
+      "log": "4.3.1--wrong-equality.log",
+      "log_sha256": "3b6b38004de18ca528485494f7736b094b730727955531a0272ecf8fc5f836e7"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-ea",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/classes:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/retention-apache/final-4ffd7557/components/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "ApacheCompactionProbe",
+        "4.3.1",
+        "/workspace/work/compaction-apache/matrix-01/4.3.1/negative-state--wrong-empty",
+        "docs/evidence/broker/KL11-75/oracle/apache/development/matrix-01/negative-corpus-4.3.1--wrong-empty",
+        "--wrong-empty"
+      ],
+      "exit_code": 1,
+      "expected": "named negative assertion",
+      "accepted": true,
+      "elapsed_seconds": 0.145,
+      "log": "4.3.1--wrong-empty.log",
+      "log_sha256": "1abdf7bb7799940ed8ec3c7e837341f2f6f757eced5d23b5d0ac715651ec248d"
+    }
+  ],
+  "releases": [
+    {
+      "release": "4.1.2",
+      "source_sha": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "jars": {
+        "kafka-storage-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-4.1.2.jar",
+          "bytes": 591039,
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        "kafka-storage-api-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-storage-api-4.1.2.jar",
+          "bytes": 26987,
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        "kafka-server-common-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-server-common-4.1.2.jar",
+          "bytes": 371073,
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        "kafka-clients-4.1.2.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/kafka-clients-4.1.2.jar",
+          "bytes": 9769826,
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.1.2/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "actual_replays": [
+        {
+          "replay": 1,
+          "assertions": 94,
+          "manifest_sha256": "58bbc90b1a9e7bf1656f871541bf857c482a093f9d9a7399776521c6aa1b9bf3",
+          "history": {
+            "archive": "4.1.2-replay-1-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "assertions": 94,
+          "manifest_sha256": "58bbc90b1a9e7bf1656f871541bf857c482a093f9d9a7399776521c6aa1b9bf3",
+          "history": {
+            "archive": "4.1.2-replay-2-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "fixture_cases": 30,
+      "malformed_parser_outcomes": 9,
+      "fixture_manifest_sha256": "91fe3f81f7ec73013acabc61e165969363dc0fa352b90122bc727572e2ea1233"
+    },
+    {
+      "release": "4.2.1",
+      "source_sha": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "jars": {
+        "kafka-storage-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-4.2.1.jar",
+          "bytes": 604826,
+          "sha256": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767"
+        },
+        "kafka-storage-api-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-storage-api-4.2.1.jar",
+          "bytes": 28388,
+          "sha256": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d"
+        },
+        "kafka-server-common-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-server-common-4.2.1.jar",
+          "bytes": 384007,
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        "kafka-clients-4.2.1.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/kafka-clients-4.2.1.jar",
+          "bytes": 10119977,
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.2.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "actual_replays": [
+        {
+          "replay": 1,
+          "assertions": 94,
+          "manifest_sha256": "eb777d44a0fddec247ba5dbfef8cfdd2dc8ef51da883371103c85f8cbef17d10",
+          "history": {
+            "archive": "4.2.1-replay-1-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "assertions": 94,
+          "manifest_sha256": "eb777d44a0fddec247ba5dbfef8cfdd2dc8ef51da883371103c85f8cbef17d10",
+          "history": {
+            "archive": "4.2.1-replay-2-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "fixture_cases": 30,
+      "malformed_parser_outcomes": 9,
+      "fixture_manifest_sha256": "19f7b50e5d959929379fc916a10586f2d42188ff23f866924c4dab4a1386cc51"
+    },
+    {
+      "release": "4.3.1",
+      "source_sha": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "jars": {
+        "kafka-storage-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-4.3.1.jar",
+          "bytes": 610223,
+          "sha256": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7"
+        },
+        "kafka-storage-api-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-storage-api-4.3.1.jar",
+          "bytes": 28500,
+          "sha256": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9"
+        },
+        "kafka-server-common-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-server-common-4.3.1.jar",
+          "bytes": 389964,
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        "kafka-clients-4.3.1.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/kafka-clients-4.3.1.jar",
+          "bytes": 10204032,
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        "metrics-core-2.2.0.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/metrics-core-2.2.0.jar",
+          "bytes": 82123,
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        },
+        "slf4j-api-1.7.36.jar": {
+          "distribution_member": "kafka_2.13-4.3.1/libs/slf4j-api-1.7.36.jar",
+          "bytes": 41125,
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      },
+      "actual_replays": [
+        {
+          "replay": 1,
+          "assertions": 94,
+          "manifest_sha256": "35aa8e0f6c4dce1f58dabbacd9b562a741353f53b71fb19e36c830170c5467f2",
+          "history": {
+            "archive": "4.3.1-replay-1-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        },
+        {
+          "replay": 2,
+          "assertions": 94,
+          "manifest_sha256": "35aa8e0f6c4dce1f58dabbacd9b562a741353f53b71fb19e36c830170c5467f2",
+          "history": {
+            "archive": "4.3.1-replay-2-history.tar.gz",
+            "sha256": "466942e1de7334cb21780172062bfc08d1198e46f583019d9d01d6ef23b5ddec",
+            "files_sha256": {
+              "allremoved/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000000.log": "bbd25bee3b5aeb2149914e75904e94c58bed62a5f106d06e49893b4796f4e63a",
+              "allremoved/alpha-0/00000000000000000000.timeindex": "f7cb199c99d5017602e1e1c3813b6629c2ebd384ec3a08a643b0b3828eb9ee11",
+              "allremoved/alpha-0/00000000000000000003.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "allremoved/alpha-0/00000000000000000003.log": "b0e2c5c5ecba99c5d78be9c9c2c59253a9f30dee1d7844fab567edf02717365b",
+              "allremoved/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/00000000000000000003.timeindex": "5d473288c870628dd8b1b9a387018c461d48e7e0d85ae6e9a476849ce9f70a69",
+              "allremoved/alpha-0/00000000000000000004.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "allremoved/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "allremoved/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "mixed/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000000.log": "9ce0bf340268b3d8d996325cf8ff2de0ad23f511204ee08aee68c055756b19a3",
+              "mixed/alpha-0/00000000000000000000.timeindex": "df110bc18989d1bc077222089cd4208eb21c96e61674b3fe5df765ebf3a6b637",
+              "mixed/alpha-0/00000000000000000008.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "mixed/alpha-0/00000000000000000008.log": "eda00ea715a3b1924c79ab920c50fce78369cd3d10a685eb03d94a329dc28bee",
+              "mixed/alpha-0/00000000000000000008.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/00000000000000000008.timeindex": "a37b4280c29128fe0c730294dcbab6365fa00823580ddd59ffdc5e275395835d",
+              "mixed/alpha-0/00000000000000000010.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "mixed/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "mixed/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d",
+              "nullonly/alpha-0/00000000000000000000.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.index.deleted": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000000.log": "0eed941d56bdf5fb1b12e6720bc8b90965e63e3e01757bbfb6cab0f4935951e0",
+              "nullonly/alpha-0/00000000000000000000.log.deleted": "1e6cd1b3776ddc19e8c81140a1f8f0f1e4d80ad913dcf0c5b311f0c3a10436df",
+              "nullonly/alpha-0/00000000000000000000.timeindex": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000000.timeindex.deleted": "53bc2274d9c9f25e95a063898be558dde8a64f8fa74d284ed6ff392c9e0efbf7",
+              "nullonly/alpha-0/00000000000000000002.index": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+              "nullonly/alpha-0/00000000000000000002.log": "3d6a86936352b19226c2f51b46710de8ea74574980fb873007d9c9f65ec7d57a",
+              "nullonly/alpha-0/00000000000000000002.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/00000000000000000002.timeindex": "e8932ebccb5f594eccf016da38c03a8037a445f3d1627ff4db88ec5d279c7129",
+              "nullonly/alpha-0/00000000000000000003.snapshot": "98e930287de7b79c25ab25c7510b9aa1537494f1758aac269020cce43f0692f2",
+              "nullonly/alpha-0/leader-epoch-checkpoint": "3b1ad48c005681b75e5b9e53fce52657a0ffcf46192b467c2d7fb7c5d84eaceb",
+              "nullonly/alpha-0/partition.metadata": "0edec8191058b1efca0ac9d9b720be47c325be27d4dbb665322dd9424782595d"
+            }
+          }
+        }
+      ],
+      "fixture_cases": 30,
+      "malformed_parser_outcomes": 9,
+      "fixture_manifest_sha256": "1fecb486755961dc8f6a83adeaa882a9b7d93973a22f06fa86fd71ced10e6544"
+    }
+  ],
+  "contexts": {
+    "ordinary_profile": "magic2/uncompressed/CreateTime/producer=-1; no transactional/control/producer-state cleaning claim",
+    "delete_retention_ms": 1000,
+    "null_key_seed": "Existing delete-policy log receives null keys, then switches to compact config before actual Cleaner.doClean; this does not claim compact-topic Produce admission accepts null keys.",
+    "scenarios": [
+      {
+        "name": "mixed",
+        "input": "cleaner-mixed-input",
+        "active": "cleaner-mixed-active-protected",
+        "logical_floor": 0,
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 8,
+        "high_watermark": 10,
+        "round_last_batch_last_offset": 7,
+        "rounds": [
+          {
+            "now_ms": 2000,
+            "output": "cleaner-first-horizon-sparse",
+            "retained_offsets": [
+              2,
+              4,
+              5,
+              7
+            ]
+          },
+          {
+            "now_ms": 2999,
+            "output": "cleaner-before-horizon-sparse",
+            "retained_offsets": [
+              2,
+              4,
+              5,
+              7
+            ]
+          },
+          {
+            "now_ms": 3000,
+            "output": "cleaner-equal-horizon-sparse",
+            "retained_offsets": [
+              2,
+              5
+            ]
+          },
+          {
+            "now_ms": 3001,
+            "output": "cleaner-after-horizon-sparse",
+            "retained_offsets": [
+              2,
+              5
+            ]
+          }
+        ]
+      },
+      {
+        "name": "allremoved",
+        "input": "cleaner-allremoved-input",
+        "active": "cleaner-allremoved-active-protected",
+        "logical_floor": 0,
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 3,
+        "high_watermark": 4,
+        "round_last_batch_last_offset": 2,
+        "rounds": [
+          {
+            "now_ms": 2000,
+            "output": "cleaner-intermediate-empty-dropped",
+            "retained_offsets": [
+              2
+            ]
+          },
+          {
+            "now_ms": 3000,
+            "output": "cleaner-last-empty-61",
+            "retained_offsets": []
+          }
+        ]
+      },
+      {
+        "name": "nullonly",
+        "first_dirty_offset": 0,
+        "first_uncleanable_offset": 2,
+        "high_watermark": 3,
+        "round_last_batch_last_offset": 1,
+        "now_ms": 2000,
+        "output": "cleaner-nullonly-empty-61",
+        "retained_offsets": []
+      }
+    ],
+    "filter_only_cases": "Caller supplies an explicit keep-offset predicate and RETAIN_EMPTY/DELETE_EMPTY; Apache filterTo performs actual serialization. These cases are not relabeled as genuine Cleaner policy execution.",
+    "malformed_cases": "Checksum-valid mutations except the named CRC case; actual official parser/iteration outcomes retained. Any permissive Apache outcome remains separate from stricter local ordinary-read safety policy."
+  },
+  "limits": [
+    "JVM heap128MiB, key-map65536B, read/writebuffers16384B, selected prefix16384B, inspected records128/batches8, subprocess60s, history192files each2MiB.",
+    "Ordinary uncompressed/nontransactional producer=-1 only; child75 does not qualify parent11 transactions/control/producer-state semantics.",
+    "Real component file swaps/reopen are distinct from partitionline crash-safe publication/runtime proof."
+  ],
+  "counts": {
+    "releases": 3,
+    "independent_replays": 6,
+    "actual_component_assertions": 564,
+    "actual_component_cases_per_release": 21,
+    "actual_malformed_cases_per_release": 9,
+    "fixture_cases": 90,
+    "deliberate_assertion_failures_detected": 9,
+    "exact_component_binary_bytes_identical_across_releases_replays": true,
+    "actual_malformed_outcomes_identical_across_releases": true
+  },
+  "source_files_sha256": {
+    "ApacheCompactionProbe.java": "0c922f09d35687daf907fd81674cb238e1cecbdb96e41b63b27ec3d3e7fbecd6",
+    "InspectCompacted.java": "825197edae04814a6f70bbada8d0399d26a032962a19f014b6d60c066a8a28bb",
+    "prepare-and-run.py": "7a70041b861605a5b60a649411c5bd6476e4d1b459520cb01a32ab49974a6e9c",
+    "pins.json": "929ee528ed2ed6a5f78cc71ddf158fc414351b817af19023d8b35b0a851392d8"
+  }
+}

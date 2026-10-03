@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/apache/prepare-and-run.py", line 215, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/apache/prepare-and-run.py", line 189, in main
+    destination = args.fixture_root / version; destination.mkdir(parents=True)
+                                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/pathlib.py", line 1311, in mkdir
+    os.mkdir(self, mode)
+FileExistsError: [Errno 17] File exists: 'partitionline-broker/tests/fixtures/records-compacted/4.1.2'

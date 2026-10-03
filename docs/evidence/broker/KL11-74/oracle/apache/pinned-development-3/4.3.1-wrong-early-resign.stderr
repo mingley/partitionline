@@ -1,0 +1,7 @@
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" java.lang.AssertionError: remove.no-early-resign: false != true
+	at org.apache.kafka.raft.ApacheMembershipProbe.check(ApacheMembershipProbe.java:69)
+	at org.apache.kafka.raft.ApacheMembershipProbe.removeCases(ApacheMembershipProbe.java:429)
+	at org.apache.kafka.raft.ApacheMembershipProbe.main(ApacheMembershipProbe.java:516)

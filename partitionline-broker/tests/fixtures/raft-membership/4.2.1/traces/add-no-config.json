@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "id": "add-no-config",
+  "release": "4.2.1",
+  "component": "official Apache membership components",
+  "native_epoch": 5,
+  "local_normalized_term": 6,
+  "index_mapping": "inclusive local index equals exclusive native end",
+  "expected_disposition": "one_change_component_behavior",
+  "steps": [
+    {
+      "event": "control-batch",
+      "scenario": "add-no-config",
+      "operation": "bootstrap",
+      "file": "add-no-config-4-bootstrap.control.bin",
+      "bytes": 77,
+      "records": [
+        {
+          "native_offset": 0,
+          "native_epoch": 5,
+          "key_file": "add-no-config-4-bootstrap.control.bin.offset-0.key.bin",
+          "value_file": "add-no-config-4-bootstrap.control.bin.offset-0.value.bin"
+        }
+      ]
+    },
+    {
+      "event": "state",
+      "scenario": "add-no-config",
+      "operation": "initial",
+      "now_ms": 100,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": -2,
+      "hw": -1,
+      "leo": 1,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "input",
+      "scenario": "add-no-config",
+      "operation": "replica-progress",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        "end": 1
+      }
+    },
+    {
+      "event": "state",
+      "scenario": "add-no-config",
+      "operation": "progress-1-1",
+      "now_ms": 105,
+      "voters": [
+        {
+          "id": 0,
+          "directory_id": "00000000000000010000000000000001"
+        },
+        {
+          "id": 1,
+          "directory_id": "00000000000000010000000000000002"
+        },
+        {
+          "id": 2,
+          "directory_id": "00000000000000010000000000000003"
+        }
+      ],
+      "latest_voters_offset": -2,
+      "hw": 1,
+      "leo": 1,
+      "pending": false,
+      "leader_resign": false
+    },
+    {
+      "event": "assertion",
+      "case": "add-no-config.prior-config-committed",
+      "actual": "1",
+      "expected": "1",
+      "passed": true
+    },
+    {
+      "event": "input",
+      "scenario": "add-no-config",
+      "operation": "add-request",
+      "now_ms": 105,
+      "inputs": {
+        "replica": {
+          "id": 3,
+          "directory_id": "00000000000000010000000000000004"
+        },
+        "ack_when_committed": true
+      }
+    },
+    {
+      "event": "assertion",
+      "case": "add.no-prior-config-entry",
+      "actual": "7",
+      "expected": "7",
+      "passed": true
+    }
+  ]
+}

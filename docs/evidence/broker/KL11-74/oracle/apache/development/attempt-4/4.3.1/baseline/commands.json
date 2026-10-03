@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "version": "4.3.1",
+  "variant": "baseline",
+  "source_sha256": "59d10f0d982391a13ddba345e244ce5002cc963c05f2e2742681183a2c643607",
+  "adaptations": [],
+  "jars": {
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar": "6561ca329cdde1b835c9dc44dba4e473ab51b7d516c426fbdacd709c11a4b9cf",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+  },
+  "commands": [
+    {
+      "kind": "compile",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/membership-apache/attempt-4/4.3.1/baseline/classes",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/development/attempt-4/4.3.1/baseline/ApacheMembershipProbe.java"
+      ],
+      "exit_code": 0
+    },
+    {
+      "kind": "run",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/membership-apache/attempt-4/4.3.1/baseline/classes:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-clients-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-raft-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/metrics-core-2.2.0.jar:/workspace/work/raft-quorum-final-f0d4e5d/runtime/jars/4.3.1/slf4j-api-1.7.36.jar",
+        "org.apache.kafka.raft.ApacheMembershipProbe",
+        "/workspace/work/membership-apache/attempt-4/4.3.1/baseline/logs",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/apache/development/attempt-4/4.3.1/baseline/captures"
+      ],
+      "exit_code": 0
+    }
+  ]
+}
