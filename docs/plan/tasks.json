@@ -32799,7 +32799,8 @@
     "partitionline-broker/tests/oidc_sessions.rs",
     "partitionline-broker/tests/sasl_sessions.rs",
     "docs/evidence/broker/KL11-37/production/",
-    "docs/plan/evidence/KL11-37.json"
+    "docs/plan/evidence/KL11-37.json",
+    "partitionline-broker/examples/oidc_live_probe.rs"
   ],
   "delegated_write_sets": {
     "codex-coordinator-20261003": [
@@ -32814,10 +32815,13 @@
     "codex-c-peer-20261003": [
       "docs/evidence/broker/KL11-37/oracle/jwt/",
       "partitionline-broker/tests/fixtures/oidc/"
+    ],
+    "codex-avro-adapter-20261003": [
+      "docs/evidence/broker/KL11-37/peers/java/"
     ]
   },
   "dependency_note": "37 establishes signed OAUTHBEARER/OIDC, bounded real HTTPS discovery/JWKS/introspection authority refresh and post-authentication lease expiry/reconnect. Positive session lifetime and mid-connection renewed-token SASL reauthentication belong to dependent71; zero lifetime until71 qualification.",
-  "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence. c_peer exclusively owns independent RS256/ES256 signed fixtures and three official Java SDK JWT validators under oracle/jwt and fixtures/oidc; root retains live HTTPS issuer and other peer paths."
+  "integration_coordinator": "Root owns Cargo resolution/exports/shared profile gates, task state and independent issuer/JWT/official-peer proof; production worker owns stated security/session/transport writes.71 remains sequential/unclaimed until37 source freezes. Stage foundation, HTTPS authority manager, socket runtime separately; full37 closure waits for all live evidence. c_peer exclusively owns independent RS256/ES256 signed fixtures and three official Java SDK JWT validators under oracle/jwt and fixtures/oidc; root retains live HTTPS issuer and other peer paths. Production worker additionally owns additive examples/oidc_live_probe.rs using the real managed OIDC service and TLS SASL transport; explicitly scoped metadata-only and ordinary read/write router profiles share no held source changes. Avro owns additive Java live peers under peers/java only; root owns native/Rust/live issuer orchestration and review. No default feature activation or full Kafka/reauth/read-write claim from metadata-only evidence."
 },
     {
       "id": "KL11-38",
