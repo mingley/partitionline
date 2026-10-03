@@ -1,0 +1,28 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-retention-070598ee)
+    Finished `test` profile [unoptimized] target(s) in 4.72s
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c)
+
+running 20 tests
+test decoded_budget_and_overlapping_acquisitions_fail_before_delivery ... ok
+test acknowledge_session_error_clears_old_acquisition_without_replaying_accept ... ok
+test acknowledge_top_level_retry_advances_epoch_without_duplicate_accept ... ok
+test each_partition_leader_negotiates_its_own_share_version_and_v2_gate ... ok
+test fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition ... ok
+test java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit ... ok
+test live_current_v2_share_delivery_renew_release_expiry_accept ... ignored, requires an explicitly selected fresh digest-pinned Apache Kafka 4.3.1 Docker cell
+test older_bootstrap_does_not_cap_current_partition_leader_fields ... ok
+test leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader ... ok
+test partial_retriable_ack_retries_only_failed_partition ... ok
+test outstanding_acquisitions_consume_budget_across_successive_polls ... ok
+test partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record ... ok
+test delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests ... ok
+test share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff ... ok
+test share_join_retries_only_typed_coordinator_startup_errors ... ok
+test share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation ... ok
+test session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded ... ok
+test coordinator_move_preserves_delivery_and_partition_leader_session ... ok
+test renew_v2_extends_only_selected_record_and_preserves_delivery_count ... ok
+test unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats ... ok
+
+test result: ok. 19 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.32s
+

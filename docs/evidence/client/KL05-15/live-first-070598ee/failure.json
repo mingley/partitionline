@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "immutable_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "failure": "live_poll helper elapsed after40.95s; stage not logged in frozen test",
+  "classification": "real runtime history incomplete; stage/root cause require supplemental trace",
+  "source_changes": false,
+  "raw_logs": [
+    "runtime.log",
+    "broker.log"
+  ],
+  "owned_container_removed": true
+}

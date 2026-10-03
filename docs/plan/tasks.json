@@ -28858,6 +28858,7 @@
     "partitionline-broker/src/transport.rs",
     "partitionline-broker/tests/oidc_validation.rs",
     "partitionline-broker/tests/oidc_http.rs",
+    "partitionline-broker/tests/oidc_support/mod.rs",
     "partitionline-broker/tests/oidc_sessions.rs",
     "partitionline-broker/tests/sasl_sessions.rs",
     "docs/evidence/broker/KL11-37/production/",

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "working_directory": "/workspace/work/client-share-assessment/preparation-retention-070598ee",
+  "source": "hardlinked exact pushed070 archive; only candidate tests/share_semantics.rs replaced after breaking hardlink",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/client-share-target",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "cpuset": "0-2,4"
+  },
+  "passed_commands": [
+    "rustfmt --edition=2021 --check /workspace/partitionline/tests/share_semantics.rs",
+    "cargo test --offline --locked --test share_semantics",
+    "cargo clippy --offline --locked --test share_semantics -- -D warnings"
+  ],
+  "scope": "Focused preparation only; current candidate full matrix has not run."
+}

@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "frozen_product_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "current_thread_trace": "Supplemental adaptation of exact frozen live lifecycle with fixture retention.ms=-1, stage prints and35s seeded delay before join. Product unchanged; real fresh pinned image; CPU0-2,4; survived delay and all acquisition/Renew/expiry/release/Accept assertions.",
+  "multithread_trace": "Supplemental diagnostic adaptation of original frozen fixture; completed lifecycle without broker segment deletion. Runtime flavor differs from official test.",
+  "qualification": "Neither trace qualifies the frozen official test. They intentionally emit SUPPLEMENTAL_TRACE_REPORT rather than SHARE_V2_LIVE_REPORT; scratch runner exits before independent Java or persisted batch checks. Fresh official run on next pushed test source and complete client matrix remain pending.",
+  "first_compile_failure": "debug-share-compile-01.log retains scratch wrong Tokio rlib hash failure, fixed in secondcompile.",
+  "cpu_set": "0-2,4",
+  "library_path_used_by_rustc": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+  "current_rlib_snapshot": {
+    "path": "/workspace/work/client-share-target/debug/deps/libpartitionline-41c9070129cbefc4.rlib",
+    "sha256": "c6b185b8f81e2ec35e6b18d787335452616ae26e6c141357041e2c6fb07ef56a",
+    "captured_after_focused_preparation": true,
+    "limit": "This reusable artifact may have been rebuilt during preparation; its present digest is not asserted to be the original trace linker input digest."
+  },
+  "retained_trace_executables_sha256": {
+    "debug-share-runtime": "6f01728ba07bb260d27dc6798e984674148c0599ae79be13b008db148da11abb",
+    "debug-share-runtime-current-thread-retention": "0103308ae3ddb3335fdb02f7b7dcfae1a27378f9945fab17cf07c54d4aafd03d"
+  }
+}

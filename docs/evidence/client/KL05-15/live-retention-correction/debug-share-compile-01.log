@@ -1,0 +1,15 @@
+error: extern location for tokio does not exist: /workspace/work/client-share-target/debug/deps/libtokio-e64867d112d47f02.rlib
+  --> /workspace/work/client-share-assessment/DebugShareRuntime.rs:38:3
+   |
+38 | #[tokio::main]
+   |   ^^^^^
+
+error[E0752]: `main` function is not allowed to be `async`
+  --> /workspace/work/client-share-assessment/DebugShareRuntime.rs:39:1
+   |
+39 | async fn main() {
+   | ^^^^^^^^^^^^^^^ `main` function is not allowed to be `async`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0752`.

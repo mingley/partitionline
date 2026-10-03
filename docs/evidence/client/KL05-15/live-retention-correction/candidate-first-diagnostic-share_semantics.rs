@@ -744,8 +744,7 @@ async fn live_poll(group: &mut ShareGroup, stage: &str) -> partitionline::ShareR
         }
     })
     .await
-    .map_err(|failure| format!("live Share stage {stage} timed out: {failure:?}"))
-    .unwrap()
+    .unwrap_or_else(|failure| panic!("live Share stage {stage} timed out: {failure:?}"))
 }
 
 fn check_live_record(record: &ShareRecord, topic: &str) {

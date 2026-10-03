@@ -1,0 +1,19 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/immutable-070598ee)
+    Finished `test` profile [unoptimized] target(s) in 17.23s
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-30b3c9323593945c)
+
+running 1 test
+
+thread 'live_current_v2_share_delivery_renew_release_expiry_accept' (838373) panicked at tests/share_semantics.rs:747:6:
+called `Result::unwrap()` on an `Err` value: Elapsed(())
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test live_current_v2_share_delivery_renew_release_expiry_accept ... FAILED
+
+failures:
+
+failures:
+    live_current_v2_share_delivery_renew_release_expiry_accept
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 19 filtered out; finished in 40.95s
+
+error: test failed, to rerun pass `--test share_semantics`

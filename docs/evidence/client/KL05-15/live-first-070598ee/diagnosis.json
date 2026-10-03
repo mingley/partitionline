@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "classification": "live fixture retention failure; this run does not qualify share runtime",
+  "observed_broker_history": [
+    "2026-10-03 05:06:23.558: log start offset advanced to 4 due to segment deletion",
+    "2026-10-03 05:06:23.562: baseOffset=0, size=137, largestRecordTimestamp=1003 deleted for default retention.ms=604800000 breach"
+  ],
+  "fixture_problem": "The deliberately fixed timestamps 1000..1003 are required for independent Java record identity checks but are historical relative to the real broker clock. The test topic inherited default retention and therefore permitted deletion during the acquisition-lock history.",
+  "proposed_correction": "Set retention.ms=-1 only on the live fixture topic; preserve exact fixed IDs, timestamps and one four-record batch. Include stage names in polling timeout diagnostics.",
+  "limits": "The frozen test did not print its failing lifecycle stage. Broker deletion is directly observed; the specific timed-out polling stage is not asserted. A separate scratch multithread trace completed the lifecycle, but it is supplemental and does not replace the frozen current_thread test or independent persisted-batch/Java checks.",
+  "original_provisional_assessment": "failure.json preserved without modification"
+}

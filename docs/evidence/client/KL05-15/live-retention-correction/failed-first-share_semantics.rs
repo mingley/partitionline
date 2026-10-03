@@ -733,7 +733,7 @@ async fn outstanding_acquisitions_consume_budget_across_successive_polls() {
     group.leave().await.unwrap();
 }
 
-async fn live_poll(group: &mut ShareGroup, stage: &str) -> partitionline::ShareRecords {
+async fn live_poll(group: &mut ShareGroup) -> partitionline::ShareRecords {
     tokio::time::timeout(Duration::from_secs(20), async {
         loop {
             let records = group.poll().await.unwrap();
@@ -744,7 +744,6 @@ async fn live_poll(group: &mut ShareGroup, stage: &str) -> partitionline::ShareR
         }
     })
     .await
-    .map_err(|failure| format!("live Share stage {stage} timed out: {failure:?}"))
     .unwrap()
 }
 
@@ -788,7 +787,7 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
         let features = admin.describe_features().await.unwrap();
         let levels: std::collections::BTreeMap<_, _> = features.finalized_features.iter().map(|f| (f.name.clone(), [f.min_version_level, f.max_version_level])).collect();
         assert!(levels.get("share.version").is_some_and(|v| v[0] >= 1));
-        for result in admin.create_topics(&[NewTopic::new(&topic, 1, 1).config("retention.ms", "-1")], 10000, false).await.unwrap() {
+        for result in admin.create_topics(&[NewTopic::new(&topic, 1, 1)], 10000, false).await.unwrap() {
             assert_eq!(result.error_code, 0);
         }
         let changes = [ConfigResourceUpdate::new(ConfigResource::group(&group_id), [
@@ -809,7 +808,7 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
         let mut next = ShareGroup::join(cfg, &group_id, &topic).await.unwrap();
         owner.set_acquire_mode(ShareAcquireMode::RecordLimit);
         next.set_acquire_mode(ShareAcquireMode::RecordLimit);
-        let held = live_poll(&mut owner, "initial-acquisition").await;
+        let held = live_poll(&mut owner).await;
         assert_eq!(held.len(), 1);
         check_live_record(&held[0], &topic);
         assert_eq!(owner.acquired_record_count(), 1, "v2 record limit must constrain acquisition across a full batch");
@@ -834,11 +833,11 @@ async fn live_current_v2_share_delivery_renew_release_expiry_accept() {
         }
         assert_eq!(accepted.len(), 3);
         tokio::time::sleep(Duration::from_millis(lock_ms + 200)).await;
-        let expired = live_poll(&mut next, "expired-lock-reacquisition").await;
+        let expired = live_poll(&mut next).await;
         check_live_record(&expired[0], &topic);
         assert_eq!((expired[0].offset, expired[0].delivery_count), (held[0].offset, 2));
         next.release(&expired).await.unwrap();
-        let released = live_poll(&mut owner, "released-record-reacquisition").await;
+        let released = live_poll(&mut owner).await;
         check_live_record(&released[0], &topic);
         assert_eq!((released[0].offset, released[0].delivery_count), (held[0].offset, 3));
         assert_broker(owner.accept(&held).await.unwrap_err(), error::INVALID_RECORD_STATE);
