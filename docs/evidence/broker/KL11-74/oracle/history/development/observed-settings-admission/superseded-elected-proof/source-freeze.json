@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "source_base_pin": "7c10daf1e3b732d71f814f01a1a9a47e36eab30f",
+  "sources": {
+    "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "full_mode": "0o600",
+      "git_blob": "09e8e30b41d421b58bde6c580a9d860893a4c18c"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "6e21b6cd331acb3d5be456b82904e2557f4d521667f55c9f6922737615963d8b",
+      "full_mode": "0o600",
+      "git_blob": "71907be295d0add61b971a910368b68570aa45ba"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "cb69739393fa4523842b9545d6df8e6c0da78db29f797f13de745956354e5a7b",
+      "full_mode": "0o600",
+      "git_blob": "83da5b222a5be227883ea78fd11c9e7aee584722"
+    }
+  },
+  "scope": "Optional observed-settings admission checker and distinctly synthetic unit scenarios",
+  "preserved_stage_one_validation_sha256": "d11d925f73c74a8a11e7db288d688464e4e79ffd821d1bcfd385e499a9706335"
+}

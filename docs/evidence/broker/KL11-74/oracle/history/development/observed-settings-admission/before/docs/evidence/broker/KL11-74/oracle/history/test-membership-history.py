@@ -290,195 +290,13 @@ def supplementary_cases(base, trace, scratch):
                    'actual_trace_bytes_unchanged': (clone / 'trace.json').read_bytes() == (base / 'trace.json').read_bytes()}
 
 
-def synthetic_admission_controls(trace):
-    """Handconstructed checker-unit scenarios; never actual/native histories."""
-    settings = {'quorum_timeout_ms': 1000, 'election_min_ms': 10, 'election_max_ms': 10}
-    genesis = trace['group']['genesis']
-    owner = history.key(genesis['voters'][0]['key'])
-    candidate_voter = trace['locals'][-1]
-    candidate = history.key(candidate_voter['key'])
-    peers = [history.key(v['key']) for v in genesis['voters'][1:]]
-    owners = [history.key(v['key']) for v in trace['locals']]
-    outcomes = []
-
-    def seed():
-        a = history.Admission(settings, owners)
-        a.elected.add((owner, 5))
-        a.activate(owner, 5, 10)
-        a.contacts[owner] = {peer: 10 for peer in peers}
-        state = {'term': 5, 'role': 'Leader', 'active_term': 5, 'open': True, 'ready': True, 'poisoned': False}
-        model = {'rows': [raw.Record(1, 5, 1, b'')], 'commit': 1,
-                 'view': copy.deepcopy(genesis), 'genesis': genesis}
-        return a, state, model
-
-    def request():
-        return {'leader': {'id': owner[0], 'directory': owner[1]},
-                'peer': {'id': candidate[0], 'directory': candidate[1]},
-                'term': 5, 'sequence': 1, 'configuration_epoch': 0}
-
-    def negotiate(a, state, model):
-        q = request()
-        a.probe(owner, q, state, model, 10)
-        a.feature(owner, {'request': q, 'voter': candidate_voter}, state, model, 20)
-        a.observe(owner, candidate, 1, 1, 20)
-
-    def negative(name, guard, call):
-        outcomes.append({'name': name, 'kind': 'synthetic-negative', 'guard': rejected(call, guard)})
-
-    def positive(name, call):
-        call()
-        outcomes.append({'name': name, 'kind': 'synthetic-positive', 'passed': True})
-
-    negative('missing_settings', 'admission settings shape', lambda: history.Admission({}, owners))
-    changed_settings = dict(settings, quorum_timeout_ms=2000)
-    negative('unreviewed_settings', 'admission settings fixed profile', lambda: history.Admission(changed_settings, owners))
-    changed_settings = dict(settings, quorum_timeout_ms=True)
-    negative('boolean_settings', 'integer type/range', lambda: history.Admission(changed_settings, owners))
-    a, state, model = seed()
-    a.elected.clear()
-    negative('activation_without_actual_election', 'activation lacks actual majority election',
-             lambda: a.activate(owner, 5, 30))
-    a, state, model = seed()
-    state['role'], state['active_term'] = 'Follower', None
-    a.after({owner: state})
-    state['role'] = 'Leader'
-    a.after({owner: state})
-    negative('revoked_election_proof_cannot_reactivate', 'activation lacks actual majority election',
-             lambda: a.activate(owner, 5, 30))
-    a, state, model = seed()
-    a.contacts[owner] = {}
-    refusal = {'term': 5, 'success': False, 'matched': {'term': 0, 'index': 0}, 'conflict_index': 1}
-    positive('current_refusal_is_contact', lambda: a.reply(owner, candidate, 5, 5, 5, refusal, (5, 1), 1, 20))
-    raw.require(a.contacts[owner][candidate] == 20, 'current refusal updates contact')
-    negative('current_refusal_is_not_caught_up', 'admission recent current/prior-end catch-up',
-             lambda: a.caught_up(owner, candidate, 21))
-    a.contacts[owner] = {}
-    higher = dict(refusal, term=6)
-    positive('higher_term_refusal_is_not_contact', lambda: a.reply(owner, candidate, 5, 5, 6, higher, (5, 1), 1, 20))
-    raw.require(candidate not in a.contacts[owner] and candidate not in a.progress.get(owner, {}),
-                'higher-term refusal cannot promote contact or match')
-    changed_reply = dict(refusal, conflict_index=2)
-    negative('current_refusal_above_sent_previous', 'admission correlated refusal bounds',
-             lambda: a.reply(owner, candidate, 5, 5, 5, changed_reply, (5, 1), 1, 20))
-    changed_reply = dict(higher, success=True, matched={'term': 5, 'index': 1}, conflict_index=0)
-    negative('higher_term_claimed_success', 'admission current-term durable reply',
-             lambda: a.reply(owner, candidate, 5, 5, 6, changed_reply, (5, 1), 1, 20))
-    a, state, model = seed()
-    a.contacts[owner] = {}
-    positive('activated_grace_without_contacts', lambda: a.leader(owner, state, model, 1009))
-    negative('exact_grace_boundary_without_quorum', 'admission recent NEW-set quorum',
-             lambda: a.leader(owner, state, model, 1010))
-    a, state, model = seed()
-    positive('contact_age_equal_timeout', lambda: a.leader(owner, state, model, 1010))
-    negative('contact_age_one_past_timeout', 'admission recent NEW-set quorum',
-             lambda: a.leader(owner, state, model, 1011))
-    for field, value in (('role', 'Follower'), ('active_term', None), ('open', False), ('ready', False), ('poisoned', True)):
-        a, state, model = seed()
-        state[field] = value
-        negative('inactive_' + field, 'admission active leader', lambda: a.change_ready(owner, state, model, 20))
-    a, state, model = seed()
-    model['rows'][0] = raw.Record(1, 4, 1, b'')
-    negative('previous_term_HW', 'admission current-term HW/prior configuration',
-             lambda: a.change_ready(owner, state, model, 20))
-    a, state, model = seed()
-    model['commit'] = 0
-    negative('missing_HW', 'admission current-term HW/prior configuration',
-             lambda: a.change_ready(owner, state, model, 20))
-    a, state, model = seed()
-    changed = history.changed_view(genesis, candidate_voter['key'], candidate_voter, (5, 2))
-    model['view'] = changed
-    model['rows'].append(raw.Record(2, 5, 2, bytes.fromhex(changed['canonical_hex'])))
-    negative('prior_configuration_pending', 'admission current-term HW/prior configuration',
-             lambda: a.change_ready(owner, state, model, 20))
-    a.contacts[owner] = {peer: 10 for peer in peers[:len(genesis['voters']) // 2]}
-    negative('old_set_contact_majority', 'admission recent NEW-set quorum',
-             lambda: a.leader(owner, state, model, 1010))
-    a, state, model = seed()
-    a.contacts[owner] = {(peers[0][0], 'ab' * 16): 10, candidate: 10}
-    negative('wrong_directory_and_observer_contacts', 'admission recent NEW-set quorum',
-             lambda: a.leader(owner, state, model, 1010))
-    a, state, model = seed()
-    removed = history.changed_view(genesis, genesis['voters'][0]['key'], None, (5, 2), True)
-    model['view'] = removed
-    model['rows'].append(raw.Record(2, 5, 2, bytes.fromhex(removed['canonical_hex'])))
-    a.contacts[owner] = {peer: 10 for peer in peers[:len(peers) // 2]}
-    negative('removed_self_does_not_supply_quorum', 'admission recent NEW-set quorum',
-             lambda: a.leader(owner, state, model, 1010))
-    model['commit'] = 2
-    negative('committed_removed_leader', 'admission eligible leader directory',
-             lambda: a.leader(owner, state, model, 20))
-    a, state, model = seed()
-    changed_request = request()
-    changed_request['sequence'] = 0
-    negative('zero_feature_sequence', 'integer type/range',
-             lambda: a.probe(owner, changed_request, state, model, 10))
-    changed_request = request()
-    changed_request['leader'] = candidate_voter['key']
-    negative('wrong_feature_source_directory', 'admission feature source identity',
-             lambda: a.probe(owner, changed_request, state, model, 10))
-    a, state, model = seed()
-    a.probe(owner, request(), state, model, 10)
-    negative('feature_deadline_equal', 'admission current unexpired feature correlation',
-             lambda: a.feature(owner, {'request': request()}, state, model, 1010))
-    a, state, model = seed()
-    a.probe(owner, request(), state, model, 10)
-    changed_request = request()
-    changed_request['sequence'] += 1
-    negative('changed_feature_sequence', 'admission current unexpired feature correlation',
-             lambda: a.feature(owner, {'request': changed_request}, state, model, 20))
-    a, state, model = seed()
-    negotiate(a, state, model)
-    positive('negotiated_caught_up_addition', lambda: a.change(owner, candidate, state, model, 21, True, 0))
-    a, state, model = seed()
-    negotiate(a, state, model)
-    negative('negotiated_deadline_equal', 'admission current unexpired negotiated addition',
-             lambda: a.change(owner, candidate, state, model, 1010, True, 0))
-    a, state, model = seed()
-    negotiate(a, state, model)
-    a.progress[owner] = {}
-    negative('no_caught_up_observation', 'admission recent current/prior-end catch-up',
-             lambda: a.change(owner, candidate, state, model, 21, True, 0))
-    a, state, model = seed()
-    a.observe(owner, candidate, 7, 10, 10)
-    negative('partial_first_fetch_is_not_caught_up', 'admission recent current/prior-end catch-up',
-             lambda: a.caught_up(owner, candidate, 11))
-    a.observe(owner, candidate, 10, 12, 20)
-    positive('prior_LEO_catchup_below_current_LEO', lambda: a.caught_up(owner, candidate, 21))
-    raw.require(a.progress[owner][candidate]['caught_ms'] == 10, 'prior-end uses actual previous fetch time')
-    positive('fetch_recency_one_before_hour', lambda: a.caught_up(owner, candidate, 3_600_019))
-    negative('fetch_recency_equal_hour', 'admission recent current/prior-end catch-up',
-             lambda: a.caught_up(owner, candidate, 3_600_020))
-    negative('regressing_durable_match', 'admission monotonic durable contact',
-             lambda: a.observe(owner, candidate, 9, 12, 21))
-    negative('durable_match_above_leader_end', 'admission monotonic durable contact',
-             lambda: a.observe(owner, candidate, 13, 12, 21))
-    negative('regressing_fetch_clock', 'admission monotonic durable contact',
-             lambda: a.observe(owner, candidate, 10, 12, 19))
-    a, state, model = seed()
-    before = a.grace[owner]
-    a.activate(owner, 5, 30)
-    raw.require(a.grace[owner] == before, 'repeated activation cannot extend grace')
-    outcomes.append({'name': 'repeated_activation_preserves_deadline', 'kind': 'synthetic-positive', 'passed': True})
-    negotiate(a, state, model)
-    state['role'], state['active_term'] = 'Follower', None
-    a.after({owner: state})
-    raw.require(owner not in a.progress and owner not in a.negotiated and owner not in a.contacts and owner not in a.grace,
-                'step-down clears all admission authority')
-    outcomes.append({'name': 'step_down_clears_progress_and_negotiation', 'kind': 'synthetic-positive', 'passed': True})
-    return {'scope': 'Handconstructed policy-unit states and caller times; no actual runtime/native history claim',
-            'settings_origin': 'Explicit synthetic constants, matching the reviewed fixed profile',
-            'negative_controls': sum(c['kind'] == 'synthetic-negative' for c in outcomes),
-            'positive_controls': sum(c['kind'] == 'synthetic-positive' for c in outcomes), 'cases': outcomes}
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('captures', type=Path)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--require-admission-settings', action='store_true')
     args = parser.parse_args()
     before = fingerprint(args.captures)
-    controls, originals, synthetic = [], [], []
+    controls, originals = [], []
     sources = sorted(args.captures.glob('history-*/trace.json'))
     raw.require({p.parent.name for p in sources} == {'history-3', 'history-5'} and len(sources) == 2,
                 'exact three/five voter capture denominator')
@@ -486,8 +304,7 @@ def main():
         scratch = Path(folder)
         for source in sources:
             t = json.loads(source.read_bytes())
-            originals.append(history.verify(source, require_admission_settings=args.require_admission_settings))
-            synthetic.append({'history': source.parent.name, **synthetic_admission_controls(t)})
+            originals.append(history.verify(source))
             for name in CAUSAL:
                 changed = copy.deepcopy(t)
                 expected = mutate_trace(name, changed)
@@ -502,11 +319,10 @@ def main():
                 call = c.pop('call')
                 guard = rejected(call, c['guard'])
                 controls.append({'history': source.parent.name, **c, 'guard': guard})
-            originals.append(history.verify(source, require_admission_settings=args.require_admission_settings))
+            originals.append(history.verify(source))
     raw.require(before == fingerprint(args.captures), 'original capture bytes/full modes changed')
     raw.require(len(controls) == 70 and len(originals) == 4, 'exact semantic-control/positive denominator')
     args.output.write_text(json.dumps({'negative_controls_rejected': len(controls), 'original_positive_runs': len(originals),
-                                      'synthetic_admission_controls': synthetic,
                                       'controls': controls, 'all_original_bytes_and_full_modes_unchanged': True,
                                       'scope': 'finite independent semantic guard controls; valid Journal checksums and untouched captured originals'}, indent=2) + '\n')
     print(json.dumps({'negative_controls_rejected': len(controls), 'positive_runs': len(originals)}))

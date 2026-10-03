@@ -339,13 +339,6 @@ def synthetic_admission_controls(trace):
     negative('activation_without_actual_election', 'activation lacks actual majority election',
              lambda: a.activate(owner, 5, 30))
     a, state, model = seed()
-    state['role'], state['active_term'] = 'Follower', None
-    a.after({owner: state})
-    state['role'] = 'Leader'
-    a.after({owner: state})
-    negative('revoked_election_proof_cannot_reactivate', 'activation lacks actual majority election',
-             lambda: a.activate(owner, 5, 30))
-    a, state, model = seed()
     a.contacts[owner] = {}
     refusal = {'term': 5, 'success': False, 'matched': {'term': 0, 'index': 0}, 'conflict_index': 1}
     positive('current_refusal_is_contact', lambda: a.reply(owner, candidate, 5, 5, 5, refusal, (5, 1), 1, 20))

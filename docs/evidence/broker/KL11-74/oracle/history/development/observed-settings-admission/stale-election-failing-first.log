@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/workspace/work/membership-oracle-admission-01/stale-election-proof-control.py", line 24, in <module>
+    raise AssertionError('Synthetic unproved same-term reactivation reused a revoked election proof.')
+AssertionError: Synthetic unproved same-term reactivation reused a revoked election proof.

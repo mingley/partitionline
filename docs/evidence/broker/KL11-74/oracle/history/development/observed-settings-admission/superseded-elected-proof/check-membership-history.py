@@ -145,7 +145,6 @@ class Admission:
         self.proofs = []
 
     def reset(self, owner):
-        self.elected = {proof for proof in self.elected if proof[0] != owner}
         self.grace.pop(owner, None)
         self.contacts.pop(owner, None)
         self.progress.pop(owner, None)

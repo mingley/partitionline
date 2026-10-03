@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "scope": "Source-only preparation, no Cargo or broker runtime",
+  "passed": false,
+  "failure": "Additive checksum preparation was invoked with peers/ cwd while script paths were repository-relative. FileNotFoundError before any new freeze/checksum file was written; follow-on verifier/checksum commands also reported missing paths.",
+  "corrective_action": "Separate dependent commands and use repository cwd for generation; use peers cwd only for the relative checksum validation."
+}

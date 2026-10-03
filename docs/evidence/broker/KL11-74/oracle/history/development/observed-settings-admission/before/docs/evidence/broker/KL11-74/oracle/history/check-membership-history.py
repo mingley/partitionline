@@ -126,157 +126,7 @@ def remote_authority(message):
             'configuration_epoch': context['configuration_epoch']}
 
 
-class Admission:
-    """Finite caller-clock admission, enabled only by explicitly recorded settings.
-
-    Progress comes from accepted emitted replies, never an observed summary's
-    claimed caught-up flag. Contacts include correlated current-term refusals;
-    durable catch-up includes only successful exact receipts.
-    """
-    def __init__(self, settings, owners):
-        require(type(settings) is dict and set(settings) ==
-                {'quorum_timeout_ms', 'election_min_ms', 'election_max_ms'}, 'admission settings shape')
-        for name, expected in (('quorum_timeout_ms', 1000), ('election_min_ms', 10), ('election_max_ms', 10)):
-            require(integer(settings[name]) == expected, 'admission settings fixed profile')
-        self.timeout = settings['quorum_timeout_ms']
-        self.grace, self.contacts, self.progress, self.probes, self.negotiated = {}, {}, {}, {}, {}
-        self.elected, self.terms = set(), {}
-        self.owners = set(owners)
-        self.proofs = []
-
-    def reset(self, owner):
-        self.elected = {proof for proof in self.elected if proof[0] != owner}
-        self.grace.pop(owner, None)
-        self.contacts.pop(owner, None)
-        self.progress.pop(owner, None)
-        self.probes.pop(owner, None)
-        self.negotiated.pop(owner, None)
-
-    def activate(self, owner, term, now):
-        require(owner in self.owners and (owner, term) in self.elected, 'activation lacks actual majority election')
-        if self.grace.get(owner, (None,))[0] != term:
-            self.grace[owner] = (term, integer(now + self.timeout))
-            self.contacts[owner] = {}
-
-    def leader(self, owner, observed, model, now):
-        require(owner in self.owners and observed is not None and observed['role'] == 'Leader' and
-                observed['open'] and observed['ready'] and not observed['poisoned'] and
-                observed['active_term'] == observed['term'] and
-                self.grace.get(owner, (None,))[0] == observed['term'], 'admission active leader')
-        term = observed['term']
-        view = model['view']
-        eligible = raw.contains(view, {'id': owner[0], 'directory': owner[1]})
-        if not eligible:
-            p = view['position']
-            eligible = (p['index'] > model['commit'] and p['term'] == term and
-                        raw.contains(raw.configuration_in(model['rows'][:p['index'] - 1], model['genesis']),
-                                     {'id': owner[0], 'directory': owner[1]}))
-        require(eligible, 'admission eligible leader directory')
-        if owner in self.probes and now >= self.probes[owner][1]:
-            del self.probes[owner]
-        if owner in self.negotiated and now >= self.negotiated[owner][3]:
-            del self.negotiated[owner]
-        if now >= self.grace[owner][1]:
-            members = {key(v['key']) for v in view['voters']}
-            recent = {peer for peer, seen in self.contacts.get(owner, {}).items()
-                      if peer in members and seen <= now and now - seen <= self.timeout}
-            if owner in members:
-                recent.add(owner)
-            require(len(recent) >= len(members) // 2 + 1, 'admission recent NEW-set quorum')
-        return term
-
-    def change_ready(self, owner, observed, model, now):
-        term = self.leader(owner, observed, model, now)
-        require(raw.contains(model['view'], {'id': owner[0], 'directory': owner[1]}) and
-                0 < model['commit'] <= len(model['rows']) and
-                model['rows'][model['commit'] - 1].term == term and
-                model['view']['position']['index'] <= model['commit'], 'admission current-term HW/prior configuration')
-        return term
-
-    def observe(self, owner, peer, matched, leader_end, now):
-        previous = self.progress.setdefault(owner, {}).get(peer)
-        require(owner in self.owners and peer in self.owners and 0 <= matched <= leader_end and
-                (previous is None or matched >= previous['matched'] and now >= previous['fetch_ms']),
-                'admission monotonic durable contact')
-        caught = previous['caught_ms'] if previous else None
-        if matched >= leader_end:
-            caught = max(caught or 0, now)
-        elif previous is not None and previous['leader_end'] > 0 and matched >= previous['leader_end']:
-            caught = max(caught or 0, previous['fetch_ms'])
-        self.progress[owner][peer] = {'matched': matched, 'fetch_ms': now,
-                                      'leader_end': leader_end, 'caught_ms': caught}
-
-    def caught_up(self, owner, peer, now):
-        p = self.progress.get(owner, {}).get(peer)
-        require(p is not None and p['caught_ms'] is not None and p['caught_ms'] > 0 and
-                0 < p['fetch_ms'] <= now and now - p['fetch_ms'] < 3_600_000,
-                'admission recent current/prior-end catch-up')
-        return p
-
-    def reply(self, owner, peer, request_term, before_term, after_term, response, previous, leader_end, now):
-        require(owner in self.owners and peer in self.owners, 'admission reply identities')
-        success = boolean(response['success'])
-        matched = position(response['matched'])
-        same = response['term'] == request_term == before_term == after_term
-        if success:
-            require(same, 'admission current-term durable reply')
-            self.observe(owner, peer, matched[1], leader_end, now)
-        elif same:
-            require(matched == (0, 0) and 1 <= integer(response['conflict_index']) <= max(1, previous[1]),
-                    'admission correlated refusal bounds')
-        else:
-            require(response['term'] > request_term == before_term and after_term == response['term'] and
-                    matched == (0, 0) and integer(response['conflict_index'], 1) > 0,
-                    'admission higher-term refusal bounds')
-            return False
-        self.contacts.setdefault(owner, {})[peer] = now
-        return True
-
-    def probe(self, owner, request, observed, model, now):
-        term = self.change_ready(owner, observed, model, now)
-        require(key(request['leader']) == owner and key(request['peer']) in self.owners and
-                key(request['peer']) != owner and integer(request['term'], 1, raw.MAX_TERM) == term and
-                integer(request['configuration_epoch']) == model['view']['epoch'] and
-                integer(request['sequence'], 1) > 0, 'admission feature source identity')
-        require(owner not in self.probes and owner not in self.negotiated, 'admission one feature negotiation')
-        self.probes[owner] = (canonical(request), integer(now + self.timeout))
-
-    def feature(self, owner, response, observed, model, now):
-        term = self.leader(owner, observed, model, now)
-        q = response['request']
-        current = self.probes.get(owner)
-        require(current is not None and current[0] == canonical(q) and now < current[1] and
-                q['term'] == term and q['configuration_epoch'] == model['view']['epoch'],
-                'admission current unexpired feature correlation')
-        del self.probes[owner]
-        self.negotiated[owner] = (key(q['peer']), term, q['configuration_epoch'], current[1])
-
-    def change(self, owner, peer, observed, model, now, adding, ordinal):
-        term = self.change_ready(owner, observed, model, now)
-        require(owner not in self.probes, 'admission outstanding feature probe')
-        if adding:
-            expected = self.negotiated.get(owner)
-            require(expected is not None and expected[:3] == (peer, term, model['view']['epoch']) and
-                    now < expected[3], 'admission current unexpired negotiated addition')
-            progress = self.caught_up(owner, peer, now).copy()
-            del self.negotiated[owner]
-        else:
-            require(owner not in self.negotiated, 'admission outstanding negotiated addition')
-            progress = None
-        self.proofs.append({'event': ordinal, 'owner': list(owner), 'term': term,
-                            'configuration_epoch': model['view']['epoch'], 'now_ms': now,
-                            'committed_hw': model['commit'], 'candidate_progress': progress})
-
-    def after(self, observed):
-        for owner, state in observed.items():
-            if (self.terms.get(owner) not in (None, state['term']) or not state['open'] or not state['ready'] or
-                    state['poisoned'] or state['role'] != 'Leader' or
-                    state['active_term'] is not None and state['active_term'] != state['term']):
-                self.reset(owner)
-            self.terms[owner] = state['term']
-
-
-def verify(path: Path, artifact_root: Path | None = None, require_admission_settings=False) -> dict:
+def verify(path: Path, artifact_root: Path | None = None) -> dict:
     base = artifact_root or path.parent
     require(path.stat().st_size <= MAX_TRACE, 'trace byte bound')
     trace_bytes = path.read_bytes()
@@ -290,10 +140,7 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
     require(type(checkpoints) is list and 1 <= len(checkpoints) <= MAX_EVENTS * 64, 'checkpoint bound')
     locals_ = {key(v['key']): v for v in trace['locals']}
     require(len(locals_) == len(trace['locals']) <= 64 and len(genesis['voters']) in (3, 5), 'local identities/profile')
-    models = {k: {'rows': [], 'view': genesis, 'genesis': genesis, 'commit': 0, 'selected': None} for k in locals_}
-    settings = trace.get('runtime_settings')
-    require(settings is not None or not require_admission_settings, 'required observed admission settings missing')
-    admission = Admission(settings, locals_) if settings is not None else None
+    models = {k: {'rows': [], 'view': genesis, 'commit': 0, 'selected': None} for k in locals_}
     raw_points, image_bytes = {}, {}
     content_operations = election_frames = 0
     for c in checkpoints:
@@ -382,16 +229,9 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
                 require(len(counted) >= len(members) // 2 + 1, 'election distinct NEW-set majority')
                 election_proofs.append({'event': ordinal, 'term': ident[2], 'configuration_epoch': model['view']['epoch'],
                                         'distinct_grants': sorted(counted), 'majority': len(members) // 2 + 1})
-                if admission:
-                    admission.elected.add((acting, ident[2]))
         elif kind in ('activate', 'propose'):
             require(previous is not None and previous[acting]['role'] == 'Leader' and
                     raw.contains(model['view'], event['key']), 'leader append eligibility')
-            if admission:
-                if kind == 'activate':
-                    admission.activate(acting, after[acting]['term'], now)
-                else:
-                    admission.leader(acting, previous[acting], model, now)
             index = integer(result['barrier_index' if kind == 'activate' else 'index'], 1, raw.MAX_ENTRIES)
             require(index == len(model['rows']) + 1, 'local append continuity')
             payload = b'' if kind == 'activate' else bytes.fromhex(args['payload_hex'])
@@ -399,8 +239,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             matches.setdefault((acting, after[acting]['term']), {})
         elif kind in ('add_voter', 'remove_voter'):
             peer = args['peer']
-            if admission:
-                admission.change(acting, key(peer), previous[acting], model, now, kind == 'add_voter', ordinal)
             require(model['view']['position']['index'] <= model['commit'], 'local prior configuration commit')
             p = position(result['position'])
             require(p == (after[acting]['term'], len(model['rows']) + 1) and result['committed'] is False,
@@ -414,8 +252,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             model['rows'].append(Record(p[1], p[0], 2, bytes.fromhex(new['canonical_hex'])))
             model['view'] = new
         elif kind == 'prepare':
-            if admission:
-                admission.leader(acting, previous[acting], model, now)
             ident = message_context(result)
             require(ident[0] == acting and result['leader'] == acting[0] and result['peer'] == ident[1][0] and
                     ident[2] == after[acting]['term'] == after[acting]['active_term'] and
@@ -460,8 +296,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             response = args['response'] if kind == 'image_acknowledge' else args
             token = canonical(response)
             ident = message_context(response)
-            if admission:
-                admission.leader(acting, previous[acting], model, now)
             table = image_replies if kind == 'image_acknowledge' else replies
             require(token in table and token not in used_replies and ident[0] == acting,
                     'ACK actual once-only emitted correlation')
@@ -472,11 +306,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
                         model['rows'][matched[1] - 1].term == matched[0]), 'ACK exact local position')
                 progress = matches.setdefault((acting, response['term']), {})
                 progress[ident[1]] = max(progress.get(ident[1], 0), matched[1])
-            if admission:
-                sent_previous = (position(offers[ident]['descriptor']['base']) if kind == 'image_acknowledge'
-                                 else position(prepared[ident]['previous']))
-                admission.reply(acting, ident[1], ident[2], previous[acting]['term'], after[acting]['term'],
-                                response, sent_previous, len(model['rows']), now)
             new_commit = integer(result['committed_end'], 0, len(model['rows']))
             require(new_commit >= model['commit'], 'local committed prefix regression')
             if new_commit > model['commit']:
@@ -496,8 +325,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             require(result['leader'] == event['key'] and result['configuration_epoch'] == model['view']['epoch'] and
                     result['term'] == after[acting]['term'] and locals_[key(result['peer'])] == args,
                     'feature emitted exact declared peer')
-            if admission:
-                admission.probe(acting, result, previous[acting], model, now)
             probes[canonical(result)] = ordinal
         elif kind == 'feature_receive':
             require(canonical(args) in probes and key(args['peer']) == acting and result['request'] == args and
@@ -507,8 +334,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             require(canonical(args) in feature_replies and key(args['request']['leader']) == acting and
                     result['accepted'] is True and args['voter']['kraft_min'] <= 1 <= args['voter']['kraft_max'],
                     'feature ACK actual correlation/range')
-            if admission:
-                admission.feature(acting, args, previous[acting], model, now)
             q = args['request']
             discovered[acting, key(q['peer']), q['term'], q['configuration_epoch']] = args['voter']
         elif kind == 'checkpoint_image':
@@ -517,8 +342,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
                     'local image exact committed prefix')
             model['selected'] = result
         elif kind == 'image_prepare':
-            if admission:
-                admission.leader(acting, previous[acting], model, now)
             ident = message_context(result)
             require(ident[0] == acting and result['context']['configuration_epoch'] == model['view']['epoch'] and
                     ident[2] == after[acting]['term'] == after[acting]['active_term'] and
@@ -532,8 +355,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
                     'image begin actual offer')
             streams[ident] = bytearray()
         elif kind == 'image_chunk_prepare':
-            if admission:
-                admission.leader(acting, previous[acting], model, now)
             ident = message_context(args)
             require(offers.get(ident) == args and ident[0] == acting, 'image chunk source offer')
             encoded = image_bytes[acting, args['descriptor']['generation']]
@@ -660,8 +481,6 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             for b in prefixes:
                 require(a[:min(len(a), len(b))] == b[:min(len(a), len(b))], 'cross-owner committed prefix disagreement')
         previous = after
-        if admission:
-            admission.after(after)
     require(final_covered == set(locals_) and len(commit_proofs) >= 4 and len(election_proofs) >= 3 and
             counters['process_exit'] == counters['process_exit_observed'] == 1 and counters['image_finish'] >= 1 and
             counters['add_voter'] == counters['remove_voter'] == 1 and counters['acknowledge_mutated'] == 1,
@@ -671,12 +490,7 @@ def verify(path: Path, artifact_root: Path | None = None, require_admission_sett
             'decoded_election_frames': election_frames, 'distinct_image_generations': len(image_bytes),
             'event_counts': dict(counters), 'local_commit_proofs': commit_proofs, 'election_proofs': election_proofs,
             'remote_wal_authorities_bound': len(authority_bindings), 'remote_wal_authority_bindings': authority_bindings,
-            'admission_mode': 'observed-settings' if admission else 'limited-legacy',
-            'admission_settings': settings, 'admission_change_proofs': admission.proofs if admission else [],
             'admission_proof_limits': [
-                'Recorded election timeout constants are pinned; autonomous election timeout scheduling is not reconstructed.',
-                'Admission proof covers these finite emitted events, not absent cancellation histories, autonomous transport, or exhaustive schedules.'
-            ] if admission else [
                 'Current/prior leader-end catch-up timestamps and recent-contact addition eligibility are not independently reconstructed.',
                 'Feature negotiation deadline and leader lease timers are absent from this trace schema and are not inferred.',
                 'Prior configuration commit and NEW-set/current-term commit majority are checked; these alone do not qualify every addition admission criterion.'
@@ -688,7 +502,5 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('trace', type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--require-admission-settings', action='store_true',
-                        help='Fail closed unless the actual runtime trace declares the reviewed timing constants.')
     args = parser.parse_args()
-    args.output.write_text(json.dumps(verify(args.trace, require_admission_settings=args.require_admission_settings), indent=2) + '\n')
+    args.output.write_text(json.dumps(verify(args.trace), indent=2) + '\n')

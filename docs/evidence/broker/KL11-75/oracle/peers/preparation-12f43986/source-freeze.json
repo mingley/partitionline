@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "scope": "Additive committed-client source binding and unexecuted standalone/live admission plan. Original37-input902a peer freeze unchanged.",
+  "input_files": 6,
+  "input_bytes": 42859,
+  "files": [
+    {
+      "path": "verify-client-source.py",
+      "bytes": 2294,
+      "sha256": "0de968bff30a36986a3d151f6e44705737d1bde466a662d32d2f6d66dc953cb4",
+      "mode": 384
+    },
+    {
+      "path": "normalize-broker-proof.py",
+      "bytes": 4487,
+      "sha256": "3e29ec2dfb2f58c5649ca4363e495aaf30da401c95e13a6994221d3423ac8df7",
+      "mode": 384
+    },
+    {
+      "path": "preparation-12f43986/client-inputs.json",
+      "bytes": 28400,
+      "sha256": "4bdeb6fa4fa07399e67430fc504bbaa0d1f353bdb8739da2d4206a8864720fd0",
+      "mode": 384
+    },
+    {
+      "path": "preparation-12f43986/source-input-validation.json",
+      "bytes": 462,
+      "sha256": "5adcce8d58be2732fe78e42256a9c0a9cc5e913f9b1b84ccb704f158ecf0dddb",
+      "mode": 384
+    },
+    {
+      "path": "preparation-12f43986/build-and-live-plan.json",
+      "bytes": 6703,
+      "sha256": "8f2d7350ee836c14e2cac2e5991f1873891a52cbcec3547b8452e3ee7182ffdd",
+      "mode": 384
+    },
+    {
+      "path": "preparation-12f43986/failure-cwd-attempt-1.json",
+      "bytes": 513,
+      "sha256": "3a6ce61ff94871e4c0cf03d94ba9d5c4babb28db406287fcade2b80831bc3418",
+      "mode": 384
+    }
+  ],
+  "actual_cargo_commands": 0,
+  "actual_live_peer_jobs": 0,
+  "preparation_source_validation_passed": true,
+  "immutable_core_source_runtime_still_unqualified_here": true
+}

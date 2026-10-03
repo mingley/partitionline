@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "passed": true,
+  "manifest_sha256": "4bdeb6fa4fa07399e67430fc504bbaa0d1f353bdb8739da2d4206a8864720fd0",
+  "input_files": 108,
+  "input_bytes": 6059889,
+  "scope": "Exact committed Rust-client/peer compile inputs and modes; separate full broker Git archive proof remains required.",
+  "source_map_sha256": "1f728f2750e0b2de5407443c1e605f37b6b3f1c0784b2e50eb7932853c7f3d02"
+}

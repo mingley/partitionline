@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "phase": "source-only preparation",
+  "actual_cargo_commands": 0,
+  "actual_broker_peer_jobs": 0,
+  "passed_source_input_verification": true,
+  "client_input_manifest_sha256": "4bdeb6fa4fa07399e67430fc504bbaa0d1f353bdb8739da2d4206a8864720fd0",
+  "original_peer_freeze_sha256": "902aabe53c0a54bbcf5a188dea56f409395e38788001aa3240b932e266213b5b",
+  "cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "planned_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "-B",
+        "docs/evidence/broker/KL11-75/oracle/peers/build-rust.py",
+        "--source-root",
+        "<verified-full-12f4-broker-source>",
+        "--source-sha",
+        "12f4398662044947ae653f07923290127457f2ef",
+        "--target",
+        "<one-root-leased-target>",
+        "--toolchain",
+        "stable",
+        "--evidence",
+        "docs/evidence/broker/KL11-75/oracle/peers/rust-build-12f43986/stable-default/attempt-1",
+        "--binary-out",
+        "<retained-peer-bin>/stable-default/compaction-rust"
+      ],
+      "command_not_executed": true,
+      "source_before_after_verifier": "docs/evidence/broker/KL11-75/oracle/peers/verify-client-source.py",
+      "source_manifest": "docs/evidence/broker/KL11-75/oracle/peers/preparation-12f43986/client-inputs.json",
+      "features_resolved": [
+        "partitionline/zlib-rs"
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "planned_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "-B",
+        "docs/evidence/broker/KL11-75/oracle/peers/build-rust.py",
+        "--source-root",
+        "<verified-full-12f4-broker-source>",
+        "--source-sha",
+        "12f4398662044947ae653f07923290127457f2ef",
+        "--target",
+        "<one-root-leased-target>",
+        "--toolchain",
+        "stable",
+        "--evidence",
+        "docs/evidence/broker/KL11-75/oracle/peers/rust-build-12f43986/stable-all-features/attempt-1",
+        "--binary-out",
+        "<retained-peer-bin>/stable-all-features/compaction-rust",
+        "--all-features"
+      ],
+      "command_not_executed": true,
+      "source_before_after_verifier": "docs/evidence/broker/KL11-75/oracle/peers/verify-client-source.py",
+      "source_manifest": "docs/evidence/broker/KL11-75/oracle/peers/preparation-12f43986/client-inputs.json",
+      "features_resolved": [
+        "partitionline/zlib-rs",
+        "partitionline/tracing"
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "planned_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "-B",
+        "docs/evidence/broker/KL11-75/oracle/peers/build-rust.py",
+        "--source-root",
+        "<verified-full-12f4-broker-source>",
+        "--source-sha",
+        "12f4398662044947ae653f07923290127457f2ef",
+        "--target",
+        "<one-root-leased-target>",
+        "--toolchain",
+        "1.85.0",
+        "--evidence",
+        "docs/evidence/broker/KL11-75/oracle/peers/rust-build-12f43986/1.85.0-default/attempt-1",
+        "--binary-out",
+        "<retained-peer-bin>/1.85.0-default/compaction-rust"
+      ],
+      "command_not_executed": true,
+      "source_before_after_verifier": "docs/evidence/broker/KL11-75/oracle/peers/verify-client-source.py",
+      "source_manifest": "docs/evidence/broker/KL11-75/oracle/peers/preparation-12f43986/client-inputs.json",
+      "features_resolved": [
+        "partitionline/zlib-rs"
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "planned_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "python3",
+        "-B",
+        "docs/evidence/broker/KL11-75/oracle/peers/build-rust.py",
+        "--source-root",
+        "<verified-full-12f4-broker-source>",
+        "--source-sha",
+        "12f4398662044947ae653f07923290127457f2ef",
+        "--target",
+        "<one-root-leased-target>",
+        "--toolchain",
+        "1.85.0",
+        "--evidence",
+        "docs/evidence/broker/KL11-75/oracle/peers/rust-build-12f43986/1.85.0-all-features/attempt-1",
+        "--binary-out",
+        "<retained-peer-bin>/1.85.0-all-features/compaction-rust",
+        "--all-features"
+      ],
+      "command_not_executed": true,
+      "source_before_after_verifier": "docs/evidence/broker/KL11-75/oracle/peers/verify-client-source.py",
+      "source_manifest": "docs/evidence/broker/KL11-75/oracle/peers/preparation-12f43986/client-inputs.json",
+      "features_resolved": [
+        "partitionline/zlib-rs",
+        "partitionline/tracing"
+      ]
+    }
+  ],
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CPUS": "2,4"
+  },
+  "dependencies": "Existing offline cache only, no new optional/native client dependencies. --locked must accept original committed standalone lock; any rejection is retained and requires explicit corrected source push, not silent lock regeneration.",
+  "preconditions": [
+    "Root explicitly releases compiler lease after queued consumer/RPC/Share work.",
+    "Build source is a full immutable12f4 Git archive or equivalently verified full broker archive; scoped108-input snapshot here is preparation only.",
+    "Before/after each standalone build, verify all108 committed client/peer input byte hashes/Git blobs/modes; preserve all commands/logs/failures.",
+    "Copy and hash each standalone ELF outside Git before root-controlled cache/toolchain cleanup.",
+    "Live peers remain blocked until exact12f4 full19 broker commands/four strict lanes qualify and allfour genuine copied Fetch ELFs are independently normalized."
+  ],
+  "cache_policy": "One leased target, no broker rebuild. Prefer reuse of an inactive compatible root-owned cache only after explicit lease; package/artifact cleanup is root-coordinated. Preserve four actual peer ELF copies/build receipts before cache retirement.",
+  "broker_input_normalizer": "docs/evidence/broker/KL11-75/oracle/peers/normalize-broker-proof.py",
+  "live_expected_not_observed": {
+    "fresh_lanes": 4,
+    "jobs_per_lane": 160,
+    "records_per_lane": 2345,
+    "operator_calls_per_lane": 45,
+    "read_stages": [
+      "initial",
+      "first",
+      "before-expiry",
+      "expired",
+      "restart",
+      "appended"
+    ],
+    "producer_clients": [
+      "Apache4.1.2",
+      "Apache4.2.1",
+      "Apache4.3.1",
+      "librdkafka2.15.0",
+      "public partitionline Rust"
+    ]
+  }
+}

@@ -1,0 +1,1308 @@
+{
+  "negative_controls_rejected": 70,
+  "original_positive_runs": 4,
+  "synthetic_admission_controls": [
+    {
+      "history": "history-3",
+      "scope": "Handconstructed policy-unit states and caller times; no actual runtime/native history claim",
+      "settings_origin": "Explicit synthetic constants, matching the reviewed fixed profile",
+      "negative_controls": 32,
+      "positive_controls": 9,
+      "cases": [
+        {
+          "name": "missing_settings",
+          "kind": "synthetic-negative",
+          "guard": "admission settings shape"
+        },
+        {
+          "name": "unreviewed_settings",
+          "kind": "synthetic-negative",
+          "guard": "admission settings fixed profile"
+        },
+        {
+          "name": "boolean_settings",
+          "kind": "synthetic-negative",
+          "guard": "integer type/range"
+        },
+        {
+          "name": "activation_without_actual_election",
+          "kind": "synthetic-negative",
+          "guard": "activation lacks actual majority election"
+        },
+        {
+          "name": "current_refusal_is_contact",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "current_refusal_is_not_caught_up",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "higher_term_refusal_is_not_contact",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "current_refusal_above_sent_previous",
+          "kind": "synthetic-negative",
+          "guard": "admission correlated refusal bounds"
+        },
+        {
+          "name": "higher_term_claimed_success",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term durable reply"
+        },
+        {
+          "name": "activated_grace_without_contacts",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "exact_grace_boundary_without_quorum",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "contact_age_equal_timeout",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "contact_age_one_past_timeout",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "inactive_role",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_active_term",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_open",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_ready",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_poisoned",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "previous_term_HW",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "missing_HW",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "prior_configuration_pending",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "old_set_contact_majority",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "wrong_directory_and_observer_contacts",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "removed_self_does_not_supply_quorum",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "committed_removed_leader",
+          "kind": "synthetic-negative",
+          "guard": "admission eligible leader directory"
+        },
+        {
+          "name": "zero_feature_sequence",
+          "kind": "synthetic-negative",
+          "guard": "integer type/range"
+        },
+        {
+          "name": "wrong_feature_source_directory",
+          "kind": "synthetic-negative",
+          "guard": "admission feature source identity"
+        },
+        {
+          "name": "feature_deadline_equal",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired feature correlation"
+        },
+        {
+          "name": "changed_feature_sequence",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired feature correlation"
+        },
+        {
+          "name": "negotiated_caught_up_addition",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "negotiated_deadline_equal",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired negotiated addition"
+        },
+        {
+          "name": "no_caught_up_observation",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "partial_first_fetch_is_not_caught_up",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "prior_LEO_catchup_below_current_LEO",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "fetch_recency_one_before_hour",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "fetch_recency_equal_hour",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "regressing_durable_match",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "durable_match_above_leader_end",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "regressing_fetch_clock",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "repeated_activation_preserves_deadline",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "step_down_clears_progress_and_negotiation",
+          "kind": "synthetic-positive",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "history": "history-5",
+      "scope": "Handconstructed policy-unit states and caller times; no actual runtime/native history claim",
+      "settings_origin": "Explicit synthetic constants, matching the reviewed fixed profile",
+      "negative_controls": 32,
+      "positive_controls": 9,
+      "cases": [
+        {
+          "name": "missing_settings",
+          "kind": "synthetic-negative",
+          "guard": "admission settings shape"
+        },
+        {
+          "name": "unreviewed_settings",
+          "kind": "synthetic-negative",
+          "guard": "admission settings fixed profile"
+        },
+        {
+          "name": "boolean_settings",
+          "kind": "synthetic-negative",
+          "guard": "integer type/range"
+        },
+        {
+          "name": "activation_without_actual_election",
+          "kind": "synthetic-negative",
+          "guard": "activation lacks actual majority election"
+        },
+        {
+          "name": "current_refusal_is_contact",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "current_refusal_is_not_caught_up",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "higher_term_refusal_is_not_contact",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "current_refusal_above_sent_previous",
+          "kind": "synthetic-negative",
+          "guard": "admission correlated refusal bounds"
+        },
+        {
+          "name": "higher_term_claimed_success",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term durable reply"
+        },
+        {
+          "name": "activated_grace_without_contacts",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "exact_grace_boundary_without_quorum",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "contact_age_equal_timeout",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "contact_age_one_past_timeout",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "inactive_role",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_active_term",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_open",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_ready",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "inactive_poisoned",
+          "kind": "synthetic-negative",
+          "guard": "admission active leader"
+        },
+        {
+          "name": "previous_term_HW",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "missing_HW",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "prior_configuration_pending",
+          "kind": "synthetic-negative",
+          "guard": "admission current-term HW/prior configuration"
+        },
+        {
+          "name": "old_set_contact_majority",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "wrong_directory_and_observer_contacts",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "removed_self_does_not_supply_quorum",
+          "kind": "synthetic-negative",
+          "guard": "admission recent NEW-set quorum"
+        },
+        {
+          "name": "committed_removed_leader",
+          "kind": "synthetic-negative",
+          "guard": "admission eligible leader directory"
+        },
+        {
+          "name": "zero_feature_sequence",
+          "kind": "synthetic-negative",
+          "guard": "integer type/range"
+        },
+        {
+          "name": "wrong_feature_source_directory",
+          "kind": "synthetic-negative",
+          "guard": "admission feature source identity"
+        },
+        {
+          "name": "feature_deadline_equal",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired feature correlation"
+        },
+        {
+          "name": "changed_feature_sequence",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired feature correlation"
+        },
+        {
+          "name": "negotiated_caught_up_addition",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "negotiated_deadline_equal",
+          "kind": "synthetic-negative",
+          "guard": "admission current unexpired negotiated addition"
+        },
+        {
+          "name": "no_caught_up_observation",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "partial_first_fetch_is_not_caught_up",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "prior_LEO_catchup_below_current_LEO",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "fetch_recency_one_before_hour",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "fetch_recency_equal_hour",
+          "kind": "synthetic-negative",
+          "guard": "admission recent current/prior-end catch-up"
+        },
+        {
+          "name": "regressing_durable_match",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "durable_match_above_leader_end",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "regressing_fetch_clock",
+          "kind": "synthetic-negative",
+          "guard": "admission monotonic durable contact"
+        },
+        {
+          "name": "repeated_activation_preserves_deadline",
+          "kind": "synthetic-positive",
+          "passed": true
+        },
+        {
+          "name": "step_down_clears_progress_and_negotiation",
+          "kind": "synthetic-positive",
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "history": "history-3",
+      "name": "invented_ack_sequence",
+      "guard": "ACK actual once-only emitted correlation",
+      "source_sha256": "08476e74b64484d48157ae7f7c7e657aad49eef1265d19da14e96d93fcb5bf1e",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_response_target",
+      "guard": "response exact request target",
+      "source_sha256": "7c73d6ee8613d5386a125e455b8685911002503bce096f84731a8eb89f133df5",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "changed_sender_configuration_epoch",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "fd4c44b1af4e872c6ba3a6ccd77bb29cd28d1c56983f0b59b1d6b25f90008149",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "changed_sender_committed_floor",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "3e801e995bfffd33a6946a5ceac87590bbb50274b60779b1fd64250a806aeb7b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "invented_source_record",
+      "guard": "append emitted exact source records",
+      "source_sha256": "7c687c2211354ee848cfcf91c94336bae34ebd2bb2f5973d34ee1a2519a12d67",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_vote_directory",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "0ee38daa3194b758ebdb956e5a5f7f1fbaabdaafba3844287fd657b9c4791ec9",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_vote_receiver",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "c0013eb53f4b65a16b9a0f39a5b968b59114d2d482be50ff9b0ba023f09b3868",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "old_majority_addition_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "84bfadcd57f20c05a3c065f46fb6ac3fd7903fc9483ccbcf0694e8893e22ff6d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "removed_self_authorizes_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "9c1299c3cfefda69bec9eaec34554cdf23a7819f1e1b149efb322120c3cd7aef",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "caller_clock_regression",
+      "guard": "caller clock regression",
+      "source_sha256": "cbafc152c5e53886c489d098cdda7826427f6cd77fa567683ffc278e562842bc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_observed_exit",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "6755167ce6a54e5d95e5f19c028de33762a3b5e44233f1ded2528749510dfcc1",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "lost_clock_handoff",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "f9209c9dca3bb4c68eca44516cd72c51de8a793de0810861b8b8ee32588f0981",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_feature_advertisement",
+      "guard": "feature receive emitted correlation",
+      "source_sha256": "cb855b6c34c0917d8d3031ed7c42209744c7ab9e5bc8b6393a50e540e26dd9cb",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_change_receipt_epoch",
+      "guard": "change receipt epoch",
+      "source_sha256": "f9c3c6352983b063dc33680e258cc366feff3fba3a7cb423a645d46ce8bbdd15",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "invented_change_position",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "75773e09457150f6622680fb4625609d3cb29c20a0ad85baa811dae39614b304",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "uncommitted_change_reports_committed",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "af8e2da22f83544aa1f2eab6e6942c12020f1b0444cf2dd0b0dff41f817f3953",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_stream_bytes",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "a8e241bdd22d88596308fa1b6c6585cbb709c320d4ed8dc7ace1a826dd66957b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_stream_offset",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "e4aa34030284058c50dbfda068b0fd9d8d6fbf07bd4b69a486ef2f5bf6213846",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "undeclared_changed_response",
+      "guard": "only declared response field changed/rejected",
+      "source_sha256": "f770288a9820409b5f7c5c4ecd039039e220ed9d3ec68f96d389e40b99006cee",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_checkpoint_count",
+      "guard": "checkpoint actual durable denominators",
+      "source_sha256": "e89d49827abe29c2bdbb200eed60d3647757fa821fd020a02cb2d517ff9d931d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "removed_leader_authority",
+      "guard": "committed removed leader fencing",
+      "source_sha256": "4f2ea7b3bc95e6aa5d971c43ec2c962f26879040e094fc679e4330c108c0300d",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "result_descriptor_changed",
+      "guard": "forged resulting configuration",
+      "all_outer_checksums_valid": true,
+      "sha256": "a6034fb3370557664ed9bcc121c1729c4507069fba140102ff6f66a7fc91ab82"
+    },
+    {
+      "history": "history-3",
+      "name": "local_commit_envelope_changed",
+      "guard": "local authority/configuration/commit",
+      "all_outer_checksums_valid": true,
+      "sha256": "28f4cf346eab9ca2b25029e58e80880fc39523af4ea71a23b9ab1001d38d6bfd"
+    },
+    {
+      "history": "history-3",
+      "name": "wrong_receiver_directory",
+      "guard": "authority kind/term/intended directory",
+      "all_outer_checksums_valid": true,
+      "sha256": "2b04274d46a88df78d62fd3a6db0b1dc65b84fc5c023784855d28b5975784c15"
+    },
+    {
+      "history": "history-3",
+      "name": "voter_record_position_changed",
+      "guard": "append voter exact position",
+      "all_outer_checksums_valid": true,
+      "sha256": "7c139e06b0476f753640ee0a8f7a365fd51f3bae2e1eb02a0549e271b02e62f0"
+    },
+    {
+      "history": "history-3",
+      "name": "historical_equal_view_origin",
+      "guard": "election source must be actual configuration-changing operation",
+      "all_outer_checksums_valid": true,
+      "changed_election_frames": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "original_source": 6,
+      "same_view_decoy": 7,
+      "final_original_context_preserved": true,
+      "sha256": "bfd0e07e672418081290239ab491f585e13edddb533feda7d5cc9e737a70112b"
+    },
+    {
+      "history": "history-3",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "2fec750fb94f7cf36b9a31dc96206df59d2b17d800de6b674d94098d19a80bf8"
+    },
+    {
+      "history": "history-3",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "21202348504571b10655b84e3453622ba9192f64e93f9b0da4556ffb275868d2"
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "af036bb7f6f726b8d6af98490ae3387f94cf6c4deef510ca452f105a99d9bcca"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "5e5aa454b001096940cb82ac0c119e21b91255f638d8c95ec3c8d992281f38c0"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "f0530d44bab5a7c0e56ea21d8cd74309c398468ffc937fc27b592c0c2cca1540"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "516c532d5a0c12ca9493ae92d4b43ede8d21fb37d3601dbd4373d1af8debdfd5"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "a98ca8452354b721d15d9ee982fbc3f74be86d680873720f1069e354d8eba177"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "5c9a416e77579934318603c0f0bbc51528aaf950b3b100c1c868cd23b6e5ee2f"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "f52a81427b869ed96eaec404a405f03c03018a111c0342e3bdc19632756dbc0c"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "c3ca82e52b617584568a6c619a2974a46a33e19f5778a2498da58d8a19f9b15d"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "7db71ac80a4a65d1e2cfdd27de0710b371a6bab6fefa2bd9bf0c9863eab23754"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "14a465329d6fa326cb7ce49fe3a70128b7f385e439035a1081ff2ce493e1b26b"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "512eacd1c307dbbe8cabbf425644687423b395f462341172ab3dc19054a2664d"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "d73f2405b3c659c9954f708b42e3e252c3687dd5a83b3f1ce50ef02e489b3040"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "ce5868d94bfc150c63d81ace67201a70e7805f41ea38f4ce79559b6aca666125"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "3ed4b86411ac20025468f9b30b77cabf592c402875a33b1ee07cb8762a5d653b"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "4c02b922aa1846bc8e1603f4680ea65a7435f9076a9edd560dd73161d3b94bdb"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/31-before-add-2/metadata.wal",
+          "sha256": "9d949e70a3d0fdd86d42dc04f3fbcfe8f4f0af361d48b9159d1aaf4e7ec67fa6"
+        },
+        {
+          "path": "journals/40-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/48-reopened-pending-add-2/metadata.wal",
+          "sha256": "956dfe1bb23030f5b80d92a02371f95308755f6cddf32dd8423e6b8b02879f06"
+        },
+        {
+          "path": "journals/81-committed-add-image-2/metadata.wal",
+          "sha256": "55af18a20a72cff2754b88be8531d57d0d1e0861f3641334f72a4bca5145d087"
+        },
+        {
+          "path": "journals/98-committed-leader-removal-2/metadata.wal",
+          "sha256": "2e3668a96d365ffb29ce0322e4ab24477583b15703ededaf14a137e1a6777a1e"
+        },
+        {
+          "path": "journals/120-new-leader-new-set-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        },
+        {
+          "path": "journals/126-final-reopen-2/metadata.wal",
+          "sha256": "ab2fb890bb8b086ec1bbe0d67e6df5697953394286b25e1d473fba347824f7c3"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "23c8f10943c5cae9f0f9532ac8ac3b541c81dbf2dae7b9f1bbf812e5bfcbd289"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "d17dc36c85a27cf88222f37fdfabe7c666c34a3f9f0856e61568c18239e25bd7"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "dfe4c5290f0164dc332cd89aea4a1ce72087fa73fad743dcb2b224a27909c025"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "3d3f6f5e5f32d8da2d502a9a7aa6bcefa2e098d233eb7ef851184ec5f1ff85b6"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-3",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/83-committed-add-image-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/100-committed-leader-removal-4/metadata.wal",
+          "sha256": "5892f4fc24359d5a6ce06c5fea6145b089334f2e0b88181e7dbd2a5eca733ff2"
+        },
+        {
+          "path": "journals/122-new-leader-new-set-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        },
+        {
+          "path": "journals/130-final-reopen-4/metadata.wal",
+          "sha256": "09ca4f63d075f28e12f327824c73759465198aa9d2c1cb2c4a7037b062b22e9a"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "invented_ack_sequence",
+      "guard": "ACK actual once-only emitted correlation",
+      "source_sha256": "22becd21a0ebac2edad229f4e8a3f9ca06814a7452aaab06812b6468b1c5c272",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_response_target",
+      "guard": "response exact request target",
+      "source_sha256": "dc25256cc859ba0ddca1a30f4dcec3b2b58fa42eb5f2fcb91047273502ae8ea6",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "changed_sender_configuration_epoch",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "c651c634d5064d388d27b2644749fb8e03771d4dd1962719bc0f15f606d4e5ab",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "changed_sender_committed_floor",
+      "guard": "append emitted authority/configuration",
+      "source_sha256": "1b0b39b334c7dfcca832a267e5994770bbf1722d592d7fcf0f92f5485d2e5a02",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "invented_source_record",
+      "guard": "append emitted exact source records",
+      "source_sha256": "944a95f4dd3543b53879467e6dd6089fb4dfc3713330ec1d7eb2499c89f3dfa5",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_vote_directory",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "2ce8ecfaefa50db8e925b9f399175754e813f558144fdefe7b9545f1736a40fc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_vote_receiver",
+      "guard": "vote emitted request correlation",
+      "source_sha256": "d6f1e1aff6abe3896f4c5487873fda641fb13f39357c45ae6fe2e42c6bf5e1b3",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "old_majority_addition_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "e02e47ea94de40c45e65df056cd7e913fb1b8aaaf3af9504016d0118d788965c",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "removed_self_authorizes_commit",
+      "guard": "local commit distinct NEW-set/current-term majority",
+      "source_sha256": "1b349439b3e7d4ac1fa45837f9e1c44f447105d70771699a385c07f9c0aff8e1",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "caller_clock_regression",
+      "guard": "caller clock regression",
+      "source_sha256": "1f43bcf4ba26a20c23f517a902097a1b8add1f38d369e3b920386203dcb5c22c",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_observed_exit",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "bb9d4d90075ceee71fc7bdbb54dbd5056f10f944b5c3c696cf0e681f6097d4eb",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "lost_clock_handoff",
+      "guard": "actual process exit/clock handoff",
+      "source_sha256": "547871eced03b7f385957db406f4bbea2224baafc3c052077f0f9dd6e2c007d7",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_feature_advertisement",
+      "guard": "feature receive emitted correlation",
+      "source_sha256": "26326f447d8de3ce318a50b202039518bf673f1ccfd7f8e3bae46dde1ae730fc",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_change_receipt_epoch",
+      "guard": "change receipt epoch",
+      "source_sha256": "e585d4f172a7d8c518533dbd357ea88bd2299ae56e53c11968c077f77a9b6c10",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "invented_change_position",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "c09db65889decc15520b960c7cdef1636a17e2e2660db92ec413424d62063f4a",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "uncommitted_change_reports_committed",
+      "guard": "configuration appended receipt position",
+      "source_sha256": "df601b2e579ef787f822edd8dea681a023173fea0ab5ddebba051a40a61fa35b",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_stream_bytes",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "c39e20f23e0fa0159f25d1a4bf6b296c5ed865c2abac8dc3d482da55453d9bb6",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_stream_offset",
+      "guard": "image stream emitted contiguous bytes",
+      "source_sha256": "d413b45df7334cdc5493375092335624c6fbaf03295a44b4028f12ec40edd1b0",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "undeclared_changed_response",
+      "guard": "only declared response field changed/rejected",
+      "source_sha256": "b5790fa590f4047936b7b42a3b34e7e2e41ef79087183d181e6e922b87096227",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_checkpoint_count",
+      "guard": "checkpoint actual durable denominators",
+      "source_sha256": "87f3d73f80b862ca92b962779ac20678adef7bbf6f130a329bc3e5feacf11ee7",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "removed_leader_authority",
+      "guard": "committed removed leader fencing",
+      "source_sha256": "2cf9cfec9474b0636b8488669c78bbd70459dfd3167c2a83b45ce23db0937a8f",
+      "original_raw_artifacts_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "result_descriptor_changed",
+      "guard": "forged resulting configuration",
+      "all_outer_checksums_valid": true,
+      "sha256": "b59aee89ffc14875b88b08504368a4352b1959f70df351a794f105b28fcb7d3b"
+    },
+    {
+      "history": "history-5",
+      "name": "local_commit_envelope_changed",
+      "guard": "local authority/configuration/commit",
+      "all_outer_checksums_valid": true,
+      "sha256": "32dccad7fb50ec66a6f668fa867306aeaa1d7364fa2eb2e6dd3651410809f687"
+    },
+    {
+      "history": "history-5",
+      "name": "wrong_receiver_directory",
+      "guard": "authority kind/term/intended directory",
+      "all_outer_checksums_valid": true,
+      "sha256": "db679a4785447afa0900962861820e5a03fbc74a37cfb121ff6d54aabc9e5449"
+    },
+    {
+      "history": "history-5",
+      "name": "voter_record_position_changed",
+      "guard": "append voter exact position",
+      "all_outer_checksums_valid": true,
+      "sha256": "2bb42790d74bf2f50866b36684250ebc9695808ec61033bec5e862a4fcc56d3b"
+    },
+    {
+      "history": "history-5",
+      "name": "historical_equal_view_origin",
+      "guard": "election source must be actual configuration-changing operation",
+      "all_outer_checksums_valid": true,
+      "changed_election_frames": [
+        6,
+        7,
+        8,
+        9
+      ],
+      "original_source": 6,
+      "same_view_decoy": 7,
+      "final_original_context_preserved": true,
+      "sha256": "9f2f28b80d1b2d168fcb73c11fda0375b98d3b876ee6c90b0131e7852e57c7ea"
+    },
+    {
+      "history": "history-5",
+      "name": "higher_term_carried_inactive_vote",
+      "guard": "new vote outside current full-directory set",
+      "all_outer_checksums_valid": true,
+      "sha256": "9743dc2287a4a9e1ac32cdccc78a860a4eca783b8e2b688d129dd4a95d4bd7f1"
+    },
+    {
+      "history": "history-5",
+      "name": "wal_authority_exceeds_election_term",
+      "guard": "election below durable WAL authority term",
+      "all_outer_checksums_valid": true,
+      "sha256": "7a7db0cff8a3e09a615372413fa58b4482182d9d04aba0bab86f0a0d34318650"
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_append_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "8105486420bb4be23d3f11bfef69f53671316cc3f74b6810a2986d25dfca4eb3"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "0cf9fde067f75f691db2d265c0d4db17c6a6b482d2b1e200030e2ae08f079587"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "ba4cd16b0b1766a1933ee573015b8a73841c18c687bd6ad7386dc714c7c1717e"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "967627a50a714a9185e6928139c14fe274fb7a0e107bbd53156ceb9432cab7bc"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "24eaa17fb0d57cf6149eba1174a9311d6765e827244ba318d5df7074b85d64d1"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_append_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "d2fd68c93edd4858dc1f0fa8f2916b52487aeeec8965dcd6a04bcd10f503ef22"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "b92244e33fee21d6a5b50e52f4c0ab012942b34196b5f940cfef1b19c8047bd4"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "f6f47b424bfa60aac8d471c2d848429cb632d78fe69fc0bf00a1ed9bb45c9dbe"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "718cd3d6027d7b84514a86c7eee2178e573befc50f85ceb3f6800b3bbd52b452"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "12a62cc8ef3b08f4f3afd643fcc42e4495f2fbc0d7c1085fcd5d0b503c332161"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "b7c3866b74c054d437a580ad6e53adfda76e84c893953b0eba884dc21d0f3030"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "697a978e216c07e41fa3452fe4c788751000f7a11d2aac777e9206bb0628b172"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "dbafd2bdc1a8e0c57fa39a69ce2b8ab4123c5187e14179667552d4f1890104b4"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "bf0e72949e781b546f6983adcc954b5a6f226c478bb823683a08a0875c4c61fe"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "c3e1cecdbd19791e58dde194ae69782fb88ffda296fca4926a93938336956ccf"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_append_leader_key",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 1,
+      "modified_artifacts": [
+        {
+          "path": "journals/50-before-add-2/metadata.wal",
+          "sha256": "cc7aab41d7bbc8c0a1c3f3ccb642a8db951b4039190126cc078f223bb6c7a564"
+        },
+        {
+          "path": "journals/64-uncommitted-add-old-majority-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/74-reopened-pending-add-2/metadata.wal",
+          "sha256": "389230c26bc26b31bb81357a3be6a57f54c8835361e895608c2daeac0e6b4739"
+        },
+        {
+          "path": "journals/121-committed-add-image-2/metadata.wal",
+          "sha256": "300317ab93d9dc9d61fc6b74320a7878b98f3ae38986379bbf178d65cc349134"
+        },
+        {
+          "path": "journals/143-committed-leader-removal-2/metadata.wal",
+          "sha256": "f9bd845d66f624cf6b5259c19de7acb7654308ba776736002836ce4c048b8434"
+        },
+        {
+          "path": "journals/183-new-leader-new-set-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        },
+        {
+          "path": "journals/191-final-reopen-2/metadata.wal",
+          "sha256": "340eeb7d201fe253d12cb23b004ae0e97d99d782c5ab41ef0086eb2a8173566d"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_install_sequence",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "f2953af2098f037a02fe6e790327f666b2efe2b6c54299cdd39f4a98bae90fce"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "384c55576f3ab8155022fb49c74119645d70ef748e02a9b6c5f5385632c0fa85"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_install_configuration_epoch",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "3f0cc03a574f1651533e29bbc1c6b6d0cedcf3f0e316728587a7720d7a5f99a6"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "66c11d3cca8ae5ede7c5f5b75311e8783071568a72fdd0d93d7caec799900844"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    },
+    {
+      "history": "history-5",
+      "name": "unemitted_remote_install_leader_commit",
+      "guard": "remote WAL authority lacks actual received request",
+      "all_outer_checksums_valid": true,
+      "changed_wal_operation": 3,
+      "modified_artifacts": [
+        {
+          "path": "journals/125-committed-add-image-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/147-committed-leader-removal-6/metadata.wal",
+          "sha256": "4a6bc52f394bf5f0edd3c02109d9854b27a06fffb8bcb7e26d3e62890a1b87c4"
+        },
+        {
+          "path": "journals/187-new-leader-new-set-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        },
+        {
+          "path": "journals/199-final-reopen-6/metadata.wal",
+          "sha256": "d8ea375711ae00002733684f1b2b097c7b344e7eb186ede1f3e4a3b28c0c49fe"
+        }
+      ],
+      "actual_trace_bytes_unchanged": true
+    }
+  ],
+  "all_original_bytes_and_full_modes_unchanged": true,
+  "scope": "finite independent semantic guard controls; valid Journal checksums and untouched captured originals"
+}

@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "sources": "source-freeze.json",
+  "artifacts": {
+    "prototype-stable-controls.json": {
+      "sha256": "c2f782a2d3ae83a705a5a8ce69c185dfd641f2f9ff40a5884e90dd85476e3a71",
+      "bytes": 44985
+    },
+    "prototype-final-stable-controls.json": {
+      "sha256": "2988372f457171366103cc8125fdd25c8fb8ad3b60f2898f368633ef3fa74a78",
+      "bytes": 48447
+    },
+    "missing-settings-confirmed.log": {
+      "sha256": "b958cd5d41554ced31eb0c2e5bc7a8681d991d54ff2e979016ea9c3362a57242",
+      "bytes": 954
+    },
+    "stale-election-corrected.log": {
+      "sha256": "df543872eccc6d5c69e77b3fa48b2e396bba9ecf3c307475fb43c8c0afca7d6b",
+      "bytes": 51
+    },
+    "prototype-msrv-controls.json": {
+      "sha256": "c2f782a2d3ae83a705a5a8ce69c185dfd641f2f9ff40a5884e90dd85476e3a71",
+      "bytes": 44985
+    },
+    "source-freeze.json": {
+      "sha256": "b7f37edd8819fc667223baded6298a79c9fa453d24b225cc5a802e9d0b596a4f",
+      "bytes": 1092
+    },
+    "stale-election-failing-first.log": {
+      "sha256": "8d1cc1082d5547f8886b737b3b878f1fa41c66c5331a1aef8136f15847edeb30",
+      "bytes": 339
+    },
+    "final-msrv-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "final-stable-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "strict-test-missing-settings.log": {
+      "sha256": "9c40ce4b8e17124268c1256637753510d0a15e345245b2a3d071c9de36a6eec3",
+      "bytes": 957
+    },
+    "prototype-final-msrv-controls.json": {
+      "sha256": "2988372f457171366103cc8125fdd25c8fb8ad3b60f2898f368633ef3fa74a78",
+      "bytes": 48447
+    },
+    "final-stable-3-history.json": {
+      "sha256": "a7a4d38187faa3f8ced8c30b22a167ae1239c3589a2e0604f61c780f50a8fc22",
+      "bytes": 15757
+    },
+    "missing-settings.log": {
+      "sha256": "b958cd5d41554ced31eb0c2e5bc7a8681d991d54ff2e979016ea9c3362a57242",
+      "bytes": 954
+    },
+    "final-msrv-5-history.json": {
+      "sha256": "f3e4a4681e8d86ace9f0e00cd9d3fb0f8a375667bfb72ee29bd4b30701b182e1",
+      "bytes": 23747
+    },
+    "final-stable-5-history.json": {
+      "sha256": "f3e4a4681e8d86ace9f0e00cd9d3fb0f8a375667bfb72ee29bd4b30701b182e1",
+      "bytes": 23747
+    },
+    "final-msrv-3-history.json": {
+      "sha256": "a7a4d38187faa3f8ced8c30b22a167ae1239c3589a2e0604f61c780f50a8fc22",
+      "bytes": 15757
+    },
+    "final-stable-controls.json": {
+      "sha256": "1ba645f8b52ae09e6eeb3f16c997984fbd25f57361b4e1cd5b13a1eabcd65d06",
+      "bytes": 48819
+    },
+    "prototype-stable-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "prototype-final-stable-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "before-change.json": {
+      "sha256": "9df0c2b95209b478cc82bf3c85ac165ecc20bb29dc23daaef5f0af1ef6c94cef",
+      "bytes": 999
+    },
+    "prototype-msrv-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    },
+    "final-msrv-controls.json": {
+      "sha256": "1ba645f8b52ae09e6eeb3f16c997984fbd25f57361b4e1cd5b13a1eabcd65d06",
+      "bytes": 48819
+    },
+    "seal.py": {
+      "sha256": "fd30a9b0f785996c988ff80283448ea4bccc33c87d554caaa52503c34015d9df",
+      "bytes": 5433
+    },
+    "stale-election-proof-control.py": {
+      "sha256": "6ce76aef041ceb1f9851a802473de54e465c46175a99c840919200ee12c7913c",
+      "bytes": 1184
+    },
+    "prototype-final-msrv-controls.log": {
+      "sha256": "02aef62ce2d6088c5c2149d9172c8c25495efaa200c2844e430569ee9a56cded",
+      "bytes": 55
+    }
+  },
+  "legacy_real_history_proof": {
+    "distinct_traces": 4,
+    "positive_replays": 8,
+    "negative_controls_rejected": 140,
+    "events": 666,
+    "raw_checkpoint_pairs": 140,
+    "remote_authorities_bound": 106,
+    "admission_mode": "limited-legacy",
+    "captured_bytes_and_full_modes_unchanged": true
+  },
+  "synthetic_policy_unit_proof": {
+    "assemblies": 4,
+    "negative_executions": 132,
+    "positive_executions": 36,
+    "unique_named_scenarios_per_group_size": 42,
+    "native_or_actual_runtime_history_claim": false,
+    "settings_origin": "Explicit handconstructed1000/10/10 constants; no old real trace was augmented"
+  },
+  "strict_cli_missing_settings": {
+    "checker_exit_code": 1,
+    "test_runner_exit_code": 1,
+    "expected_guard": "required observed admission settings missing",
+    "unexpected_output_files_absent": true
+  },
+  "actual_observed_settings_history_proof": "pending fresh source-pinned runtime captures",
+  "stale_election_proof_correction": {
+    "failing_first_exit_code": 1,
+    "corrected_exit_code": 0,
+    "failing_first_log": "stale-election-failing-first.log",
+    "corrected_log": "stale-election-corrected.log",
+    "scope": "Labeled synthetic unproved same-term reactivation predicate; no actual/native history claim",
+    "superseded_receipts_preserved": "superseded-elected-proof/"
+  },
+  "disposition": "Ready for coordinator source review and publication; not KL11-74 closure or fresh timing qualification",
+  "source_modes_and_before_snapshots_preserved": true,
+  "only_two_delegated_repo_files_changed": true,
+  "cargo_or_live_network_launched": false
+}

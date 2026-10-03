@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py", line 509, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py", line 482, in main
+    originals.append(history.verify(source, require_admission_settings=args.require_admission_settings))
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py", line 294, in verify
+    require(settings is not None or not require_admission_settings, 'required observed admission settings missing')
+  File "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py", line 33, in require
+    raise Rejected(message)
+wal_oracle.Rejected: required observed admission settings missing

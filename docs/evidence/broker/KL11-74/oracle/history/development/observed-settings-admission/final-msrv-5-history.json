@@ -1,0 +1,1055 @@
+{
+  "trace_sha256": "f07ae50ea104ca800e43ee182492c4efb6376ec7dd3a60c9668aa6fc424bc008",
+  "events": 201,
+  "paired_raw_checkpoints": 42,
+  "decoded_content_operations": 263,
+  "decoded_election_frames": 325,
+  "distinct_image_generations": 3,
+  "event_counts": {
+    "open": 1,
+    "campaign": 3,
+    "vote_request": 13,
+    "vote_response": 13,
+    "activate": 3,
+    "prepare": 31,
+    "receive": 31,
+    "acknowledge": 31,
+    "propose": 1,
+    "checkpoint_image": 2,
+    "feature_prepare": 1,
+    "feature_receive": 1,
+    "feature_acknowledge": 1,
+    "checkpoint": 42,
+    "add_voter": 1,
+    "prior_configuration_guard": 1,
+    "process_exit": 1,
+    "process_exit_observed": 1,
+    "reopen": 6,
+    "image_prepare": 1,
+    "image_begin": 1,
+    "image_chunk_prepare": 1,
+    "image_chunk_receive": 1,
+    "image_finish": 1,
+    "image_acknowledge": 1,
+    "acknowledge_mutated": 1,
+    "duplicate_acknowledge": 1,
+    "remove_voter": 1,
+    "removed_leader_propose": 1,
+    "reopen_final": 6,
+    "removed_campaign": 1
+  },
+  "local_commit_proofs": [
+    {
+      "event": 22,
+      "configuration_epoch": 0,
+      "term": 2,
+      "commit": 1,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 41,
+      "configuration_epoch": 0,
+      "term": 2,
+      "commit": 2,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 112,
+      "configuration_epoch": 1,
+      "term": 3,
+      "commit": 4,
+      "distinct_matches": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ],
+        [
+          4,
+          "05050505050505050505050505050505"
+        ]
+      ],
+      "majority": 4
+    },
+    {
+      "event": 140,
+      "configuration_epoch": 2,
+      "term": 3,
+      "commit": 5,
+      "distinct_matches": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ],
+        [
+          4,
+          "05050505050505050505050505050505"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 169,
+      "configuration_epoch": 2,
+      "term": 4,
+      "commit": 6,
+      "distinct_matches": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ],
+        [
+          4,
+          "05050505050505050505050505050505"
+        ]
+      ],
+      "majority": 3
+    }
+  ],
+  "election_proofs": [
+    {
+      "event": 5,
+      "term": 2,
+      "configuration_epoch": 0,
+      "distinct_grants": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ]
+      ],
+      "majority": 3
+    },
+    {
+      "event": 89,
+      "term": 3,
+      "configuration_epoch": 1,
+      "distinct_grants": [
+        [
+          1,
+          "02020202020202020202020202020202"
+        ],
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ],
+        [
+          4,
+          "05050505050505050505050505050505"
+        ]
+      ],
+      "majority": 4
+    },
+    {
+      "event": 152,
+      "term": 4,
+      "configuration_epoch": 2,
+      "distinct_grants": [
+        [
+          2,
+          "03030303030303030303030303030303"
+        ],
+        [
+          3,
+          "04040404040404040404040404040404"
+        ],
+        [
+          4,
+          "05050505050505050505050505050505"
+        ]
+      ],
+      "majority": 3
+    }
+  ],
+  "remote_wal_authorities_bound": 33,
+  "remote_wal_authority_bindings": [
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 1,
+      "request_event": 15,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 6,
+        "leader_commit": 0,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 2,
+      "request_event": 37,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 13,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 3,
+      "request_event": 37,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 13,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 1,
+      "request_event": 21,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 8,
+        "leader_commit": 0,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 2,
+      "request_event": 40,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 14,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 3,
+      "request_event": 40,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 14,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 1,
+      "request_event": 27,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 10,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 2,
+      "request_event": 27,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 10,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        5,
+        "06060606060606060606060606060606"
+      ],
+      "wal_operation": 1,
+      "request_event": 33,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 5,
+          "directory": "06060606060606060606060606060606"
+        },
+        "sequence": 12,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        5,
+        "06060606060606060606060606060606"
+      ],
+      "wal_operation": 2,
+      "request_event": 33,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 5,
+          "directory": "06060606060606060606060606060606"
+        },
+        "sequence": 12,
+        "leader_commit": 1,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        6,
+        "07070707070707070707070707070707"
+      ],
+      "wal_operation": 1,
+      "request_event": 47,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 6,
+          "directory": "07070707070707070707070707070707"
+        },
+        "sequence": 16,
+        "leader_commit": 2,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        6,
+        "07070707070707070707070707070707"
+      ],
+      "wal_operation": 2,
+      "request_event": 47,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 6,
+          "directory": "07070707070707070707070707070707"
+        },
+        "sequence": 16,
+        "leader_commit": 2,
+        "configuration_epoch": 0
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 4,
+      "request_event": 57,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 17,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 5,
+      "request_event": 57,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 17,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 4,
+      "request_event": 60,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 18,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 5,
+      "request_event": 60,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 2,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 18,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 6,
+      "request_event": 99,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 7,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 6,
+      "request_event": 105,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 9,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 3,
+      "request_event": 111,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 11,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 4,
+      "request_event": 111,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 11,
+        "leader_commit": 2,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        6,
+        "07070707070707070707070707070707"
+      ],
+      "wal_operation": 3,
+      "request_event": 118,
+      "request_kind": "image_finish",
+      "opcode": 5,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 6,
+          "directory": "07070707070707070707070707070707"
+        },
+        "sequence": 12,
+        "leader_commit": 4,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 7,
+      "request_event": 127,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 13,
+        "leader_commit": 4,
+        "configuration_epoch": 1
+      }
+    },
+    {
+      "owner": [
+        2,
+        "03030303030303030303030303030303"
+      ],
+      "wal_operation": 8,
+      "request_event": 133,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "sequence": 14,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 7,
+      "request_event": 136,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 15,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 8,
+      "request_event": 136,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 15,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 5,
+      "request_event": 139,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 16,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 6,
+      "request_event": 139,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 3,
+        "leader": {
+          "id": 1,
+          "directory": "02020202020202020202020202020202"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 16,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        3,
+        "04040404040404040404040404040404"
+      ],
+      "wal_operation": 9,
+      "request_event": 162,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 3,
+          "directory": "04040404040404040404040404040404"
+        },
+        "sequence": 6,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        4,
+        "05050505050505050505050505050505"
+      ],
+      "wal_operation": 7,
+      "request_event": 168,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 4,
+          "directory": "05050505050505050505050505050505"
+        },
+        "sequence": 8,
+        "leader_commit": 4,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        5,
+        "06060606060606060606060606060606"
+      ],
+      "wal_operation": 3,
+      "request_event": 174,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 5,
+          "directory": "06060606060606060606060606060606"
+        },
+        "sequence": 10,
+        "leader_commit": 6,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        5,
+        "06060606060606060606060606060606"
+      ],
+      "wal_operation": 4,
+      "request_event": 174,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 5,
+          "directory": "06060606060606060606060606060606"
+        },
+        "sequence": 10,
+        "leader_commit": 6,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        6,
+        "07070707070707070707070707070707"
+      ],
+      "wal_operation": 4,
+      "request_event": 180,
+      "request_kind": "receive",
+      "opcode": 2,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 6,
+          "directory": "07070707070707070707070707070707"
+        },
+        "sequence": 12,
+        "leader_commit": 6,
+        "configuration_epoch": 2
+      }
+    },
+    {
+      "owner": [
+        6,
+        "07070707070707070707070707070707"
+      ],
+      "wal_operation": 5,
+      "request_event": 180,
+      "request_kind": "receive",
+      "opcode": 4,
+      "authority": {
+        "kind": 1,
+        "term": 4,
+        "leader": {
+          "id": 2,
+          "directory": "03030303030303030303030303030303"
+        },
+        "peer": {
+          "id": 6,
+          "directory": "07070707070707070707070707070707"
+        },
+        "sequence": 12,
+        "leader_commit": 6,
+        "configuration_epoch": 2
+      }
+    }
+  ],
+  "admission_mode": "limited-legacy",
+  "admission_settings": null,
+  "admission_change_proofs": [],
+  "admission_proof_limits": [
+    "Current/prior leader-end catch-up timestamps and recent-contact addition eligibility are not independently reconstructed.",
+    "Feature negotiation deadline and leader lease timers are absent from this trace schema and are not inferred.",
+    "Prior configuration commit and NEW-set/current-term commit majority are checked; these alone do not qualify every addition admission criterion."
+  ],
+  "scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim"
+}

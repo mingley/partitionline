@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/work/membership-oracle-admission-01/source/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py", line 693, in <module>
+    args.output.write_text(json.dumps(verify(args.trace, require_admission_settings=args.require_admission_settings), indent=2) + '\n')
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/membership-oracle-admission-01/source/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py", line 294, in verify
+    require(settings is not None or not require_admission_settings, 'required observed admission settings missing')
+  File "/workspace/work/membership-oracle-admission-01/source/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py", line 33, in require
+    raise Rejected(message)
+wal_oracle.Rejected: required observed admission settings missing
