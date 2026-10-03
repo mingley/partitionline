@@ -1,0 +1,392 @@
+{
+  "actual_compiler_executions": 0,
+  "actual_network_actions": 0,
+  "actual_runtime_executions": 0,
+  "actual_rust_test_executions": 0,
+  "all_inputs_unchanged": true,
+  "candidate_count": 6,
+  "commands": [
+    "Read-only source inspection of exact source-03 six-file closure, source-02 transport/write fences, byte-identical source-01 session continuity, and final regression/operator docs.",
+    "Python exact SHA/bytes/full07777 guards before and after review and 28 named source predicates; no Rust parser/compiler/runtime."
+  ],
+  "disposition": "source-review-pass-no-runtime-qualification",
+  "findings": [],
+  "handoff": {
+    "bytes": 18646,
+    "full_07777": 384,
+    "path": "/workspace/work/broker-sasl-reauth-71/source-03/handoff.json",
+    "sha256": "c00a626c99721a2351dfaf4c722e11ad3e763707703bc3c08376301e699fcad5"
+  },
+  "inputs_after": [
+    {
+      "bytes": 12083,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+      "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b"
+    },
+    {
+      "bytes": 3740,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+    },
+    {
+      "bytes": 18429,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+    },
+    {
+      "bytes": 17699,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6"
+    },
+    {
+      "bytes": 74922,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+    },
+    {
+      "bytes": 57296,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+    },
+    {
+      "bytes": 32867,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+    },
+    {
+      "bytes": 31777,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+    },
+    {
+      "bytes": 33971,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+    },
+    {
+      "bytes": 28571,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9"
+    },
+    {
+      "bytes": 61222,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+    },
+    {
+      "bytes": 42449,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+    },
+    {
+      "bytes": 13893,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/handoff.json",
+      "sha256": "b2fff7b8d0491a70f94a5df5dca9bd8242cde1613eef89df1d8e74d2f2dd3d97"
+    },
+    {
+      "bytes": 4103,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/docs/sasl-reauthentication.md",
+      "sha256": "262ee3ba62c6f3bddc14749b160699a0ccd2a54b65f4586926ba2c4576ac4bb9"
+    },
+    {
+      "bytes": 34039,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0"
+    },
+    {
+      "bytes": 62765,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "a498dc4c5cf00bb431f6cc7dc6c353fa4bf7811dcbfbc5dfa3b741f23da75506"
+    },
+    {
+      "bytes": 18646,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-03/handoff.json",
+      "sha256": "c00a626c99721a2351dfaf4c722e11ad3e763707703bc3c08376301e699fcad5"
+    },
+    {
+      "bytes": 63114,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "83bf4482559db882e9f8b36209112447230ffdd9a03b5aebc7b8a27d9701c9a4"
+    },
+    {
+      "bytes": 11069,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+      "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa"
+    }
+  ],
+  "inputs_before": [
+    {
+      "bytes": 12083,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+      "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b"
+    },
+    {
+      "bytes": 3740,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+    },
+    {
+      "bytes": 18429,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+    },
+    {
+      "bytes": 17699,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6"
+    },
+    {
+      "bytes": 74922,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+    },
+    {
+      "bytes": 57296,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+    },
+    {
+      "bytes": 32867,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+    },
+    {
+      "bytes": 31777,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+    },
+    {
+      "bytes": 33971,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+    },
+    {
+      "bytes": 28571,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9"
+    },
+    {
+      "bytes": 61222,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+    },
+    {
+      "bytes": 42449,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+    },
+    {
+      "bytes": 13893,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/handoff.json",
+      "sha256": "b2fff7b8d0491a70f94a5df5dca9bd8242cde1613eef89df1d8e74d2f2dd3d97"
+    },
+    {
+      "bytes": 4103,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/docs/sasl-reauthentication.md",
+      "sha256": "262ee3ba62c6f3bddc14749b160699a0ccd2a54b65f4586926ba2c4576ac4bb9"
+    },
+    {
+      "bytes": 34039,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0"
+    },
+    {
+      "bytes": 62765,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "a498dc4c5cf00bb431f6cc7dc6c353fa4bf7811dcbfbc5dfa3b741f23da75506"
+    },
+    {
+      "bytes": 18646,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-03/handoff.json",
+      "sha256": "c00a626c99721a2351dfaf4c722e11ad3e763707703bc3c08376301e699fcad5"
+    },
+    {
+      "bytes": 63114,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "83bf4482559db882e9f8b36209112447230ffdd9a03b5aebc7b8a27d9701c9a4"
+    },
+    {
+      "bytes": 11069,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+      "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa"
+    }
+  ],
+  "limits": [
+    "The 18 new draft Rust/socket tests remain uncompiled and unexecuted in this review.",
+    "Old/new OAuth lease admission/revocation/cancellation and blocked final-write cases still need actual runtime verification.",
+    "Current Java/native C/public Rust renewal histories, stable/MSRV strict checks, resource/Drop/join gates remain necessary.",
+    "No hard real-time or kernel-delivery guarantee is inferred."
+  ],
+  "receipt_helper_failure": {
+    "bytes": 468,
+    "full_07777": 384,
+    "path": "/workspace/work/broker-sasl-reauth-71/independent-review-02/helper-attempt-01.failure.txt",
+    "sha256": "bb21b639d2f38595409a3e02ea46216bdc4ddf6d3af407a26594ab7283bc0504"
+  },
+  "review_conclusions": [
+    "The corrected transport checks the original absolute read/admission/handler bounds after Ready completion, and checks before prefix, between prefix/body and after body writing. Source-level Exit/Result typing is coherent but not compiled.",
+    "Renewal mechanism, principal and authority continuity, old/new lease fences and final identity commitment remain in the byte-identical Session source.",
+    "The final test includes an actual authenticated handler-entry counter and a narrowly reasoned sleep lint expectation; source-only assertions do not establish timing/runtime outcomes.",
+    "Documentation explicitly limits physical delivery guarantees: synchronous work cannot be preempted, kernel-accepted bytes cannot be retracted, and a late partial write fails closed before renewed identity commitment."
+  ],
+  "schema_version": 1,
+  "source_controls": [
+    {
+      "name": "ready_read_clock_rechecked",
+      "passed": true
+    },
+    {
+      "name": "original_received_instant_before_handler_admission",
+      "passed": true
+    },
+    {
+      "name": "post_permit_fence_precedes_authentication",
+      "passed": true
+    },
+    {
+      "name": "ready_handler_clock_precedes_response_or_none",
+      "passed": true
+    },
+    {
+      "name": "write_bound_retains_earlier_and_new_auth_deadlines",
+      "passed": true
+    },
+    {
+      "name": "three_write_clock_fences",
+      "passed": true
+    },
+    {
+      "name": "prefix_io_maps_to_exit_io",
+      "passed": true
+    },
+    {
+      "name": "body_io_maps_to_exit_io",
+      "passed": true
+    },
+    {
+      "name": "write_timeout_maps_to_write_deadline",
+      "passed": true
+    },
+    {
+      "name": "write_success_is_unit",
+      "passed": true
+    },
+    {
+      "name": "final_identity_commit_after_successful_write",
+      "passed": true
+    },
+    {
+      "name": "renewal_identity_hidden",
+      "passed": true
+    },
+    {
+      "name": "mechanism_exactly_continuous",
+      "passed": true
+    },
+    {
+      "name": "principal_and_authority_continuous",
+      "passed": true
+    },
+    {
+      "name": "previous_and_current_lease_checked_at_commit",
+      "passed": true
+    },
+    {
+      "name": "legacy_authenticate_zero_cannot_renew",
+      "passed": true
+    },
+    {
+      "name": "handshake_one_required_for_renewal",
+      "passed": true
+    },
+    {
+      "name": "renewal_budget_uses_original_received_instant",
+      "passed": true
+    },
+    {
+      "name": "api18_disallowed_during_renewal",
+      "passed": true
+    },
+    {
+      "name": "regression_uses_actual_transport",
+      "passed": true
+    },
+    {
+      "name": "regression_authenticates_before_dispatch",
+      "passed": true
+    },
+    {
+      "name": "regression_uses_100ms_and_synchronous_300ms",
+      "passed": true
+    },
+    {
+      "name": "nonvacuous_exact_one_handler_entry",
+      "passed": true
+    },
+    {
+      "name": "sleep_lint_expectation_local_with_reason",
+      "passed": true
+    },
+    {
+      "name": "regression_requires_connection_joins",
+      "passed": true
+    },
+    {
+      "name": "regression_rejects_complete_reply",
+      "passed": true
+    },
+    {
+      "name": "physical_kernel_delivery_limit_stated",
+      "passed": true
+    },
+    {
+      "name": "uncompiled_18_test_limit_stated",
+      "passed": true
+    }
+  ],
+  "source_controls_passed": 28,
+  "supersedes_prior_blocking_review_for_corrected_fences": {
+    "bytes": 11069,
+    "full_07777": 384,
+    "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+    "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa"
+  }
+}

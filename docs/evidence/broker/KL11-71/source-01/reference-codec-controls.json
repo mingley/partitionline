@@ -1,0 +1,413 @@
+{
+  "actual_rust_tests": 0,
+  "actual_sdk_executions": 0,
+  "controls": 80,
+  "negative_controls": 68,
+  "positive_controls": 12,
+  "rows": [
+    {
+      "expected": "accepted",
+      "name": "literal-v0",
+      "wire_hex": "000000090000000000000002aabb"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-0",
+      "wire_hex": ""
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-1",
+      "wire_hex": "00"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-2",
+      "wire_hex": "0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-3",
+      "wire_hex": "000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-4",
+      "wire_hex": "00000009"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-5",
+      "wire_hex": "0000000900"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-6",
+      "wire_hex": "000000090000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-7",
+      "wire_hex": "00000009000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-8",
+      "wire_hex": "0000000900000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-9",
+      "wire_hex": "000000090000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-10",
+      "wire_hex": "00000009000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-11",
+      "wire_hex": "0000000900000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-12",
+      "wire_hex": "000000090000000000000002"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v0-13",
+      "wire_hex": "000000090000000000000002aa"
+    },
+    {
+      "expected": "rejected",
+      "name": "trailing-v0",
+      "wire_hex": "000000090000000000000002aabb00"
+    },
+    {
+      "expected": "accepted",
+      "name": "error-forces-zero-v0",
+      "wire_hex": "00000009003affff00000000"
+    },
+    {
+      "expected": "accepted",
+      "name": "literal-v1",
+      "wire_hex": "000000090000000000000002aabb00000000000004d2"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-0",
+      "wire_hex": ""
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-1",
+      "wire_hex": "00"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-2",
+      "wire_hex": "0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-3",
+      "wire_hex": "000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-4",
+      "wire_hex": "00000009"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-5",
+      "wire_hex": "0000000900"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-6",
+      "wire_hex": "000000090000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-7",
+      "wire_hex": "00000009000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-8",
+      "wire_hex": "0000000900000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-9",
+      "wire_hex": "000000090000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-10",
+      "wire_hex": "00000009000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-11",
+      "wire_hex": "0000000900000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-12",
+      "wire_hex": "000000090000000000000002"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-13",
+      "wire_hex": "000000090000000000000002aa"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-14",
+      "wire_hex": "000000090000000000000002aabb"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-15",
+      "wire_hex": "000000090000000000000002aabb00"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-16",
+      "wire_hex": "000000090000000000000002aabb0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-17",
+      "wire_hex": "000000090000000000000002aabb000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-18",
+      "wire_hex": "000000090000000000000002aabb00000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-19",
+      "wire_hex": "000000090000000000000002aabb0000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-20",
+      "wire_hex": "000000090000000000000002aabb000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v1-21",
+      "wire_hex": "000000090000000000000002aabb00000000000004"
+    },
+    {
+      "expected": "rejected",
+      "name": "trailing-v1",
+      "wire_hex": "000000090000000000000002aabb00000000000004d200"
+    },
+    {
+      "expected": "accepted",
+      "name": "error-forces-zero-v1",
+      "wire_hex": "00000009003affff000000000000000000000000"
+    },
+    {
+      "expected": "accepted",
+      "name": "literal-v2",
+      "wire_hex": "000000090000000103aabb00000000000004d200"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-0",
+      "wire_hex": ""
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-1",
+      "wire_hex": "00"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-2",
+      "wire_hex": "0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-3",
+      "wire_hex": "000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-4",
+      "wire_hex": "00000009"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-5",
+      "wire_hex": "0000000900"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-6",
+      "wire_hex": "000000090000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-7",
+      "wire_hex": "00000009000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-8",
+      "wire_hex": "0000000900000001"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-9",
+      "wire_hex": "000000090000000103"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-10",
+      "wire_hex": "000000090000000103aa"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-11",
+      "wire_hex": "000000090000000103aabb"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-12",
+      "wire_hex": "000000090000000103aabb00"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-13",
+      "wire_hex": "000000090000000103aabb0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-14",
+      "wire_hex": "000000090000000103aabb000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-15",
+      "wire_hex": "000000090000000103aabb00000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-16",
+      "wire_hex": "000000090000000103aabb0000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-17",
+      "wire_hex": "000000090000000103aabb000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-18",
+      "wire_hex": "000000090000000103aabb00000000000004"
+    },
+    {
+      "expected": "rejected",
+      "name": "truncated-v2-19",
+      "wire_hex": "000000090000000103aabb00000000000004d2"
+    },
+    {
+      "expected": "rejected",
+      "name": "trailing-v2",
+      "wire_hex": "000000090000000103aabb00000000000004d20000"
+    },
+    {
+      "expected": "accepted",
+      "name": "error-forces-zero-v2",
+      "wire_hex": "0000000900003a0001000000000000000000"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v1-0",
+      "wire_hex": "0000000900000000000000000000000000000000"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v1-1",
+      "wire_hex": "0000000900000000000000000000000000000001"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v1-86400000",
+      "wire_hex": "0000000900000000000000000000000005265c00"
+    },
+    {
+      "expected": "rejected",
+      "name": "lifetime-v1--1",
+      "wire_hex": "000000090000000000000000ffffffffffffffff"
+    },
+    {
+      "expected": "rejected",
+      "name": "lifetime-v1-86400001",
+      "wire_hex": "0000000900000000000000000000000005265c01"
+    },
+    {
+      "expected": "rejected",
+      "name": "error-positive-lifetime-v1",
+      "wire_hex": "00000009003affff000000000000000000000001"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v2-0",
+      "wire_hex": "000000090000000101000000000000000000"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v2-1",
+      "wire_hex": "000000090000000101000000000000000100"
+    },
+    {
+      "expected": "accepted",
+      "name": "boundary-v2-86400000",
+      "wire_hex": "0000000900000001010000000005265c0000"
+    },
+    {
+      "expected": "rejected",
+      "name": "lifetime-v2--1",
+      "wire_hex": "000000090000000101ffffffffffffffff00"
+    },
+    {
+      "expected": "rejected",
+      "name": "lifetime-v2-86400001",
+      "wire_hex": "0000000900000001010000000005265c0100"
+    },
+    {
+      "expected": "rejected",
+      "name": "error-positive-lifetime-v2",
+      "wire_hex": "0000000900003a0001000000000000000100"
+    },
+    {
+      "expected": "rejected",
+      "name": "null-auth-bytes-v2",
+      "wire_hex": "000000090000000100000000000000000000"
+    },
+    {
+      "expected": "rejected",
+      "name": "header-tags-v2",
+      "wire_hex": "000000090100000103aabb00000000000004d200"
+    },
+    {
+      "expected": "rejected",
+      "name": "body-tags-v2",
+      "wire_hex": "000000090000000103aabb00000000000004d201"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "independent Python codec/literal preparation only; no Rust/SDK/runtime",
+  "source_bytes_unchanged": true,
+  "source_sha256": "6b620834d5983c1cf508a43bc7658dfa1800918cfa53d323b9e8cb5062f204fc"
+}

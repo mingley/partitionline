@@ -1,0 +1,12 @@
+Diff in /workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs:1795:
+     store.shutdown().await?;
+     assert_eq!(report.accepted_connections, report.joined_connections);
+     assert_eq!(probe.calls.load(Ordering::SeqCst), 1);
+-    assert!(result.is_err(), "complete expired application reply was delivered");
++    assert!(
++        result.is_err(),
++        "complete expired application reply was delivered"
++    );
+     Ok(())
+ }
+ 

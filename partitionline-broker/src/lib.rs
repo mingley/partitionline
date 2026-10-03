@@ -12,6 +12,7 @@ pub mod compaction;
 pub mod fetch;
 pub mod journal;
 pub mod metadata;
+pub mod metadata_quorum;
 pub mod partition;
 pub mod produce;
 pub mod protocol;

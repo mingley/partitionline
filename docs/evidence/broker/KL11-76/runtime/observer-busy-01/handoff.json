@@ -1,0 +1,134 @@
+{
+  "actual_cargo_or_compiler_executions": 0,
+  "actual_new_rust_test_count": 0,
+  "actual_runtime_or_network_actions": 0,
+  "basis": "34a2e672408d64309b0c6cb3dca428f59bd30e0b",
+  "candidate": {
+    "bytes": 129092,
+    "full_mode": "0600",
+    "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate/runtime.rs",
+    "sha256": "7e2b79748317895a3a88aab70ddbf6b81a97362806fcb45fa7cb77dd04b5b5e3"
+  },
+  "candidate_composed_with_metadata_getters": {
+    "bytes": 130295,
+    "full_mode": "0600",
+    "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate-with-metadata-getters/runtime.rs",
+    "sha256": "ea395d304aebc9cf41e181bd3fcbda08b0ea559ddfc3e07b3c3fa166c460558b"
+  },
+  "commands": [
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate/runtime.rs",
+        "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate-with-metadata-getters/runtime.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/ci-observer-busy-01/rustfmt-stable.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate/runtime.rs",
+        "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate-with-metadata-getters/runtime.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/ci-observer-busy-01/rustfmt-1.85.0.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "hosted_failure": {
+    "bytes": 54631,
+    "full_mode": 384,
+    "job_id": 111311339772,
+    "new_local_reproduction": false,
+    "outcome": "66passed/2observerTCPfailed",
+    "path": "/workspace/work/integration/ci-34a2-runtime-01/logs/111311339772.decoded.log",
+    "run_id": 37160016210,
+    "sha256": "d5469b2f1561aae89acf2ddf8e643d9a3107665fba44a355fec0031bbf82a480"
+  },
+  "limits": [
+    "No typecheck/Clippy or actual2case run yet.",
+    "Exact hosted Busy interleaving inferred from source; actual hosted log does not contain owner traces.",
+    "No timing increase, lease or source installation authorized by this packet."
+  ],
+  "new_test_names": [
+    "observer_addition_retries_real_snapshot_busy_then_commits_new_set",
+    "observer_addition_keeps_real_log_budget_failure_terminal"
+  ],
+  "original_core_sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+  "original_inputs": [
+    {
+      "bytes": 22326,
+      "full_mode": 384,
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/membership.rs",
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f"
+    },
+    {
+      "bytes": 27638,
+      "full_mode": 384,
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/peer_codec.rs",
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c"
+    },
+    {
+      "bytes": 177746,
+      "full_mode": 384,
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/replication.rs",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0"
+    },
+    {
+      "bytes": 119585,
+      "full_mode": 384,
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76"
+    },
+    {
+      "bytes": 47095,
+      "full_mode": 384,
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/tests/common/raft_runtime.rs",
+      "sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47"
+    }
+  ],
+  "original_runtime_sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+  "patches": [
+    {
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/production-only.patch",
+      "sha256": "185ea912bbf3aa3c4561d6d75d1b65051e8af74c9682bd0669788d2448f72215"
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/standalone.patch",
+      "sha256": "9b94c2585f0adf510938c10e7acbb673f0afa20f57ff5c16a3f21f6d6deb0ca9"
+    },
+    {
+      "path": "/workspace/work/raft-runtime-76/ci-observer-busy-01/metadata-getters-composed.patch",
+      "sha256": "13927452d642934885a3b538ad061801470332e7017d80557190e5431855a304"
+    }
+  ],
+  "prior_metadata_getters_sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+  "production_delta": "Retry Busy with MembershipNotReady; original absolute deadlines and all other terminal errors preserved.",
+  "root_staging_path": "partitionline-broker/src/raft/runtime.rs",
+  "schema_version": 1,
+  "source_only_test_profile": "Direct actual blocking owners; two-voter genesis+one known-directory observer. Existing public3/5 TCP tests unchanged; no discovery/nativeKafka claim.",
+  "source_predicates": {
+    "actual_hosted_two_observer_failures": true,
+    "add_checks_before_caughtup": true,
+    "busy_from_real_snapshot_reader": true,
+    "composed_getters_preserved_exact": true,
+    "existing_actual_tcp_cases_unmodified": true,
+    "new_busy_only_retry": true,
+    "non_test_code_exact_one_match_arm": true,
+    "old_tick_busy_terminal": true,
+    "original_deadline_unchanged": true,
+    "public_add_outer_quorum_budget_unchanged": true,
+    "test_helpers_default_profile_preserved": true,
+    "test_real_image_begin_chunk_finish_receipt": true,
+    "test_terminal_actual_log_budget_no_false_commit": true
+  },
+  "status": "WORK-only source correction/tests; no Rust qualification"
+}

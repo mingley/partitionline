@@ -1,0 +1,324 @@
+{
+  "actual_cargo_commands": 0,
+  "actual_runtime_executions": 0,
+  "actual_rust_tests": 0,
+  "actual_sdk_executions": 0,
+  "added_actual_transport_regression_count": 1,
+  "baseline_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "controls": [
+    {
+      "detail": "completed Ready read is not accepted after original bound",
+      "name": "post_ready_read_fence",
+      "passed": true
+    },
+    {
+      "detail": "no response or None result is accepted after handler/session bound",
+      "name": "post_ready_handler_fence",
+      "passed": true
+    },
+    {
+      "detail": "expired Ready permit cannot initiate dispatch",
+      "name": "admission_before_dispatch_fence",
+      "passed": true
+    },
+    {
+      "detail": "check before prefix, between prefix/body and after body completion",
+      "name": "write_three_clock_fences",
+      "passed": true
+    },
+    {
+      "detail": "old/new session and authority activation still checked after actual write",
+      "name": "renewed_identity_final_guard_remains",
+      "passed": true
+    },
+    {
+      "detail": "strict original bound accepts only completion before100",
+      "name": "ready_handler_completion_99",
+      "passed": true
+    },
+    {
+      "detail": "strict original bound accepts only completion before100",
+      "name": "ready_handler_completion_100",
+      "passed": true
+    },
+    {
+      "detail": "strict original bound accepts only completion before100",
+      "name": "ready_handler_completion_101",
+      "passed": true
+    },
+    {
+      "detail": "strict original bound accepts only completion before100",
+      "name": "ready_handler_completion_300",
+      "passed": true
+    },
+    {
+      "detail": "prefix completion at101 prevents a new body operation; prefix bytes cannot be undone",
+      "name": "prefix_crossing_does_not_start_body",
+      "passed": true
+    },
+    {
+      "detail": "late Ready body can have committed bytes, but clock failure prevents renewed identity commitment",
+      "name": "completed_late_body_never_commits_identity",
+      "passed": true
+    },
+    {
+      "detail": "source-only genuine Transport test; no test execution claimed",
+      "name": "actual_transport_regression_authenticates_then_blocks_handler",
+      "passed": true
+    }
+  ],
+  "files": [
+    {
+      "candidate": {
+        "bytes": 4103,
+        "git_blob_sha1": "58be9593990fd4379095f222b80d94aea57a7a44",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/docs/sasl-reauthentication.md",
+        "sha256": "262ee3ba62c6f3bddc14749b160699a0ccd2a54b65f4586926ba2c4576ac4bb9"
+      },
+      "changed_in_followup": true,
+      "repo_path": "docs/sasl-reauthentication.md"
+    },
+    {
+      "base_git_blob_sha1": "fe9bb86593739c3f640de48ddcc30cc234a36af5",
+      "candidate": {
+        "bytes": 18429,
+        "git_blob_sha1": "847cdc4f851a0a1e68d4e0c99b3419c3cfbd5952",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+      },
+      "changed_in_followup": false,
+      "original_copy": {
+        "bytes": 17699,
+        "git_blob_sha1": "fe9bb86593739c3f640de48ddcc30cc234a36af5",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+        "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6"
+      },
+      "repo_path": "partitionline-broker/examples/oidc_live_probe.rs"
+    },
+    {
+      "base_git_blob_sha1": "fc4da3ef53ec797342bc0ac4f3d18310c5f2441b",
+      "candidate": {
+        "bytes": 74922,
+        "git_blob_sha1": "e14d718999603e1e35909efd56d0612a2519f692",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+      },
+      "changed_in_followup": false,
+      "original_copy": {
+        "bytes": 57296,
+        "git_blob_sha1": "fc4da3ef53ec797342bc0ac4f3d18310c5f2441b",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+        "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+      },
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "base_git_blob_sha1": "215237efec3e8d0ae5166afb431fcb43cdcb5d04",
+      "candidate": {
+        "bytes": 34039,
+        "git_blob_sha1": "81f308cfa3ddeb3aae2f87b7404edd892906386f",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+        "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0"
+      },
+      "changed_in_followup": true,
+      "original_copy": {
+        "bytes": 31777,
+        "git_blob_sha1": "215237efec3e8d0ae5166afb431fcb43cdcb5d04",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+        "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+      },
+      "repo_path": "partitionline-broker/src/transport.rs"
+    },
+    {
+      "base_git_blob_sha1": "73b402db657c66701c365455ec9a691eb653e289",
+      "candidate": {
+        "bytes": 33971,
+        "git_blob_sha1": "ed07bfce6c768087382d89d7cb149ab1f87fb558",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+      },
+      "changed_in_followup": false,
+      "original_copy": {
+        "bytes": 28571,
+        "git_blob_sha1": "73b402db657c66701c365455ec9a691eb653e289",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+        "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9"
+      },
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs"
+    },
+    {
+      "base_git_blob_sha1": "eb0c2577972163ff491550df4430570429dc5e92",
+      "candidate": {
+        "bytes": 62765,
+        "git_blob_sha1": "43cf0b362e1218bef78ab4b5f37e84b53422c5d2",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/tests/sasl_sessions.rs",
+        "sha256": "a498dc4c5cf00bb431f6cc7dc6c353fa4bf7811dcbfbc5dfa3b741f23da75506"
+      },
+      "changed_in_followup": true,
+      "original_copy": {
+        "bytes": 42449,
+        "git_blob_sha1": "eb0c2577972163ff491550df4430570429dc5e92",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+        "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+      },
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    }
+  ],
+  "independent_review_sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa",
+  "new_draft_test_count": 18,
+  "next_required": [
+    "independent review",
+    "actual stable/MSRV parsing and compilation",
+    "actual18 draft tests including new Transport regression",
+    "old/new OAuth lease cancellation/final blocked-write qualification",
+    "genuine Kafka SDK reauthentication matrix"
+  ],
+  "old_closed_inputs_after": [
+    {
+      "bytes": 12083,
+      "git_blob_sha1": "e3e41f4c0d1e617d27e39760b335ca0c9846e7b8",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+      "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b"
+    },
+    {
+      "bytes": 11069,
+      "git_blob_sha1": "9f10321e1813cd2c43f8192c1ad8481f41aac185",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+      "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa"
+    },
+    {
+      "bytes": 3740,
+      "git_blob_sha1": "606f12a2de089a61502a3e4f1d4416491697d085",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+    },
+    {
+      "bytes": 18429,
+      "git_blob_sha1": "847cdc4f851a0a1e68d4e0c99b3419c3cfbd5952",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+    },
+    {
+      "bytes": 74922,
+      "git_blob_sha1": "e14d718999603e1e35909efd56d0612a2519f692",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+    },
+    {
+      "bytes": 32867,
+      "git_blob_sha1": "5325f0810f1286b69783780fd60c86cd514b182a",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+    },
+    {
+      "bytes": 33971,
+      "git_blob_sha1": "ed07bfce6c768087382d89d7cb149ab1f87fb558",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+    },
+    {
+      "bytes": 61222,
+      "git_blob_sha1": "a17b80ff18a1849a020498eacd53118be2ec4e9a",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+    }
+  ],
+  "old_closed_inputs_before": [
+    {
+      "bytes": 12083,
+      "git_blob_sha1": "e3e41f4c0d1e617d27e39760b335ca0c9846e7b8",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+      "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b"
+    },
+    {
+      "bytes": 11069,
+      "git_blob_sha1": "9f10321e1813cd2c43f8192c1ad8481f41aac185",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+      "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa"
+    },
+    {
+      "bytes": 3740,
+      "git_blob_sha1": "606f12a2de089a61502a3e4f1d4416491697d085",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+    },
+    {
+      "bytes": 18429,
+      "git_blob_sha1": "847cdc4f851a0a1e68d4e0c99b3419c3cfbd5952",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+    },
+    {
+      "bytes": 74922,
+      "git_blob_sha1": "e14d718999603e1e35909efd56d0612a2519f692",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+    },
+    {
+      "bytes": 32867,
+      "git_blob_sha1": "5325f0810f1286b69783780fd60c86cd514b182a",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+    },
+    {
+      "bytes": 33971,
+      "git_blob_sha1": "ed07bfce6c768087382d89d7cb149ab1f87fb558",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+    },
+    {
+      "bytes": 61222,
+      "git_blob_sha1": "a17b80ff18a1849a020498eacd53118be2ec4e9a",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+    }
+  ],
+  "old_closed_inputs_unchanged": true,
+  "physical_write_limit": "Cannot retract already accepted kernel bytes or preempt synchronous work; prevents starting a response operation after a checked bound and guards final identity activation.",
+  "regression_reference": {
+    "bytes": 1772,
+    "git_blob_sha1": "463b9894b2639265f512cf1b2071982b7b1b46e6",
+    "mode": 384,
+    "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/expired-ready-handler.regression.rs",
+    "sha256": "6a9018e47fa1644b91cc9b396849a1ec9a62c322a84e19ce1738499aecae012e"
+  },
+  "review_recipe": {
+    "bytes": 12665,
+    "git_blob_sha1": "231ef3f465124df3ac7b38fd851052299290e646",
+    "mode": 384,
+    "path": "/workspace/work/broker-sasl-reauth-71/source-02/prepare.py",
+    "sha256": "8dae965a0d1be372ea663aaf943f1f775e0ab64b43fcf2032d57e47a4b02e815"
+  },
+  "schema_version": 1,
+  "scope": "Additive WORK-only production/test source prototype; new follow-up has not been parsed or compiled.",
+  "source_controls_passed": 12,
+  "supersedes_handoff_sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b",
+  "unchanged_source_parser_receipt": "Prior source-01 rustfmt checks do not qualify these new follow-up files."
+}

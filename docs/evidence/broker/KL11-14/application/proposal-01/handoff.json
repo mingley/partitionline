@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "status": "WORK-only source proposal; not installed or compiled",
+  "basis": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "legacy_basis_preserved": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "scope": "Explicit quorum metadata application, durable source cursor and idempotent decisions; preserves legacy local profile",
+  "rows": [
+    {
+      "repository_path": "partitionline-broker/src/catalog.rs",
+      "work_path": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/catalog.rs",
+      "sha256": "3952bd839b5db656c65b5957ec96559253a2c4207bee1f6a129810f472b41fc5",
+      "bytes": 37866,
+      "full_mode": "0600",
+      "status": "proposed modification"
+    },
+    {
+      "repository_path": "partitionline-broker/src/metadata_quorum.rs",
+      "work_path": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata_quorum.rs",
+      "sha256": "1e41a7e5e811a12823f1436983be95f1ff6bb1e76bb72700182aa39c8851d999",
+      "bytes": 45189,
+      "full_mode": "0600",
+      "status": "new"
+    },
+    {
+      "repository_path": "partitionline-broker/src/metadata.rs",
+      "work_path": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata.rs",
+      "sha256": "806329f2ec4f10e58f34fb2ff7d65d6b918c42159849204cb499b4c4d15e0708",
+      "bytes": 102178,
+      "full_mode": "0600",
+      "status": "proposed modification"
+    },
+    {
+      "repository_path": "partitionline-broker/src/raft/runtime.rs",
+      "work_path": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "bytes": 120788,
+      "full_mode": "0600",
+      "status": "proposed modification"
+    },
+    {
+      "repository_path": "partitionline-broker/tests/metadata_quorum.rs",
+      "work_path": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "sha256": "85582944a9747ba565d170b3104c2060cb58578d996b8d2f7be2750282b2c528",
+      "bytes": 15472,
+      "full_mode": "0600",
+      "status": "new"
+    }
+  ],
+  "patch_sha256": "ac892b6780a45d6b2f1975ed0a182b63cdc6bb59944abd1b4dab1787556b5ca8",
+  "root_owned_export_needed": "partitionline-broker/src/lib.rs: pub mod metadata_quorum;",
+  "root_claims_needed": [
+    "partitionline-broker/src/catalog.rs",
+    "partitionline-broker/src/metadata_quorum.rs",
+    "partitionline-broker/src/metadata.rs",
+    "partitionline-broker/src/raft/runtime.rs",
+    "partitionline-broker/tests/metadata_quorum.rs"
+  ],
+  "accepted_runtime04_preserved_sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+  "reviewed_core47a_preserved_sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+  "production_core_changes": false,
+  "runtime_change": "Only two proposed immutable group/storage getters; no admission/socket/timer/election/replication logic change",
+  "source_declared_tests": {
+    "unit_names": [
+      "duplicate_request_replay_returns_original_receipt_without_second_mutation",
+      "racing_commands_and_reused_tokens_are_committed_deterministic_noops",
+      "exact_source_payload_term_and_gap_forgery_fail_before_journal_mutation",
+      "group_and_semantic_limit_changes_cannot_reinterpret_durable_outcomes",
+      "malformed_data_and_application_budget_failure_leave_cursor_unchanged",
+      "complete_synced_receipt_before_publication_replays_once_and_partial_tail_repairs",
+      "three_node_metadata_is_invisible_before_majority_and_survives_minority_reopen",
+      "five_node_old_minority_cannot_publish_metadata_and_majority_reopens_exact_prefix",
+      "new_leader_repairs_uncommitted_metadata_without_creating_a_ghost_topic"
+    ],
+    "unit_count": 9,
+    "tcp_names": [
+      "three_node_tcp_router_waits_for_source_commit_and_replays_after_minority_restart",
+      "five_node_tcp_metadata_application_keeps_committed_views_through_two_restarts"
+    ],
+    "tcp_count": 2,
+    "executed": 0
+  },
+  "actual_verification": [
+    "stable rustfmt --edition2021 --check passed on final five proposed files",
+    "Rust1.85 rustfmt --edition2021 --check passed on final five proposed files",
+    "15 selected e8/3dbc baseline files match exact original Git bytes/SHA256/full07777 after drafting"
+  ],
+  "no_executions": [
+    "Cargo",
+    "rustc",
+    "broker",
+    "test harness",
+    "SDK/JVM",
+    "network action",
+    "cache mutation",
+    "main edit",
+    "Git stage/commit/push"
+  ],
+  "known_qualification_gaps": [
+    "No Rust typechecking/Clippy or behavioral test run yet",
+    "Future full immutable source checkpoint/leases required",
+    "Default/classic/flexible wire conformance regressions and independent decoding must be rerun",
+    "New application receipt/source causal checker not yet implemented",
+    "No replicated data partition placement or physical partition Store attachment in quorum frontend",
+    "Application projection refresh is request-driven; reads are committed-prefix reads, not linearizable quorum reads",
+    "No native Kafka KRaft metadata-record/wire interoperability from custom PLMETCMD/PLMETAPP formats",
+    "Public synchronous adapter requires exclusive joined blocking owner; no async worker invocation"
+  ],
+  "prior_stage_preserved": "draft-stage-01/handoff.json SHA9b8323e9b56589bfa489a617e61f38aeb824e78862949e31e39c1e7478ac5f5a; all five exact original proposed files retained",
+  "helper_failures": [
+    "source-helper-attempt-01-failure.txt: source-only substring helper AssertionError, corrected multiline selection; zero compiler/runtime runs",
+    "source-helper-attempt-02-failure.txt: manifest schema-field mismatch TypeError; corrected guard verified all15 selected baseline files"
+  ],
+  "README_sha256": "b2ab8d7a6bda78850dd0af5355d16e41c49e2d990ab3f2a2d2c3e7fde2df3505",
+  "source_baseline_after_sha256": "ce9928a92a5503b9466c50aa364c5b7a02b56bd4d59da8e6905376ae9b5c7e28",
+  "executed_rust_tests": 0,
+  "typed_or_tcp_qualification": false
+}

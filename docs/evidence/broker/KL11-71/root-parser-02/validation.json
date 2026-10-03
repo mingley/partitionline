@@ -1,0 +1,52 @@
+{
+  "original_sha256": "83bf4482559db882e9f8b36209112447230ffdd9a03b5aebc7b8a27d9701c9a4",
+  "formatted_sha256": "0be26b4fe7048b42084fa3f780ab6340d3bafaed5ae457b567e1c6b8fd656fad",
+  "formatted_path": "/workspace/work/integration/broker71-final03-parser-02/sasl_sessions.rs",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/work/integration/broker71-final03-parser-02/sasl_sessions.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/integration/broker71-final03-parser-02/rustfmt-stable.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/work/integration/broker71-final03-parser-02/sasl_sessions.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/integration/broker71-final03-parser-02/rustfmt-1.85.0.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "passed": true,
+  "prior_failed_checks": "/workspace/work/integration/broker71-final03-parser-01/validation.json",
+  "Rust_typecheck_and_runtime": false
+}

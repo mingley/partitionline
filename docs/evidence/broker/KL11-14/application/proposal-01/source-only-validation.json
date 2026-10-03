@@ -1,0 +1,47 @@
+{
+  "source_only": true,
+  "handoff_sha256": "1cf824ddc0ae9c3eaa3350fade1b4856425fb1e5c80adde9b6a8255d7f21cdea",
+  "commands": [
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/catalog.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "scope": "Rustfmt syntax/format only, not Rust type checking"
+    },
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/catalog.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "scope": "Rustfmt syntax/format only, not Rust type checking"
+    }
+  ],
+  "executed_behavioral_cases": 0,
+  "source_baseline_after_sha256": "ce9928a92a5503b9466c50aa364c5b7a02b56bd4d59da8e6905376ae9b5c7e28",
+  "known_failures": [
+    "source-helper-attempt-01-failure.txt: source-only substring helper AssertionError, corrected multiline selection; zero compiler/runtime runs",
+    "source-helper-attempt-02-failure.txt: manifest schema-field mismatch TypeError; corrected guard verified all15 selected baseline files"
+  ],
+  "no_main_write_or_compiler_lease_used": true
+}

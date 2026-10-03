@@ -1,0 +1,278 @@
+{
+  "actual_cargo_commands": 0,
+  "actual_runtime_executions": 0,
+  "actual_rust_tests": 0,
+  "actual_sdk_executions": 0,
+  "baseline_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "files": [
+    {
+      "candidate": {
+        "bytes": 3740,
+        "git_blob_sha1": "606f12a2de089a61502a3e4f1d4416491697d085",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+        "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+      },
+      "repo_path": "docs/sasl-reauthentication.md"
+    },
+    {
+      "base_git_blob_sha1": "fe9bb86593739c3f640de48ddcc30cc234a36af5",
+      "candidate": {
+        "bytes": 18429,
+        "git_blob_sha1": "847cdc4f851a0a1e68d4e0c99b3419c3cfbd5952",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+      },
+      "original_copy": {
+        "bytes": 17699,
+        "git_blob_sha1": "fe9bb86593739c3f640de48ddcc30cc234a36af5",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+        "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6"
+      },
+      "repo_path": "partitionline-broker/examples/oidc_live_probe.rs"
+    },
+    {
+      "base_git_blob_sha1": "fc4da3ef53ec797342bc0ac4f3d18310c5f2441b",
+      "candidate": {
+        "bytes": 74922,
+        "git_blob_sha1": "e14d718999603e1e35909efd56d0612a2519f692",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+      },
+      "original_copy": {
+        "bytes": 57296,
+        "git_blob_sha1": "fc4da3ef53ec797342bc0ac4f3d18310c5f2441b",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+        "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+      },
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "base_git_blob_sha1": "215237efec3e8d0ae5166afb431fcb43cdcb5d04",
+      "candidate": {
+        "bytes": 32867,
+        "git_blob_sha1": "5325f0810f1286b69783780fd60c86cd514b182a",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+        "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+      },
+      "original_copy": {
+        "bytes": 31777,
+        "git_blob_sha1": "215237efec3e8d0ae5166afb431fcb43cdcb5d04",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+        "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+      },
+      "repo_path": "partitionline-broker/src/transport.rs"
+    },
+    {
+      "base_git_blob_sha1": "73b402db657c66701c365455ec9a691eb653e289",
+      "candidate": {
+        "bytes": 33971,
+        "git_blob_sha1": "ed07bfce6c768087382d89d7cb149ab1f87fb558",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+      },
+      "original_copy": {
+        "bytes": 28571,
+        "git_blob_sha1": "73b402db657c66701c365455ec9a691eb653e289",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+        "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9"
+      },
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs"
+    },
+    {
+      "base_git_blob_sha1": "eb0c2577972163ff491550df4430570429dc5e92",
+      "candidate": {
+        "bytes": 61222,
+        "git_blob_sha1": "a17b80ff18a1849a020498eacd53118be2ec4e9a",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+        "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+      },
+      "original_copy": {
+        "bytes": 42449,
+        "git_blob_sha1": "eb0c2577972163ff491550df4430570429dc5e92",
+        "mode": 384,
+        "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+        "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+      },
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    }
+  ],
+  "future_required": [
+    "type-check and meaningful Rust tests stable/MSRV",
+    "strict clippy/rustdoc and source unchanged guards",
+    "independent actual Java/native C/public Rust renewal/expiry/rotation/cancellation peers",
+    "bounded drain/write and final resource/shutdown receipts"
+  ],
+  "implementation_contract": {
+    "activation": "successful final reply write within old authority; pending identity cannot dispatch",
+    "deadline": "full Handshake frame receipt before handler admission; min(authentication timeout, previous expiry); no per-round reset",
+    "default_lifetime": 0,
+    "identity": "exact mechanism/name/authority; issuer exact for OAuth; credential generation may rotate",
+    "lifetime_milliseconds": [
+      1,
+      86400000
+    ],
+    "operator": "oidc_live_probe JSON session_lifetime_ms; zero default; exact bounded option",
+    "opt_in_api": "Profile::with_reauthentication(Duration)",
+    "renewal_sequence": "Handshake17v1 then Authenticate36v1/2",
+    "resource": "existing serial connection and handler admission; no extra socket/task queue; at most old+new managed OAuth leases charged to existing global lease envelope"
+  },
+  "main_or_tasks_mutated": false,
+  "new_draft_test_count": 17,
+  "new_draft_tests": [
+    {
+      "actual_execution": false,
+      "name": "renewal_lifetime_wire_layout_matches_literal_independent_vectors",
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_policy_accepts_only_positive_whole_milliseconds_through_one_day",
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_authority_is_pending_until_final_reply_write_and_cannot_outlive_old_expiry",
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_budgets_reset_once_include_handshake_and_keep_absolute_deadline",
+      "repo_path": "partitionline-broker/src/security/session.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "oauth_renewal_preserves_issuer_subject_and_uses_fresh_bounded_token_lease",
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "oauth_renewal_valid_other_subject_and_authz_mismatch_need_terminal_failure_ack",
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "oauth_renewal_wait_cannot_extend_expired_session_or_dispatch_application",
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewable_scram_versions_rotation_and_same_principal_preserve_socket_identity",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewable_profile_auth0_remains_zero_and_cannot_start_renewal",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewed_principal_change_valid_proof_is_terminal_and_cannot_dispatch",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewed_mechanism_unknown_and_authenticate_without_handshake_are_terminal",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewable_idle_expiry_and_incomplete_renewal_cannot_extend_old_deadline",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_application_and_remaining_byte_budget_never_bypass_authentication",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_handshake_waits_for_prior_application_reply_and_resumes_after_proof",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_expiry_cancels_application_handler_and_joins_owned_connection",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "renewal_handler_admission_wait_consumes_authentication_deadline",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    },
+    {
+      "actual_execution": false,
+      "name": "tls_plain_renewal_validates_fresh_password_and_preserves_principal",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs"
+    }
+  ],
+  "original_auth_baseline_sha": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "original_five_rust_blobs_match_both_baselines": true,
+  "preparation_proofs": [
+    {
+      "bytes": 4821,
+      "git_blob_sha1": "c5758ed083188d3a8cf97a4a7876c4189579d42f",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/source-parser-validation.json",
+      "sha256": "8c4d3b3326edad95834a5d08cca296324127c8b0b79067201f333b3b1c200e02"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/rustfmt-stable.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 0,
+      "git_blob_sha1": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/rustfmt-1.85.0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 6012,
+      "git_blob_sha1": "9cce8a54591fa70695c657017bc60a7997ec1334",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.py",
+      "sha256": "19250dddd720edbda66d1eb1c64039b30b08e749ae57f9b416c62e6c88a7bd75"
+    },
+    {
+      "bytes": 5906,
+      "git_blob_sha1": "06a05eaf30f548faa43e37b31ada08f471a81e93",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.before-output.py",
+      "sha256": "b1d28058c836ba4a9329dc6b01394fa76f6d16573542e7593fc3068e286c0f48"
+    },
+    {
+      "bytes": 10051,
+      "git_blob_sha1": "3c05e3fa2a4988ab2d469bf2e95ae281dae23da2",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.json",
+      "sha256": "c4b5d25eedc93d95e3a3e622478b7eaf10f9943c4dcc322b57a4eaf6191c37c0"
+    },
+    {
+      "bytes": 10051,
+      "git_blob_sha1": "ebc66935ea3a892bdd50eae216893b8f6344ab4e",
+      "mode": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls-final.json",
+      "sha256": "97377a8663ab1ecc9430f7aa510f75a161f0948248c948b51f17664c0e4cb496"
+    }
+  ],
+  "python_negative_controls": 68,
+  "python_positive_controls": 12,
+  "python_reference_controls": 80,
+  "schema_version": 1,
+  "scope": "WORK-only concrete server implementation and draft tests; frozen for source review; uncompiled/unqualified",
+  "source_parser_commands": 2,
+  "task_id": "KL11-71"
+}

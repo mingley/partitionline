@@ -29077,39 +29077,56 @@
       "shared_gate_owner": "c_peer delegated by root20261003; edit after controller13/oracle69 source batch is pushed. Root retains global plan/commits and mutable source coordination."
     },
     {
-  "id": "KL11-14",
-  "title": "Replicate and commit the metadata quorum log",
-  "priority": "P1",
-  "kind": "implementation",
-  "status": "in_progress",
-  "owner": "codex-coordinator-20261003",
-  "depends_on": [
-    "KL11-12",
-    "KL11-13",
-    "KL11-73",
-    "KL11-74",
-    "KL11-76"
-  ],
-  "files": [
-    "partitionline-broker/src/raft/replication.rs"
-  ],
-  "deliverable": "Quorum commit index, leader/follower replication and membership safety.",
-  "acceptance": [
-    "Committed metadata survives a minority failure; no split-brain committed histories.",
-    "Test catch-up, truncation, partitions, stale epochs and membership changes.",
-    "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
-  ],
-  "validation": [
-    "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
-    "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
-  ],
-  "evidence": [],
-  "write_set": [
-    "docs/evidence/broker/KL11-14/",
-    "docs/plan/evidence/KL11-14.json"
-  ],
-  "scope": "Aggregate remains open until fixed-membership replication, safe dynamic quorum transitions and an owned autonomous peer runtime satisfy the original contract. Child73 owns initial typed runtime,74 membership transitions and76 actual TCP ownership. Native Kafka wire integration remains separately tracked by70."
-},
+      "id": "KL11-14",
+      "title": "Replicate and commit the metadata quorum log",
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-coordinator-20261003",
+      "depends_on": [
+        "KL11-12",
+        "KL11-13",
+        "KL11-73",
+        "KL11-74",
+        "KL11-76"
+      ],
+      "files": [
+        "partitionline-broker/src/raft/replication.rs",
+        "partitionline-broker/src/catalog.rs",
+        "partitionline-broker/src/metadata_quorum.rs",
+        "partitionline-broker/src/metadata.rs",
+        "partitionline-broker/src/raft/runtime.rs",
+        "partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "deliverable": "Quorum commit index, leader/follower replication and membership safety.",
+      "acceptance": [
+        "Committed metadata survives a minority failure; no split-brain committed histories.",
+        "Test catch-up, truncation, partitions, stale epochs and membership changes.",
+        "Record exact tested source, commands, case counts, failures and limitations; do not infer production qualification from a unit test or scaffold."
+      ],
+      "validation": [
+        "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
+        "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
+      ],
+      "evidence": [
+        "docs/evidence/broker/KL11-14/application/proposal-02/handoff.json"
+      ],
+      "write_set": [
+        "docs/evidence/broker/KL11-14/",
+        "docs/plan/evidence/KL11-14.json",
+        "partitionline-broker/src/catalog.rs",
+        "partitionline-broker/src/metadata_quorum.rs",
+        "partitionline-broker/src/metadata.rs",
+        "partitionline-broker/src/raft/runtime.rs",
+        "partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "scope": "Aggregate remains open until fixed-membership replication, safe dynamic quorum transitions and an owned autonomous peer runtime satisfy the original contract. Child73 owns initial typed runtime,74 membership transitions and76 actual TCP ownership. Native Kafka wire integration remains separately tracked by70. Installed explicit quorum Catalog/Router backend applies only committed commands and persists exact source-position decisions before publication. Legacy local backend remains available. Request-driven reads are committed-prefix reads; data partition placement, full failover qualification and native Kafka metadata records remain open.",
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "partitionline-broker/src/lib.rs"
+        ]
+      }
+    },
     {
   "id": "KL11-15",
   "title": "Create/install metadata snapshots and recover controller state",
@@ -43724,7 +43741,11 @@
       ],
       "files": [
         "partitionline-broker/src/security/session.rs",
-        "partitionline-broker/src/transport.rs"
+        "partitionline-broker/src/transport.rs",
+        "docs/sasl-reauthentication.md",
+        "partitionline-broker/examples/oidc_live_probe.rs",
+        "partitionline-broker/tests/oidc_sessions.rs",
+        "partitionline-broker/tests/sasl_sessions.rs"
       ],
       "deliverable": "Actual KIP368 session lifetime and bounded reauthentication state across PLAIN/SCRAM/OIDC supported listener profiles.",
       "acceptance": [
@@ -43735,7 +43756,21 @@
         "Stable/MSRV pinned current client histories with seeded deadline/reauth failures.",
         "Strict listener/profile/generation/resource and shutdown gates."
       ],
-      "evidence": []
+      "evidence": [
+        "docs/evidence/broker/KL11-71/source-03/handoff.json",
+        "docs/evidence/broker/KL11-71/independent-review-02/validation.json",
+        "docs/evidence/broker/KL11-71/root-parser-02/validation.json"
+      ],
+      "write_set": [
+        "docs/sasl-reauthentication.md",
+        "partitionline-broker/examples/oidc_live_probe.rs",
+        "partitionline-broker/src/security/session.rs",
+        "partitionline-broker/src/transport.rs",
+        "partitionline-broker/tests/oidc_sessions.rs",
+        "partitionline-broker/tests/sasl_sessions.rs",
+        "docs/evidence/broker/KL11-71/"
+      ],
+      "scope": "Installed opt-in bounded same-mechanism/same-identity renewal and explicit post-Ready read/handler/write deadline fences. Default lifetime stays zero. Source review and parser checks alone do not qualify the18 new tests, fresh blocked-write/OAuth cancellation or genuine SDK matrix."
     },
     {
       "id": "KL11-72",
@@ -49431,7 +49466,8 @@
           "full_runtime_qualified": false,
           "full_stable_msrv_default_all_qualified": false
         },
-        "docs/evidence/broker/raft-runtime-tcp/preparation/revision-04/handoff.json"
+        "docs/evidence/broker/raft-runtime-tcp/preparation/revision-04/handoff.json",
+        "docs/evidence/broker/KL11-76/runtime/observer-busy-01/handoff.json"
       ],
       "write_set": [
         "partitionline-broker/src/raft/runtime.rs",

@@ -1,0 +1,280 @@
+{
+  "actual_compiler_executions": 0,
+  "actual_network_actions": 0,
+  "actual_runtime_executions": 0,
+  "actual_rust_test_executions": 0,
+  "artifacts": [
+    {
+      "bytes": 3175,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/README.md",
+      "sha256": "c6f38eceb90263227c89d529f1c084e8b143f3fba9b3ae38629864cdaf118206"
+    },
+    {
+      "bytes": 1772,
+      "full_07777": 384,
+      "path": "/workspace/work/broker-sasl-reauth-71/independent-review-01/expired-ready-handler.regression.rs",
+      "sha256": "6a9018e47fa1644b91cc9b396849a1ec9a62c322a84e19ce1738499aecae012e"
+    }
+  ],
+  "baseline_source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "candidate_count": 6,
+  "commands": [
+    "Read-only sed/rg/nl inspection of closed six-path packet, originals, operator config and cached Tokio timeout implementation.",
+    "Python hash/full07777 and original-copy actual Git byte verification, 20 source predicates, before/after file guards."
+  ],
+  "dependencies": {
+    "tokio_resolution_git_lock_sha256": "87fd9aeecadd3772cf459a48f7f6bc37ebdc12099c02aaa76cade8fe4287e146",
+    "tokio_timeout_source": {
+      "bytes": 8026,
+      "path": "/workspace/work/cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.1/src/time/timeout.rs",
+      "sha256": "5b1b20cb77de63fb5071b696ac644706a9749e0aeb6dbea57220834cba6dc953"
+    },
+    "version": "1.53.1"
+  },
+  "disposition": "source-review-blocker-no-runtime-qualification",
+  "findings": [
+    {
+      "basis": "source-derived; proposed actual-Transport regression not compiled or executed",
+      "description": "Ready inner operation wins against elapsed timeout; response bytes can precede final expiry rejection. Authority activation remains fail-closed.",
+      "id": "expired-ready-reply",
+      "recommended_change": "Explicit original-authority clock/lease checks after operation and before write; retain final commitment checks and cover ready writes that cross expiry.",
+      "severity": "blocker for documented expiry-delivery contract",
+      "source": [
+        "partitionline-broker/src/transport.rs:807",
+        "partitionline-broker/src/transport.rs:846",
+        "partitionline-broker/src/transport.rs:870",
+        "partitionline-broker/src/transport.rs:873",
+        "partitionline-broker/src/transport.rs:886"
+      ]
+    }
+  ],
+  "handoff": {
+    "path": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+    "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b"
+  },
+  "inputs_before_and_after": [
+    {
+      "bytes": 3740,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "repo_path": "docs/sasl-reauthentication.md",
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1"
+    },
+    {
+      "bytes": 18429,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "repo_path": "partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b"
+    },
+    {
+      "bytes": 17699,
+      "full_07777": 384,
+      "kind": "original_copy",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+      "repo_path": "partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6"
+    },
+    {
+      "bytes": 74922,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "repo_path": "partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30"
+    },
+    {
+      "bytes": 57296,
+      "full_07777": 384,
+      "kind": "original_copy",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+      "repo_path": "partitionline-broker/src/security/session.rs",
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6"
+    },
+    {
+      "bytes": 32867,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "repo_path": "partitionline-broker/src/transport.rs",
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f"
+    },
+    {
+      "bytes": 31777,
+      "full_07777": 384,
+      "kind": "original_copy",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+      "repo_path": "partitionline-broker/src/transport.rs",
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b"
+    },
+    {
+      "bytes": 33971,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed"
+    },
+    {
+      "bytes": 28571,
+      "full_07777": 384,
+      "kind": "original_copy",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+      "repo_path": "partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9"
+    },
+    {
+      "bytes": 61222,
+      "full_07777": 384,
+      "kind": "candidate",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072"
+    },
+    {
+      "bytes": 42449,
+      "full_07777": 384,
+      "kind": "original_copy",
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+      "repo_path": "partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3"
+    }
+  ],
+  "inputs_unchanged": true,
+  "limitations": [
+    "No Rust compilation, runtime or socket test executed.",
+    "No SDK or external host contacted.",
+    "All 17 new draft Rust/socket tests remain unexecuted.",
+    "80 previous literal codec controls reported by author were not rerun here.",
+    "OAuth old/new lease resource and final blocked-write behavior need actual qualification.",
+    "No candidate or repository source mutated."
+  ],
+  "original_copy_count": 5,
+  "schema_version": 1,
+  "source_predicate_checks": [
+    {
+      "description": "A changed mechanism is terminal; no state transition to another mechanism.",
+      "kind": "source_predicate_only",
+      "name": "mechanism_continuity",
+      "pass": true
+    },
+    {
+      "description": "Exact authenticated principal checked during completion.",
+      "kind": "source_predicate_only",
+      "name": "principal_continuity",
+      "pass": true
+    },
+    {
+      "description": "Exact authority family including OAuth issuer checked during completion.",
+      "kind": "source_predicate_only",
+      "name": "authority_continuity",
+      "pass": true
+    },
+    {
+      "description": "Renewal identity cannot dispatch before successful final reply write.",
+      "kind": "source_predicate_only",
+      "name": "hidden_pending_identity",
+      "pass": true
+    },
+    {
+      "description": "Renewal captures previous managed lease and exposes it to transport until commitment.",
+      "kind": "source_predicate_only",
+      "name": "old_lease_retained",
+      "pass": true
+    },
+    {
+      "description": "Final commitment validates old and proposed managed lease.",
+      "kind": "source_predicate_only",
+      "name": "both_leases_final_checked",
+      "pass": true
+    },
+    {
+      "description": "Full receipt precedes handler admission.",
+      "kind": "source_predicate_only",
+      "name": "deadline_captured_before_global_admission",
+      "pass": true
+    },
+    {
+      "description": "No per-token reset of the earlier authority deadline.",
+      "kind": "source_predicate_only",
+      "name": "renewal_absolute_deadline",
+      "pass": true
+    },
+    {
+      "description": "Accepted renewal resets budgets once and includes the Handshake frame.",
+      "kind": "source_predicate_only",
+      "name": "budget_reset_once",
+      "pass": true
+    },
+    {
+      "description": "Incoming authentication budget includes frame prefix.",
+      "kind": "source_predicate_only",
+      "name": "frame_prefix_budget",
+      "pass": true
+    },
+    {
+      "description": "Authenticate0 cannot renew.",
+      "kind": "source_predicate_only",
+      "name": "version0_renewal_rejected",
+      "pass": true
+    },
+    {
+      "description": "No default lifetime increase or implicit operator opt-in.",
+      "kind": "source_predicate_only",
+      "name": "default_opt_in",
+      "pass": true
+    },
+    {
+      "description": "Whole milliseconds 1..86400000 only.",
+      "kind": "source_predicate_only",
+      "name": "lifetime_bounds",
+      "pass": true
+    },
+    {
+      "description": "Granted interval cannot initially exceed new token/key/revocation lease.",
+      "kind": "source_predicate_only",
+      "name": "oauth_lease_caps",
+      "pass": true
+    },
+    {
+      "description": "ApiVersions exchange is rejected while identity is pending.",
+      "kind": "source_predicate_only",
+      "name": "api_versions_during_renewal_rejected",
+      "pass": true
+    },
+    {
+      "description": "Non-control application dispatch gated by authenticated and nonpending state.",
+      "kind": "source_predicate_only",
+      "name": "application_during_renewal_rejected",
+      "pass": true
+    },
+    {
+      "description": "Pinned timeout_at implementation accepts ready inner result before elapsed timer.",
+      "kind": "source_predicate_only",
+      "name": "tokio_ready_precedes_timer",
+      "pass": true
+    },
+    {
+      "description": "Complete reply can precede final clock validity check.",
+      "kind": "source_predicate_only",
+      "name": "write_precedes_final_clock_check",
+      "pass": true
+    },
+    {
+      "description": "The post-operation/pre-write interval has no explicit elapsed-authority check.",
+      "kind": "source_predicate_only",
+      "name": "no_explicit_prewrite_absolute_guard",
+      "pass": true
+    },
+    {
+      "description": "Explicit shutdown observes draining; Drop initiates it without observing completion.",
+      "kind": "source_predicate_only",
+      "name": "shutdown_joins_owned_workers",
+      "pass": true
+    }
+  ],
+  "source_predicate_pass_count": 20
+}

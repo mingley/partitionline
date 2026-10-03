@@ -1,0 +1,76 @@
+{
+  "source03_sha256": "c00a626c99721a2351dfaf4c722e11ad3e763707703bc3c08376301e699fcad5",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs"
+      ],
+      "exit_code": 1,
+      "log": "/workspace/work/integration/broker71-final03-parser-01/rustfmt-stable.log",
+      "log_sha256": "b2c1bfa85509f208812637cc9ff6631127b651c60c7103dc4edc35d948d7bb2d"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs"
+      ],
+      "exit_code": 1,
+      "log": "/workspace/work/integration/broker71-final03-parser-01/rustfmt-1.85.0.log",
+      "log_sha256": "b2c1bfa85509f208812637cc9ff6631127b651c60c7103dc4edc35d948d7bb2d"
+    }
+  ],
+  "passed": false,
+  "Cargo_rustc_runtime_execution": 0,
+  "source_hashes_after": [
+    {
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b",
+      "full_mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30",
+      "full_mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0",
+      "full_mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed",
+      "full_mode": "0600"
+    },
+    {
+      "path": "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "sha256": "83bf4482559db882e9f8b36209112447230ffdd9a03b5aebc7b8a27d9701c9a4",
+      "full_mode": "0600"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+--- a/partitionline-broker/src/raft/runtime.rs
++++ b/partitionline-broker/src/raft/runtime.rs
+@@ -1129,7 +1129,13 @@
+                         } else if a.negotiated {
+                             match self.node.add_voter(a.key, now) {
+                                 Ok(r) => a.receipt = Some(r),
+-                                Err(replication::Error::MembershipNotReady) => {}
++                                // An owned image reader is normal catch-up work,
++                                // not terminal admission failure. Retry under the
++                                // same absolute deadline; never renew it here.
++                                Err(
++                                    replication::Error::MembershipNotReady
++                                    | replication::Error::Busy,
++                                ) => {}
+                                 Err(_) => a.failed = true,
+                             }
+                         }

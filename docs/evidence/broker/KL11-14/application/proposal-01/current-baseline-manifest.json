@@ -1,0 +1,55 @@
+{
+  "source_sha": "3dbc216bf90fdd2527428335293b8c84a26e5e6e",
+  "scope": "selected source-only design inputs; not whole-source qualification",
+  "rows": [
+    {
+      "path": "partitionline-broker/src/catalog.rs",
+      "git": "100644 blob c6dbd6576dd12e814b76bec5fd6d9e578e43f624\tpartitionline-broker/src/catalog.rs",
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "bytes": 28559,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "git": "100644 blob e47d607e5c35995bdf0b409c9550a5a9143b0273\tpartitionline-broker/src/metadata.rs",
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "bytes": 99234,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/journal.rs",
+      "git": "100644 blob 294d0173013f0d4dd0a79985e423d5bb10da986c\tpartitionline-broker/src/journal.rs",
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "bytes": 48288,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/raft/runtime.rs",
+      "git": "100644 blob 27e78370a45af8ce24c546d84d5717e49b285e16\tpartitionline-broker/src/raft/runtime.rs",
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "git": "100644 blob 27dfba3947e8bdfd921a894f761f91a564f595af\tpartitionline-broker/src/raft/replication.rs",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "git": "100644 blob 9b129643b0bd4754918cc90be4c3633366332693\tpartitionline-broker/src/lib.rs",
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "bytes": 848,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "partitionline-broker/Cargo.toml",
+      "git": "100644 blob ce2dde014a2e2ccf1511ba7a3b5996591e4254cd\tpartitionline-broker/Cargo.toml",
+      "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+      "bytes": 2327,
+      "full_mode": "0o600"
+    }
+  ]
+}

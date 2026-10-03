@@ -1,0 +1,109 @@
+{
+  "actual_compiler_executions": 0,
+  "actual_runtime_executions": 0,
+  "actual_rust_tests": 0,
+  "commands": [
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/catalog.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/metadata-quorum-proposal-02/rustfmt-stable.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/catalog.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/metadata-quorum-proposal-02/rustfmt-1.85.0.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "metadata_source_budget_semantics": "Original admission+wire timeout clamps refresh; no renewal. Metadata reads retain configured finite cap. Filesystem sync may finish admitted work beyond cancellation.",
+  "old_five_files_guard": "All bytes/SHA256/full07777 still match prior1cf rows",
+  "patch_sha256": "cab92da8c3182337be04df432fcd634fc45aa0714c9df8edfbfb9f653769406d",
+  "prior_handoff_sha256": "1cf824ddc0ae9c3eaa3350fade1b4856425fb1e5c80adde9b6a8255d7f21cdea",
+  "repository_mutated": false,
+  "rows": [
+    {
+      "bytes": 38231,
+      "changed": true,
+      "full_mode": "0600",
+      "prior_sha256": "3952bd839b5db656c65b5957ec96559253a2c4207bee1f6a129810f472b41fc5",
+      "repository_path": "partitionline-broker/src/catalog.rs",
+      "sha256": "4f1f477609def41dd6f4f8d600140c7332e9285535817ccc8576c148ed7b14b0",
+      "work_path": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/catalog.rs"
+    },
+    {
+      "bytes": 45422,
+      "changed": true,
+      "full_mode": "0600",
+      "prior_sha256": "1e41a7e5e811a12823f1436983be95f1ff6bb1e76bb72700182aa39c8851d999",
+      "repository_path": "partitionline-broker/src/metadata_quorum.rs",
+      "sha256": "b63855fad901a810f62b18deeca514dd1e97183b5cd0207838bb944e0f623472",
+      "work_path": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata_quorum.rs"
+    },
+    {
+      "bytes": 103504,
+      "changed": true,
+      "full_mode": "0600",
+      "prior_sha256": "806329f2ec4f10e58f34fb2ff7d65d6b918c42159849204cb499b4c4d15e0708",
+      "repository_path": "partitionline-broker/src/metadata.rs",
+      "sha256": "f481fb447773e6b7170ab4d1ef5d356d1265b23e37df0bcd01c1851bd4a40c91",
+      "work_path": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata.rs"
+    },
+    {
+      "bytes": 120788,
+      "changed": false,
+      "full_mode": "0600",
+      "prior_sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "repository_path": "partitionline-broker/src/raft/runtime.rs",
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "work_path": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/raft/runtime.rs"
+    },
+    {
+      "bytes": 16037,
+      "changed": true,
+      "full_mode": "0600",
+      "prior_sha256": "85582944a9747ba565d170b3104c2060cb58578d996b8d2f7be2750282b2c528",
+      "repository_path": "partitionline-broker/tests/metadata_quorum.rs",
+      "sha256": "e461d57e68d87d7d8aaec68c54328b1e0f3191237601c3abce87695a63bcdef0",
+      "work_path": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs"
+    }
+  ],
+  "schema_version": 1,
+  "scope": "WORK-only source derivative; no qualification",
+  "source_predicate_count": 13,
+  "source_predicates": {
+    "actor_no_preparse_refresh": true,
+    "close_attempts_all_routers_nodes": true,
+    "create_delete_parse_before_budgeted_refresh": true,
+    "expired_refresh_blocks_mutation": true,
+    "fixture_owns_nodes_before_first_launch": true,
+    "fixture_start_failure_attempts_all_close_preserves_error": true,
+    "fresh_follower_selection": true,
+    "fresh_leader_absence_check": true,
+    "local_refresh_remains_noop": true,
+    "old_1cf_handoff_unchanged": true,
+    "original_admission_budget": true,
+    "quorum_refresh_clamps_original_deadline": true,
+    "runtime_only_original_getters_unchanged": true
+  }
+}

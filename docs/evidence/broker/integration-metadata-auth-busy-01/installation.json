@@ -1,0 +1,1004 @@
+{
+  "base": "cd5d017e0096407785ed29cbf60db8fff557d750",
+  "installed": [
+    {
+      "path": "partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/catalog.rs",
+      "before_sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "sha256": "4f1f477609def41dd6f4f8d600140c7332e9285535817ccc8576c148ed7b14b0",
+      "bytes": 38231,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "b63855fad901a810f62b18deeca514dd1e97183b5cd0207838bb944e0f623472",
+      "bytes": 45422,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata.rs",
+      "before_sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "sha256": "f481fb447773e6b7170ab4d1ef5d356d1265b23e37df0bcd01c1851bd4a40c91",
+      "bytes": 103504,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate-with-metadata-getters/runtime.rs",
+      "before_sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "sha256": "ea395d304aebc9cf41e181bd3fcbda08b0ea559ddfc3e07b3c3fa166c460558b",
+      "bytes": 130295,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/tests/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "e461d57e68d87d7d8aaec68c54328b1e0f3191237601c3abce87695a63bcdef0",
+      "bytes": 16037,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "before_sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "sha256": "298b5062dd53da176c55d814781b9c402b7ab3972a49b1353c4de96a1b327890",
+      "delta": "root-owned metadata_quorum public module"
+    },
+    {
+      "path": "docs/sasl-reauthentication.md",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/docs/sasl-reauthentication.md",
+      "before_sha256": null,
+      "sha256": "262ee3ba62c6f3bddc14749b160699a0ccd2a54b65f4586926ba2c4576ac4bb9",
+      "bytes": 4103,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/examples/oidc_live_probe.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "before_sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6",
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b",
+      "bytes": 18429,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/security/session.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "before_sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6",
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30",
+      "bytes": 74922,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/src/transport.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "before_sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b",
+      "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0",
+      "bytes": 34039,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/tests/oidc_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "before_sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed",
+      "bytes": 33971,
+      "full_mode": "0600"
+    },
+    {
+      "path": "partitionline-broker/tests/sasl_sessions.rs",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/sasl_sessions.rs",
+      "before_sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3",
+      "sha256": "0be26b4fe7048b42084fa3f780ab6340d3bafaed5ae457b567e1c6b8fd656fad",
+      "bytes": 63136,
+      "full_mode": "0600"
+    }
+  ],
+  "proof": [
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/README.md",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/README.md",
+      "before_sha256": null,
+      "sha256": "b2ab8d7a6bda78850dd0af5355d16e41c49e2d990ab3f2a2d2c3e7fde2df3505",
+      "bytes": 5477,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/Cargo.toml",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/Cargo.toml",
+      "before_sha256": null,
+      "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+      "bytes": 2327,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/catalog.rs",
+      "before_sha256": null,
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "bytes": 28559,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/journal.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/journal.rs",
+      "before_sha256": null,
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "bytes": 48288,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/lib.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/lib.rs",
+      "before_sha256": null,
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "bytes": 848,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/metadata.rs",
+      "before_sha256": null,
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "bytes": 99234,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/raft/mod.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/mod.rs",
+      "before_sha256": null,
+      "sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+      "bytes": 611,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/raft/protocol.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/protocol.rs",
+      "before_sha256": null,
+      "sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+      "bytes": 37801,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline/partitionline-broker/src/raft/replication.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/replication.rs",
+      "before_sha256": null,
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/baseline-manifest.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/baseline-manifest.json",
+      "before_sha256": null,
+      "sha256": "b967299007ec9c9b8317a61992e90a39ada2f3e8a0186564f30352c9750b575d",
+      "bytes": 3396,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/Cargo.toml",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/Cargo.toml",
+      "before_sha256": null,
+      "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+      "bytes": 2327,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/catalog.rs",
+      "before_sha256": null,
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "bytes": 28559,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/journal.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/journal.rs",
+      "before_sha256": null,
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "bytes": 48288,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/lib.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/lib.rs",
+      "before_sha256": null,
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "bytes": 848,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/metadata.rs",
+      "before_sha256": null,
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "bytes": 99234,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/raft/replication.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/raft/replication.rs",
+      "before_sha256": null,
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline/partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline/partitionline-broker/src/raft/runtime.rs",
+      "before_sha256": null,
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/current-baseline-manifest.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/current-baseline-manifest.json",
+      "before_sha256": null,
+      "sha256": "b6ac1a53bd8a165536939b463541081a724990c068d13b8efc6dcf785f57518a",
+      "bytes": 2308,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft/partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/catalog.rs",
+      "before_sha256": null,
+      "sha256": "3952bd839b5db656c65b5957ec96559253a2c4207bee1f6a129810f472b41fc5",
+      "bytes": 37866,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft/partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata.rs",
+      "before_sha256": null,
+      "sha256": "806329f2ec4f10e58f34fb2ff7d65d6b918c42159849204cb499b4c4d15e0708",
+      "bytes": 102178,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft/partitionline-broker/src/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "1e41a7e5e811a12823f1436983be95f1ff6bb1e76bb72700182aa39c8851d999",
+      "bytes": 45189,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft/partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/src/raft/runtime.rs",
+      "before_sha256": null,
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "bytes": 120788,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "85582944a9747ba565d170b3104c2060cb58578d996b8d2f7be2750282b2c528",
+      "bytes": 15472,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/handoff.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/handoff.json",
+      "before_sha256": null,
+      "sha256": "9b8323e9b56589bfa489a617e61f38aeb824e78862949e31e39c1e7478ac5f5a",
+      "bytes": 5201,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/partitionline-broker/src/catalog.rs",
+      "before_sha256": null,
+      "sha256": "3952bd839b5db656c65b5957ec96559253a2c4207bee1f6a129810f472b41fc5",
+      "bytes": 37866,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/partitionline-broker/src/metadata.rs",
+      "before_sha256": null,
+      "sha256": "806329f2ec4f10e58f34fb2ff7d65d6b918c42159849204cb499b4c4d15e0708",
+      "bytes": 102178,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/partitionline-broker/src/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/partitionline-broker/src/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "eb85539993e5d961b3990f3e689f6331386ff179551a102cd8b784ce694dd64e",
+      "bytes": 45154,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/partitionline-broker/src/raft/runtime.rs",
+      "before_sha256": null,
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "bytes": 120788,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft-stage-01/partitionline-broker/tests/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft-stage-01/partitionline-broker/tests/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "85582944a9747ba565d170b3104c2060cb58578d996b8d2f7be2750282b2c528",
+      "bytes": 15472,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/draft.patch",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/draft.patch",
+      "before_sha256": null,
+      "sha256": "ac892b6780a45d6b2f1975ed0a182b63cdc6bb59944abd1b4dab1787556b5ca8",
+      "bytes": 86059,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/handoff.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/handoff.json",
+      "before_sha256": null,
+      "sha256": "1cf824ddc0ae9c3eaa3350fade1b4856425fb1e5c80adde9b6a8255d7f21cdea",
+      "bytes": 6071,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/source-baseline-after.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/source-baseline-after.json",
+      "before_sha256": null,
+      "sha256": "ce9928a92a5503b9466c50aa364c5b7a02b56bd4d59da8e6905376ae9b5c7e28",
+      "bytes": 592,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/source-helper-attempt-01-failure.txt",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/source-helper-attempt-01-failure.txt",
+      "before_sha256": null,
+      "sha256": "eed81d454cab393f9857b83534208f248d22139d49ee81dde051a2360bbd6b40",
+      "bytes": 376,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/source-helper-attempt-02-failure.txt",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/source-helper-attempt-02-failure.txt",
+      "before_sha256": null,
+      "sha256": "04c11f683538497e5f0734115d77bed79ae9921e1f1c1d93f839e9860c6d1430",
+      "bytes": 395,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-01/source-only-validation.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-01/source-only-validation.json",
+      "before_sha256": null,
+      "sha256": "e6802c40558c7c00730fb6195a0eced79d89a1dcb19f07a4030089590e3ecd8a",
+      "bytes": 2276,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/README.md",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/README.md",
+      "before_sha256": null,
+      "sha256": "a8944500d35f70d4413782345c144ccfbb357497cb8d91975379abb928286439",
+      "bytes": 1937,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/correction.patch",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/correction.patch",
+      "before_sha256": null,
+      "sha256": "cab92da8c3182337be04df432fcd634fc45aa0714c9df8edfbfb9f653769406d",
+      "bytes": 8284,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/draft/partitionline-broker/src/catalog.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/catalog.rs",
+      "before_sha256": null,
+      "sha256": "4f1f477609def41dd6f4f8d600140c7332e9285535817ccc8576c148ed7b14b0",
+      "bytes": 38231,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/draft/partitionline-broker/src/metadata.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata.rs",
+      "before_sha256": null,
+      "sha256": "f481fb447773e6b7170ab4d1ef5d356d1265b23e37df0bcd01c1851bd4a40c91",
+      "bytes": 103504,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/draft/partitionline-broker/src/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "b63855fad901a810f62b18deeca514dd1e97183b5cd0207838bb944e0f623472",
+      "bytes": 45422,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/draft/partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/src/raft/runtime.rs",
+      "before_sha256": null,
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "bytes": 120788,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/draft/partitionline-broker/tests/metadata_quorum.rs",
+      "before_sha256": null,
+      "sha256": "e461d57e68d87d7d8aaec68c54328b1e0f3191237601c3abce87695a63bcdef0",
+      "bytes": 16037,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/handoff.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/handoff.json",
+      "before_sha256": null,
+      "sha256": "4f071025effb95e1a376ec4bef19c421248bf60dde6c7139c8fff0238c7ded49",
+      "bytes": 4821,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/rustfmt-stable.log",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-14/application/proposal-02/validation.json",
+      "origin": "/workspace/work/metadata-quorum-proposal-02/validation.json",
+      "before_sha256": null,
+      "sha256": "fefe7f708bd36703c25fbeb68cd62d2a6a0b0e2148c6b7f82ac1dce02fdbd58d",
+      "bytes": 5349,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/README.md",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/README.md",
+      "before_sha256": null,
+      "sha256": "76aab9da318fbcaea7da373c8cfb2112a7172adf80dd44d44f2d83edb0bbe457",
+      "bytes": 2806,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/candidate/runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate/runtime.rs",
+      "before_sha256": null,
+      "sha256": "7e2b79748317895a3a88aab70ddbf6b81a97362806fcb45fa7cb77dd04b5b5e3",
+      "bytes": 129092,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/candidate-with-metadata-getters/runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/candidate-with-metadata-getters/runtime.rs",
+      "before_sha256": null,
+      "sha256": "ea395d304aebc9cf41e181bd3fcbda08b0ea559ddfc3e07b3c3fa166c460558b",
+      "bytes": 130295,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/handoff.json",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/handoff.json",
+      "before_sha256": null,
+      "sha256": "6c2e7bf4799d4f123118e25e220c8554c7970c680d6b7e071298bf999163bcfe",
+      "bytes": 6012,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/metadata-getters-composed.patch",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/metadata-getters-composed.patch",
+      "before_sha256": null,
+      "sha256": "13927452d642934885a3b538ad061801470332e7017d80557190e5431855a304",
+      "bytes": 11478,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/observer-regression-body.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/observer-regression-body.rs",
+      "before_sha256": null,
+      "sha256": "c62da307f4cea264c01b8dd817e48f31e013a60fd0ab9bac187fd25e2fa372c3",
+      "bytes": 8294,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original/partitionline-broker/src/raft/membership.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/membership.rs",
+      "before_sha256": null,
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "bytes": 22326,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original/partitionline-broker/src/raft/peer_codec.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/peer_codec.rs",
+      "before_sha256": null,
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "bytes": 27638,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original/partitionline-broker/src/raft/replication.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/replication.rs",
+      "before_sha256": null,
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original/partitionline-broker/src/raft/runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/src/raft/runtime.rs",
+      "before_sha256": null,
+      "sha256": "2d1f9aff9c0fc401320a6dcd417ec193ecca693a4e8a19a90748b225b2f17f76",
+      "bytes": 119585,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original/partitionline-broker/tests/common/raft_runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original/partitionline-broker/tests/common/raft_runtime.rs",
+      "before_sha256": null,
+      "sha256": "b528be54b14fbab19f7fb90bf010b4ecf9198426eabac03c062ff0efd044ed47",
+      "bytes": 47095,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/original-metadata-getters-runtime.rs",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/original-metadata-getters-runtime.rs",
+      "before_sha256": null,
+      "sha256": "f7c4141d6a6f42a0d93251ab9e00eaeafcafc214175b0a1eee1da0ab9a19d2bf",
+      "bytes": 120788,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/production-only.patch",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/production-only.patch",
+      "before_sha256": null,
+      "sha256": "185ea912bbf3aa3c4561d6d75d1b65051e8af74c9682bd0669788d2448f72215",
+      "bytes": 968,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/rustfmt-stable.log",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-76/runtime/observer-busy-01/standalone.patch",
+      "origin": "/workspace/work/raft-runtime-76/ci-observer-busy-01/standalone.patch",
+      "before_sha256": null,
+      "sha256": "9b94c2585f0adf510938c10e7acbb673f0afa20f57ff5c16a3f21f6d6deb0ca9",
+      "bytes": 11478,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/docs/sasl-reauthentication.md",
+      "before_sha256": null,
+      "sha256": "5261ad4bddacb25bccabadd46285ec7e34027d8a1a2ee2e5427fcbcf67f5d6d1",
+      "bytes": 3740,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/examples/oidc_live_probe.rs",
+      "before_sha256": null,
+      "sha256": "eac8591fa25d109cbd9ebe717068ff20ba7a0ecc1414072acd4962129029359b",
+      "bytes": 18429,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/security/session.rs",
+      "before_sha256": null,
+      "sha256": "42c8f92dbfdd7c45f2d4d417eaeb542e5f04ce8596fb4009c2d475a22e945f30",
+      "bytes": 74922,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/src/transport.rs",
+      "before_sha256": null,
+      "sha256": "67e590bf7ccb9a93342daa7ca7194b30bf253a520c4d8ae508062945650e777f",
+      "bytes": 32867,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/oidc_sessions.rs",
+      "before_sha256": null,
+      "sha256": "c9ea8fb40f488f6b297d3ea10df2a369f6e08b55656662b89eacff2272f116ed",
+      "bytes": 33971,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "before_sha256": null,
+      "sha256": "ef5e25d1008c1f84afafb371fa8a7d6c2c806d096e82cf12b0514c871ba03072",
+      "bytes": 61222,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/handoff.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/handoff.json",
+      "before_sha256": null,
+      "sha256": "cb925db28cb2717ece2aaeb8e51225b976a15efe09d479ae41e023ef29bbc74b",
+      "bytes": 12083,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/examples/oidc_live_probe.rs",
+      "before_sha256": null,
+      "sha256": "df028a1c9f615b2d28de3528ee0f617c05c5eeaa097d3cf015713dac9aaaf1e6",
+      "bytes": 17699,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/original/partitionline-broker/src/security/session.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/security/session.rs",
+      "before_sha256": null,
+      "sha256": "4e9d6b93c29472a812dcc8ff1796f6c280fb8235d1601cc6b666d2bec80e3ee6",
+      "bytes": 57296,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/original/partitionline-broker/src/transport.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/src/transport.rs",
+      "before_sha256": null,
+      "sha256": "fae6455993b02fe7ad0befe32b0530f310655eea41da703497c2b518cb850c9b",
+      "bytes": 31777,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/oidc_sessions.rs",
+      "before_sha256": null,
+      "sha256": "3dd21c1ab6f7ad21991b645db1800cc40ddfa11530aaf3b90fec5e20c10a65b9",
+      "bytes": 28571,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/original/partitionline-broker/tests/sasl_sessions.rs",
+      "before_sha256": null,
+      "sha256": "c35f7489fff29e51e72be1efe6449b8147a45980a7b8df22d35489ee6496e4d3",
+      "bytes": 42449,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/reference-codec-controls-final.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls-final.json",
+      "before_sha256": null,
+      "sha256": "97377a8663ab1ecc9430f7aa510f75a161f0948248c948b51f17664c0e4cb496",
+      "bytes": 10051,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/reference-codec-controls.before-output.py",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.before-output.py",
+      "before_sha256": null,
+      "sha256": "b1d28058c836ba4a9329dc6b01394fa76f6d16573542e7593fc3068e286c0f48",
+      "bytes": 5906,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/reference-codec-controls.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.json",
+      "before_sha256": null,
+      "sha256": "c4b5d25eedc93d95e3a3e622478b7eaf10f9943c4dcc322b57a4eaf6191c37c0",
+      "bytes": 10051,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/reference-codec-controls.py",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/reference-codec-controls.py",
+      "before_sha256": null,
+      "sha256": "19250dddd720edbda66d1eb1c64039b30b08e749ae57f9b416c62e6c88a7bd75",
+      "bytes": 6012,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/rustfmt-stable.log",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-01/source-parser-validation.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-01/source-parser-validation.json",
+      "before_sha256": null,
+      "sha256": "8c4d3b3326edad95834a5d08cca296324127c8b0b79067201f333b3b1c200e02",
+      "bytes": 4821,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-02/candidate/docs/sasl-reauthentication.md",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/docs/sasl-reauthentication.md",
+      "before_sha256": null,
+      "sha256": "262ee3ba62c6f3bddc14749b160699a0ccd2a54b65f4586926ba2c4576ac4bb9",
+      "bytes": 4103,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/src/transport.rs",
+      "before_sha256": null,
+      "sha256": "dd7cd5ee3d696f49ccbe5b7062607b9349bf4c158038341d5f975dfaf3c39ae0",
+      "bytes": 34039,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-02/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "before_sha256": null,
+      "sha256": "a498dc4c5cf00bb431f6cc7dc6c353fa4bf7811dcbfbc5dfa3b741f23da75506",
+      "bytes": 62765,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-02/handoff.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/handoff.json",
+      "before_sha256": null,
+      "sha256": "b2fff7b8d0491a70f94a5df5dca9bd8242cde1613eef89df1d8e74d2f2dd3d97",
+      "bytes": 13893,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-02/prepare.py",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-02/prepare.py",
+      "before_sha256": null,
+      "sha256": "8dae965a0d1be372ea663aaf943f1f775e0ab64b43fcf2032d57e47a4b02e815",
+      "bytes": 12665,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-03/candidate/partitionline-broker/tests/sasl_sessions.rs",
+      "before_sha256": null,
+      "sha256": "83bf4482559db882e9f8b36209112447230ffdd9a03b5aebc7b8a27d9701c9a4",
+      "bytes": 63114,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-03/handoff.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-03/handoff.json",
+      "before_sha256": null,
+      "sha256": "c00a626c99721a2351dfaf4c722e11ad3e763707703bc3c08376301e699fcad5",
+      "bytes": 18646,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/source-03/prepare.py",
+      "origin": "/workspace/work/broker-sasl-reauth-71/source-03/prepare.py",
+      "before_sha256": null,
+      "sha256": "e483e62a7d3277b9d7eadb6ae10f52c77344f57a0512f6e0712729fe628278d4",
+      "bytes": 4978,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-01/README.md",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-01/README.md",
+      "before_sha256": null,
+      "sha256": "c6f38eceb90263227c89d529f1c084e8b143f3fba9b3ae38629864cdaf118206",
+      "bytes": 3175,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-01/expired-ready-handler.regression.rs",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-01/expired-ready-handler.regression.rs",
+      "before_sha256": null,
+      "sha256": "6a9018e47fa1644b91cc9b396849a1ec9a62c322a84e19ce1738499aecae012e",
+      "bytes": 1772,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-01/validation.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-01/validation.json",
+      "before_sha256": null,
+      "sha256": "dcd8c8b33152f88f2d8fce6a57e241580cf21ffeb9fc818fe1c0978df852a3aa",
+      "bytes": 11069,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-02/helper-attempt-01.failure.txt",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-02/helper-attempt-01.failure.txt",
+      "before_sha256": null,
+      "sha256": "bb21b639d2f38595409a3e02ea46216bdc4ddf6d3af407a26594ab7283bc0504",
+      "bytes": 468,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-02/review.py",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-02/review.py",
+      "before_sha256": null,
+      "sha256": "f266cafe1e15314904deb330804d2a8e044f72a4e165e5c31e3d4b6f8f3e1b94",
+      "bytes": 8385,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/independent-review-02/validation.json",
+      "origin": "/workspace/work/broker-sasl-reauth-71/independent-review-02/validation.json",
+      "before_sha256": null,
+      "sha256": "a917432233400e7404df736c7ac2297411f749776394571058472d9e9eec8f5d",
+      "bytes": 14818,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-01/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/integration/broker71-final03-parser-01/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "b2c1bfa85509f208812637cc9ff6631127b651c60c7103dc4edc35d948d7bb2d",
+      "bytes": 483,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-01/rustfmt-stable.log",
+      "origin": "/workspace/work/integration/broker71-final03-parser-01/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "b2c1bfa85509f208812637cc9ff6631127b651c60c7103dc4edc35d948d7bb2d",
+      "bytes": 483,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-01/validation.json",
+      "origin": "/workspace/work/integration/broker71-final03-parser-01/validation.json",
+      "before_sha256": null,
+      "sha256": "217bc8b5596de72480d042c2e2c9d92009273d825e17e27021173ded2e9e245a",
+      "bytes": 3498,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-02/format.log",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/format.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-02/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-02/rustfmt-stable.log",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-02/sasl_sessions.rs",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/sasl_sessions.rs",
+      "before_sha256": null,
+      "sha256": "0be26b4fe7048b42084fa3f780ab6340d3bafaed5ae457b567e1c6b8fd656fad",
+      "bytes": 63136,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-71/root-parser-02/validation.json",
+      "origin": "/workspace/work/integration/broker71-final03-parser-02/validation.json",
+      "before_sha256": null,
+      "sha256": "9d9fe06a252d00c9b0ca57d90b0b368b5fc8f7b7e33cb85343289fb084bc2dfc",
+      "bytes": 2481,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/integration-metadata-auth-busy-01/rustfmt-stable.log",
+      "origin": "/workspace/work/integration/broker-metadata-auth-busy-01/rustfmt-stable.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    },
+    {
+      "path": "docs/evidence/broker/integration-metadata-auth-busy-01/rustfmt-1.85.0.log",
+      "origin": "/workspace/work/integration/broker-metadata-auth-busy-01/rustfmt-1.85.0.log",
+      "before_sha256": null,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0600"
+    }
+  ],
+  "parser_checks": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/partitionline/partitionline-broker/src/catalog.rs",
+        "/workspace/partitionline/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/partitionline/partitionline-broker/src/metadata.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/metadata_quorum.rs",
+        "/workspace/partitionline/partitionline-broker/src/lib.rs",
+        "/workspace/partitionline/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/partitionline/partitionline-broker/src/security/session.rs",
+        "/workspace/partitionline/partitionline-broker/src/transport.rs",
+        "/workspace/partitionline/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/partitionline/partitionline-broker/tests/sasl_sessions.rs"
+      ],
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "/workspace/work/rustup/toolchains/1.85.0-x86_64-unknown-linux-gnu/bin/rustfmt",
+        "--check",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "/workspace/partitionline/partitionline-broker/src/catalog.rs",
+        "/workspace/partitionline/partitionline-broker/src/metadata_quorum.rs",
+        "/workspace/partitionline/partitionline-broker/src/metadata.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/tests/metadata_quorum.rs",
+        "/workspace/partitionline/partitionline-broker/src/lib.rs",
+        "/workspace/partitionline/partitionline-broker/examples/oidc_live_probe.rs",
+        "/workspace/partitionline/partitionline-broker/src/security/session.rs",
+        "/workspace/partitionline/partitionline-broker/src/transport.rs",
+        "/workspace/partitionline/partitionline-broker/tests/oidc_sessions.rs",
+        "/workspace/partitionline/partitionline-broker/tests/sasl_sessions.rs"
+      ],
+      "exit_code": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "held_unchanged": {
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+    "partitionline-broker/src/raft/replication.rs": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0"
+  },
+  "other335_task_objects_unchanged": true,
+  "task_counts_unchanged": true,
+  "actual_Rust_typecheck_runtime_SDK": 0,
+  "qualification": "in_progress; source-reviewed code installed for actual hosted qualification"
+}

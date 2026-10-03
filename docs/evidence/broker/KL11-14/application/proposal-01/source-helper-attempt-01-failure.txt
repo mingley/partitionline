@@ -1,0 +1,1 @@
+Source-only substring edit helper failed AssertionError because rustfmt split the searched checked_mul expression across lines. No Rust source mutation or compiler/runtime execution occurred in that helper. The following rustfmt command still ran and exited0; this does not turn the Python failure into success. Corrected helper used the exact formatted multiline expression.

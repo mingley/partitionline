@@ -1,0 +1,78 @@
+{
+  "source_commit": "e8fc0b72724ebfcef99d4742c7870f95a7a9a47f",
+  "scope": "eight selective read-only source snapshots; not a fullsource/Cargo experiment",
+  "rows": [
+    {
+      "path": "partitionline-broker/src/metadata.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "e47d607e5c35995bdf0b409c9550a5a9143b0273",
+      "sha256": "a439c7409d1bcae1cada8e230968a4d29d7d0e7ca526adfd6d4f3a0e2159a42f",
+      "bytes": 99234,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/metadata.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/catalog.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "c6dbd6576dd12e814b76bec5fd6d9e578e43f624",
+      "sha256": "ee4799d499d11f06494f053bcf0f7497fcdc825b43ae1deb2cfa13841e3be2a8",
+      "bytes": 28559,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/catalog.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "27dfba3947e8bdfd921a894f761f91a564f595af",
+      "sha256": "47a9b89cc7f0c24e667f0ba8433d1b6beca3fdf2c6692099747ac80c0a5020e0",
+      "bytes": 177746,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/replication.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/raft/protocol.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "21decf8d174594c8ef2622873bd4e39b42c1e517",
+      "sha256": "e2cd0254eec50c8da1ed940ac794f02e9e80a98dd3ccbfa41331823f514dcb6a",
+      "bytes": 37801,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/protocol.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/raft/mod.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "b45b16c315811b96bdb16364ae22bab8b1275bfa",
+      "sha256": "09e9113eb9fa486ea0ab3d8f7b590f1223a7a7887589a03a5cdd78e9a9fbbf46",
+      "bytes": 611,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/raft/mod.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/lib.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "9b129643b0bd4754918cc90be4c3633366332693",
+      "sha256": "860491a75c36f6a355379d0abf64be70c35ac71a741bba7005b5673c8e2e9d77",
+      "bytes": 848,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/lib.rs",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/Cargo.toml",
+      "git_mode": "100644",
+      "git_blob_sha1": "ce2dde014a2e2ccf1511ba7a3b5996591e4254cd",
+      "sha256": "be1c44176cac8d1451111addc5cfeaf73a6ae687a25f0fb430790da6bc7817aa",
+      "bytes": 2327,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/Cargo.toml",
+      "full07777": 384
+    },
+    {
+      "path": "partitionline-broker/src/journal.rs",
+      "git_mode": "100644",
+      "git_blob_sha1": "294d0173013f0d4dd0a79985e423d5bb10da986c",
+      "sha256": "78884177249f8d6eb83667e7f8bc31b62d554811fdde524a9dbcce5c3b2b901c",
+      "bytes": 48288,
+      "preserved": "/workspace/work/metadata-quorum-proposal-01/baseline/partitionline-broker/src/journal.rs",
+      "full07777": 384
+    }
+  ]
+}

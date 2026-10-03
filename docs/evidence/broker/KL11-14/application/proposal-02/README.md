@@ -1,0 +1,9 @@
+# Metadata proposal02: source-only review corrections
+
+Preserves exact frozen proposal01 handoff1cf and all five original draft files. This derivative changes four files; proposed runtime immutable getters are byte-identical. No repository or taskbook edits, Cargo/rustc/runtime/socket tests, cache changes or network actions occurred.
+
+The actor now parses each bounded request before refreshing the quorum projection. CreateTopics/DeleteTopics compute refresh authority from the original actor admission plus parsed wire timeout; already-expired requests do not query/apply the source. Quorum refresh clamps that original absolute deadline to the configured application cap. An expired refresh sets the existing parsed timeout to zero, so existing per-topic timeout encoding prevents mutations; existing malformed/duplicate/name validation precedence is retained. Read-only Metadata still uses the configured finite application refresh cap because that wire API has no caller timeout. Blocking journal sync is not preemptible and retains its existing admitted durability contract.
+
+The TCP fixture constructs the Cluster owner before any Runtime starts; failures in directory/config/paths/start/readiness/router opening attempt all existing joined shutdowns and preserve the original startup error even if cleanup also reports an error. Existing close loops already attempt all routers and nodes; they are preserved. After rejoining followers, the fixture obtains a fresh confirmed active leader before choosing its NotController target and the subsequent absent-topic read.
+
+Stable and Rust1.85 rustfmt checks pass all five source files. Thirteen source predicates pass. The existing nine unit and two TCP tests remain declared, uncompiled and unexecuted. This does not qualify KL11-14/76, nor promise that actor wait interrupts filesystem sync. Root-owned claim/export/source checkpoint and actual meaningful tests remain necessary.

@@ -1,0 +1,195 @@
+--- proposal01/partitionline-broker/src/catalog.rs
++++ proposal02/partitionline-broker/src/catalog.rs
+@@ -404,6 +404,15 @@
+             Backend::Quorum(inner) => inner.refresh().map(|_| ()).map_err(quorum_error),
+         }
+     }
++    pub(crate) fn refresh_until(&mut self, until: std::time::Instant) -> Result<(), Error> {
++        match &mut self.inner {
++            Backend::Local(_) => Ok(()),
++            Backend::Quorum(inner) => inner
++                .refresh_until(tokio::time::Instant::from_std(until))
++                .map(|_| ())
++                .map_err(quorum_error),
++        }
++    }
+     pub(crate) fn apply_create_until(
+         &mut self,
+         name: &str,
+--- proposal01/partitionline-broker/src/metadata_quorum.rs
++++ proposal02/partitionline-broker/src/metadata_quorum.rs
+@@ -699,7 +699,10 @@
+             .map_err(|_| Error::Deadline)?
+             .map_err(Error::Runtime)
+     }
+-    fn refresh_until(&mut self, deadline: Instant) -> Result<LogPosition, Error> {
++    /// Refresh within the earlier original caller and configured application budget.
++    /// Admission wait is already included in `outer`; refresh never renews it.
++    pub fn refresh_until(&mut self, outer: Instant) -> Result<LogPosition, Error> {
++        let deadline = outer.min(Instant::now() + self.deadline);
+         self.application.alive()?;
+         let state = self.source_until(deadline, self.source.state())?;
+         if state.poisoned || !state.ready {
+--- proposal01/partitionline-broker/src/metadata.rs
++++ proposal02/partitionline-broker/src/metadata.rs
+@@ -817,16 +817,14 @@
+                     continue;
+                 }
+                 let revision = (catalog.operation_count(), catalog.is_poisoned());
+-                let result = catalog.refresh().map_err(Error::Catalog).and_then(|_| {
+-                    process(
+-                        &mut catalog,
+-                        &job.request,
+-                        config,
+-                        job.admitted,
+-                        &job.reply,
+-                        stopping,
+-                    )
+-                });
++                let result = process(
++                    &mut catalog,
++                    &job.request,
++                    config,
++                    job.admitted,
++                    &job.reply,
++                    stopping,
++                );
+                 if revision != (catalog.operation_count(), catalog.is_poisoned()) {
+                     changes.send_replace(());
+                 }
+@@ -1020,16 +1018,43 @@
+                 let _ = reader.take(3)?;
+             }
+             reader.finish()?;
++            check_active(reply, stopping)?;
++            catalog.refresh().map_err(Error::Catalog)?;
++            check_active(reply, stopping)?;
+             metadata(catalog, config, header, parsed, flexible)
+         }
+         19 => {
+-            let parsed = read_create(&mut reader)?;
++            let mut parsed = read_create(&mut reader)?;
+             reader.finish()?;
++            check_active(reply, stopping)?;
++            if !timed_out(admitted, parsed.timeout) {
++                let until = admitted + Duration::from_millis(parsed.timeout as u64);
++                match catalog.refresh_until(until) {
++                    Ok(()) => {}
++                    // No mutation may follow an expired refresh. Reuse the
++                    // existing per-topic timeout encoder without a new budget.
++                    Err(catalog::Error::QuorumDeadline) => parsed.timeout = 0,
++                    Err(error) => return Err(Error::Catalog(error)),
++                }
++            }
++            check_active(reply, stopping)?;
+             create(catalog, config, header, parsed, admitted, reply, stopping)
+         }
+         20 => {
+-            let parsed = read_delete(&mut reader, version, flexible)?;
++            let mut parsed = read_delete(&mut reader, version, flexible)?;
+             reader.finish()?;
++            check_active(reply, stopping)?;
++            if !timed_out(admitted, parsed.timeout) {
++                let until = admitted + Duration::from_millis(parsed.timeout as u64);
++                match catalog.refresh_until(until) {
++                    Ok(()) => {}
++                    // No mutation may follow an expired refresh. Reuse the
++                    // existing per-topic timeout encoder without a new budget.
++                    Err(catalog::Error::QuorumDeadline) => parsed.timeout = 0,
++                    Err(error) => return Err(Error::Catalog(error)),
++                }
++            }
++            check_active(reply, stopping)?;
+             delete(catalog, config, header, parsed, admitted, reply, stopping)
+         }
+         _ => Err(protocol::Error::UnimplementedApi(key).into()),
+--- proposal01/partitionline-broker/tests/metadata_quorum.rs
++++ proposal02/partitionline-broker/tests/metadata_quorum.rs
+@@ -143,34 +143,43 @@
+             routes.push(listener.local_addr()?);
+             listeners.push(listener);
+         }
+-        let mut nodes = Vec::new();
+-        for (id, listener) in listeners.into_iter().enumerate() {
+-            let root = temp.0.join(id.to_string());
+-            fs::create_dir(&root)?;
+-            nodes.push(Some(Runtime::start(
+-                listener,
+-                config(id, &routes)?,
+-                paths(&root)?,
+-            )?));
+-        }
++        // Own every started runtime before the first fallible launch so an
++        // initialization failure cannot detach an earlier node's joined drain.
+         let mut group = Self {
+             temp,
+             routes,
+-            nodes,
++            nodes: (0..count).map(|_| None).collect(),
+             routers: (0..count).map(|_| None).collect(),
+         };
+-        for id in 0..count {
+-            let node = group.nodes[id].as_ref().ok_or("missing node")?;
+-            if let Err(error) = node.wait_ready().await {
+-                group.close().await?;
+-                return Err(error.into());
+-            }
+-        }
+-        for id in 0..count {
+-            if let Err(error) = group.open_router(id).await {
+-                group.close().await?;
+-                return Err(error);
+-            }
++        let initialized: Result = async {
++            for (id, listener) in listeners.into_iter().enumerate() {
++                let root = group.temp.0.join(id.to_string());
++                fs::create_dir(&root)?;
++                group.nodes[id] = Some(Runtime::start(
++                    listener,
++                    config(id, &group.routes)?,
++                    paths(&root)?,
++                )?);
++            }
++            for id in 0..count {
++                group.nodes[id]
++                    .as_ref()
++                    .ok_or("missing node")?
++                    .wait_ready()
++                    .await?;
++            }
++            for id in 0..count {
++                group.open_router(id).await?;
++            }
++            Ok(())
++        }
++        .await;
++        if let Err(error) = initialized {
++            // Preserve the startup error while attempting every owned join.
++            if let Err(cleanup) = group.close().await {
++                eprintln!("metadata fixture startup cleanup also failed: {cleanup}");
++            }
++            return Err(error);
+         }
+         Ok(group)
+     }
+@@ -436,7 +445,10 @@
+             observed(&group, *id, "committed-with-majority").await?;
+         }
+         // A follower command cannot publish a locally synced false success.
+-        let follower = (0..count).find(|id| *id != leader).ok_or("follower")?;
++        let current_leader = group.leader().await?;
++        let follower = (0..count)
++            .find(|id| *id != current_leader)
++            .ok_or("follower")?;
+         let response = group.routers[follower]
+             .as_ref()
+             .ok_or("missing router")?
+@@ -446,7 +458,7 @@
+             create_error(&response, "follower-must-not-publish")? == 41,
+             "follower must return NotController",
+         )?;
+-        let response = group.routers[leader]
++        let response = group.routers[current_leader]
+             .as_ref()
+             .ok_or("missing router")?
+             .respond(metadata("follower-must-not-publish")?)

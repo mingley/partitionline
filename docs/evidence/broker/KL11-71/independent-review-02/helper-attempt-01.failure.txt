@@ -1,0 +1,5 @@
+The first inline Python receipt helper failed at its source-predicate assertion before writing validation.json:
+Traceback (most recent call last):
+  File "<stdin>", line 34, in <module>
+AssertionError
+No Rust parser/compiler/test/runtime or network action ran. No candidate, prior packet or prior review source was changed. The helper did not retain its individual predicate values; this is a receipt-helper failure and supplies no source rejection or runtime result.
