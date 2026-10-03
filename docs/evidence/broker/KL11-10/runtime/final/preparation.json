@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "full_archive_source": "/workspace/work/retention-final-d147bcf1/source",
+  "source_integrity": "/workspace/work/retention-final-d147bcf1/source-integrity.json",
+  "source_integrity_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e",
+  "verified_git_blobs": 44019,
+  "owned_frozen_inputs_verified": 744,
+  "source_freeze_sha256": "09801450247d80d1c69b7c56c15f09d5f7746e3f21405870018d496c231244be",
+  "source_writes": false,
+  "peer_preparation": [
+    "java-build-attempt-1/validation.json",
+    "native-build-attempt-1/validation.json"
+  ],
+  "scope": "Fresh pinned Java/native strict builds read exact immutable archive; public Rust builds and four fresh live lanes await compiler release."
+}

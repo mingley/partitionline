@@ -2,8 +2,13 @@
 
 This lane implements the storage hooks behind the explicitly enabled retention
 Router. The Store and wire integration are owned by the separate runtime lane.
-The immutable final-source execution and independent receipts will be recorded
-after the coordinator pushes the complete implementation. Development runs use
+The final execution binds the complete pushed source
+`d147bcf1c0164778bdbad625842363f3721bc10e`. All 19 commands pass: 256 default
+and 352 all-feature tests on each toolchain, totaling 1,216 passes, plus strict
+format/lint/documentation checks. The 44,019-file Git inventory matches before
+and after every command. The original receipt and compressed complete source
+manifest are under `final-d147bcf1/`; `final-validation.json` binds the separate
+independent storage and Apache component receipts. Development runs use
 a complete `81b490f310bb3dbe4e89e4e140ef658e29fdf9e7` archive with the four
 claimed source/test files overlaid; they are not committed-source qualification.
 

@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "source_root": "/workspace/work/retention-final-d147bcf1/source",
+  "source_integrity_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e",
+  "verified_git_blobs": 44019,
+  "matrix_receipt_path": "/workspace/work/retention-final-d147bcf1/validation.json",
+  "matrix_receipt_sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa",
+  "matrix_commands": 19,
+  "retained_binaries": [
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable/retention",
+      "sha256": "50621348b613b23cfb60e7671cdfe5b84cfc508ef45e4f27afd088b0970d09a8",
+      "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    },
+    {
+      "lane": "stable-all-features-all-targets",
+      "path": "bin/stable/retention-all-features",
+      "sha256": "d6f1013b18184424a284e594e6ae893a385c43d0d77c71bb31cfd617abf9f7f5",
+      "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    },
+    {
+      "lane": "1.85.0-default-all-targets",
+      "path": "bin/1.85.0/retention",
+      "sha256": "29382f44dd53c96fe5004e21b97a9c6a3662659e3d19f3b80086224279be16e9",
+      "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    },
+    {
+      "lane": "1.85.0-all-features-all-targets",
+      "path": "bin/1.85.0/retention-all-features",
+      "sha256": "4fb27b7d87330beee888c79b3e96ad581cc9bbbd19be47879c7f42bbd43bc4e3",
+      "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "build_command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ]
+    }
+  ],
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+    "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+  },
+  "archive_sha256": "9d22f5df19f710f4fdfc5a19be85c56ec3bd0a4d29e45cf6461b2e12fc637be9",
+  "scope": "Exact full immutable source; retained server ELFs built by the one accepted shared broker matrix, with before/after source verification."
+}

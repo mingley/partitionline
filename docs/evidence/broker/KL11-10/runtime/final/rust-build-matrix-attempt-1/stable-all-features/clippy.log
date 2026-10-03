@@ -1,0 +1,8 @@
+    Checking once_cell v1.21.4
+    Checking rustls v0.23.45
+    Checking tracing-core v0.1.36
+    Checking tracing v0.1.44
+    Checking tokio-rustls v0.26.6
+    Checking partitionline v0.1.0 (/workspace/work/retention-final-d147bcf1/source)
+    Checking partitionline-retention-peer v0.0.0 (/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/rust-adopter)
+    Finished `dev` profile [unoptimized] target(s) in 8.33s

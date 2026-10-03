@@ -1,0 +1,1 @@
+{"type":"checksum-valid follower commit","entry_term":3,"authorizing_term":2,"index":1,"authorizer":1,"sequence":2,"expected":"recovery rejection"}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Strict own-source compilation; unmodified pinned upstream header is a system include. No broker runtime.",
+  "native_source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "gcc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/retention-native.c",
+    "-L/workspace/work/c-peer/lib",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-lrdkafka",
+    "-o",
+    "/workspace/work/retention-final-peers/retention-native"
+  ],
+  "exit_code": 0,
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "pins": {
+    "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/retention-native.c": "e4f6d0d0923dbe4a1bb3d5d9bb9ddbd990a1c4b59f2841ed3b297cb328fd6bf4",
+    "/workspace/work/c-peer/source/src/rdkafka.h": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+    "/workspace/work/c-peer/lib/librdkafka.so.1": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+    "/workspace/work/retention-final-peers/retention-native": "dd281792457e57d7c700dc8269621c3544b58d3dee1490c4ea3beaee3be69427"
+  },
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

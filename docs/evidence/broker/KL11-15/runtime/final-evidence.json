@@ -1,0 +1,3370 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "component": "bounded fixed-member snapshot image publication plus authoritative Node/WAL installation and recovery",
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "qualification": "accepted scoped component; whole-card closure is coordinator-owned",
+  "passed": true,
+  "results": {
+    "full_broker_commands_passed": 19,
+    "rust_tests_passed": 1216,
+    "rust_tests_failed": 0,
+    "rust_tests_ignored": 0,
+    "four_cells": [
+      {
+        "cell": "stable-default",
+        "passed": 256,
+        "failed": 0,
+        "ignored": 0,
+        "raft_replication_suite_passed": 29,
+        "raft_snapshot_suite_passed": 10
+      },
+      {
+        "cell": "stable-all-features",
+        "passed": 352,
+        "failed": 0,
+        "ignored": 0,
+        "raft_replication_suite_passed": 29,
+        "raft_snapshot_suite_passed": 10
+      },
+      {
+        "cell": "1.85.0-default",
+        "passed": 256,
+        "failed": 0,
+        "ignored": 0,
+        "raft_replication_suite_passed": 29,
+        "raft_snapshot_suite_passed": 10
+      },
+      {
+        "cell": "1.85.0-all-features",
+        "passed": 352,
+        "failed": 0,
+        "ignored": 0,
+        "raft_replication_suite_passed": 29,
+        "raft_snapshot_suite_passed": 10
+      }
+    ],
+    "fmt_passed": true,
+    "strict_all_target_clippy_cells_passed": 4,
+    "strict_docs_cells_passed": 4,
+    "strict_doctest_cells_passed": 4,
+    "source_git_blobs_unchanged": 44019,
+    "primary_snapshot_histories": {
+      "histories": 8,
+      "events": 684,
+      "raw_checkpoints": 168,
+      "actual_inner_cut_states": 48,
+      "checker_control_cases": 124
+    },
+    "publication_and_install_cuts": {
+      "node_publication_cuts": 24,
+      "node_publication_states": 48,
+      "authoritative_install_cuts": 8,
+      "authoritative_install_states": 16
+    },
+    "legacy_replication_regression": {
+      "histories": 8,
+      "events": 776,
+      "journal_pairs": 104
+    },
+    "compiled_guard_pairs": 3,
+    "compiled_positive_controls_passed": 3,
+    "compiled_unsafe_variants_rejected": 3,
+    "foundation_apache_assertions": 120,
+    "foundation_apache_deliberate_controls_rejected": 3,
+    "retained_final_raw_files": 1156,
+    "retained_final_raw_bytes": 6065428,
+    "receipt_artifact_integrity": [
+      {
+        "kind": "primary",
+        "artifact_hashes_verified": 457
+      },
+      {
+        "kind": "cuts",
+        "artifact_hashes_verified": 33
+      },
+      {
+        "kind": "legacy",
+        "artifact_hashes_verified": 33
+      }
+    ]
+  },
+  "commands": [
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "clean-before-source-switch",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 3.056,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "5ad043dc59c85391acac331557432a8f470fc47881407005c385c99da604e770"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "format",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 3.27,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/rolling-fault-histories",
+        "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/retention-fault-histories",
+        "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/retention-report.json",
+        "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/fetch-responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/stable-default/controller-report.json",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/controller-responses",
+        "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/snapshot",
+        "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner",
+        "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-default/replication",
+        "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 37.133,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "3bf83d678895c6178ac28b8e77c9b68b1653b4d34c9700acb52a11782232d9d3",
+      "capture_directory": "stable-default"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 11.249,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "5922074b6c35fa650ccac55d3a3816e096e8185c8a3edb9f42b9503fff36cbad"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.42,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "bb470c9d20eb1f718cd02cd3c86f8292b042a3060df3044c4aec874737e8491c"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.118,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/rolling-fault-histories",
+        "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-fault-histories",
+        "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/retention-report.json",
+        "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/fetch-responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/stable-all-features/controller-report.json",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/controller-responses",
+        "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot",
+        "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner",
+        "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/stable-all-features/replication",
+        "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 77.576,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "484bb2efe2e3b55c854e304545d8c87b57e73ed69dd55f2038421b6d6972f02e",
+      "capture_directory": "stable-all-features"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 19.543,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "178a64aad089b32ac6ea90d2784957e13447630d7ac288b9c70a173a3c9608dc"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.823,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "5e07dddf6b12d27a4de0261eef07684fb70e4f358e7089c4f64080ee9bd76ff5"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "stable-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.056,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "clean-between-toolchains",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 2.903,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "652db6dfdd9000c9d61f8026ef47e8b54348dcbb13daf10a0606e08ee12d269d"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/rolling-fault-histories",
+        "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-fault-histories",
+        "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/retention-report.json",
+        "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/fetch-responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-default/controller-report.json",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/controller-responses",
+        "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot",
+        "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner",
+        "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-default/replication",
+        "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 44.487,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "07376f4e209be3e128d22fe53457e9fbecca9dd23726a427dae08cb9c6c35197",
+      "capture_directory": "1.85.0-default"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 15.156,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "f0febf8a32395e174ca515a0e9cddfe0ea4a9bab7e7eaac4c5d8944ddb28a2ca"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-default-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.727,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "5ca2bd5fab72611ecc4e0a62a3ef98cc40888a1a35b29954d031252351fb24b9"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-default-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.035,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-all-features-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/rolling-fault-histories",
+        "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-fault-histories",
+        "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/retention-report.json",
+        "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/fetch-responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/controller-report.json",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/controller-responses",
+        "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot",
+        "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner",
+        "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/replication",
+        "PL_SNAPSHOT_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "PL_REPLICATION_SOURCE_SHA": "d147bcf1c0164778bdbad625842363f3721bc10e"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 94.955,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "a2c71aa5927a562a9c59b1f7b798ee7fe84c11621624a6aa95f1c3a1dbdc0128",
+      "capture_directory": "1.85.0-all-features"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-all-features-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 26.705,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "6dc48c705a73f4d990cc13d400a691408f9a6ab7263d53f3c0291e67789934d5"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-all-features-strict-doc",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--no-deps"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.826,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "bbf2295f58e297391bc58e7b7d3305ec57d44df0b241a48fb7002546948bc874"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "executor": "codex-open-loop-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "name": "1.85.0-all-features-strict-doctest",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-features",
+        "--doc"
+      ],
+      "environment_additions": {
+        "RUSTDOCFLAGS": "-D warnings"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 3.106,
+      "source_before": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "source_after": {
+        "file_count": 44019,
+        "all_git_blobs_match": true,
+        "set_and_blob_sha256": "a7a6f7bfb765c8c012c645a500a4a23f340c68fb33a941b6410cffb182e4e244"
+      },
+      "log_sha256": "097c3c45f0b20039fc5bbf76f0dff1409b13358bc96acbfb10cfa87c28daed9c"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-history-3.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-history-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py",
+        "--wal",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot/history-3/journals/13-after-checkpoint-1/metadata.wal",
+        "--trace",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-controls"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-controls.log",
+      "sha256": "b33e3e2cce853162d0059b9804154960e4b3b26a311e7a3c63df6b7605657498",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-history-5.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-history-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 89
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-0.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-1.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-2.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-3.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-4.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/exit-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-5.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-6.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-7.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-8.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-9.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-10.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner/io-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-default-inner-11.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-default-inner-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-history-3.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-history-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py",
+        "--wal",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot/history-3/journals/13-after-checkpoint-1/metadata.wal",
+        "--trace",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-controls"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-controls.log",
+      "sha256": "b33e3e2cce853162d0059b9804154960e4b3b26a311e7a3c63df6b7605657498",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-history-5.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-history-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 89
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-0.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-1.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-2.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-3.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-4.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/exit-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-5.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-6.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-7.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-8.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-9.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-10.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner/io-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/stable-all-features-inner-11.json"
+      ],
+      "exit_code": 0,
+      "log": "stable-all-features-inner-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-history-3.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-history-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py",
+        "--wal",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot/history-3/journals/13-after-checkpoint-1/metadata.wal",
+        "--trace",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-controls"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-controls.log",
+      "sha256": "b33e3e2cce853162d0059b9804154960e4b3b26a311e7a3c63df6b7605657498",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-history-5.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-history-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 89
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-0.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-1.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-2.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-3.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-4.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/exit-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-5.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-6.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-7.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-8.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-9.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-10.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner/io-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-default-inner-11.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-default-inner-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-history-3.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-history-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/check-counterexamples.py",
+        "--wal",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/history-3/journals/13-after-checkpoint-1/metadata.wal",
+        "--trace",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-controls"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-controls.log",
+      "sha256": "b33e3e2cce853162d0059b9804154960e4b3b26a311e7a3c63df6b7605657498",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 67
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/history_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-history-5.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-history-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 89
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-0.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-0.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-1.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-1.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-2.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-2.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-3.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-3.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-4.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-4.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/exit-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-5.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-5.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-0/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-6.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-6.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-0/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-7.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-7.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-1/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-8.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-8.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-1/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-9.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-9.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-2/interrupted/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-10.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-10.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/snapshot_oracle.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner/io-2/recovered/node.wal",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/1.85.0-all-features-inner-11.json"
+      ],
+      "exit_code": 0,
+      "log": "1.85.0-all-features-inner-11.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-all-features-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/1.85.0-default/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/1.85.0-default-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-all-features/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-all-features-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-node-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot-inner",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-node.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c5ba7e576ee0036dc7823f32ae01a45c184312ccd7ac427c017b838dc2b36270",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 51
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-15/oracle/history/verify-install-cuts.py",
+        "/workspace/work/retention-final-d147bcf1/stable-default/snapshot",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/stable-default-install.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "decb04e00edb4e389320a447a9cb6087b0532eb17a36b61b0d9ee05dccf5dd0e",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 238
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "executor": "codex-coordinator-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "committed-overlap-positive",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 0,
+      "expected_behavior_verified": true,
+      "source_sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+      "log": "committed-overlap-positive/test.log",
+      "log_sha256": "b44ac32a195b78d3ed9e195c3ac9bb36139a6d1184c9e1c123fbefab7bac7889",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/committed-overlap-positive-186a848c8ace7a31",
+      "binary_sha256": "186a848c8ace7a31668df01466f7dffb61f74c11bff872ebd07d923c98d30750",
+      "binary_bytes": 4875128
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "committed-overlap-unsafe",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "snapshot_committed_overlap_and_same_term_conflicts_leave_publication_inert",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 101,
+      "expected_behavior_verified": true,
+      "source_sha256": "8b008806010456a9449adac20498aa539911aca2dfeea774de181308aa8e7f07",
+      "log": "committed-overlap-unsafe/test.log",
+      "log_sha256": "e86437ed6c16739a9e39da1c8d1267d5ac0e4276c7db4b4cff78214df636c362",
+      "patch_sha256": "260bcfed3a11ef2b5a1ff7ee84bb7a799b291cf16bc2bc807797fd833bcd2396",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/committed-overlap-unsafe-d9227fd139c994f7",
+      "binary_sha256": "d9227fd139c994f77e2b92e7d452d17efb0d51d0a92ef3090411b69b65237706",
+      "binary_bytes": 4875016
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "install-sync-positive",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 0,
+      "expected_behavior_verified": true,
+      "source_sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+      "log": "install-sync-positive/test.log",
+      "log_sha256": "603241aa9aa13f9a994e6ddb5c5bd2da56e3cf8144810174c380ace9ff222564",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/install-sync-positive-186a848c8ace7a31",
+      "binary_sha256": "186a848c8ace7a31668df01466f7dffb61f74c11bff872ebd07d923c98d30750",
+      "binary_bytes": 4875128
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "install-sync-unsafe",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "snapshot_checkpoint_retains_later_wal_and_explicit_mode_is_required_for_replay",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 101,
+      "expected_behavior_verified": true,
+      "source_sha256": "7634968d2e5c04497b8309faa8da5648cbb04ef2ad8b835be184f20bfa478262",
+      "log": "install-sync-unsafe/test.log",
+      "log_sha256": "294583a4e685836a541e5bfda22e401ccb1edbecc71c7dfb1588807be03c10db",
+      "patch_sha256": "1129c389c4344aae0976fe2e4bb1b292264e0b09b00f290db5c3c66656b9f584",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/install-sync-unsafe-6519c960a736bc36",
+      "binary_sha256": "6519c960a736bc36f43b5e906c0e651b430d3c325a30605a5b19c9f10a482fb0",
+      "binary_bytes": 4874752
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "image-descriptor-binding-positive",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "checksummed_snapshot_install_receipt_mutations_fail_replay",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 0,
+      "expected_behavior_verified": true,
+      "source_sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+      "log": "image-descriptor-binding-positive/test.log",
+      "log_sha256": "360fcd315d0854da32ad4169465c7b7fa1fb38111dd659c31f994db37313310a",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/image-descriptor-binding-positive-186a848c8ace7a31",
+      "binary_sha256": "186a848c8ace7a31668df01466f7dffb61f74c11bff872ebd07d923c98d30750",
+      "binary_bytes": 4875128
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "name": "image-descriptor-binding-unsafe",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-j1",
+        "--test",
+        "raft_replication",
+        "checksummed_snapshot_install_receipt_mutations_fail_replay",
+        "--",
+        "--exact",
+        "--nocapture"
+      ],
+      "cwd": "/workspace/work/snapshot-runtime/mutants-070598ee/source",
+      "exit_code": 101,
+      "expected_behavior_verified": true,
+      "source_sha256": "6a089dc9084e52ebd546c609869f83b4fcdf9ae379944c81ef0e6510636edde2",
+      "log": "image-descriptor-binding-unsafe/test.log",
+      "log_sha256": "691db6614256811fa4f3b058e60baeb9b3af9ccb0e46853a8c2f9fdc687fbbf4",
+      "patch_sha256": "c50dc2c014d2aa91099a86475a716200b0cf69d9b098b9e7bfc4ed2e288966f5",
+      "binary_path": "/workspace/work/snapshot-runtime/retained-mutant-binaries-070598ee/image-descriptor-binding-unsafe-ad169923e20d52e1",
+      "binary_sha256": "ad169923e20d52e10553cb66c5b7582ec50acc3fa0f7b8954252e6063074b8f2",
+      "binary_bytes": 4875016
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "070598ee36c8ed0bdea64d94eec929413a85534c",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "070598ee36c8ed0bdea64d94eec929413a85534c:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-z",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "docs/evidence/broker/KL11-15/oracle/apache",
+        "partitionline-broker/tests/fixtures/raft-snapshot"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "-r",
+        "-z",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "docs/evidence/broker/KL11-15/oracle/apache",
+        "partitionline-broker/tests/fixtures/raft-snapshot"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "45582234de9a40620f038ba6b68ab57d2616beb2:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "45582234de9a40620f038ba6b68ab57d2616beb2:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "diff",
+        "--unified=2",
+        "45582234de9a40620f038ba6b68ab57d2616beb2",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/seal-final-captures.py"
+      ],
+      "scope": "SHA256/mode verified capture copy and exact Git source comparison",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/src/raft/snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_replication.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "show",
+        "d147bcf1c0164778bdbad625842363f3721bc10e:partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "git",
+        "ls-tree",
+        "d147bcf1c0164778bdbad625842363f3721bc10e",
+        "--",
+        "partitionline-broker/tests/raft_snapshot.rs"
+      ],
+      "cwd": "/workspace/partitionline",
+      "exit_code": 0
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "receipt": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/validation.json",
+      "executor": "codex-rpc-reuse-20261003",
+      "execution_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    }
+  ],
+  "receipts": {
+    "full_broker_matrix": {
+      "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+      "sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa"
+    },
+    "full_broker_summary": {
+      "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/summary.json",
+      "sha256": "2091aae50ff773200d17ce7a440e4b5e562a800f22b1d6f78b1820255a60ed4a"
+    },
+    "full_broker_artifact_map": {
+      "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/artifacts.json",
+      "sha256": "c1edcdedeeac92b3729ebc65c376915398ece92946ef0e958e65ad84792024aa"
+    },
+    "primary_independent_safety": {
+      "path": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/primary/validation.json",
+      "sha256": "07b75061f7d50b29fb51e83ebe4a3f589a80ee10a51c1d14170260090e10bd8c"
+    },
+    "inner_and_install_cuts": {
+      "path": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/cuts/validation.json",
+      "sha256": "774bfc2b0491a6c58390dd2ecf5a95049af6b46fde2f0b420b5d376be2c49b9b"
+    },
+    "legacy_replication_regression": {
+      "path": "docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/validation.json",
+      "sha256": "36e08c1664cf188a304e7cdf0391fce90171019a5accd5430f94dcc6062496ac"
+    },
+    "raw_capture_retention": {
+      "path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/capture-retention.json",
+      "sha256": "94f9debdc2e3c14f2c3f4e3312c01ade6ae9566c09c8960b8d9f117a4a062207"
+    },
+    "copied_matrix_retention": {
+      "path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/combined-qa/retention.json",
+      "sha256": "77816fb209a6619e222b799daeca0872837c7a9ea805aa77e7927f07961ff901"
+    },
+    "legacy_copy_sealer": {
+      "path": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/validation.json",
+      "sha256": "aaef07b74067d8607222e8a6fbf614cad171fd000ecbfaa8d3e9382014eb72a5"
+    },
+    "source_bridge": {
+      "path": "docs/evidence/broker/KL11-15/runtime/source-bridge-d147bcf1.json",
+      "sha256": "6467b1e5cec2bd3977021b360b35bb96027958b02e3e4b4e4bc60c014176b044"
+    },
+    "compiled_guards": {
+      "path": "docs/evidence/broker/KL11-15/runtime/compiled-mutants-070598ee/validation.json",
+      "sha256": "1764e89be4ae8ebba889103c6f507f4aba7baf7aa3d56d41c2c2ef6608362f9a"
+    },
+    "compiled_guard_plan": {
+      "path": "docs/evidence/broker/KL11-15/runtime/compiled-mutant-plan.json",
+      "sha256": "b250ed0294b7277b3ce722f6ea55bd4e427ff95aa5556f2d70a157d5beb27a91"
+    },
+    "foundation_apache": {
+      "path": "docs/evidence/broker/KL11-15/foundation-final/45582234/validation.json",
+      "sha256": "843c14b817b7b282d39ef57411eec60c1a7c2171ed630446b495947e8f02ff6a"
+    },
+    "partial_070_gate": {
+      "path": "docs/evidence/broker/KL11-15/runtime/partial-070598ee.json",
+      "sha256": "b2fd693877a7c25e35fced7b84ff417d13201a3e7565fd8f13f2535b38edce32"
+    },
+    "oidc_helper_only_correction": {
+      "path": "docs/evidence/broker/KL11-15/runtime/development/oidc-helper-check/validation.json",
+      "sha256": "1c75f7c14eb7bcc890247acd781ccb7f5991d9f674c18e0e79bf5bae2dfd9f24"
+    },
+    "artifact_writer_only_correction": {
+      "path": "docs/evidence/broker/KL11-15/runtime/development/artifact-writer-correction/validation.json",
+      "sha256": "307d528386d5387465029d4c743f9d7c94c0cb83a3d6684341d81d29af01932d"
+    },
+    "clock_handoff_only_correction": {
+      "path": "docs/evidence/broker/KL11-15/runtime/development/clock-handoff/validation.json",
+      "sha256": "e0853acb745617561496cf3f74345c5d030cad9163da49caa74ee29bd261d5a4"
+    },
+    "development_inner_node_cuts": {
+      "path": "docs/evidence/broker/KL11-15/development/node-inner-cuts-02/validation.json",
+      "sha256": "a2f9b96329ba9372425d1422777878384dca1dec48199cd55190dee9649db12f"
+    },
+    "cache_binary_retention": {
+      "path": "docs/evidence/broker/KL11-15/runtime/cache-handoff-binary-retention.json",
+      "sha256": "ff02b42c643ed0090648ad409658e0f0a131ad648df23f66905940c778cf4f66"
+    }
+  },
+  "source_files": [
+    {
+      "path": "partitionline-broker/src/raft/replication.rs",
+      "git_blob": "9c7c7f512eb676267c82fd0762bce76d5a686236",
+      "git_mode": "100644",
+      "sha256": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+      "bytes": 114209,
+      "retained_path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/source/partitionline-broker/src/raft/replication.rs"
+    },
+    {
+      "path": "partitionline-broker/src/raft/snapshot.rs",
+      "git_blob": "41bd00a5d8192fdc122282c6166d03d8ad969602",
+      "git_mode": "100644",
+      "sha256": "068e980cdce902e75cee1d1bc2665c67367c2f0e567cac7201ea42a49777a213",
+      "bytes": 48063,
+      "retained_path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/source/partitionline-broker/src/raft/snapshot.rs"
+    },
+    {
+      "path": "partitionline-broker/tests/raft_replication.rs",
+      "git_blob": "53e5fc623321fc31a731e0c005390392a0da2131",
+      "git_mode": "100644",
+      "sha256": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61",
+      "bytes": 77591,
+      "retained_path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/source/partitionline-broker/tests/raft_replication.rs"
+    },
+    {
+      "path": "partitionline-broker/tests/raft_snapshot.rs",
+      "git_blob": "06150400373c8928dcf525bade3fd5c95ed4b674",
+      "git_mode": "100644",
+      "sha256": "06eafd01ff8546a07d572ca744bbd6629aa7d383960abc28d18c3e68efcec44f",
+      "bytes": 18068,
+      "retained_path": "docs/evidence/broker/KL11-15/runtime/final-d147bcf1/source/partitionline-broker/tests/raft_snapshot.rs"
+    }
+  ],
+  "environment": {
+    "toolchains": {
+      "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+    },
+    "settings": {
+      "CARGO_HOME": "/workspace/work/cargo",
+      "RUSTUP_HOME": "/workspace/work/rustup",
+      "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_BUILD_JOBS": "1",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0"
+    },
+    "affinity": "0-2,4; no CPU3 timing",
+    "qa_executor": "codex-open-loop-20261003",
+    "original_execution_root": "/workspace/work/retention-final-d147bcf1",
+    "shared_qa": "docs/evidence/broker/KL11-10/storage/final-d147bcf1",
+    "retained_proof_binaries": "Shared matrix receipt retains twelve gzip verified lib-unit/raft-replication/raft-snapshot binaries in scratch and their raw/gzip SHA/mode maps; compiled guards separately retain six actual binaries."
+  },
+  "contract": {
+    "image_selection": "Complete checksummed atomic publication stays inactive until a synchronized Install receipt selects exact generation/identity/base/full Descriptor.",
+    "replay_equivalence": "Canonical opaque full prefix plus checked suffix reproduces actual committed records, selected image, term/vote and commit; replay independently recomputes receipt outcome from loaded image and preceding WAL.",
+    "foreign_and_incomplete": "Incomplete transfer, foreign cluster/topic/partition/voters, same-term changed content, changed committed bytes, forged Descriptor/receipts and selected image corruption reject.",
+    "authority": "Configured current leader/member/peer/term/sequence/descriptor and durable receipt bind each snapshot ACK; remote image never replaces local current term or vote.",
+    "interruption": "Recover old selected image and later committed suffix through image sync/rename/directory-sync cuts; replay new selection through after Install/before Core and after Core/before ACK cuts.",
+    "scope": "Caller-driven typed fixed-member exchange; original controller v0 profile and advertised Kafka API set remain unchanged."
+  },
+  "bounds": {
+    "live_record_count": 4096,
+    "live_payload_bytes": 67108864,
+    "per_record_default_bytes": 1048576,
+    "actor_memory_ceiling_bytes": 536870912,
+    "transfer_chunk_ceiling_bytes": 4194304,
+    "store_default_image_bytes": 68157440,
+    "store_default_complete_generations": 8,
+    "store_default_reserved_disk_bytes": 613416960,
+    "startup_commit_floor_index_ceiling_bytes": 524288,
+    "store_file_descriptors_ceiling": 4,
+    "additional_existing_journal_file_descriptors": 2,
+    "mutable_store_owner": true,
+    "notes": "Old+replacement live state, one image decode, recovery scratch and all retained queue/request/receipt envelopes share the actor memory ceiling. One incoming/outgoing image session, finite generation/directory budgets and no mutable storage handles escape the owner."
+  },
+  "source_reuse": {
+    "guards": "Executed on exact 070; all four relevant Rust blobs and modes are byte-identical at d147, proven by source_bridge. No mutant outcomes are attributed to a new execution.",
+    "apache": "Actual 120 assertions/3 controls executed at 455 against three pinned Apache SDKs. All153 oracle/fixture Git entries unchanged at d147. Snapshot source changed via mutable load/idle getter/cfg(test) faults and three test mutable bindings; exact patch retained. Earlier 455 Rust tests stay 455 results, while fresh d147 matrix reexecutes the current image suite."
+  },
+  "preserved_failures": [
+    {
+      "case": "pre-install committed-floor recovery",
+      "classification": "actual runtime recovery defect corrected",
+      "failed_exit_code": 101,
+      "artifacts": [
+        "development/floor-first/test.log",
+        "development/floor-first/capture-test.log",
+        "development/floor-first/raw",
+        "development/floor-first/replication.rs"
+      ],
+      "same_immutable_files_fixed_log": "development/floor-first/same-files-fixed-test.log",
+      "correction": "Reconcile the receiver-local old election tail using its prior WAL-confirmed commit floor before exposing an image that advances commit beyond the old tail."
+    },
+    {
+      "case": "selected image corruption left owner ready",
+      "classification": "actual poisoned-owner contract defect corrected",
+      "failed_exit_code": 101,
+      "artifacts": [
+        "development/selected-corruption-first.log",
+        "development/selected-corruption/replication-first.rs"
+      ],
+      "correction": "Fail closed and poison on missing/corrupt selected image until verified reopen."
+    },
+    {
+      "case": "development compilation and lint attempts",
+      "classification": "preserved incomplete overlays/borrow and lint corrections",
+      "artifacts": [
+        "development/replication-first.log",
+        "development/replication-safety-first.log",
+        "development/replication-safety-second.log",
+        "development/stable-clippy-first.log"
+      ]
+    },
+    {
+      "case": "initial Node publication-cut term expectation",
+      "classification": "test input expectation error: campaign moves normalized term 1 to 2",
+      "artifacts": [
+        "../development/node-inner-cuts-01",
+        "../development/node-inner-cuts-02/validation.json"
+      ],
+      "correction": "Only expected local term and causal receipt corrected; image-only term 1 fixtures retained."
+    },
+    {
+      "case": "child-to-parent capture clock regressed",
+      "classification": "actual trace-contract failure in preserved captures; test-only handoff corrected",
+      "artifacts": [
+        "development/captures-sixth",
+        "../oracle/history/development/attempt-4/history-3.failure.log",
+        "../oracle/history/development/attempt-4/history-5.failure.log",
+        "development/clock-handoff/validation.json"
+      ],
+      "correction": "Persist actual final child now_ms and carry it into parent reopen; do not rewrite old traces or weaken monotonic time checks."
+    },
+    {
+      "case": "exact 4ffd strict Clippy rejected cfg(test) std::fs::write",
+      "source_sha": "4ffd7557a2a35bfda931b0d0414b11264802dbc6",
+      "classification": "artifact writer lint failure after 240 behavior passes",
+      "failed_exit_code": 101,
+      "artifacts": [
+        "final-4ffd7557/results-partial.json",
+        "final-4ffd7557/stable-default",
+        "development/artifact-writer-correction/validation.json"
+      ],
+      "correction": "Private test File::create+write_all helper; runtime semantics unchanged."
+    },
+    {
+      "case": "exact 070 MSRV all-features strict Clippy rejected external cfg(test) OIDC format_collect",
+      "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+      "classification": "full gate incomplete despite 1,152 behavior passes; fourth docs/doctests and fmt not run",
+      "failed_exit_code": 101,
+      "artifacts": [
+        "partial-070598ee.json",
+        "final-070598ee",
+        "development/oidc-helper-check/validation.json"
+      ],
+      "correction": "Captured private helper-only correction qualified narrowly, then pushed in combined d147 source; final matrix 1,216 passes/all strict gates supersedes incomplete 070."
+    },
+    {
+      "case": "first legacy sealer wrapper asserted annotated trace must remain byte-identical",
+      "classification": "observer assertion error; first sealer itself exited 0; originals never modified",
+      "artifacts": [
+        "legacy-replay-d147bcf1/wrapper-failure.txt",
+        "legacy-replay-d147bcf1/stable-default.log"
+      ],
+      "correction": "Fresh separate copies compare trace-raw bytes/modes and recursively preserve every original JSON field while permitting the documented annotations; root independently revalidates all 8 sealed histories."
+    }
+  ],
+  "limitations": [
+    "Finite process/IO faults and checksum-valid mutation tests do not establish physical power-loss/hardware behavior.",
+    "Custom local PLSNAP image and PLREPL Install receipt preserve opaque full prefix metadata content; they are not native Kafka FetchSnapshot payloads, an application-state fold or physical log compaction.",
+    "Replication/snapshot transfer is caller-driven typed exchange with trusted configured fixed voters and paths; no autonomous outbound runtime, authenticated peer protocol or dynamic quorum transition is qualified.",
+    "The complete 1216 test count covers the whole broker crate, not 1,216 snapshot-specific assertions. Root primary/cut state counts overlap where independently checked; do not add them as independent scenario totals.",
+    "Apache component evidence concerns snapshot offsets/epochs/completion and publication primitives; customformat and durable causal installation rely on separate Rust runtime/raw WAL/image proof.",
+    "Partial/superseded source gates remain explicitly incomplete. Shared finalQA did not consume unrelated WORK source."
+  ]
+}

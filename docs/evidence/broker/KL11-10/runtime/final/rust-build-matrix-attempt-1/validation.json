@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "source_root": "/workspace/work/retention-final-d147bcf1/source",
+  "source_writes": false,
+  "commands": [
+    {
+      "label": "stable-default",
+      "command": [
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/build-rust.py",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--target",
+        "/workspace/work/target-retention-adopter",
+        "--toolchain",
+        "stable",
+        "--evidence",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default",
+        "--binary-out",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer"
+      ],
+      "exit_code": 0,
+      "log_sha256": "464ed1d607953bf110aa58844db920f0aedf24881ee5662c0715df9f17b90de3"
+    },
+    {
+      "label": "stable-all-features",
+      "command": [
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/build-rust.py",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--target",
+        "/workspace/work/target-retention-adopter",
+        "--toolchain",
+        "stable",
+        "--evidence",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-all-features",
+        "--binary-out",
+        "/workspace/work/retention-final-peers/rust/stable-all-features/retention-peer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "log_sha256": "38ae3cd7455e7dea73df75f7a59f94d519d78c8b97e137d51d5d85118c9c79e9"
+    },
+    {
+      "label": "clean-between-toolchains",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/rust-adopter/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "log_sha256": "8b11170eb83b519aaad644f2d09e56d56cd0e8d53569333950787d724ab8de27"
+    },
+    {
+      "label": "1.85.0-default",
+      "command": [
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/build-rust.py",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--target",
+        "/workspace/work/target-retention-adopter",
+        "--toolchain",
+        "1.85.0",
+        "--evidence",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-default",
+        "--binary-out",
+        "/workspace/work/retention-final-peers/rust/1.85.0-default/retention-peer"
+      ],
+      "exit_code": 0,
+      "log_sha256": "684126add29ce3c4f65244c045f0e421e34533ffa51f70f2877a7315d65b8700"
+    },
+    {
+      "label": "1.85.0-all-features",
+      "command": [
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-10/peers/build-rust.py",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--target",
+        "/workspace/work/target-retention-adopter",
+        "--toolchain",
+        "1.85.0",
+        "--evidence",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-all-features",
+        "--binary-out",
+        "/workspace/work/retention-final-peers/rust/1.85.0-all-features/retention-peer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "log_sha256": "838b0e70895800e7e51122c4fc478274aeb195f8e966374642766167bdd71217"
+    }
+  ],
+  "scope": "Four strict public Rust peer build preparations; actual live histories are separate."
+}

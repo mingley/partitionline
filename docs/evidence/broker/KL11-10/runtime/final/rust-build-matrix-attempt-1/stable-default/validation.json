@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_root": "/workspace/work/retention-final-d147bcf1/source",
+  "toolchain": "stable",
+  "all_features": false,
+  "target": "/workspace/work/target-retention-adopter",
+  "before": {
+    "Cargo.toml": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095",
+    "Cargo.lock": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d",
+    "src/main.rs": "4f6135fe02a54d3f53af1f36747d18934f75b8dffd54f5fcab4dc927044d0bed"
+  },
+  "after": {
+    "Cargo.toml": "1e870a7b8975d7f35d49e740f292baff0afbd49f2e94b17c201a339fb49de095",
+    "Cargo.lock": "eb55e0654806dff85d426cbc39edeaac467714f8131663ab529022b1fbb8576d",
+    "src/main.rs": "4f6135fe02a54d3f53af1f36747d18934f75b8dffd54f5fcab4dc927044d0bed"
+  },
+  "commands": [
+    {
+      "label": "rustc",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "-Vv"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/rustc.log",
+      "log_sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    {
+      "label": "build",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--offline"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/build.log",
+      "log_sha256": "0f107f499a3fd9b99f78c202ab5dfaf85f218a590f058213d17e870f1bddcf55"
+    },
+    {
+      "label": "clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--offline",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/clippy.log",
+      "log_sha256": "6d90527bf375d7d77cc0e3413607cd914cc27dd06ced14f117ce5a99659ff6d0"
+    },
+    {
+      "label": "fmt",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "binary": {
+    "path": "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+    "sha256": "9a4b67c9bdd1fb2e5a15ce2f7b0b8a682ce3b934a46c8bd83517e0d4d1793c6d",
+    "bytes": 12769176
+  },
+  "scope": "Preparation only; actual broker interoperability requires fresh live receipts."
+}

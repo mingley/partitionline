@@ -1,0 +1,1580 @@
+{
+  "schema_version": 1,
+  "task": "KL11-15",
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    },
+    {
+      "argv": [
+        "python3",
+        "-B",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features",
+        "--source-root",
+        "/workspace/work/retention-final-d147bcf1/source",
+        "--source-sha",
+        "d147bcf1c0164778bdbad625842363f3721bc10e"
+      ],
+      "cwd": "/workspace/work/retention-final-d147bcf1/source",
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features.log",
+      "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+    }
+  ],
+  "results": {
+    "seal_cells_passed": 4,
+    "legacy_histories": 8,
+    "events": 776,
+    "journal_pairs": 104,
+    "original_runtime_captures_unchanged": true,
+    "copied_raw_trace_and_wal_bytes_and_modes_unchanged": true,
+    "all_original_trace_fields_preserved_in_annotated_trace": true
+  },
+  "sealer_source": {
+    "path": "docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+    "sha256": "b2784913760398dee21cc06a2a6eeaba31259afcdc2870d030cd41be304f1056",
+    "git_blob": "a4182f0af63914f6bdfc654b3b2175e64d93c80f"
+  },
+  "cells": [
+    {
+      "name": "stable-default",
+      "original_capture": "/workspace/work/retention-final-d147bcf1/stable-default/replication",
+      "sealed_copy": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default",
+      "original_and_copy_raw_files_unchanged": true,
+      "original_files_before_sha256_mode_bytes": {
+        "history-3/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-3/events-progress.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/events.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/journal-receipts.jsonl": {
+          "sha256": "8203c1e4ac6083cf46b8fc1e4ae720bef2319822cff4dc1344dd1bff01c76d3f",
+          "mode": 384,
+          "bytes": 3350
+        },
+        "history-3/journals/0-initial-1/election.wal": {
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-1/metadata.wal": {
+          "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-2/election.wal": {
+          "sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-2/metadata.wal": {
+          "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-3/election.wal": {
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-3/metadata.wal": {
+          "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/66-before-torn-tail-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/66-before-torn-tail-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/69-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/69-before-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/torn-input.wal": {
+          "sha256": "b6559ccddfd63c3cf8fa6216352869aad4f81d310235ca51e9bedf2cf1bbc1e1",
+          "mode": 384,
+          "bytes": 706
+        },
+        "history-3/trace.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-5/events-progress.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/events.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/journal-receipts.jsonl": {
+          "sha256": "d97fc3de777bc0f1818e522af445e0f53299ad1ef66700e4afe433d116fbce8f",
+          "mode": 384,
+          "bytes": 5489
+        },
+        "history-5/journals/0-initial-1/election.wal": {
+          "sha256": "aaa657757243c89cf62319e7e6dfe431a0ab3ba5ea90f8bc1d916a82b3c1c46b",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-1/metadata.wal": {
+          "sha256": "95a4850db2c2d541428ee009405ca5da6cd2365c06a7a8823528ba8a1c29d16d",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-2/election.wal": {
+          "sha256": "2a63463602329f5f514c2e281c6a6bd18f4f92d89e6a66ad6527e14eb7be47c1",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-2/metadata.wal": {
+          "sha256": "c82592532651c7741f07218f6dcb0b58dea7b146f6ebbcf72d254ddfb1393e74",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-3/election.wal": {
+          "sha256": "40f3a84c531f37b635643683b0f0eafc561608997a7ad9f33cb70dc4314c9d59",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-3/metadata.wal": {
+          "sha256": "750ecfe0ffd14f734627b38e1fabcf66698e3db1291c2e913b4539698b400da0",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-4/election.wal": {
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-4/metadata.wal": {
+          "sha256": "9bed28ba959733cffcef2f92392e7e2789370fb5921a015aa005ded6f0984bae",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-5/election.wal": {
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-5/metadata.wal": {
+          "sha256": "f124ca8c27b25eeb12f2df64647d0c1e2cb6575dfe01231b27d8147a5716bfd4",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/112-before-torn-tail-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/112-before-torn-tail-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/115-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/115-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/115-before-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/115-before-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/torn-input.wal": {
+          "sha256": "3dca4df906cab4c66bf812d944ed26a202e9015132944f2394a9707605dce45d",
+          "mode": 384,
+          "bytes": 802
+        },
+        "history-5/trace.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "invalid-follower-commit/election.wal": {
+          "sha256": "6b65c7e5b5b474dea53f3ada5362554a08569417c87606c8ba28d49bee66c663",
+          "mode": 384,
+          "bytes": 392
+        },
+        "invalid-follower-commit/metadata.wal": {
+          "sha256": "e72f0a40e5d217a47291168ff433b9ac6a753e46cf489292c4d5f0cc9881a336",
+          "mode": 384,
+          "bytes": 302
+        },
+        "invalid-follower-commit/mutation.json": {
+          "sha256": "5c62181213d50907acb6bdd0816f425b9d55ee2dbcb1744fbb7100f789827416",
+          "mode": 384,
+          "bytes": 148
+        }
+      },
+      "generated_artifacts": {
+        "history-3/trace-raw.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/trace-raw.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "seal.json": {
+          "sha256": "9387b752563a0aa5738d7a1af4c192fd349ff6a7d1ae73aeaaa4d67a9f158a24",
+          "mode": 384,
+          "bytes": 1487
+        }
+      },
+      "histories": [
+        {
+          "voters": 3,
+          "events": 73,
+          "journal_pairs": 10
+        },
+        {
+          "voters": 5,
+          "events": 121,
+          "journal_pairs": 16
+        }
+      ]
+    },
+    {
+      "name": "stable-all-features",
+      "original_capture": "/workspace/work/retention-final-d147bcf1/stable-all-features/replication",
+      "sealed_copy": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features",
+      "original_and_copy_raw_files_unchanged": true,
+      "original_files_before_sha256_mode_bytes": {
+        "history-3/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-3/events-progress.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/events.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/journal-receipts.jsonl": {
+          "sha256": "8203c1e4ac6083cf46b8fc1e4ae720bef2319822cff4dc1344dd1bff01c76d3f",
+          "mode": 384,
+          "bytes": 3350
+        },
+        "history-3/journals/0-initial-1/election.wal": {
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-1/metadata.wal": {
+          "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-2/election.wal": {
+          "sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-2/metadata.wal": {
+          "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-3/election.wal": {
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-3/metadata.wal": {
+          "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/66-before-torn-tail-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/66-before-torn-tail-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/69-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/69-before-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/torn-input.wal": {
+          "sha256": "b6559ccddfd63c3cf8fa6216352869aad4f81d310235ca51e9bedf2cf1bbc1e1",
+          "mode": 384,
+          "bytes": 706
+        },
+        "history-3/trace.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-5/events-progress.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/events.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/journal-receipts.jsonl": {
+          "sha256": "d97fc3de777bc0f1818e522af445e0f53299ad1ef66700e4afe433d116fbce8f",
+          "mode": 384,
+          "bytes": 5489
+        },
+        "history-5/journals/0-initial-1/election.wal": {
+          "sha256": "aaa657757243c89cf62319e7e6dfe431a0ab3ba5ea90f8bc1d916a82b3c1c46b",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-1/metadata.wal": {
+          "sha256": "95a4850db2c2d541428ee009405ca5da6cd2365c06a7a8823528ba8a1c29d16d",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-2/election.wal": {
+          "sha256": "2a63463602329f5f514c2e281c6a6bd18f4f92d89e6a66ad6527e14eb7be47c1",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-2/metadata.wal": {
+          "sha256": "c82592532651c7741f07218f6dcb0b58dea7b146f6ebbcf72d254ddfb1393e74",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-3/election.wal": {
+          "sha256": "40f3a84c531f37b635643683b0f0eafc561608997a7ad9f33cb70dc4314c9d59",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-3/metadata.wal": {
+          "sha256": "750ecfe0ffd14f734627b38e1fabcf66698e3db1291c2e913b4539698b400da0",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-4/election.wal": {
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-4/metadata.wal": {
+          "sha256": "9bed28ba959733cffcef2f92392e7e2789370fb5921a015aa005ded6f0984bae",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-5/election.wal": {
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-5/metadata.wal": {
+          "sha256": "f124ca8c27b25eeb12f2df64647d0c1e2cb6575dfe01231b27d8147a5716bfd4",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/112-before-torn-tail-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/112-before-torn-tail-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/115-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/115-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/115-before-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/115-before-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/torn-input.wal": {
+          "sha256": "3dca4df906cab4c66bf812d944ed26a202e9015132944f2394a9707605dce45d",
+          "mode": 384,
+          "bytes": 802
+        },
+        "history-5/trace.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "invalid-follower-commit/election.wal": {
+          "sha256": "6b65c7e5b5b474dea53f3ada5362554a08569417c87606c8ba28d49bee66c663",
+          "mode": 384,
+          "bytes": 392
+        },
+        "invalid-follower-commit/metadata.wal": {
+          "sha256": "e72f0a40e5d217a47291168ff433b9ac6a753e46cf489292c4d5f0cc9881a336",
+          "mode": 384,
+          "bytes": 302
+        },
+        "invalid-follower-commit/mutation.json": {
+          "sha256": "5c62181213d50907acb6bdd0816f425b9d55ee2dbcb1744fbb7100f789827416",
+          "mode": 384,
+          "bytes": 148
+        }
+      },
+      "generated_artifacts": {
+        "history-3/trace-raw.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/trace-raw.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "seal.json": {
+          "sha256": "9387b752563a0aa5738d7a1af4c192fd349ff6a7d1ae73aeaaa4d67a9f158a24",
+          "mode": 384,
+          "bytes": 1487
+        }
+      },
+      "histories": [
+        {
+          "voters": 3,
+          "events": 73,
+          "journal_pairs": 10
+        },
+        {
+          "voters": 5,
+          "events": 121,
+          "journal_pairs": 16
+        }
+      ]
+    },
+    {
+      "name": "1.85.0-default",
+      "original_capture": "/workspace/work/retention-final-d147bcf1/1.85.0-default/replication",
+      "sealed_copy": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default",
+      "original_and_copy_raw_files_unchanged": true,
+      "original_files_before_sha256_mode_bytes": {
+        "history-3/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-3/events-progress.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/events.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/journal-receipts.jsonl": {
+          "sha256": "8203c1e4ac6083cf46b8fc1e4ae720bef2319822cff4dc1344dd1bff01c76d3f",
+          "mode": 384,
+          "bytes": 3350
+        },
+        "history-3/journals/0-initial-1/election.wal": {
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-1/metadata.wal": {
+          "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-2/election.wal": {
+          "sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-2/metadata.wal": {
+          "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-3/election.wal": {
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-3/metadata.wal": {
+          "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/66-before-torn-tail-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/66-before-torn-tail-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/69-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/69-before-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/torn-input.wal": {
+          "sha256": "b6559ccddfd63c3cf8fa6216352869aad4f81d310235ca51e9bedf2cf1bbc1e1",
+          "mode": 384,
+          "bytes": 706
+        },
+        "history-3/trace.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-5/events-progress.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/events.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/journal-receipts.jsonl": {
+          "sha256": "d97fc3de777bc0f1818e522af445e0f53299ad1ef66700e4afe433d116fbce8f",
+          "mode": 384,
+          "bytes": 5489
+        },
+        "history-5/journals/0-initial-1/election.wal": {
+          "sha256": "aaa657757243c89cf62319e7e6dfe431a0ab3ba5ea90f8bc1d916a82b3c1c46b",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-1/metadata.wal": {
+          "sha256": "95a4850db2c2d541428ee009405ca5da6cd2365c06a7a8823528ba8a1c29d16d",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-2/election.wal": {
+          "sha256": "2a63463602329f5f514c2e281c6a6bd18f4f92d89e6a66ad6527e14eb7be47c1",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-2/metadata.wal": {
+          "sha256": "c82592532651c7741f07218f6dcb0b58dea7b146f6ebbcf72d254ddfb1393e74",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-3/election.wal": {
+          "sha256": "40f3a84c531f37b635643683b0f0eafc561608997a7ad9f33cb70dc4314c9d59",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-3/metadata.wal": {
+          "sha256": "750ecfe0ffd14f734627b38e1fabcf66698e3db1291c2e913b4539698b400da0",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-4/election.wal": {
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-4/metadata.wal": {
+          "sha256": "9bed28ba959733cffcef2f92392e7e2789370fb5921a015aa005ded6f0984bae",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-5/election.wal": {
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-5/metadata.wal": {
+          "sha256": "f124ca8c27b25eeb12f2df64647d0c1e2cb6575dfe01231b27d8147a5716bfd4",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/112-before-torn-tail-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/112-before-torn-tail-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/115-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/115-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/115-before-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/115-before-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/torn-input.wal": {
+          "sha256": "3dca4df906cab4c66bf812d944ed26a202e9015132944f2394a9707605dce45d",
+          "mode": 384,
+          "bytes": 802
+        },
+        "history-5/trace.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "invalid-follower-commit/election.wal": {
+          "sha256": "6b65c7e5b5b474dea53f3ada5362554a08569417c87606c8ba28d49bee66c663",
+          "mode": 384,
+          "bytes": 392
+        },
+        "invalid-follower-commit/metadata.wal": {
+          "sha256": "e72f0a40e5d217a47291168ff433b9ac6a753e46cf489292c4d5f0cc9881a336",
+          "mode": 384,
+          "bytes": 302
+        },
+        "invalid-follower-commit/mutation.json": {
+          "sha256": "5c62181213d50907acb6bdd0816f425b9d55ee2dbcb1744fbb7100f789827416",
+          "mode": 384,
+          "bytes": 148
+        }
+      },
+      "generated_artifacts": {
+        "history-3/trace-raw.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/trace-raw.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "seal.json": {
+          "sha256": "9387b752563a0aa5738d7a1af4c192fd349ff6a7d1ae73aeaaa4d67a9f158a24",
+          "mode": 384,
+          "bytes": 1487
+        }
+      },
+      "histories": [
+        {
+          "voters": 3,
+          "events": 73,
+          "journal_pairs": 10
+        },
+        {
+          "voters": 5,
+          "events": 121,
+          "journal_pairs": 16
+        }
+      ]
+    },
+    {
+      "name": "1.85.0-all-features",
+      "original_capture": "/workspace/work/retention-final-d147bcf1/1.85.0-all-features/replication",
+      "sealed_copy": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features",
+      "original_and_copy_raw_files_unchanged": true,
+      "original_files_before_sha256_mode_bytes": {
+        "history-3/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-3/events-progress.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/events.jsonl": {
+          "sha256": "b973515c5a209eca5209d90cb6e2cc8d12f04d6164171766b99d3e53caaf42dc",
+          "mode": 384,
+          "bytes": 104965
+        },
+        "history-3/journal-receipts.jsonl": {
+          "sha256": "8203c1e4ac6083cf46b8fc1e4ae720bef2319822cff4dc1344dd1bff01c76d3f",
+          "mode": 384,
+          "bytes": 3350
+        },
+        "history-3/journals/0-initial-1/election.wal": {
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-1/metadata.wal": {
+          "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-2/election.wal": {
+          "sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-2/metadata.wal": {
+          "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/0-initial-3/election.wal": {
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "mode": 384,
+          "bytes": 208
+        },
+        "history-3/journals/0-initial-3/metadata.wal": {
+          "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+          "mode": 384,
+          "bytes": 134
+        },
+        "history-3/journals/66-before-torn-tail-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/66-before-torn-tail-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/69-before-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/69-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/69-before-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/69-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/70-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+          "mode": 384,
+          "bytes": 576
+        },
+        "history-3/journals/71-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+          "mode": 384,
+          "bytes": 573
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+          "mode": 384,
+          "bytes": 760
+        },
+        "history-3/journals/72-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+          "mode": 384,
+          "bytes": 701
+        },
+        "history-3/torn-input.wal": {
+          "sha256": "b6559ccddfd63c3cf8fa6216352869aad4f81d310235ca51e9bedf2cf1bbc1e1",
+          "mode": 384,
+          "bytes": 706
+        },
+        "history-3/trace.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/child.log": {
+          "sha256": "daf071121a9ffe32bbce44190e37a068c96d08bff63fd7b660dd95b77d786dca",
+          "mode": 384,
+          "bytes": 16
+        },
+        "history-5/events-progress.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/events.jsonl": {
+          "sha256": "2cb492c1ccc22b8dbfe2502a5d7f7149993c335241599acc1de7117f62c4c713",
+          "mode": 384,
+          "bytes": 253945
+        },
+        "history-5/journal-receipts.jsonl": {
+          "sha256": "d97fc3de777bc0f1818e522af445e0f53299ad1ef66700e4afe433d116fbce8f",
+          "mode": 384,
+          "bytes": 5489
+        },
+        "history-5/journals/0-initial-1/election.wal": {
+          "sha256": "aaa657757243c89cf62319e7e6dfe431a0ab3ba5ea90f8bc1d916a82b3c1c46b",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-1/metadata.wal": {
+          "sha256": "95a4850db2c2d541428ee009405ca5da6cd2365c06a7a8823528ba8a1c29d16d",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-2/election.wal": {
+          "sha256": "2a63463602329f5f514c2e281c6a6bd18f4f92d89e6a66ad6527e14eb7be47c1",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-2/metadata.wal": {
+          "sha256": "c82592532651c7741f07218f6dcb0b58dea7b146f6ebbcf72d254ddfb1393e74",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-3/election.wal": {
+          "sha256": "40f3a84c531f37b635643683b0f0eafc561608997a7ad9f33cb70dc4314c9d59",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-3/metadata.wal": {
+          "sha256": "750ecfe0ffd14f734627b38e1fabcf66698e3db1291c2e913b4539698b400da0",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-4/election.wal": {
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-4/metadata.wal": {
+          "sha256": "9bed28ba959733cffcef2f92392e7e2789370fb5921a015aa005ded6f0984bae",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/0-initial-5/election.wal": {
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "mode": 384,
+          "bytes": 224
+        },
+        "history-5/journals/0-initial-5/metadata.wal": {
+          "sha256": "f124ca8c27b25eeb12f2df64647d0c1e2cb6575dfe01231b27d8147a5716bfd4",
+          "mode": 384,
+          "bytes": 142
+        },
+        "history-5/journals/112-before-torn-tail-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/112-before-torn-tail-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/115-before-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/115-before-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/115-before-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/115-before-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/115-before-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/115-before-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/115-before-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/election.wal": {
+          "sha256": "ceba54032f0807517f7c2530a72bf45b9caa627e7c97a18ef51a4e2b62920896",
+          "mode": 384,
+          "bytes": 948
+        },
+        "history-5/journals/116-parent-after-abrupt-exit-1/metadata.wal": {
+          "sha256": "c1978ed793454b4ee549cffbcfdbb31f77a76803fd9d65fd1f0422c9272e6a7b",
+          "mode": 384,
+          "bytes": 797
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/election.wal": {
+          "sha256": "e3eaf75866af57af78e911e2973b8911674a7dfed03375492a41f2257211b508",
+          "mode": 384,
+          "bytes": 724
+        },
+        "history-5/journals/117-parent-after-abrupt-exit-2/metadata.wal": {
+          "sha256": "29d1debbbf3fd3dad5c7c96208a864f6c6a08297dcb295f020175515ef3f3b0f",
+          "mode": 384,
+          "bytes": 606
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/election.wal": {
+          "sha256": "659afd553e378d57cd8980c7380505045481f0664b30cc7afbef8c46b9336731",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/118-parent-after-abrupt-exit-3/metadata.wal": {
+          "sha256": "72943cf86fe6d6b68a2e3e2d7dcbac9c656767516edbc9b5a731a33cdd9c0e22",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/election.wal": {
+          "sha256": "f50a2aec0672f42783b80cea965bd9ad5edcab2be4492ca4d25059f5d1639d71",
+          "mode": 384,
+          "bytes": 624
+        },
+        "history-5/journals/119-parent-after-abrupt-exit-4/metadata.wal": {
+          "sha256": "59b6f5cd4791d81d23ce45ce99a7291296b0036aed16920a13d13448fa411f75",
+          "mode": 384,
+          "bytes": 542
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/election.wal": {
+          "sha256": "88434095f25290a6c210d7313dd22e7b6387f4c828e7a490ee10dcf2abbd1437",
+          "mode": 384,
+          "bytes": 848
+        },
+        "history-5/journals/120-parent-after-abrupt-exit-5/metadata.wal": {
+          "sha256": "700854503bf1a6ed3372d450c45dd35468c9e46f0c2587d81976e820fd2c82ce",
+          "mode": 384,
+          "bytes": 733
+        },
+        "history-5/torn-input.wal": {
+          "sha256": "3dca4df906cab4c66bf812d944ed26a202e9015132944f2394a9707605dce45d",
+          "mode": 384,
+          "bytes": 802
+        },
+        "history-5/trace.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "invalid-follower-commit/election.wal": {
+          "sha256": "6b65c7e5b5b474dea53f3ada5362554a08569417c87606c8ba28d49bee66c663",
+          "mode": 384,
+          "bytes": 392
+        },
+        "invalid-follower-commit/metadata.wal": {
+          "sha256": "e72f0a40e5d217a47291168ff433b9ac6a753e46cf489292c4d5f0cc9881a336",
+          "mode": 384,
+          "bytes": 302
+        },
+        "invalid-follower-commit/mutation.json": {
+          "sha256": "5c62181213d50907acb6bdd0816f425b9d55ee2dbcb1744fbb7100f789827416",
+          "mode": 384,
+          "bytes": 148
+        }
+      },
+      "generated_artifacts": {
+        "history-3/trace-raw.json": {
+          "sha256": "f604a716954d7395e96ce0402bad1065b101cf2786c21f6c8f239fed78a40fde",
+          "mode": 384,
+          "bytes": 108535
+        },
+        "history-5/trace-raw.json": {
+          "sha256": "f397c13eb74c4615ffb43bc0bf07f918607ad476a422566b7a553efcc7900f31",
+          "mode": 384,
+          "bytes": 259660
+        },
+        "seal.json": {
+          "sha256": "9387b752563a0aa5738d7a1af4c192fd349ff6a7d1ae73aeaaa4d67a9f158a24",
+          "mode": 384,
+          "bytes": 1487
+        }
+      },
+      "histories": [
+        {
+          "voters": 3,
+          "events": 73,
+          "journal_pairs": 10
+        },
+        {
+          "voters": 5,
+          "events": 121,
+          "journal_pairs": 16
+        }
+      ]
+    }
+  ],
+  "prior_wrapper_failure": {
+    "path": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1",
+    "classification": "Wrapper incorrectly expected annotated trace.json unchanged. Actual exact sealer preserves bytes in trace-raw.json and adds provenance to trace.json. First sealer exited0; originals never modified. Fresh second attempt verifies raw copy and all original JSON fields explicitly."
+  },
+  "scope": "Inherited exact-source73 hash/state trace sealer on isolated copies; full independent causal checks are separate receipts."
+}

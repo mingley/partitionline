@@ -1,0 +1,679 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "scope": "Verified byte-preserving local retention of the shared19-command1216-test matrix; no new Cargo execution.",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        "-"
+      ],
+      "scope": "Copy19already-executedcommandlogs+receipt; SHA256/mode comparison; deterministicgzip of exactsource manifest; parseactualRusttestcounts",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "shared_commands_passed": 19,
+    "tests_passed": 1216,
+    "test_failures": 0,
+    "ignored": 0,
+    "unchanged_git_source_files": 44019,
+    "original_logs_unchanged": true,
+    "copied_logs_bytes_and_modes_match": true
+  },
+  "cells": [
+    {
+      "cell": "stable-default",
+      "passed": 256,
+      "failed": 0,
+      "ignored": 0,
+      "suites": [
+        {
+          "suite": "Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc)",
+          "status": "ok",
+          "passed": 47,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/catalog.rs (/workspace/work/target-broker-segments/debug/deps/catalog-63fcbd6a24aeda18)",
+          "status": "ok",
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/codecs.rs (/workspace/work/target-broker-segments/debug/deps/codecs-e5f83d2b356a999c)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a)",
+          "status": "ok",
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/journal.rs (/workspace/work/target-broker-segments/debug/deps/journal-e11c6628397343f0)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/metadata.rs (/workspace/work/target-broker-segments/debug/deps/metadata-7d5b85f288b6d75b)",
+          "status": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/oidc_validation.rs (/workspace/work/target-broker-segments/debug/deps/oidc_validation-bceae71c7cc60860)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-6082aa461197432c)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/protocol.rs (/workspace/work/target-broker-segments/debug/deps/protocol-85d4e14bfc80e99a)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_election.rs (/workspace/work/target-broker-segments/debug/deps/raft_election-fdd916042ccc2539)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_protocol.rs (/workspace/work/target-broker-segments/debug/deps/raft_protocol-a5d013805f23b48d)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_replication.rs (/workspace/work/target-broker-segments/debug/deps/raft_replication-0ded16aa4dab486e)",
+          "status": "ok",
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_snapshot.rs (/workspace/work/target-broker-segments/debug/deps/raft_snapshot-094df91f92704702)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/records.rs (/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/retention.rs (/workspace/work/target-broker-segments/debug/deps/retention-ddb628fb8c2a0f99)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl.rs (/workspace/work/target-broker-segments/debug/deps/sasl-5b3669f368e2ae49)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_credentials.rs (/workspace/work/target-broker-segments/debug/deps/sasl_credentials-6231c978092e056d)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_sessions.rs (/workspace/work/target-broker-segments/debug/deps/sasl_sessions-e9364c4dc0ca55dc)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c)",
+          "status": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/tls.rs (/workspace/work/target-broker-segments/debug/deps/tls-cfda0bad2b73264b)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/transport.rs (/workspace/work/target-broker-segments/debug/deps/transport-654727d80d8dea19)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "cell": "stable-all-features",
+      "passed": 352,
+      "failed": 0,
+      "ignored": 0,
+      "suites": [
+        {
+          "suite": "Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-d553c0d403ec4ee5)",
+          "status": "ok",
+          "passed": 75,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/catalog.rs (/workspace/work/target-broker-segments/debug/deps/catalog-c9cad73163ebaed8)",
+          "status": "ok",
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/codecs.rs (/workspace/work/target-broker-segments/debug/deps/codecs-57c6b58bd2171dad)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-1e357d401d6ca825)",
+          "status": "ok",
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/journal.rs (/workspace/work/target-broker-segments/debug/deps/journal-650e5ce8344cdba6)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/metadata.rs (/workspace/work/target-broker-segments/debug/deps/metadata-d4d10d9f9b5f94db)",
+          "status": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/oidc_validation.rs (/workspace/work/target-broker-segments/debug/deps/oidc_validation-15034c018747bc12)",
+          "status": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-747e88e95cf322cb)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-057c4bfa6059c4c4)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/protocol.rs (/workspace/work/target-broker-segments/debug/deps/protocol-7277bf9ed8449c0c)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_election.rs (/workspace/work/target-broker-segments/debug/deps/raft_election-d7ec6ad543a2cd21)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_protocol.rs (/workspace/work/target-broker-segments/debug/deps/raft_protocol-2eb56817bf467f97)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_replication.rs (/workspace/work/target-broker-segments/debug/deps/raft_replication-f54b01b49a708c2b)",
+          "status": "ok",
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_snapshot.rs (/workspace/work/target-broker-segments/debug/deps/raft_snapshot-504fddb62bcd9d30)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/records.rs (/workspace/work/target-broker-segments/debug/deps/records-8024c5e3009ff876)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/retention.rs (/workspace/work/target-broker-segments/debug/deps/retention-eb0959a4081096b8)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl.rs (/workspace/work/target-broker-segments/debug/deps/sasl-b79793747d359560)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_credentials.rs (/workspace/work/target-broker-segments/debug/deps/sasl_credentials-3add33d7750fd844)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_sessions.rs (/workspace/work/target-broker-segments/debug/deps/sasl_sessions-392db3a5bc1508b4)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-b4b87189b57b3a3d)",
+          "status": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/tls.rs (/workspace/work/target-broker-segments/debug/deps/tls-86e3f538d0b3e839)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/transport.rs (/workspace/work/target-broker-segments/debug/deps/transport-adfafaa7060b0246)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-default",
+      "passed": 256,
+      "failed": 0,
+      "ignored": 0,
+      "suites": [
+        {
+          "suite": "Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-ea773fb32d16e69c)",
+          "status": "ok",
+          "passed": 47,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/catalog.rs (/workspace/work/target-broker-segments/debug/deps/catalog-4c9e8b6153d8a669)",
+          "status": "ok",
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/codecs.rs (/workspace/work/target-broker-segments/debug/deps/codecs-04d6a3a1629d873a)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-8562db1c75ebefc2)",
+          "status": "ok",
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/journal.rs (/workspace/work/target-broker-segments/debug/deps/journal-f710ca211c750ad3)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/metadata.rs (/workspace/work/target-broker-segments/debug/deps/metadata-b0ca26ddd70de977)",
+          "status": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/oidc_validation.rs (/workspace/work/target-broker-segments/debug/deps/oidc_validation-42016f58077d9a54)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-740a16c0a82eaef0)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-fe4853906326c6dc)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/protocol.rs (/workspace/work/target-broker-segments/debug/deps/protocol-52138bcc7d2ce28e)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_election.rs (/workspace/work/target-broker-segments/debug/deps/raft_election-c18593246fa844c7)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_protocol.rs (/workspace/work/target-broker-segments/debug/deps/raft_protocol-ab246e857326ed2a)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_replication.rs (/workspace/work/target-broker-segments/debug/deps/raft_replication-9bcefe4fc77d2f90)",
+          "status": "ok",
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_snapshot.rs (/workspace/work/target-broker-segments/debug/deps/raft_snapshot-12c7c0017cbf18bd)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/records.rs (/workspace/work/target-broker-segments/debug/deps/records-fb825c23446ef8a7)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/retention.rs (/workspace/work/target-broker-segments/debug/deps/retention-ab0bb9612899d721)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl.rs (/workspace/work/target-broker-segments/debug/deps/sasl-904634524bfa597b)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_credentials.rs (/workspace/work/target-broker-segments/debug/deps/sasl_credentials-73c263917ae1bf49)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_sessions.rs (/workspace/work/target-broker-segments/debug/deps/sasl_sessions-e89950569065fb85)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-a6cf26df558bc909)",
+          "status": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/tls.rs (/workspace/work/target-broker-segments/debug/deps/tls-cdfaa0504df3a5ed)",
+          "status": "ok",
+          "passed": 0,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/transport.rs (/workspace/work/target-broker-segments/debug/deps/transport-1096c292fb9f8ab8)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "passed": 352,
+      "failed": 0,
+      "ignored": 0,
+      "suites": [
+        {
+          "suite": "Running unittests src/lib.rs (/workspace/work/target-broker-segments/debug/deps/partitionline_broker-d8ab26ec19c1cfa0)",
+          "status": "ok",
+          "passed": 75,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/catalog.rs (/workspace/work/target-broker-segments/debug/deps/catalog-7707e2d61a7210e3)",
+          "status": "ok",
+          "passed": 14,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/codecs.rs (/workspace/work/target-broker-segments/debug/deps/codecs-1036dc28f3a74684)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/fetch.rs (/workspace/work/target-broker-segments/debug/deps/fetch-1751f282d6a56265)",
+          "status": "ok",
+          "passed": 24,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/journal.rs (/workspace/work/target-broker-segments/debug/deps/journal-a38d6e65deabd563)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/metadata.rs (/workspace/work/target-broker-segments/debug/deps/metadata-4d1387e52eb67a4d)",
+          "status": "ok",
+          "passed": 8,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/oidc_validation.rs (/workspace/work/target-broker-segments/debug/deps/oidc_validation-1f132afeddf48469)",
+          "status": "ok",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/partition.rs (/workspace/work/target-broker-segments/debug/deps/partition-8db6cb900ffbb8e5)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/produce.rs (/workspace/work/target-broker-segments/debug/deps/produce-6e9735a0c917a43c)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/protocol.rs (/workspace/work/target-broker-segments/debug/deps/protocol-f232e75dec39e97d)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_election.rs (/workspace/work/target-broker-segments/debug/deps/raft_election-4f72d87b5c9dd8dc)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_protocol.rs (/workspace/work/target-broker-segments/debug/deps/raft_protocol-8c7ca5c1be7670cb)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_replication.rs (/workspace/work/target-broker-segments/debug/deps/raft_replication-1f6964f389f2bde4)",
+          "status": "ok",
+          "passed": 29,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/raft_snapshot.rs (/workspace/work/target-broker-segments/debug/deps/raft_snapshot-956d1051e1ae9872)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/records.rs (/workspace/work/target-broker-segments/debug/deps/records-0af8dd324333efd1)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/retention.rs (/workspace/work/target-broker-segments/debug/deps/retention-93a8c175737dd47a)",
+          "status": "ok",
+          "passed": 12,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl.rs (/workspace/work/target-broker-segments/debug/deps/sasl-47d61acd2a8e4562)",
+          "status": "ok",
+          "passed": 10,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_credentials.rs (/workspace/work/target-broker-segments/debug/deps/sasl_credentials-b367c1f931a0e2e6)",
+          "status": "ok",
+          "passed": 9,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/sasl_sessions.rs (/workspace/work/target-broker-segments/debug/deps/sasl_sessions-fad506de04a37c3c)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/segments.rs (/workspace/work/target-broker-segments/debug/deps/segments-17cf2f4ce7ae3396)",
+          "status": "ok",
+          "passed": 21,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/tls.rs (/workspace/work/target-broker-segments/debug/deps/tls-3038d8c203686624)",
+          "status": "ok",
+          "passed": 15,
+          "failed": 0,
+          "ignored": 0
+        },
+        {
+          "suite": "Running tests/transport.rs (/workspace/work/target-broker-segments/debug/deps/transport-10c202537863126a)",
+          "status": "ok",
+          "passed": 16,
+          "failed": 0,
+          "ignored": 0
+        }
+      ]
+    }
+  ],
+  "matrix_validation_sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa",
+  "source_manifest_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e",
+  "retained_source_manifest_gzip_sha256": "7dc22537b216708c4927168250e648b400777274780b0a16b30682fa7536f9de",
+  "shared_runtime_path": "/workspace/work/retention-final-d147bcf1",
+  "matrix_executor": "codex-open-loop-20261003"
+}

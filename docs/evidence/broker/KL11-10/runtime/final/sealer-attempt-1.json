@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-10/runtime/final/seal-live.py"
+  ],
+  "failure": "ValueError: actual used preparation/source receipt",
+  "classification": "Evidence sealer required literal relative path equality although three driver invocations retained absolute paths; all underlying SHA256 pins matched. No peer/runtime failure. Normalize path presentation and compare exact SHA256.",
+  "actual_runtime_repeated": false
+}

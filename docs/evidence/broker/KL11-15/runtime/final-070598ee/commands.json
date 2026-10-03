@@ -1,0 +1,400 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clean",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "-p",
+      "partitionline-broker"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-clean.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.05086790699715493,
+    "sha256": "4fd3eb232fc742726d2ddb5a085ffa0b2760c4532c885a5d209ddf9e09417f74"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-default/tests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 22.853824951002025,
+    "sha256": "d7c932b1593af816fa3090614b97c8dccd467406f323bdeb93cfcb0dd7db376d"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/final-070598ee/stable-default/replication",
+      "--source-root",
+      "/workspace/work/snapshot-runtime/final-070598ee/source",
+      "--source-sha",
+      "070598ee36c8ed0bdea64d94eec929413a85534c"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-default/seal.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.06273511899780715,
+    "sha256": "22cfc3a399ce7b0080473698aa9e051da28b2610618b9f05ad38fb125c7defb2"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-default/clippy.log",
+    "exit_code": 0,
+    "elapsed_seconds": 5.19865055399714,
+    "sha256": "a3270298bf65c53e53649084d4356515a39cffb50b95cf4a80f5d278b501fb29"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "doc",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--no-deps",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-default/docs.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.4517244210001081,
+    "sha256": "a643c111e9d8bbf09eeef88e9f1e799b059a17e3d22a83bfcf72ab5dd9cc37c5"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--doc",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-default/doctests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.1428944240033161,
+    "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-all-features/tests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 55.841207711004245,
+    "sha256": "7a20c30dd5c4cc6973695c4453ec8cfcfc65d4520532a97e3fa6bc66865b356b"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/final-070598ee/stable-all-features/replication",
+      "--source-root",
+      "/workspace/work/snapshot-runtime/final-070598ee/source",
+      "--source-sha",
+      "070598ee36c8ed0bdea64d94eec929413a85534c"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-all-features/seal.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.06241366799804382,
+    "sha256": "22cfc3a399ce7b0080473698aa9e051da28b2610618b9f05ad38fb125c7defb2"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-all-features/clippy.log",
+    "exit_code": 0,
+    "elapsed_seconds": 15.965602800999477,
+    "sha256": "4c156e2a5294fc66232e7a735d4a1c2852877c74fed8e8a75ffd2c7524d9027f"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "doc",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--no-deps",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-all-features/docs.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.6121678250055993,
+    "sha256": "9dd05e23612ec107ba16dcbdc6d2ca4d330976189194d004e5563ca4efb815a2"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--doc",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "stable-all-features/doctests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.20040266999421874,
+    "sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clean",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "-p",
+      "partitionline-broker"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-clean.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.05987339100101963,
+    "sha256": "8cceefc7da74c6ae3fe1a1390e8a0cf917d5bfe3a99f4b996b4242945e9aa750"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-default/tests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 27.863202859000012,
+    "sha256": "dc832a3211fa78dd4b7f53d19a64b9d54ee6fad505a447ae4fd99a41a263c149"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/final-070598ee/1.85.0-default/replication",
+      "--source-root",
+      "/workspace/work/snapshot-runtime/final-070598ee/source",
+      "--source-sha",
+      "070598ee36c8ed0bdea64d94eec929413a85534c"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-default/seal.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.0641660530018271,
+    "sha256": "22cfc3a399ce7b0080473698aa9e051da28b2610618b9f05ad38fb125c7defb2"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-default/clippy.log",
+    "exit_code": 0,
+    "elapsed_seconds": 8.467503750995093,
+    "sha256": "a395ac7fc6cd9e951230f0698449215e7383e1bf3ac296a5418b4c5aa171a666"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "doc",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--no-deps",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-default/docs.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.7376941530019394,
+    "sha256": "4d8ec7420a005cd903c4101dc4fdca5a4170d97cf5b1cbdf83176ade2ce5d5fb"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--doc",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-default/doctests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.16944717900332762,
+    "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-all-features/tests.log",
+    "exit_code": 0,
+    "elapsed_seconds": 70.28369825400296,
+    "sha256": "b6de7bf160e867a2ec7c52b9a461e101243b1e435f22909409f1c9831060b621"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/final-070598ee/1.85.0-all-features/replication",
+      "--source-root",
+      "/workspace/work/snapshot-runtime/final-070598ee/source",
+      "--source-sha",
+      "070598ee36c8ed0bdea64d94eec929413a85534c"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-all-features/seal.log",
+    "exit_code": 0,
+    "elapsed_seconds": 0.06299172899889527,
+    "sha256": "22cfc3a399ce7b0080473698aa9e051da28b2610618b9f05ad38fb125c7defb2"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "clippy",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-targets",
+      "-j1",
+      "--all-features",
+      "--",
+      "-D",
+      "warnings"
+    ],
+    "cwd": "/workspace/work/snapshot-runtime/final-070598ee/source",
+    "log": "1.85.0-all-features/clippy.log",
+    "exit_code": 101,
+    "elapsed_seconds": 21.643572850000055,
+    "sha256": "38d78b69fead07c4174e149bbeea009ddea4dc00e3c869bd3ef5ad4c4b032803"
+  }
+]

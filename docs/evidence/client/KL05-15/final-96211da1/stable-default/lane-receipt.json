@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "toolchain": "stable",
+  "features": "default",
+  "all_target_counts": {
+    "passed": 1835,
+    "failed": 0,
+    "ignored": 5
+  },
+  "doctest_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0
+  },
+  "command_receipts": 9,
+  "source_before_after_receipts": 18,
+  "accepted_retained_binaries": {
+    "broker_compatibility.elf": {
+      "source_path": "/workspace/work/client-share-target/debug/deps/broker_compatibility-504f1bc62ad9b1df",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-96211da1/broker_compatibility.elf",
+      "sha256": "f4f4a99472693004b3f2a0b75e54a8dcc0f352438db8b1640666e4676c323b54",
+      "bytes": 20513552,
+      "mode": "0o700"
+    },
+    "verifiable_producer": {
+      "source_path": "/workspace/work/client-share-target/debug/examples/verifiable_producer",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-96211da1/verifiable_producer",
+      "sha256": "d706888af0abbeace75640e2b43e8c59772c64d66778ea9a232ff20c4886373a",
+      "bytes": 13030584,
+      "mode": "0o700"
+    },
+    "verifiable_consumer": {
+      "source_path": "/workspace/work/client-share-target/debug/examples/verifiable_consumer",
+      "retained_path": "/workspace/work/client-share-assessment/retained-default-96211da1/verifiable_consumer",
+      "sha256": "b8a6796f0830934e3db626feab880750b6751411dab9b45d8ba6130d97f592e7",
+      "bytes": 15105664,
+      "mode": "0o700"
+    }
+  },
+  "limits": "broker_compatibility live test is compiled but ignored in this lane; root must invoke it against fresh3releasecells. Current-v2 live test qualified separately in current-docker proof. No source/code edit."
+}

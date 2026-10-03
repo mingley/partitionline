@@ -1,0 +1,1 @@
+[{"name": "committed-overlap-positive", "exit_code": 0}, {"name": "committed-overlap-unsafe", "exit_code": 101}, {"name": "install-sync-positive", "exit_code": 0}, {"name": "install-sync-unsafe", "exit_code": 101}, {"name": "image-descriptor-binding-positive", "exit_code": 0}, {"name": "image-descriptor-binding-unsafe", "exit_code": 101}]

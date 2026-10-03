@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "source_files": {
+    "docs/evidence/broker/KL11-73/oracle/history/history_oracle.py": {
+      "sha256": "a44aca113c880467995711960ad96752a02ced087498d7dd741d7a0c5a3f5b57",
+      "mode": 420
+    },
+    "docs/evidence/broker/KL11-73/oracle/history/wal_oracle.py": {
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+      "mode": 420
+    },
+    "docs/evidence/broker/KL11-73/oracle/history/election_oracle.py": {
+      "sha256": "f3debf56bcc6b9859e140dc0e740b83e4f478b4c237e81770d1050fcb198820a",
+      "mode": 420
+    }
+  },
+  "counts": {
+    "histories": 8,
+    "events": 776,
+    "journal_pairs": 104
+  },
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-3/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 27
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-5/trace.json",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_inputs_unchanged": true,
+      "raw_input_files": 39
+    }
+  ],
+  "sealer_receipt_sha256": "aaef07b74067d8607222e8a6fbf614cad171fd000ecbfaa8d3e9382014eb72a5",
+  "artifacts": {
+    "1.85.0-all-features-3-inputs-after.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "1.85.0-all-features-3-inputs-before.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "1.85.0-all-features-3.json": {
+      "sha256": "780e5a83949e1652f1f76ff67c3bdb150bd616ecbea9a3dc20c17a566a3de43d",
+      "mode": 384
+    },
+    "1.85.0-all-features-3.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "1.85.0-all-features-5-inputs-after.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "1.85.0-all-features-5-inputs-before.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "1.85.0-all-features-5.json": {
+      "sha256": "e298c6a46fc069d795145376b25b8982bb15aa54bf10ac019e558fe646198bff",
+      "mode": 384
+    },
+    "1.85.0-all-features-5.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "1.85.0-default-3-inputs-after.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "1.85.0-default-3-inputs-before.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "1.85.0-default-3.json": {
+      "sha256": "780e5a83949e1652f1f76ff67c3bdb150bd616ecbea9a3dc20c17a566a3de43d",
+      "mode": 384
+    },
+    "1.85.0-default-3.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "1.85.0-default-5-inputs-after.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "1.85.0-default-5-inputs-before.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "1.85.0-default-5.json": {
+      "sha256": "e298c6a46fc069d795145376b25b8982bb15aa54bf10ac019e558fe646198bff",
+      "mode": 384
+    },
+    "1.85.0-default-5.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "commands.json": {
+      "sha256": "f3c2186478804de39341dfa7366049a51c8ca8ad36337d3dd0900f3280d52941",
+      "mode": 384
+    },
+    "stable-all-features-3-inputs-after.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "stable-all-features-3-inputs-before.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "stable-all-features-3.json": {
+      "sha256": "780e5a83949e1652f1f76ff67c3bdb150bd616ecbea9a3dc20c17a566a3de43d",
+      "mode": 384
+    },
+    "stable-all-features-3.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "stable-all-features-5-inputs-after.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "stable-all-features-5-inputs-before.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "stable-all-features-5.json": {
+      "sha256": "e298c6a46fc069d795145376b25b8982bb15aa54bf10ac019e558fe646198bff",
+      "mode": 384
+    },
+    "stable-all-features-5.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "stable-default-3-inputs-after.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "stable-default-3-inputs-before.json": {
+      "sha256": "1e638414998a41f3132d1120bfebb39eee1f091e9315f4a660d8678bd68bfb42",
+      "mode": 384
+    },
+    "stable-default-3.json": {
+      "sha256": "780e5a83949e1652f1f76ff67c3bdb150bd616ecbea9a3dc20c17a566a3de43d",
+      "mode": 384
+    },
+    "stable-default-3.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    "stable-default-5-inputs-after.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "stable-default-5-inputs-before.json": {
+      "sha256": "035041a4cba2c61637dad0be8a4a520b805ea6b7a08d514b72c57d09f524cd39",
+      "mode": 384
+    },
+    "stable-default-5.json": {
+      "sha256": "e298c6a46fc069d795145376b25b8982bb15aa54bf10ac019e558fe646198bff",
+      "mode": 384
+    },
+    "stable-default-5.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    }
+  },
+  "runner_sha256": "2bd399e51990f0d4c92b02412a0f51c779f442a4fa34cd24dc0a04c891e97917",
+  "scope": "Fresh inherited fixed-voter causal safety regression; sealed copies preserve every original captured field",
+  "limitations": [
+    "Finite captured histories; no dynamic voting or autonomous network qualification.",
+    "Independent validator controls from the earlier accepted identical validator remain separately source-pinned."
+  ]
+}

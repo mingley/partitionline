@@ -1,0 +1,2060 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "gate_source_sha": "e1917eed4075ea3fcec80546a569c0febb319b90",
+  "runtime_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "input_aggregate_sha256": "e15e96653c7aa757f0dce8d88a483668e50091dba1b448edc40c5abe81955970",
+  "decoder_source_sha256": "7c4d4d6577609659d7468be83a6498230ca329ef6da61e4eaf8b5557fb2e5388",
+  "wrapper_sha256": "499f547373a07a4bce842ee3b97aafacf15a8ebbf39ff2e5d4fec84a0688b91c",
+  "actual_exchanges": 120,
+  "raw_execution_histories_checked": 24,
+  "controls": [
+    {
+      "name": "missing-case",
+      "rejected": true,
+      "reason": "incomplete live cases"
+    },
+    {
+      "name": "duplicate-case",
+      "rejected": true,
+      "reason": "duplicate live identity"
+    },
+    {
+      "name": "wrong-source",
+      "rejected": true,
+      "reason": "live source/schema/count/verdict mismatch"
+    },
+    {
+      "name": "boolean-count",
+      "rejected": true,
+      "reason": "live source/schema/count/verdict mismatch"
+    },
+    {
+      "name": "wrong-feature",
+      "rejected": true,
+      "reason": "live identity/header mismatch"
+    },
+    {
+      "name": "wrong-phase",
+      "rejected": true,
+      "reason": "live identity/header mismatch"
+    },
+    {
+      "name": "boolean-version",
+      "rejected": true,
+      "reason": "live identity/header mismatch"
+    },
+    {
+      "name": "wrong-request-header",
+      "rejected": true,
+      "reason": "live identity/header mismatch"
+    },
+    {
+      "name": "boolean-response-header",
+      "rejected": true,
+      "reason": "live identity/header mismatch"
+    },
+    {
+      "name": "request-truncated",
+      "rejected": true,
+      "reason": "truncated request"
+    },
+    {
+      "name": "request-trailing",
+      "rejected": true,
+      "reason": "request trailing bytes"
+    },
+    {
+      "name": "wrong-correlation",
+      "rejected": true,
+      "reason": "request header API/version/correlation mismatch"
+    },
+    {
+      "name": "response-truncated",
+      "rejected": true,
+      "reason": "truncated ApiVersions response"
+    },
+    {
+      "name": "response-trailing",
+      "rejected": true,
+      "reason": "ApiVersions response trailing bytes"
+    },
+    {
+      "name": "wrong-profile",
+      "rejected": true,
+      "reason": "live profile mismatch"
+    },
+    {
+      "name": "wrong-advertised-version",
+      "rejected": true,
+      "reason": "decoded ApiVersions: forged/extra/out-of-range profile claim"
+    },
+    {
+      "name": "forged-raw-receipt",
+      "rejected": true,
+      "reason": "raw report reference mismatch"
+    }
+  ],
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python",
+    "-B",
+    "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/check-live-api-versions.py",
+    "--gate-source",
+    "/workspace/work/retention-registry-final-e1917eed/source",
+    "--input",
+    "docs/evidence/broker/KL11-10/runtime/final/api-versions-validation.json",
+    "--output",
+    "docs/evidence/broker/KL11-10/oracle/apache/registry-gates/live-e1917eed"
+  ],
+  "observations": [
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.1.2",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.2.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "default",
+        "4.3.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.1.2",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.2.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "stable",
+        "all-features",
+        "4.3.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.1.2",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.2.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "default",
+        "4.3.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.1.2",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.1.2",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.2.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.2.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "seed",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "seed",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "seed",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "seed",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "seed",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "restart",
+        0
+      ],
+      "correlation_id": 300,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "8903fc01fb7098d91410c7d0b8b13fb8320e0051d21ab5e3e1feecdedd87ba7a"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "restart",
+        1
+      ],
+      "correlation_id": 301,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "2f2c208bfa2c91c6536ae46cfc37dd50d208df77e52e15fe32db59ccbf13efa1"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "restart",
+        2
+      ],
+      "correlation_id": 302,
+      "request_bytes": 26,
+      "client_id": "retention-oracle",
+      "software": null,
+      "software_version": null,
+      "consumed_request_bytes": 26,
+      "response_sha256": "65424cc55177e027b0c0528f6bb62892e10af87f4c680023bfcc0f7fea4cf174"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "restart",
+        3
+      ],
+      "correlation_id": 303,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "83d4379c37f9a84803220ac9946b9ac6b1a4de3a1f357dda19aaf837d412270f"
+    },
+    {
+      "identity": [
+        "1-85-0",
+        "all-features",
+        "4.3.1",
+        "restart",
+        4
+      ],
+      "correlation_id": 304,
+      "request_bytes": 49,
+      "client_id": "retention-oracle",
+      "software": "retention-peer",
+      "software_version": "4.3.1",
+      "consumed_request_bytes": 49,
+      "response_sha256": "9163dae790edfc40a808840a6f96f7a67804040eb8fea3370bd217919cd0b40f"
+    }
+  ],
+  "scope": "Complete actual request/header/body parse plus the exact pushed independent API18 response decoder; raw history hashes/frames matched. Source/peer/build/TCP execution provenance remains the separate d147 live receipts. Wrapper itself is retained by exact bytes, not claimed present in e191 Git.",
+  "artifacts_sha256": {
+    "actual-api-versions.json": "e15e96653c7aa757f0dce8d88a483668e50091dba1b448edc40c5abe81955970",
+    "check-live-api-versions.py": "499f547373a07a4bce842ee3b97aafacf15a8ebbf39ff2e5d4fec84a0688b91c",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.1.2-restart.json": "e6c1426aec2b0c3f1f844ac3a47d0b95a1cc59d3537cf1ffebb3c9aef8d2bf2a",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.1.2-seed.json": "afc7759aaae708126f18ae871517e040e451aeb8aada8cd31ebe193a751e8006",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.2.1-restart.json": "69f52b2273ea0eb8fd90ece8067f6dd769118e0d829c3afb2e76bb854b4b74db",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.2.1-seed.json": "7d4df93ccdff16f008673da98811a97cb5827b16ae5b426fee20cfd97f62bd2f",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.3.1-restart.json": "7f2260baa3213b7ce856e664ccc782bf2211331c307e2fa7bd17b3b6a00df5db",
+    "raw-reports/live-1.85.0-all-features-attempt-1/4.3.1-seed.json": "0cd6c8bf072c773c7a3b1dea076d8fa952ae3c861bc7d4d72b324fcd6ac7813f",
+    "raw-reports/live-1.85.0-default-attempt-1/4.1.2-restart.json": "4401fa90be18a8e2f95167f51ebd08e461e7d850a8a16dd51e6a2330ce02e7a5",
+    "raw-reports/live-1.85.0-default-attempt-1/4.1.2-seed.json": "aab0cd3b259fbf0bcf28d1decf56b80cc38587b763fe4ea02a32e7a1a907d13e",
+    "raw-reports/live-1.85.0-default-attempt-1/4.2.1-restart.json": "603affb768fd215f6092e732e91852e40946ef5b929b17a08f87aaf26f46f127",
+    "raw-reports/live-1.85.0-default-attempt-1/4.2.1-seed.json": "562e2e8d1ce9e54bb11a24e0a3f24b01fa2b2c6c6e149c1a7ca6f13fdd0b1518",
+    "raw-reports/live-1.85.0-default-attempt-1/4.3.1-restart.json": "c172cdbdebb90de07e1c949d8462412e8d6111cdeb8f43a8d5bcd37563d8c6f1",
+    "raw-reports/live-1.85.0-default-attempt-1/4.3.1-seed.json": "75ee1b25c16de259c84048b6db284345bdef9c17613af494151b8ce3cc3efe69",
+    "raw-reports/live-stable-all-features-attempt-1/4.1.2-restart.json": "c6f849b88cb65c82bd5f1b0b8ea496367a1290a9c63ac23313153bec6e72be2e",
+    "raw-reports/live-stable-all-features-attempt-1/4.1.2-seed.json": "01f15e0e454ec9a9c0d501d88d74a599b08a84034b4439087f55cbc3010baff7",
+    "raw-reports/live-stable-all-features-attempt-1/4.2.1-restart.json": "6cbcb5ca881b41b25c96c4ee73971708a6cff882a12423424eead2a493212a1b",
+    "raw-reports/live-stable-all-features-attempt-1/4.2.1-seed.json": "3fe8231ecdb7f80cc7817de0a44d87778e796fa78b21f2e6056b280483b80dd2",
+    "raw-reports/live-stable-all-features-attempt-1/4.3.1-restart.json": "849e3c0171bf1e5f826d3f1eecd163a55ba3ec0d8499efd7e948c7a98cdc1a02",
+    "raw-reports/live-stable-all-features-attempt-1/4.3.1-seed.json": "577ac70a817632f6de01a85a4d9b82215d31fd86192f4d640def885f2578421b",
+    "raw-reports/live-stable-default-attempt-1/4.1.2-restart.json": "dd9d6feaf6d8ce9626a55f3597ecd30427c2ab42f7db1855dc8d9e11f654d6fe",
+    "raw-reports/live-stable-default-attempt-1/4.1.2-seed.json": "821b55b932c50b1fc5d05b07ed462317aa5b0a3c6ee85755ac4063f4845aecc2",
+    "raw-reports/live-stable-default-attempt-1/4.2.1-restart.json": "6b0f63aa18a676075c8c441c0771d8bb5053cd129a226234ad6220a2e43c4576",
+    "raw-reports/live-stable-default-attempt-1/4.2.1-seed.json": "cc3073ecb7b54099ce4e79a2ba4326c7370dc31d4cc1f30fa41fc1bb5c8bec02",
+    "raw-reports/live-stable-default-attempt-1/4.3.1-restart.json": "68efc3c8936016e8711a290fe6db3470180016c62b9e1199eb290e6b44cfd87b",
+    "raw-reports/live-stable-default-attempt-1/4.3.1-seed.json": "2cc7716812dda2e4f1b7c57d5160c6ec44f1f57864365a00480e714d0c4d0070"
+  }
+}

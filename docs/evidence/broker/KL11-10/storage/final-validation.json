@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "safe_to_stage": true,
+  "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "qa": {
+    "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/validation.json",
+    "sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa"
+  },
+  "summary": {
+    "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/summary.json",
+    "sha256": "2091aae50ff773200d17ce7a440e4b5e562a800f22b1d6f78b1820255a60ed4a"
+  },
+  "artifacts": {
+    "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/artifacts.json",
+    "sha256": "c1edcdedeeac92b3729ebc65c376915398ece92946ef0e958e65ad84792024aa"
+  },
+  "full_source_manifest": {
+    "path": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/source-integrity.json.gz",
+    "sha256": "6a20d5c487022358c96ebdcbeef1fc37168db5899f4e83ae18ae1d0616d76402",
+    "compression": "gzip",
+    "files": 44019,
+    "uncompressed_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e"
+  },
+  "independent_retention_byte_oracle": {
+    "path": "docs/evidence/broker/KL11-10/oracle/storage/final-d147bcf1/validation.json",
+    "sha256": "e8f1fd1bf0f9aa819c0a737d2ecaf2024c651c50eef2474d645f1180a85c83ce",
+    "counts": {
+      "actual_histories": 184,
+      "actual_states": 368,
+      "raw_input_files": 2264,
+      "deliberate_negative_controls": 32,
+      "positive_controls": 4
+    },
+    "scope": "actual local interrupted/recovered file bytes plus independently recomputed CRC/descriptor/seek/floor and deliberate controls"
+  },
+  "independent_apache_components": {
+    "path": "docs/evidence/broker/KL11-10/oracle/apache/final-4ffd7557/validation.json",
+    "sha256": "580dd0d86b3d730d9fb295b27f62ccb3e0cbf3993d481dca264cd4129a4b478c",
+    "actual_component_source_commit": "4ffd7557a2a35bfda931b0d0414b11264802dbc6",
+    "Java_source_identical_at_final_commit": true,
+    "scope": "actual upstream component semantics with documented local policy differences; not a Kafka broker session"
+  },
+  "static_getter_review": {
+    "path": "docs/evidence/broker/KL11-10/oracle/apache/independent-storage-getter-followup.json",
+    "sha256": "cbc88467f8a6567d961207e81d1847b810d6a6005c0b2550aef7c29dcddec290",
+    "reviewed_four_file_hashes_match_final_Git_inventory": true,
+    "scope": "source-only; executed23getter scenarios percell are owned Rust evidence"
+  },
+  "stage_paths": [
+    "docs/evidence/broker/KL11-10/storage/final-d147bcf1/",
+    "docs/evidence/broker/KL11-10/storage/final-validation.json",
+    "docs/evidence/broker/KL11-10/storage/README.md",
+    "docs/evidence/broker/KL11-10/storage/development/cache-clean-snapshot-handoff.json",
+    "docs/evidence/broker/KL11-10/storage/development/cache-clean-snapshot-handoff.py",
+    "docs/evidence/broker/KL11-10/storage/development/packing-layout-first.json",
+    "docs/evidence/broker/KL11-10/storage/development/packing-layout-first.py",
+    "docs/evidence/broker/KL11-10/storage/development/packing-final.py"
+  ],
+  "source_paths_already_committed_no_further_edits": [
+    "partitionline-broker/src/segments.rs",
+    "partitionline-broker/src/partition.rs",
+    "partitionline-broker/tests/segments.rs",
+    "partitionline-broker/tests/partition.rs"
+  ],
+  "retained_outside_Git": [
+    "/workspace/work/retention-final-d147bcf1/source",
+    "/workspace/work/retention-final-d147bcf1/bin",
+    "/workspace/work/retention-final-d147bcf1/*/snapshot",
+    "/workspace/work/retention-final-d147bcf1/*/snapshot-inner",
+    "/workspace/work/retention-final-d147bcf1/*/replication"
+  ],
+  "closure_separation": "Storage and single complete brokerQA ready; overall KL11-10 closure also needs separately owned live peers and final optional-profile gates."
+}

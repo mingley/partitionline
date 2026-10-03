@@ -1,0 +1,116 @@
+{
+  "schema": 1,
+  "source_commit": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "original_execution_root": "/workspace/work/retention-final-d147bcf1",
+  "qa_receipt_sha256": "94e6f2b35d73ba1f70775cadc6de41635e9ee8741d30b3a9e019f0d380bd0bfa",
+  "uncompressed_full_source_manifest_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e",
+  "compressed_full_source_manifest_sha256": "6a20d5c487022358c96ebdcbeef1fc37168db5899f4e83ae18ae1d0616d76402",
+  "full_source_files": 44019,
+  "commands_passed": 19,
+  "test_passes": 1216,
+  "cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "passed": 256,
+      "failed": 0,
+      "ignored": 0,
+      "suites": 22,
+      "retention_cases": 363,
+      "api_versions_cases": 15,
+      "retention_histories": 46,
+      "retention_states": 92,
+      "additional_getter_scenarios": 23,
+      "legacy_rolling_histories": 33,
+      "legacy_rolling_states": 66
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "passed": 352,
+      "failed": 0,
+      "ignored": 0,
+      "suites": 22,
+      "retention_cases": 363,
+      "api_versions_cases": 15,
+      "retention_histories": 46,
+      "retention_states": 92,
+      "additional_getter_scenarios": 23,
+      "legacy_rolling_histories": 33,
+      "legacy_rolling_states": 66
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "passed": 256,
+      "failed": 0,
+      "ignored": 0,
+      "suites": 22,
+      "retention_cases": 363,
+      "api_versions_cases": 15,
+      "retention_histories": 46,
+      "retention_states": 92,
+      "additional_getter_scenarios": 23,
+      "legacy_rolling_histories": 33,
+      "legacy_rolling_states": 66
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "passed": 352,
+      "failed": 0,
+      "ignored": 0,
+      "suites": 22,
+      "retention_cases": 363,
+      "api_versions_cases": 15,
+      "retention_histories": 46,
+      "retention_states": 92,
+      "additional_getter_scenarios": 23,
+      "legacy_rolling_histories": 33,
+      "legacy_rolling_states": 66
+    }
+  ],
+  "owned_source_bindings": [
+    {
+      "path": "partitionline-broker/src/segments.rs",
+      "mode": "100644",
+      "git_blob_sha1": "4fc2d43da38f8b613ca6b297c7b76a6a4f5ce033",
+      "sha256": "85b44d6a6ccd4bb57f01b5f9c15c316168901a77f1f520686b12dfa2c32776a8",
+      "bytes": 85818
+    },
+    {
+      "path": "partitionline-broker/src/partition.rs",
+      "mode": "100644",
+      "git_blob_sha1": "0bc345c66535113193ed7c99eee1d6b05aa46d84",
+      "sha256": "15ec321c1009c9cb2ff4cad1eb01eec6f38d3b1ac88ca3d8760abcdc26cbea90",
+      "bytes": 16594
+    },
+    {
+      "path": "partitionline-broker/tests/segments.rs",
+      "mode": "100644",
+      "git_blob_sha1": "2bba4cea9cfaa0bc9f0c273a3fa7693b305c53ea",
+      "sha256": "cc7f952f05f7e1211c6024776e952c079a4adfe72726d7ba4750810df0e3c048",
+      "bytes": 29651
+    },
+    {
+      "path": "partitionline-broker/tests/partition.rs",
+      "mode": "100644",
+      "git_blob_sha1": "938d336e4560023e240a1867713f9de45d578db8",
+      "sha256": "5f9566ae81f6cc25554651365a319d24dd0b68571047711353de2c20e2ee0dd6",
+      "bytes": 13872
+    }
+  ],
+  "retained_binaries": {
+    "unchanged_scratch_root": "/workspace/work/retention-final-d147bcf1/bin",
+    "count": 18,
+    "git_stage": false,
+    "receipt": "validation.json"
+  },
+  "snapshot_and_replication_captures": "Kept in original execution root for separately owned KL11-15 sealing and durable receipts.",
+  "scope": "Exact-source local behavioral/fault/strict qualification; independent upstream, live peers and byte-oracle receipts are separate.",
+  "limitations": [
+    "No physical power-loss, multi-replica retention, transaction safety, exhaustive crash scheduling or production qualification claim.",
+    "Negative/unknown timestamp segments are excluded from age retention; Apache mutable-file-time fallback is a documented local difference.",
+    "Monolithic/default APIs retain their prior contract; retention is explicitly enabled with rolling storage."
+  ]
+}

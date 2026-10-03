@@ -1,0 +1,18 @@
+[
+  {
+    "argv": [
+      "python3",
+      "-B",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1/stable-default",
+      "--source-root",
+      "/workspace/work/retention-final-d147bcf1/source",
+      "--source-sha",
+      "d147bcf1c0164778bdbad625842363f3721bc10e"
+    ],
+    "cwd": "/workspace/work/retention-final-d147bcf1/source",
+    "exit_code": 0,
+    "log": "docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1/stable-default.log",
+    "log_sha256": "4ae2c05ca54918bb4ee9090077008f88b71f6d865eefc16dd653317cedc7f6a7"
+  }
+]

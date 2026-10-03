@@ -1,0 +1,203 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python",
+      "-B",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/ci",
+      "-p",
+      "test_broker_api_matrix.py"
+    ],
+    "cwd": "/workspace/work/retention-registry-final-e1917eed/source",
+    "exit_code": 0,
+    "elapsed_seconds": 93.728,
+    "log": "ci-55.log",
+    "log_sha256": "251a0b197dcb35063c9dafc605f9ba86eda6249af9da86546e36b3acec3c661b",
+    "source_before": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    },
+    "source_after": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/fetch-report.json",
+      "--retention-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/retention-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/controller-report.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-default/controller-tcp",
+      "--data-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/stable-default-report.json"
+    ],
+    "cwd": "/workspace/work/retention-registry-final-e1917eed/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.667,
+    "log": "stable-default.log",
+    "log_sha256": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "source_before": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    },
+    "source_after": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/fetch-report.json",
+      "--retention-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/retention-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/controller-report.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/stable-all-features/controller-tcp",
+      "--data-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/stable-all-features-report.json"
+    ],
+    "cwd": "/workspace/work/retention-registry-final-e1917eed/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.716,
+    "log": "stable-all-features.log",
+    "log_sha256": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "source_before": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    },
+    "source_after": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/fetch-report.json",
+      "--retention-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/retention-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/controller-report.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-default/controller-tcp",
+      "--data-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/1.85.0-default-report.json"
+    ],
+    "cwd": "/workspace/work/retention-registry-final-e1917eed/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.666,
+    "log": "1.85.0-default.log",
+    "log_sha256": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "source_before": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    },
+    "source_after": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    }
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/wire-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/fetch-report.json",
+      "--retention-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/retention-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/controller-report.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/inputs/1.85.0-all-features/controller-tcp",
+      "--data-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/work/retention-registry-final-e1917eed/source/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/final-e1917eed/1.85.0-all-features-report.json"
+    ],
+    "cwd": "/workspace/work/retention-registry-final-e1917eed/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.666,
+    "log": "1.85.0-all-features.log",
+    "log_sha256": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "source_before": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    },
+    "source_after": {
+      "source_files_checked": 45698,
+      "sha256_and_git_blob_identity": true
+    }
+  }
+]

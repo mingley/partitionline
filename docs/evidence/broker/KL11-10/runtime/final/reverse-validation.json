@@ -1,0 +1,2754 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "input_receipt": {
+    "path": "docs/evidence/broker/KL11-10/runtime/final/records-validation.json",
+    "sha256": "db9caf41ff5ca7e877d0ad9179a3d13cb08d658612f7f0e2072a67bc49a74091"
+  },
+  "common_source": {
+    "path": "docs/evidence/broker/KL11-68/JournalPeer.java",
+    "sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287"
+  },
+  "builds": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/build/4.1.2/compile.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "release": "4.1.2",
+      "common_source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "8fcab777c40b372047ed26f4cc969e3ced42dd8ee525a8c6cf35117b8fec4f88",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes/JournalPeer.class",
+          "sha256": "394790b07b3165d44264f76a9217acd3ae763a67b619361763a32bd6e18a46e3"
+        }
+      ],
+      "adaptation": "Only the four official record-class import package paths differ before4.3; decoder behavior unchanged."
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/build/4.2.1/compile.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "release": "4.2.1",
+      "common_source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "8fcab777c40b372047ed26f4cc969e3ced42dd8ee525a8c6cf35117b8fec4f88",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes/JournalPeer.class",
+          "sha256": "394790b07b3165d44264f76a9217acd3ae763a67b619361763a32bd6e18a46e3"
+        }
+      ],
+      "adaptation": "Only the four official record-class import package paths differ before4.3; decoder behavior unchanged."
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/build/4.3.1/compile.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "release": "4.3.1",
+      "common_source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes/JournalPeer.class",
+          "sha256": "5660b42e9067743daab34737c2b7f679a84a76b63d7ad818fb67d4e0d77f7e8a"
+        }
+      ],
+      "adaptation": "Only the four official record-class import package paths differ before4.3; decoder behavior unchanged."
+    }
+  ],
+  "results": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/stable-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.1.2",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.1.2/1.85.0-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/stable-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.2.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.2.1/1.85.0-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-state/partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/c151842bec274a03acb3fcb10d45b30c-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/36ed1de02abb4fbe8ea09df39194ffb2-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/seed-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/stable-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "stable-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/stable-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-stable-all-features-attempt-1/restart-state/partitions/a8507bd0ffd9425ea35e8234dd8ab3a8-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/aeb8763eef9244888c518807652315a9-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/21f6c222282c4463badab29102a11ac7-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/seed-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-default/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-default",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-default-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-default-attempt-1/restart-state/partitions/831f1c2d27e4434c90a2bb8e572bcc98-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.1.2.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.1.2.json",
+        "sha256": "68ec55f78fc1fb736442fa976259c809c7791ad4872bee6c49d0fc3a495d043c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-1-2",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.1.2",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.1.2.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.1.2.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.1.2",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.1.2.json",
+        "sha256": "b61f86cdd6ffe07bd202b3c2ee2844496a6593e1291725b3e16c6cbb94d30e2a"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/4adc45f78b284a52914d09fa24e1ebee-0.segments/manifest",
+        "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.2.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.2.1.json",
+        "sha256": "ff3eb2f0937c85f1bbde2ff8ca144c8ddf02ded8b4459c21aac60020a25ad27a"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-2-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.2.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.2.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.2.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.2.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.2.1.json",
+        "sha256": "050856384813139ad5c4abaec6a8ca1d0c46464bff3142cbbb10b991e2e168b8"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/1da3ba1b208b4223a0bdbfc283d4a43e-0.segments/manifest",
+        "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/seed/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.3.1.log",
+        "sha256": "f17257c3b38b2b80a1ac9de2c39ce55717c2d1fa2016aecaed5f292b6ea5b3f6"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "seed",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-seed-4.3.1.json",
+        "sha256": "71a2086dc542395466b70611b8ec5db8f1b960dc72a328961ec8b50c6bdbf13c"
+      },
+      "physical_records": 7,
+      "retained_records": 4,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/seed-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+      }
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/reverse-java/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "JournalPeer",
+        "retention-java-4-3-1",
+        "0",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/inputs/1.85.0-all-features/restart/4.3.1",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.3.1.json"
+      ],
+      "exit_code": 0,
+      "log": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.3.1.log",
+        "sha256": "7bc9c404bb5e445997fb1c9979f15567ec2189c89c18bea0317074ae742effb5"
+      },
+      "decoder_release": "4.3.1",
+      "lane": "1.85.0-all-features",
+      "phase": "restart",
+      "topic_release": "4.3.1",
+      "report": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/reverse-records/decoded/4.3.1/1.85.0-all-features-restart-4.3.1.json",
+        "sha256": "d686d2bf652b6c64357f77089e363f0e2bb9d97012ee3f3caf036173d122abee"
+      },
+      "physical_records": 8,
+      "retained_records": 5,
+      "logical_floor": 3,
+      "selected_input": {
+        "path": "docs/evidence/broker/KL11-10/runtime/final/live-1.85.0-all-features-attempt-1/restart-state/partitions/a3531e06306c414eb86bdcf67c69cda3-0.segments/manifest",
+        "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+      }
+    }
+  ],
+  "actual_apache_executions": 72,
+  "physical_record_comparisons": 540,
+  "retained_record_comparisons": 324,
+  "checker_sha256": "c053c0c2a3fc85b2655a85870b4a22ef81608eca29f305e747a9635910c9a985",
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-10/runtime/final/reverse-java.py"
+  ],
+  "scope": "Actual Apache4.1.2/4.2.1/4.3.1 MemoryRecords CRC/full-byte/record decoding of extracted Rust-selected rolling journal batches, then logical-floor suffix equality with actual Java/native/public Rust reads.",
+  "limitations": [
+    "The whole first batch remains physically present below floor3; filtering is explicit and not physical prefix deletion.",
+    "Finite ordinary/uncompressed/CreateTime/RF1 histories; no replication, transactions or power-loss claim."
+  ]
+}

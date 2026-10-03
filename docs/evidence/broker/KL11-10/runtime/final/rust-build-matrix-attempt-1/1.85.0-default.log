@@ -1,0 +1,1 @@
+{"passed": true, "evidence": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/1.85.0-default", "binary": {"path": "/workspace/work/retention-final-peers/rust/1.85.0-default/retention-peer", "sha256": "42ad1f09ecf442f0a016c6f64e1460136b92899e94c28a5baa29f106686e8b13", "bytes": 10863208}}

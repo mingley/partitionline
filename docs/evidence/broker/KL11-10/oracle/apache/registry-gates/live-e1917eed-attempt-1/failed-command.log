@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/check-live-api-versions.py", line 212, in <module>
+    main()
+  File "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/check-live-api-versions.py", line 162, in main
+    observations = check(report, decoder, raw_reports)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/check-live-api-versions.py", line 89, in check
+    require(report.get('expected_api_versions') == decoder.RETENTION_APIS, 'live profile mismatch')
+  File "/workspace/partitionline/docs/evidence/broker/KL11-10/oracle/apache/registry-gates/check-live-api-versions.py", line 28, in require
+    raise ValueError(reason)
+ValueError: live profile mismatch

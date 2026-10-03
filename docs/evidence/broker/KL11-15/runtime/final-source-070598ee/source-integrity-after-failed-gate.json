@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "git_tree": "2fe0d9a0b10dd542c44502a9acadacf6a669023a",
+  "file_count": 39553,
+  "all_git_blobs_sha256_and_modes_unchanged": true,
+  "before_manifest_sha256": "006b66a968991551f9808296582e597a4779405a0eb8c3a1969bd5abe0f5b515",
+  "scope": "Tracked Git files only; compiler output is stored outside this archive."
+}

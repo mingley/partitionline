@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "checked_git_blobs": 44019,
+  "exact_inventory": true,
+  "git_blob_sha1_sha256_sizes_modes_checked": true,
+  "source_root": "/workspace/work/retention-final-d147bcf1/source",
+  "source_manifest_sha256": "17b1a87c5ee3230f1cffd5422c5eacd082ac554de19b1795e879d0e983b1e00e",
+  "durable_manifest": "docs/evidence/broker/KL11-10/storage/final-d147bcf1/source-integrity.json.gz",
+  "checker_sha256": "f28f5c32d8b79e919d0f560a87cc2f1860ef0529940c597afd4d4101eb2fc43e",
+  "command": [
+    "python3",
+    "docs/evidence/broker/KL11-10/runtime/final/verify-final-source.py"
+  ],
+  "scope": "Full immutable archive verified after four fresh public Rust builds,72 TCP peer jobs,72 reverse Java executions; every source byte/mode unchanged."
+}

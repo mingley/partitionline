@@ -1,0 +1,321 @@
+{
+  "schema_version": 1,
+  "verdict": "passed",
+  "implementation_claim": false,
+  "releases": [
+    {
+      "version": "4.1.2",
+      "commit": "c82fd9b934b4c1e6fa799e3f1dcc8f08d997740c",
+      "retained_archive_sha256": "b966a4628d6c022063fa0345b9677c6acbb148c33b520734e0adf8f9fb2061b8",
+      "retained_files": 207,
+      "api_keys": 93,
+      "active_api_keys": 89,
+      "removed_api_keys": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "unstable_latest_api_keys": [
+        8,
+        9,
+        22,
+        88,
+        89
+      ],
+      "header_version_pairs": 292
+    },
+    {
+      "version": "4.2.1",
+      "commit": "18d5ecd939c8d510fdd72d0abb1f7099659dcd58",
+      "retained_archive_sha256": "2d0882c3a7ca4b1a7aadb3ca38b469105b346d17c8d49b35fdbd63faebdb25ff",
+      "retained_files": 207,
+      "api_keys": 93,
+      "active_api_keys": 89,
+      "removed_api_keys": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "unstable_latest_api_keys": [
+        22
+      ],
+      "header_version_pairs": 300
+    },
+    {
+      "version": "4.3.1",
+      "commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48",
+      "retained_archive_sha256": "71dc8ab97c292015e1adaa685e76edaabfb88fa6e3fb3a5da075ebff4aa10332",
+      "retained_files": 208,
+      "api_keys": 93,
+      "active_api_keys": 89,
+      "removed_api_keys": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "unstable_latest_api_keys": [
+        22
+      ],
+      "header_version_pairs": 302
+    }
+  ],
+  "local_implementation": {
+    "implemented_api_versions": [
+      {
+        "api_key": 3,
+        "min_version": 0,
+        "max_version": 13
+      },
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      },
+      {
+        "api_key": 19,
+        "min_version": 2,
+        "max_version": 4
+      },
+      {
+        "api_key": 20,
+        "min_version": 1,
+        "max_version": 6
+      }
+    ],
+    "source_and_fixture_hashes_checked": true,
+    "golden_cases": 99,
+    "metadata_golden_cases": 555,
+    "metadata_response_cases": 522,
+    "metadata_local_rejections": 33,
+    "compiled_metadata_report_checked": true,
+    "compiled_handler_report_checked": true,
+    "data_api_versions": [
+      {
+        "api_key": 0,
+        "min_version": 3,
+        "max_version": 13
+      },
+      {
+        "api_key": 3,
+        "min_version": 0,
+        "max_version": 13
+      },
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      },
+      {
+        "api_key": 19,
+        "min_version": 2,
+        "max_version": 4
+      },
+      {
+        "api_key": 20,
+        "min_version": 1,
+        "max_version": 6
+      }
+    ],
+    "read_write_api_versions": [
+      {
+        "api_key": 0,
+        "min_version": 3,
+        "max_version": 13
+      },
+      {
+        "api_key": 1,
+        "min_version": 4,
+        "max_version": 6
+      },
+      {
+        "api_key": 2,
+        "min_version": 1,
+        "max_version": 3
+      },
+      {
+        "api_key": 3,
+        "min_version": 0,
+        "max_version": 13
+      },
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      },
+      {
+        "api_key": 19,
+        "min_version": 2,
+        "max_version": 4
+      },
+      {
+        "api_key": 20,
+        "min_version": 1,
+        "max_version": 6
+      }
+    ],
+    "controller_api_versions": [
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      },
+      {
+        "api_key": 52,
+        "min_version": 0,
+        "max_version": 0
+      },
+      {
+        "api_key": 53,
+        "min_version": 0,
+        "max_version": 0
+      },
+      {
+        "api_key": 54,
+        "min_version": 0,
+        "max_version": 0
+      }
+    ],
+    "retention_api_versions": [
+      {
+        "api_key": 0,
+        "min_version": 3,
+        "max_version": 13
+      },
+      {
+        "api_key": 1,
+        "min_version": 4,
+        "max_version": 6
+      },
+      {
+        "api_key": 2,
+        "min_version": 1,
+        "max_version": 3
+      },
+      {
+        "api_key": 3,
+        "min_version": 0,
+        "max_version": 13
+      },
+      {
+        "api_key": 18,
+        "min_version": 0,
+        "max_version": 4
+      },
+      {
+        "api_key": 19,
+        "min_version": 2,
+        "max_version": 4
+      },
+      {
+        "api_key": 20,
+        "min_version": 1,
+        "max_version": 6
+      },
+      {
+        "api_key": 21,
+        "min_version": 0,
+        "max_version": 2
+      }
+    ],
+    "produce_golden_cases": 708,
+    "controller_golden_cases": 201,
+    "fetch_golden_cases": 366,
+    "compiled_fetch_report_checked": true,
+    "compiled_read_write_api_versions_layouts_checked": 15,
+    "retention_golden_cases": 363,
+    "retention_response_cases": 345,
+    "retention_local_rejections": 18,
+    "compiled_retention_report_checked": true,
+    "compiled_retention_api_versions_layouts_checked": 15,
+    "compiled_produce_report_checked": true,
+    "compiled_controller_report_checked": true,
+    "controller_tcp_capture_bytes_checked": true,
+    "controller_tcp_capture_pairs": 18,
+    "controller_tcp_capture_sha256": {
+      "4.1.2/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.1.2/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.1.2/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.1.2/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.1.2/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.1.2/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.1.2/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.1.2/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.2.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.2.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.2.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.2.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.2.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.2.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.2.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.2.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c",
+      "4.3.1/api-versions-0.actual-frame.bin": "6c540f95cb57ea2d2f1e45fc28d103f462a8162480fc429f2f27f2b807a500b6",
+      "4.3.1/api-versions-0.actual-response.bin": "2c5f68e2a6357b7db4a35649b78d9533d0a99d2418837ab7e96c30936fe7f3df",
+      "4.3.1/api-versions-1.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-1.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-2.actual-frame.bin": "55fea3c9d54dd6889c2f759e00a6a4262c3ef048049334569d60ae3962e132f1",
+      "4.3.1/api-versions-2.actual-response.bin": "d53e362544c1c58420609b6097fc41d243b92ec48fc7c39bab4f9d1e44478b2e",
+      "4.3.1/api-versions-3.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-3.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/api-versions-4.actual-frame.bin": "a2239fdda2210ac661fe6655f47eaa88c2a1b3d75b7a952a582ca4fa9ec21996",
+      "4.3.1/api-versions-4.actual-response.bin": "5451dda2c04093a0500262075e798b9051438bed1bdcdc1ff46585321743ed28",
+      "4.3.1/vote-positive.actual-frame.bin": "c41f28d03082f0ed08a9a3a20116327f7d466b96ddf25efaf7f797b4d1079001",
+      "4.3.1/vote-positive.actual-response.bin": "d35140725a2fe22e596bb7803fadeabd5c4f1d7e9f53f8741483ea9de9c1317c"
+    },
+    "data_api_versions_wire": {
+      "exchanges_checked": 30,
+      "api_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_sha": "c34bdfd3fbba65492ea49b3804dd0ae5311364b0",
+      "report_sha256": "bb320d58f814ef546883f26802ebf6a803ef44ea2374714299832acf4cc49734",
+      "scope": "Independently decoded captured response fields and complete pair coverage; actual execution provenance is the retained KL11-68 peer/source/command evidence."
+    },
+    "read_write_api_versions_wire": {
+      "exchanges_checked": 60,
+      "api_versions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "source_sha": "58810f2ed90ac9643d59a60098a29f5a2f87a8d0",
+      "report_sha256": "4d0c1b2221bb98bacc729af62592bf74f47a799623d29cc4f89fb16debaf4709",
+      "scope": "Independently decoded complete response fields and request-header correlation/version across60captured exchanges; request-body parsing and actual execution provenance remain independent KL11-68 peer/source/command evidence."
+    },
+    "source_hash_scope": "Verifier hashes actual source files; compiled controller/protocol/metadata hash fields reflect registry labels. Actual execution provenance requires the retained immutable-source command reports.",
+    "controller_core_state_reported": false,
+    "wire_advertisement_scope": "Compiled static ranges and golden ApiVersions bytes; actual live TCP profile evidence is retained separately in KL11-68/KL11-69.",
+    "qualification": "not_run"
+  },
+  "checks": [
+    "immutable source pins",
+    "bounded archives without extraction",
+    "archive and per-file hashes",
+    "93 unique complete request/response pairs per release",
+    "ApiKeys flags and listener classifications",
+    "exact valid/flexible/deprecated/stable ranges",
+    "generator-derived header versions and exceptions",
+    "truthful feature dispositions",
+    "checked local implementation registry and source/fixture hashes"
+  ],
+  "limitations": [
+    "Static upstream inventory, not handler behavior or broker qualification.",
+    "Future advertisement must use actual implemented and tested versions; upstream Produce minimum-0 workaround is not a partitionline support claim."
+  ]
+}

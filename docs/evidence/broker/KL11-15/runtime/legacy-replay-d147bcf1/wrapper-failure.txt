@@ -1,0 +1,11 @@
+Retained tool output from the first wrapper attempt, after exact d147 sealer exited 0:
+Traceback (most recent call last):
+  File "<stdin>", line 10, in <module>
+AssertionError
+
+The wrapper incorrectly asserted that all copied paths remained byte-identical,
+including trace.json. The frozen sealer intentionally adds hashes to trace.json
+and preserves the original trace bytes as trace-raw.json. Only isolated copies
+were sealed; the original open_loop captures remained untouched. The fresh fixed
+attempt checks raw bytes/modes and recursively proves every original trace field
+is preserved in the annotated trace. No behavioral or causal check was waived.

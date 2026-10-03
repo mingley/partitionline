@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "scope": "Strict peer-source compilation; no broker runtime outcome.",
+  "passed": true,
+  "java_version": "openjdk version \"21.0.12.1\" 2026-08-18\nOpenJDK Runtime Environment (build 21.0.12.1+1-1-deb13u1-Debian)\nOpenJDK 64-Bit Server VM (build 21.0.12.1+1-1-deb13u1-Debian, mixed mode, sharing)\n",
+  "results": [
+    {
+      "release": "4.1.2",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/sdk/4.1.2/classes",
+        "/workspace/work/retention-final-peers/sdk/4.1.2/RetentionPeer.java"
+      ],
+      "exit_code": 0,
+      "common_source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "adapted_source_sha256": "79a51799c7b5dd2d52cd47395dde732dee366e9d54bc7999c5ae3dc8a5447814",
+      "adaptation": "Only the two record-class imports use the pre-4.3 official package; executable behavior unchanged.",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/java-build-attempt-1/4.1.2/compile.log",
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/sdk/4.1.2/classes/RetentionPeer.class",
+          "sha256": "11751719895f971ff84c8ab542d692ded07be006a12b640b09611de282e03ed0"
+        }
+      ]
+    },
+    {
+      "release": "4.2.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/sdk/4.2.1/classes",
+        "/workspace/work/retention-final-peers/sdk/4.2.1/RetentionPeer.java"
+      ],
+      "exit_code": 0,
+      "common_source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "adapted_source_sha256": "79a51799c7b5dd2d52cd47395dde732dee366e9d54bc7999c5ae3dc8a5447814",
+      "adaptation": "Only the two record-class imports use the pre-4.3 official package; executable behavior unchanged.",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/java-build-attempt-1/4.2.1/compile.log",
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/sdk/4.2.1/classes/RetentionPeer.class",
+          "sha256": "11751719895f971ff84c8ab542d692ded07be006a12b640b09611de282e03ed0"
+        }
+      ]
+    },
+    {
+      "release": "4.3.1",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/retention-final-peers/sdk/4.3.1/classes",
+        "/workspace/work/retention-final-peers/sdk/4.3.1/RetentionPeer.java"
+      ],
+      "exit_code": 0,
+      "common_source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "adapted_source_sha256": "b8459d8053a4092e296cc611e8dce4a0826fe324e13a655cc84c9a079dca36b1",
+      "adaptation": "none",
+      "jars": [
+        {
+          "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        }
+      ],
+      "log": "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/java-build-attempt-1/4.3.1/compile.log",
+      "classes": [
+        {
+          "path": "/workspace/work/retention-final-peers/sdk/4.3.1/classes/RetentionPeer.class",
+          "sha256": "6230ff0c023466fbcc4bbcd6b1daa7364650b3a89efebb644cec754e5fc3fca0"
+        }
+      ]
+    }
+  ]
+}

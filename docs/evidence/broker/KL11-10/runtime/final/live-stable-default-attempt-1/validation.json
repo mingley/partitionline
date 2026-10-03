@@ -1,0 +1,735 @@
+{
+  "schema_version": 1,
+  "source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "passed": true,
+  "scope": "immutable committed source",
+  "toolchain": "stable",
+  "features": "default",
+  "port": 19145,
+  "failure": null,
+  "actual_peer_jobs": 18,
+  "results": [
+    {
+      "kind": "java",
+      "release": "4.1.2",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.1.2",
+        "19145",
+        "seed",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-1-2"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.1.2-java.log",
+      "log_sha256": "74387c3b6140cf528c1c9b31663cac65a46661c4af81d3bfa1aca2fbfd880d41",
+      "report": "4.1.2-seed.json",
+      "report_sha256": "821b55b932c50b1fc5d05b07ed462317aa5b0a3c6ee85755ac4063f4845aecc2"
+    },
+    {
+      "kind": "native",
+      "release": "4.1.2",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-1-2",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.1.2-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.1.2-native.log",
+      "log_sha256": "7435f6e5bcfcdb26247c844406fe96d1119cc788406c1c0efba42192ae384627",
+      "report": "seed-4.1.2-native.json",
+      "report_sha256": "2a9827417bc87baa75b05daef07490d6c0d83b49a9adec9ecd0d897d39b1e557"
+    },
+    {
+      "kind": "rust",
+      "release": "4.1.2",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-1-2",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.1.2-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.1.2-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "seed-4.1.2-rust.json",
+      "report_sha256": "4f22879b0de9f10b3dd9c029753a0b1ce93f9dd5775884e16359b5da7ae347a1"
+    },
+    {
+      "kind": "java",
+      "release": "4.2.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.2.1",
+        "19145",
+        "seed",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-2-1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.2.1-java.log",
+      "log_sha256": "6630637016dcb364401f56db3cd0bb17974e6f101331adcec67a5c620519eb1c",
+      "report": "4.2.1-seed.json",
+      "report_sha256": "cc3073ecb7b54099ce4e79a2ba4326c7370dc31d4cc1f30fa41fc1bb5c8bec02"
+    },
+    {
+      "kind": "native",
+      "release": "4.2.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-2-1",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.2.1-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.2.1-native.log",
+      "log_sha256": "7435f6e5bcfcdb26247c844406fe96d1119cc788406c1c0efba42192ae384627",
+      "report": "seed-4.2.1-native.json",
+      "report_sha256": "0006f2906bd9af7f722db3fd50297be3200ef5f78af7ed2bd4be2f9e198c424d"
+    },
+    {
+      "kind": "rust",
+      "release": "4.2.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-2-1",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.2.1-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.2.1-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "seed-4.2.1-rust.json",
+      "report_sha256": "3f3bc6fac904dfb38bb370f5fb0eec2ec72abf40e8e5449af1748ea823bba02e"
+    },
+    {
+      "kind": "java",
+      "release": "4.3.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.3.1",
+        "19145",
+        "seed",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-3-1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.3.1-java.log",
+      "log_sha256": "c2dd77bc1de993972e6b6e63d5296d4301f8a9a5b82d5449cf68ed8d9e04dd13",
+      "report": "4.3.1-seed.json",
+      "report_sha256": "2cc7716812dda2e4f1b7c57d5160c6ec44f1f57864365a00480e714d0c4d0070"
+    },
+    {
+      "kind": "native",
+      "release": "4.3.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-3-1",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.3.1-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.3.1-native.log",
+      "log_sha256": "7435f6e5bcfcdb26247c844406fe96d1119cc788406c1c0efba42192ae384627",
+      "report": "seed-4.3.1-native.json",
+      "report_sha256": "dee948fe3418f073279518039b09ddbd24ad94b000bcdc6eb579a664d50b8686"
+    },
+    {
+      "kind": "rust",
+      "release": "4.3.1",
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-3-1",
+        "seed",
+        "7",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/seed-4.3.1-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "seed-4.3.1-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "seed-4.3.1-rust.json",
+      "report_sha256": "8e4c0494127f689250c0d540a66a85d74e64ad4a1ce9227bb88f5f9fbe5037c5"
+    },
+    {
+      "kind": "java",
+      "release": "4.1.2",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.1.2",
+        "19145",
+        "restart",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-1-2"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.1.2-java.log",
+      "log_sha256": "cd13a1d72ef263325ef14707fa4f423712d74a00a7d52383a41a1419733db1d5",
+      "report": "4.1.2-restart.json",
+      "report_sha256": "dd9d6feaf6d8ce9626a55f3597ecd30427c2ab42f7db1855dc8d9e11f654d6fe"
+    },
+    {
+      "kind": "native",
+      "release": "4.1.2",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-1-2",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.1.2-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.1.2-native.log",
+      "log_sha256": "bbb3a810a5c77b5d9758123134f608d53f7b8a679c1bd77c8933c6c04d8b8610",
+      "report": "restart-4.1.2-native.json",
+      "report_sha256": "a83d7d9d763ebc854774ec3aeeeba34c35b8c86180d02d6a5e2499c5ae2d1002"
+    },
+    {
+      "kind": "rust",
+      "release": "4.1.2",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-1-2",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.1.2-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.1.2-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "restart-4.1.2-rust.json",
+      "report_sha256": "0f827d3660e96fdd6a0702972f470aa9a5a7f41e7d3c0482500893b6cc4803cb"
+    },
+    {
+      "kind": "java",
+      "release": "4.2.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.2.1",
+        "19145",
+        "restart",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-2-1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.2.1-java.log",
+      "log_sha256": "065e69f9d997ba09284ed7f5200045da1f53eb8bb0b41424bfdb6f0578edc021",
+      "report": "4.2.1-restart.json",
+      "report_sha256": "6b0f63aa18a676075c8c441c0771d8bb5053cd129a226234ad6220a2e43c4576"
+    },
+    {
+      "kind": "native",
+      "release": "4.2.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-2-1",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.2.1-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.2.1-native.log",
+      "log_sha256": "bbb3a810a5c77b5d9758123134f608d53f7b8a679c1bd77c8933c6c04d8b8610",
+      "report": "restart-4.2.1-native.json",
+      "report_sha256": "df5904b2ba2d48ec21422b56e86b0d4d88fdbac8d1c86588ed313d3f2c397d91"
+    },
+    {
+      "kind": "rust",
+      "release": "4.2.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-2-1",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.2.1-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.2.1-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "restart-4.2.1-rust.json",
+      "report_sha256": "7814c8dab8207a371b380a6e8c0a663037209c0cafbf8c5691408239c7c20821"
+    },
+    {
+      "kind": "java",
+      "release": "4.3.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "-Xmx128m",
+        "-cp",
+        "/workspace/work/retention-final-peers/sdk/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "RetentionPeer",
+        "4.3.1",
+        "19145",
+        "restart",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1",
+        "retention-java-4-3-1"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.3.1-java.log",
+      "log_sha256": "5b168e8244452aff02b7ff083f4915e48e928efe61af30b2ab6f1798a89c4946",
+      "report": "4.3.1-restart.json",
+      "report_sha256": "68efc3c8936016e8711a290fe6db3470180016c62b9e1199eb290e6b44cfd87b"
+    },
+    {
+      "kind": "native",
+      "release": "4.3.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/retention-native",
+        "127.0.0.1:19145",
+        "retention-java-4-3-1",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.3.1-native.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.3.1-native.log",
+      "log_sha256": "bbb3a810a5c77b5d9758123134f608d53f7b8a679c1bd77c8933c6c04d8b8610",
+      "report": "restart-4.3.1-native.json",
+      "report_sha256": "6b94fd65d4d885de326deea6ca94d04470ba801efcb977bbfb453ccc8f9bec0f"
+    },
+    {
+      "kind": "rust",
+      "release": "4.3.1",
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+        "127.0.0.1:19145",
+        "retention-java-4-3-1",
+        "restart",
+        "8",
+        "/workspace/partitionline/docs/evidence/broker/KL11-10/runtime/final/live-stable-default-attempt-1/restart-4.3.1-rust.json"
+      ],
+      "exit_code": 0,
+      "passed": true,
+      "log": "restart-4.3.1-rust.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "report": "restart-4.3.1-rust.json",
+      "report_sha256": "9ba2c545e13dc961ba40b2128d9dd795ac69260a8aa18d1f28d2d271da5c83f6"
+    }
+  ],
+  "servers": [
+    {
+      "phase": "seed",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-d147bcf1/bin/stable/retention",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "ready": true,
+      "exit_code": 0,
+      "log": "seed-server.log",
+      "log_sha256": "40efe4f130fda8400bc91f8f2283fc808a962017dc8678d844e7554fe3baf504"
+    },
+    {
+      "phase": "restart",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "/workspace/work/retention-final-d147bcf1/bin/stable/retention",
+        "serve_live_probe",
+        "--exact",
+        "--nocapture"
+      ],
+      "ready": true,
+      "exit_code": 0,
+      "log": "restart-server.log",
+      "log_sha256": "2920700e4713dc41a1d5aa92691ef3aeb106817df64d438914fe9a5d6a2e1294"
+    }
+  ],
+  "states": [
+    {
+      "phase": "seed",
+      "files": [
+        {
+          "path": "catalog.journal",
+          "bytes": 282,
+          "sha256": "97bfd95db2365a80ac0d25fd59b6c4da02bba11c353b455dad505cf54c957e26"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "7912bcc7934954d3ca711efe7b7407fbf7eba70f52c826956ba9ebcd74ef2862"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "df3ccc3c16ee4eede6d45959596455b8572635b41d043aa7e2ec0eb7b8b270cd"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "39ae508bf86212bffa6e92faa3cd47f289dee60217ee3b88f7f9e8bec122450c"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "7ebe90f58ed02a8af6f428029ed953905a1398bf5ff86b2ad17df54730a70d64"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "b4583b8e4664b3ee32329971f2225152ad3fac9857880007d24a3cba25c91b00"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+          "bytes": 180,
+          "sha256": "da65228840f11818c1ccff3cce3dbb57c1103764c128278a21271442bafc0446"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "2fdca6a49ecb369ebedf47c7382e6842b111ebcfe2a34c86925bd5ace163525c"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "940251ae521132d0f8de94440dcded1f6903536085c4889f3bff419c1330b2df"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "b5afed614e6b1f33b451967e3431cbbaf36fe58581280709795abb62e106b41f"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "b9cf72b0fc8752b7bacbc8b1ace6b14488b5483ed5ba8c634581e1324b31278d"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "9e64b28ed12bab115bb8ec6c7764a36f5ef6e309cdaa40c87048767f1e2d5c40"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+          "bytes": 180,
+          "sha256": "27d3d35d01535c8037bec59ea8e0f009d4f746f5ee8aa06694b9786dc02543ba"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "fa302b8b452a79e9c105f2bf96ca4b1f5f53fb3be3b56b792d05f69633d102dd"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "9cb5fbf66b88963e9770a5d50736a4c0b97d5d2b4ac173bd8f32cdc6128c3c2c"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "8ace0cd2cc55a451e1b9470a339812ef938803070ecf6661a8d9cdb9bf36d906"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "64669f8dc01cc6ceae8b5359e3ff798f47977071e0e1d0410fb82b62c803cff8"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "ba2d7e976efa39cc9853730d693faba1717b660753e513cdda1375e3e8194e3a"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+          "bytes": 180,
+          "sha256": "be0cc4dfcd6431f99c7a54561e8034e3d020145934fb224fbc61741c6a10e86f"
+        }
+      ],
+      "bytes": 3972
+    },
+    {
+      "phase": "restart",
+      "files": [
+        {
+          "path": "catalog.journal",
+          "bytes": 282,
+          "sha256": "97bfd95db2365a80ac0d25fd59b6c4da02bba11c353b455dad505cf54c957e26"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "7912bcc7934954d3ca711efe7b7407fbf7eba70f52c826956ba9ebcd74ef2862"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "df3ccc3c16ee4eede6d45959596455b8572635b41d043aa7e2ec0eb7b8b270cd"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "39ae508bf86212bffa6e92faa3cd47f289dee60217ee3b88f7f9e8bec122450c"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "7ebe90f58ed02a8af6f428029ed953905a1398bf5ff86b2ad17df54730a70d64"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "b4583b8e4664b3ee32329971f2225152ad3fac9857880007d24a3cba25c91b00"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000006-0000000000000002.seek",
+          "bytes": 96,
+          "sha256": "4dd9bb11b12f8dbfe1266faeb8d71e2c0065a2dd103c3bb8ae108252d6da30ba"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/0000000000000007-0000000000000005.journal",
+          "bytes": 193,
+          "sha256": "0502db6b385182e04aa7c2f7cd612a95da8182f954f2c3cf82466ec60a74d263"
+        },
+        {
+          "path": "partitions/007092613f2748a68d03580ea0a024c6-0.segments/manifest",
+          "bytes": 236,
+          "sha256": "cb952bebf7b5f0a6f0fd6e61de0643c480dc20f18b2a07de195c82df4fce7d49"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "2fdca6a49ecb369ebedf47c7382e6842b111ebcfe2a34c86925bd5ace163525c"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "940251ae521132d0f8de94440dcded1f6903536085c4889f3bff419c1330b2df"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "b5afed614e6b1f33b451967e3431cbbaf36fe58581280709795abb62e106b41f"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "b9cf72b0fc8752b7bacbc8b1ace6b14488b5483ed5ba8c634581e1324b31278d"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "9e64b28ed12bab115bb8ec6c7764a36f5ef6e309cdaa40c87048767f1e2d5c40"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000006-0000000000000002.seek",
+          "bytes": 96,
+          "sha256": "44a723adf5120592c578b3066ee34df950eb091464ac3876806370c8f5322d3c"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/0000000000000007-0000000000000005.journal",
+          "bytes": 193,
+          "sha256": "a9ed5cc6f5d0e38ddb0619d9d211fe85495c2c40daca4e058ff9fe19e659e8a9"
+        },
+        {
+          "path": "partitions/823e08501cc74d8fae93db52d9788336-0.segments/manifest",
+          "bytes": 236,
+          "sha256": "c2084bb62254c6091becb5ae514699fd09368e0c4727bb94244abb0049c766e4"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000000-0000000000000000.journal",
+          "bytes": 471,
+          "sha256": "fa302b8b452a79e9c105f2bf96ca4b1f5f53fb3be3b56b792d05f69633d102dd"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000000-0000000000000000.seek",
+          "bytes": 96,
+          "sha256": "9cb5fbf66b88963e9770a5d50736a4c0b97d5d2b4ac173bd8f32cdc6128c3c2c"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000005-0000000000000001.journal",
+          "bytes": 221,
+          "sha256": "8ace0cd2cc55a451e1b9470a339812ef938803070ecf6661a8d9cdb9bf36d906"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000005-0000000000000001.seek",
+          "bytes": 96,
+          "sha256": "64669f8dc01cc6ceae8b5359e3ff798f47977071e0e1d0410fb82b62c803cff8"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000006-0000000000000002.journal",
+          "bytes": 166,
+          "sha256": "ba2d7e976efa39cc9853730d693faba1717b660753e513cdda1375e3e8194e3a"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000006-0000000000000002.seek",
+          "bytes": 96,
+          "sha256": "5c008dba1e5af1cd7867bc182814b010a602ed02221d54018a57285b7c8e5343"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/0000000000000007-0000000000000005.journal",
+          "bytes": 193,
+          "sha256": "4250c0320e07fd45e024ce20d1e189cc011b64b14a2a55eca918341261255a6b"
+        },
+        {
+          "path": "partitions/d16b6b5397e74a0587ac53e8362911ad-0.segments/manifest",
+          "bytes": 236,
+          "sha256": "75c969e9104632e66fbb7f0b45d0c11ad68460999030c48fd1a84ff73600278e"
+        }
+      ],
+      "bytes": 5007
+    }
+  ],
+  "receipts": {
+    "source": {
+      "path": "docs/evidence/broker/KL11-10/runtime/final/server-provenance.json",
+      "sha256": "5e3d7c14dcfb54b980e0930020af8e4282367f42bfd0578d1de819d1e9d809c8"
+    },
+    "java_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/final/java-build-attempt-1/validation.json",
+      "sha256": "e6378a17832f92dd9b93ffa20758ad172b8850d5a38f7c35d9f2b40f622fad1f"
+    },
+    "native_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/final/native-build-attempt-1/validation.json",
+      "sha256": "e6d6e8a782e94ea117d3c8af6478b83a71990e016358d79a8c1822871f1d08af"
+    },
+    "rust_build": {
+      "path": "docs/evidence/broker/KL11-10/runtime/final/rust-build-matrix-attempt-1/stable-default/validation.json",
+      "sha256": "bbbb19e039114af169a563b83b5034bad5464c70e79a407582f4883a28500fa5"
+    }
+  },
+  "runner_sha256": "143adb05e058825a3f5fa80f4fe2c915f8ede523c279a6899b4fcfed91336521",
+  "binaries": {
+    "server": {
+      "path": "/workspace/work/retention-final-d147bcf1/bin/stable/retention",
+      "sha256": "50621348b613b23cfb60e7671cdfe5b84cfc508ef45e4f27afd088b0970d09a8"
+    },
+    "native": {
+      "path": "/workspace/work/retention-final-peers/retention-native",
+      "sha256": "dd281792457e57d7c700dc8269621c3544b58d3dee1490c4ea3beaee3be69427"
+    },
+    "rust": {
+      "path": "/workspace/work/retention-final-peers/rust/stable-default/retention-peer",
+      "sha256": "9a4b67c9bdd1fb2e5a15ce2f7b0b8a682ce3b934a46c8bd83517e0d4d1793c6d"
+    }
+  },
+  "limits": "Ordinary RF1 local durable end only; manual consumers; no replicated ISR, transactions or consumer-group coordinator."
+}

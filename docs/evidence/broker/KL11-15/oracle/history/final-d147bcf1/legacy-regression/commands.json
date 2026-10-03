@@ -1,0 +1,130 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-3/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-3.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 27
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-default/history-5/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-default-5.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 39
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-3/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-3.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 27
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/stable-all-features/history-5/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/stable-all-features-5.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 39
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-3/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-3.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 27
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-default/history-5/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-default-5.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 39
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-3/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-3.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 27
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "/workspace/work/retention-final-d147bcf1/source/docs/evidence/broker/KL11-73/oracle/history/history_oracle.py",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/runtime/legacy-replay-d147bcf1-fixed/1.85.0-all-features/history-5/trace.json",
+      "--output",
+      "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/final-d147bcf1/legacy-regression/1.85.0-all-features-5.json"
+    ],
+    "exit_code": 0,
+    "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "raw_inputs_unchanged": true,
+    "raw_input_files": 39
+  }
+]

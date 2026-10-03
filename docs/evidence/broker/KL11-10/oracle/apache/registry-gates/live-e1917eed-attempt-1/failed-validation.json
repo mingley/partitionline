@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "exit_code": 1,
+  "classification": "Supplemental checker adaptation error before frame decoding; no runtime product failure.",
+  "reason": "Live aggregate expected_api_versions uses three-integer arrays; wrapper incorrectly expected registry dict rows. Exact input and original wrapper are retained unchanged.",
+  "input_sha256": "e15e96653c7aa757f0dce8d88a483668e50091dba1b448edc40c5abe81955970",
+  "wrapper_sha256": "9098aedaa3d2627e86a9e5113ac1058a3847373017485de1fbab8bdd08c1eac6",
+  "raw_log_sha256": "780af54fece78f9046706363c9b15ddad441fd4cadbc8dc2310f774e099f2756"
+}

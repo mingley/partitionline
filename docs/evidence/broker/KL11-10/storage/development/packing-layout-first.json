@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "scope": "artifact packing only, not a Rust behavioral or source gate",
+  "command": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "python3",
+    "/workspace/work/retention-storage/seal-final-d147bcf1.py"
+  ],
+  "exit_code": 1,
+  "script_sha256": "c339b4e12dfa490ffded48c1e0d527852217764d0cea80b8789fcc184d1947f6",
+  "failure": "AssertionError: expected case.json at history root, but actual cases are under interrupted/recovered state directories",
+  "original_raw_inputs_unchanged": true,
+  "partial_copy_retained_at": "/workspace/work/retention-storage/packing-layout-first-partial",
+  "correction": "count92state descriptors under four-level path and46distinct history parents"
+}

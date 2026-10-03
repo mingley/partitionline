@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_sha": "070598ee36c8ed0bdea64d94eec929413a85534c",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "08e22393878e6f61d94b02b9072c7ba76482c11e0a2118dc77f5df9709e05ec4",
+    "partitionline-broker/src/raft/election.rs": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/mod.rs": "9bd6aeadc8282d519acbafcf600a2c040024c27cba6af582564ba4a7352e8028",
+    "partitionline-broker/tests/raft_replication.rs": "82ded4907150e9078a8f3935448df95f4af2f2ddab7998b85010fea1596bcb61"
+  },
+  "purpose": "hash/provenance binding only; independent safety checker is separately owned",
+  "source_binding_scope": "Exact source SHA and source files supplied by immutable runner.",
+  "histories": [
+    {
+      "path": "history-3",
+      "events": 73,
+      "copied_journal_receipts": 10,
+      "raw_trace_sha256": "04b85ca8e72daf90a649b0d14ce5f3e0355f5c7869cb99e5e9ff9ac9910b4249",
+      "sealed_trace_sha256": "e85cd9500854494223ac4461791441eaee92936bbb4dfde3ec3e176f9abb8c83"
+    },
+    {
+      "path": "history-5",
+      "events": 121,
+      "copied_journal_receipts": 16,
+      "raw_trace_sha256": "f1b7058a6628654afcf4bc31a0386da9ef5400affab43796adac1fb38c2248f8",
+      "sealed_trace_sha256": "b1cc4b1d07f408460a26daad9ffdab7381ee5191c1eb55d4c4960210922bc5e0"
+    }
+  ]
+}
