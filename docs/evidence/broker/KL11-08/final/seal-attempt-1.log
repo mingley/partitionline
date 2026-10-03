@@ -1,0 +1,9 @@
+SEALED stable default seed
+SEALED stable default restart
+SEALED stable all-features seed
+SEALED stable all-features restart
+SEALED 1.85.0 default seed
+SEALED 1.85.0 default restart
+SEALED 1.85.0 all-features seed
+SEALED 1.85.0 all-features restart
+{"schema_version": 1, "card": "KL11-08", "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2", "passed": true, "verified_git_files": 25713, "preparation_sha256": "db7e8c5c6bd3a8806e80ee8b70e2b31f161b056c242a61aa53237f93372b91ae", "actual_peer_executions": 204, "record_receipt_comparisons": 12348, "independent_apache_journal_record_comparisons": 8268, "actual_seven_api_wire_profiles": 168, "verified_git_files_after": 25713, "limitations": ["Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.", "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.", "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.", "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.", "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."]}

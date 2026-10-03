@@ -1,0 +1,1 @@
+$ java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar -d /workspace/work/broker-interop-final/peers/java/4.3.1 /workspace/work/broker-interop-final/peers/java/4.3.1/OrdinaryPeer.java

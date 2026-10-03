@@ -1,0 +1,1 @@
+$ cargo +stable fmt --check --manifest-path /workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml

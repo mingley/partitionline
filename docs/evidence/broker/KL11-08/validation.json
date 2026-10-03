@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "card": "KL11-08",
+  "passed": true,
+  "acceptance_complete": true,
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "verified_git_files": 25713,
+  "closure_eligible": true,
+  "dependent_capability_card": "KL05-28",
+  "actual_peer_executions": 204,
+  "actual_server_executions": 8,
+  "actual_apache_offline_decoder_executions": 600,
+  "actual_peer_assertions": 86892,
+  "public_rust_assertions": 21424,
+  "public_rust_record_checks": 4404,
+  "cross_peer_receipt_comparisons": 12348,
+  "independent_apache_persisted_record_comparisons": 8268,
+  "actual_seven_api_versions_v4_wire_profiles": 168,
+  "crc_corrupt_produce_errors": 132,
+  "acks0_success_keep_open": 132,
+  "acks0_error_eof": 132,
+  "toolchains": [
+    "stable1.99.0",
+    "Rust1.85.0"
+  ],
+  "client_features": [
+    "default",
+    "all-features"
+  ],
+  "official_apache_releases": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "native_version": "librdkafka2.15.0",
+  "complete_journals_per_phase": 26,
+  "topic_identities_retained_per_lane": 17,
+  "unique_live_seed_records_per_lane": 340,
+  "unique_live_restart_records_per_lane": 347,
+  "retired_identity_records_retained_per_lane": 1,
+  "checks": {
+    "all_four_fresh_lanes": true,
+    "all_eight_initial_attempts_passed": true,
+    "source_before_and_after_every_runtime_phase": true,
+    "strict_peer_format_and_clippy_both_compilers_features": true,
+    "strict_all_nine_java_class_compiles": true,
+    "every_seeded_live_id_hash_order_before_and_after_restart": true,
+    "deleted_uuid_unknown_and_recreated_uuid_distinct": true,
+    "complete_journal_hashes_unchanged_during_recovery_reads": true,
+    "independent_apache_full_journal_record_decode": true,
+    "crc_invalid_inputs_do_not_advance_log": true,
+    "actual_seven_api_wire_profile_independent_decode": true
+  },
+  "artifacts": [
+    {
+      "path": "docs/evidence/broker/KL11-08/final/source-integrity.json",
+      "sha256": "b3c4368821d983bf8949371448918fbaf7d7a2b8ffebedce941fdaa423c3fa22"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+      "sha256": "db7e8c5c6bd3a8806e80ee8b70e2b31f161b056c242a61aa53237f93372b91ae"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/accepted-runs.json",
+      "sha256": "1cca4e3d7ff879a83b5b696ece75b8a128a50f73b2e93bedacc94100360d7de8"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/run-attempt-1.json",
+      "sha256": "3c7c4d042caf5f3d5d53159107dd3f450639e35635ee67f9a78a031616e590d1"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/sealed-attempt-1/validation.json",
+      "sha256": "2908360b94f27a145b2ad5e9308f00e063254f7e29bb74574d2c5b07ebd77589"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/seal-attempt-1.log",
+      "sha256": "dc37237d21a6a82f7adea2b23b14116933a8ae2f2e0422b05a7c749260025e44"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/counts.json",
+      "sha256": "52c9013ec4ac958c393855aab378d9eac983523d67f5c1439aad19232ab73e19"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/final/runtime-environment.json",
+      "sha256": "9c5a851a3da96c375f31a22c51c54fba89ee4b47f3886e7f91eb0f63c770d99d"
+    }
+  ],
+  "lanes": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/seed-attempt-1",
+          "run_sha256": "82bea0f45fb95f0dfc193a3082dd19fd2cef0779645d6f909b1c520a7353b016",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/restart-attempt-1",
+          "run_sha256": "d7a635bb66daef01f4a2e83f8fe06835fbeb398dfa88a24bb53e800ea1fd732d",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/seed-attempt-1",
+          "run_sha256": "665804c39851dd252abc290c4040aa348524c9b572d96538b846cbc49bbb0364",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/restart-attempt-1",
+          "run_sha256": "239b78a0bdbc711bfc75c398dd7df14aa840145edd9edb72de470cdcb5727ab3",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/seed-attempt-1",
+          "run_sha256": "4e523ad5348c08696b215fd97eeeab5ab5a67127ba0ad8d0e1c6538724c53155",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/restart-attempt-1",
+          "run_sha256": "63e04fe5390214f32f47060102040516a2577dedc556f4b8b0bcb1cc27f1fd40",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/seed-attempt-1",
+          "run_sha256": "8b3337c73ff16d3906a60a7fd95bf5f275fee77a8f06b0793b12aa14561248ba",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/restart-attempt-1",
+          "run_sha256": "e08328c8f929e2fe4edf238f3804c8bb8702b958819b84e6cdc8466c9ca33efe",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    }
+  ],
+  "failures": {
+    "accepted_immutable_build": 0,
+    "accepted_runtime": 0,
+    "accepted_offline_decode": 0,
+    "historical_preparation": "All initial tuple/filesystem/await/ENOSPC/sample-selection failures retained under preparation and source-freeze.json; none counted as runtime passes.",
+    "count_summary": "final/failures/count-summary-attempt-1.txt"
+  },
+  "limitations": [
+    "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+    "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+    "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+    "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+    "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+  ],
+  "qualifying_scope": "Public Producer/Consumer/Admin ordinary persisted single-node interop. Whole client capability matrix is separately pinned to6d6ca9ae and completed by this fresh runtime constituent."
+}

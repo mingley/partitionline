@@ -1,0 +1,28 @@
+{
+  "lanes": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "seed": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/seed-attempt-1",
+      "restart": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/restart-attempt-1"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "seed": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/seed-attempt-1",
+      "restart": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/restart-attempt-1"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "seed": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/seed-attempt-1",
+      "restart": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/restart-attempt-1"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "seed": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/seed-attempt-1",
+      "restart": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/restart-attempt-1"
+    }
+  ]
+}

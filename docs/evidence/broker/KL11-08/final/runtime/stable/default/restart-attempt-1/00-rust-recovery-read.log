@@ -1,0 +1,1 @@
+$ /workspace/work/broker-interop-final/peers/bin/stable/default/rust-peer 127.0.0.1:19135 read /workspace/work/broker-interop-final/lanes/stable/default/clients /workspace/work/broker-interop-final/lanes/stable/default/clients/rust-recovery-read.json stable-default

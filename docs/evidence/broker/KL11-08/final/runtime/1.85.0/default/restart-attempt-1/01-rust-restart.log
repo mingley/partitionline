@@ -1,0 +1,1 @@
+$ /workspace/work/broker-interop-final/peers/bin/1.85.0/default/rust-peer 127.0.0.1:19135 restart /workspace/work/broker-interop-final/lanes/1.85.0/default/clients /workspace/work/broker-interop-final/lanes/1.85.0/default/clients/rust-restart.json 1-85-0-default

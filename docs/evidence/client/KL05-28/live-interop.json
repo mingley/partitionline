@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "card": "KL05-28",
+  "passed": true,
+  "acceptance_complete": true,
+  "closure_eligible": true,
+  "client_matrix_source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "fresh_public_runtime_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "unchanged_capability_source_files": {
+    "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+    "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+    "tests/client_capabilities.rs": "0d43c7fc441c481b79a7747bd433a7826ffd3d3f67db0c2f5795ac5f34a26abe"
+  },
+  "client_matrix": {
+    "path": "docs/evidence/client/KL05-28/validation.json",
+    "sha256": "b296ec262eafc2d1e418a8b503be6edc370ce63fe888778ea3bc41c21836fc43"
+  },
+  "actual_broker_interop": {
+    "path": "docs/evidence/broker/KL11-08/validation.json",
+    "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+  },
+  "actual_peer_executions": 204,
+  "actual_public_rust_assertions": 21424,
+  "actual_public_rust_record_checks": 4404,
+  "note": "The exact6d whole client matrix plus fresh45582234 public-client persisted broker runtime satisfy the capability card together. No socket-only closure or repinned QA history."
+}

@@ -1,0 +1,2 @@
+$ cargo +stable clean --manifest-path /workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml -p partitionline-broker
+     Removed 0 files

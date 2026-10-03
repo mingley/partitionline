@@ -1,0 +1,1 @@
+$ /workspace/work/broker-interop-final/peers/bin/stable/all-features/rust-peer 127.0.0.1:19135 seed /workspace/work/broker-interop-final/lanes/stable/all-features/clients /workspace/work/broker-interop-final/lanes/stable/all-features/clients/rust-seed.json stable-all-features

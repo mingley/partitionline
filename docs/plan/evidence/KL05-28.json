@@ -1,0 +1,664 @@
+{
+  "schema_version": 1,
+  "task": "KL05-28",
+  "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+  "fresh_public_interop_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "disposition": "accepted operation-specific Producer/Admin capabilities with fresh public-client persisted interop",
+  "commands": [
+    {
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 2.7712243310015765,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "seconds": 2.7933632459971705,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "seconds": 53.82374264599639,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 44.80198520999693,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-default-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 2.4642350750000332,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-default-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4462703800018062,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-all-features-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 12.349064146001183,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 156.81960631399852,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 43.30999884800258,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "stable-all-features-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 2.6113758360006614,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "stable-all-features-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 1.60607597699709,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-package-clean",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "seconds": 0.9189037949981866,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer"
+      ],
+      "exit_code": 0,
+      "seconds": 15.004234383995936,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets"
+      ],
+      "exit_code": 0,
+      "seconds": 188.93547620599566,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 78.38984493499447,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-default-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--no-deps"
+      ],
+      "exit_code": 0,
+      "seconds": 3.316912369002239,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-default-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--doc"
+      ],
+      "exit_code": 0,
+      "seconds": 1.7099575949978316,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-all-features-cli-examples",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--example",
+        "verifiable_producer",
+        "--example",
+        "verifiable_consumer",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 14.64784378799959,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-behavior",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--all-targets",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 189.88184648299648,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--all-targets",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 77.18089350399532,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {}
+    },
+    {
+      "name": "1.85.0-all-features-docs",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--locked",
+        "--no-deps",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 4.049843034998048,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "1.85.0-all-features-doctests",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--doc",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "seconds": 2.196191729999555,
+      "git_files_verified_before": 20193,
+      "git_files_verified_after": 20193,
+      "extra_environment": {
+        "RUSTDOCFLAGS": "-D warnings"
+      }
+    },
+    {
+      "name": "fresh-public-interop-four-lanes",
+      "command": [
+        "python3",
+        "docs/evidence/broker/KL11-08/final/run-all.py"
+      ],
+      "exit_code": 0,
+      "actual_peer_processes": 204
+    },
+    {
+      "name": "whole-client-artifact-checksums",
+      "command": [
+        "sha256sum",
+        "-c",
+        "SHA256SUMS"
+      ],
+      "cwd": "docs/evidence/client/KL05-28",
+      "exit_code": 0,
+      "verified_artifacts": 53
+    },
+    {
+      "name": "live-interop-supplement-checksum",
+      "command": [
+        "sha256sum",
+        "-c",
+        "LIVE-SHA256SUMS"
+      ],
+      "cwd": "docs/evidence/client/KL05-28",
+      "exit_code": 0,
+      "verified_artifacts": 1
+    }
+  ],
+  "results": {
+    "whole_client_qualification": {
+      "schema_version": 1,
+      "card": "KL05-28",
+      "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+      "passed": true,
+      "verified_git_files_before_and_after_every_final_command": 20193,
+      "whole_client_matrix": [
+        {
+          "toolchain": "stable",
+          "features": "default",
+          "behavior_passed": 1814,
+          "behavior_ignored": 4,
+          "behavior_suites": 49,
+          "doctests_passed": 4,
+          "strict_all_target_clippy": true,
+          "strict_rustdoc": true,
+          "standalone_cli_examples_built_before_all_target_tests": true
+        },
+        {
+          "toolchain": "stable",
+          "features": "all-features",
+          "behavior_passed": 1815,
+          "behavior_ignored": 4,
+          "behavior_suites": 49,
+          "doctests_passed": 4,
+          "strict_all_target_clippy": true,
+          "strict_rustdoc": true,
+          "standalone_cli_examples_built_before_all_target_tests": true
+        },
+        {
+          "toolchain": "1.85.0",
+          "features": "default",
+          "behavior_passed": 1814,
+          "behavior_ignored": 4,
+          "behavior_suites": 49,
+          "doctests_passed": 4,
+          "strict_all_target_clippy": true,
+          "strict_rustdoc": true,
+          "standalone_cli_examples_built_before_all_target_tests": true
+        },
+        {
+          "toolchain": "1.85.0",
+          "features": "all-features",
+          "behavior_passed": 1815,
+          "behavior_ignored": 4,
+          "behavior_suites": 49,
+          "doctests_passed": 4,
+          "strict_all_target_clippy": true,
+          "strict_rustdoc": true,
+          "standalone_cli_examples_built_before_all_target_tests": true
+        }
+      ],
+      "focused_public_socket_cases_per_cell": 10,
+      "checks": {
+        "format": true,
+        "public_socket_capability_regressions": true,
+        "core_protocol_and_resource_behavior_retained": true
+      },
+      "scope": "Operation-specific capability selection for ordinary Producer and basic Admin; public signatures and dependency defaults unchanged.",
+      "limitations": [
+        "This prerequisite proves capability behavior against bounded mock TCP peers; real persisted broker interop is a separate KL11-08 lane.",
+        "Transactional Producer still requires FindCoordinator and InitProducerId; idempotent nontransactional Producer still requires InitProducerId.",
+        "Existing documented empty Admin inputs remain no-ops; nonempty unavailable operations return Unsupported before unrelated network work.",
+        "Four existing ignored tests remain ignored; no integration broker availability claim is inferred from this client matrix."
+      ],
+      "retained_failures": [
+        {
+          "path": "development/stable-default-attempt-1.log",
+          "classification": "Draft test imports/results lint errors; corrected before source freeze."
+        },
+        {
+          "path": "development/stable-default-attempt-2.log",
+          "classification": "Draft mock assumed broker node0 rather than fixture node1; corrected before source freeze."
+        },
+        {
+          "path": "development/focused-attempt-1",
+          "classification": "Draft focused test Clippy style errors; corrected before source freeze."
+        },
+        {
+          "path": "final/attempt-1",
+          "classification": "Exact-source QA preparation omitted standalone CLI examples required by existing CI; all ten verifiable_contract cases failed. Attempt2 built examples first with identical source and all four cells passed."
+        }
+      ],
+      "final_receipt": "final/attempt-2/results.json",
+      "source_integrity": "final/source-integrity.json",
+      "closure_dependency": "KL11-08 fresh public Rust-client persisted broker interop; this matrix/socket constituent is complete, but card28 closes together with08 after that independent runtime qualification."
+    },
+    "fresh_public_runtime": {
+      "schema_version": 1,
+      "card": "KL05-28",
+      "passed": true,
+      "acceptance_complete": true,
+      "closure_eligible": true,
+      "client_matrix_source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+      "fresh_public_runtime_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+      "unchanged_capability_source_files": {
+        "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+        "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+        "tests/client_capabilities.rs": "0d43c7fc441c481b79a7747bd433a7826ffd3d3f67db0c2f5795ac5f34a26abe"
+      },
+      "client_matrix": {
+        "path": "docs/evidence/client/KL05-28/validation.json",
+        "sha256": "b296ec262eafc2d1e418a8b503be6edc370ce63fe888778ea3bc41c21836fc43"
+      },
+      "actual_broker_interop": {
+        "path": "docs/evidence/broker/KL11-08/validation.json",
+        "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+      },
+      "actual_peer_executions": 204,
+      "actual_public_rust_assertions": 21424,
+      "actual_public_rust_record_checks": 4404,
+      "note": "The exact6d whole client matrix plus fresh45582234 public-client persisted broker runtime satisfy the capability card together. No socket-only closure or repinned QA history."
+    },
+    "fresh_broker_peer_counts": {
+      "actual_peers": 204,
+      "actual_assertions": 86892,
+      "public_rust_assertions": 21424,
+      "public_rust_record_checks": 4404,
+      "all_four_toolchain_feature_lanes": true
+    },
+    "actual_operation_local_unsupported": {
+      "admin_describe_configs": "Unsupported",
+      "ordinary_idempotent_producer": "Unsupported InitProducerId",
+      "transactional_producer": "Unsupported FindCoordinator"
+    },
+    "source_preservation": "producer/admin/focused tests match exact6d bytes in fresh455 archive; public signatures/dependency defaults unchanged"
+  },
+  "artifacts": [
+    {
+      "path": "docs/evidence/client/KL05-28/validation.json",
+      "sha256": "b296ec262eafc2d1e418a8b503be6edc370ce63fe888778ea3bc41c21836fc43"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/source-freeze.json",
+      "sha256": "28ceec8bc33520fdd3d3397a7bc17eef9e74ed726cda91f079a658814c2f5834"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/final/source-integrity.json",
+      "sha256": "fe265c2e65c5cc45961b7d3410b9782d0473662bfb2213dc1dc6be3e7f37803c"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/final/attempt-2/results.json",
+      "sha256": "42007e954025b03266aebceefa1956da55119a8d6635c24865fcdd5b8406e932"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/final/attempt-1/results.json",
+      "sha256": "d57c69c3958ccd2cd83067939ad945fbfecdc43b33a5b2e907e82c8f8cdc62f3"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/SHA256SUMS",
+      "sha256": "aec3a8a8c8b1e85fdf48d6f52762ee77fbca944fd3549e35012550d470c36207"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/live-interop.json",
+      "sha256": "b11379698e6ef08fb60467cfe211637ef35d9b0adaab11463a541af490c7ed1d"
+    },
+    {
+      "path": "docs/evidence/client/KL05-28/LIVE-SHA256SUMS",
+      "sha256": "62395afb8969483a8f942c349923aa94202bf39cbab91111789c53a4a358f5ff"
+    },
+    {
+      "path": "docs/evidence/broker/KL11-08/validation.json",
+      "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+    }
+  ],
+  "acceptance_complete": true,
+  "limitations": [
+    "This prerequisite proves capability behavior against bounded mock TCP peers; real persisted broker interop is a separate KL11-08 lane.",
+    "Transactional Producer still requires FindCoordinator and InitProducerId; idempotent nontransactional Producer still requires InitProducerId.",
+    "Existing documented empty Admin inputs remain no-ops; nonempty unavailable operations return Unsupported before unrelated network work.",
+    "Four existing ignored tests remain ignored; no integration broker availability claim is inferred from this client matrix.",
+    "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+    "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+    "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+    "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+    "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+  ],
+  "remaining_acceptance_work": []
+}

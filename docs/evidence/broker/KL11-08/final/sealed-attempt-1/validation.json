@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "card": "KL11-08",
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "passed": true,
+  "verified_git_files": 25713,
+  "preparation_sha256": "db7e8c5c6bd3a8806e80ee8b70e2b31f161b056c242a61aa53237f93372b91ae",
+  "lanes": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/seed-attempt-1",
+          "run_sha256": "82bea0f45fb95f0dfc193a3082dd19fd2cef0779645d6f909b1c520a7353b016",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/restart-attempt-1",
+          "run_sha256": "d7a635bb66daef01f4a2e83f8fe06835fbeb398dfa88a24bb53e800ea1fd732d",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/seed-attempt-1",
+          "run_sha256": "665804c39851dd252abc290c4040aa348524c9b572d96538b846cbc49bbb0364",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/restart-attempt-1",
+          "run_sha256": "239b78a0bdbc711bfc75c398dd7df14aa840145edd9edb72de470cdcb5727ab3",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/seed-attempt-1",
+          "run_sha256": "4e523ad5348c08696b215fd97eeeab5ab5a67127ba0ad8d0e1c6538724c53155",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/restart-attempt-1",
+          "run_sha256": "63e04fe5390214f32f47060102040516a2577dedc556f4b8b0bcb1cc27f1fd40",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "phases": [
+        {
+          "phase": "seed",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/seed-attempt-1",
+          "run_sha256": "8b3337c73ff16d3906a60a7fd95bf5f275fee77a8f06b0793b12aa14561248ba",
+          "rust_records_checked": 364,
+          "unique_live_records": 340,
+          "record_receipt_comparisons": 1429,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 27,
+          "actual_seven_api_wire_profiles": 39,
+          "independent_apache_journal_record_comparisons": 1023
+        },
+        {
+          "phase": "restart",
+          "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/restart-attempt-1",
+          "run_sha256": "e08328c8f929e2fe4edf238f3804c8bb8702b958819b84e6cdc8466c9ca33efe",
+          "rust_records_checked": 373,
+          "unique_live_records": 347,
+          "record_receipt_comparisons": 1658,
+          "stable_topic_identities": 17,
+          "actual_peer_executions": 24,
+          "actual_seven_api_wire_profiles": 3,
+          "independent_apache_journal_record_comparisons": 1044
+        }
+      ]
+    }
+  ],
+  "actual_peer_executions": 204,
+  "record_receipt_comparisons": 12348,
+  "independent_apache_journal_record_comparisons": 8268,
+  "actual_seven_api_wire_profiles": 168,
+  "verified_git_files_after": 25713,
+  "limitations": [
+    "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+    "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+    "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+    "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+    "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+  ]
+}

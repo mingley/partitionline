@@ -1,0 +1,8 @@
+{
+  "assertions": 86892,
+  "rustrecords": 4404,
+  "rustassertions": 21424,
+  "crc": 132,
+  "acks0_error_eof": 132,
+  "acks0_success_keepopen": 132
+}

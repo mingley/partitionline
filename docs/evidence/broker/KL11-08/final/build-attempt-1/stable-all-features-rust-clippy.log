@@ -1,0 +1,4 @@
+$ cargo +stable clippy --locked --manifest-path /workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml --all-features -- -D warnings
+    Checking partitionline v0.1.0 (/workspace/work/broker-interop-final/source)
+    Checking partitionline-broker-interop-peer v0.0.0 (/workspace/work/broker-interop-final/source/tests/conformance/broker/interop)
+    Finished `dev` profile [unoptimized] target(s) in 6.55s

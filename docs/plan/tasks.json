@@ -23448,7 +23448,7 @@
       "title": "Run independent clients against the persisted single-node broker",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-avro-adapter-20261003",
       "depends_on": [
         "KL11-07",
@@ -23468,7 +23468,1140 @@
         "Run the named behavioral/fault cases for this contract on stable and Rust 1.85, with strict format/lint checks.",
         "Retain independent upstream or cross-peer evidence where the contract concerns Kafka semantics."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-08",
+                "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+                "disposition": "accepted fresh ordinary persisted public-client interop",
+                "commands": [
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2/OrdinaryPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.8365257139957976,
+                                "log_sha256": "beb1b1f8c82726652178bc1a8d1b06cf2f57d32d1586870e89963d35b94546ff"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2/JournalPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.5697876289996202,
+                                "log_sha256": "ecbad56abfe99907dcbd88243ebbb7bb0c366d4878016411dd8d6f77d2066126"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+                                        "/workspace/work/broker-interop-final/peers/java/4.1.2/CrossReadPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.6461441999999806,
+                                "log_sha256": "63bbcabbf2d82135aed787e40e1e1258c22a6249bad1362ab4cc8918ad4db3a8"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1/OrdinaryPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.7714140079988283,
+                                "log_sha256": "ef48ba9d58c976fb28e6143ed86b4d0f372aa45fa240ba04dd38994700151649"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1/JournalPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.5394093340000836,
+                                "log_sha256": "9b65bd3664a0573df31e89bdbc931025eba9e799bc8feb17c5ba8314c069015d"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.2.1/CrossReadPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.6220474560032017,
+                                "log_sha256": "15d3df0721ebc6ec6b8eed007cbc6aa22e491779ab7513ba35700cf31e89561c"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1/OrdinaryPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.790110656998877,
+                                "log_sha256": "209b613c4239b2b833102e07edd9f157662198773bba12c3ac34472dd1671eb3"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1/JournalPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.5724907819967484,
+                                "log_sha256": "0dfa273f77f12c6aa917e1c004ab9efa11f3a614918b01b54d2ba7d0fe0d5038"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "java",
+                                        "--add-modules",
+                                        "jdk.compiler",
+                                        "com.sun.tools.javac.Main",
+                                        "-Xlint:all",
+                                        "-Werror",
+                                        "-cp",
+                                        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+                                        "-d",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+                                        "/workspace/work/broker-interop-final/peers/java/4.3.1/CrossReadPeer.java"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.6489477099967189,
+                                "log_sha256": "8b105c96acc67c3828ea781ea3648cd5863dee87a16b226681ed8464ed385e06"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker-interop-peer"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.03784340999845881,
+                                "log_sha256": "16518650da68f43a281a27e3cd5e205fd3ae9770063b555bb298f2851dacd703"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "-p",
+                                        "partitionline"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.028847253001003992,
+                                "log_sha256": "cf2ac157b071ef4ea8a2815d4ec77f74cff8a7dd91f713854820aeccd53aee02"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.027726555003027897,
+                                "log_sha256": "552727e2e751ab18c81d76bb8c0bfe5974ae22947b296ac4e12b650bec3d1832"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--check",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.03958128500380553,
+                                "log_sha256": "ddf9c1f399bcb1f0804bf3304476a2fd5aba71d0af5bd6d01515fc0daae11086"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "build",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 23.96913787200174,
+                                "log_sha256": "eac06c814d9eba8bca986ff53cf5952bca1df96e187a5d08ed28ee8b5c18cecd"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 6.44161065100343,
+                                "log_sha256": "a3cf7292c4ea8215307f5b1eaa1b54bb923c07ad8df801668a5ada9ce2533029"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "build",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 14.74254606100294,
+                                "log_sha256": "612effd5edb19b4af6fc53b5bd07b4251fe2f87956caf3494e0bc793c9f348bc"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 6.590615199995227,
+                                "log_sha256": "2b2048237f950f72cc1b25d8e007aadeb1bbb2e8eaac55963e94fa807bbcbcc1"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "fetch",
+                                        "--no-run",
+                                        "--message-format=json"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 7.276683762000175,
+                                "log_sha256": "6db6b1acb691bd931b88dee18a8ab27470b7be92704230b351fe2e4d1da83fcd"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker-interop-peer"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.05040371599898208,
+                                "log_sha256": "6ef033b3668741f40c539f590bb996f72bc522a0ed8374a41bcb4a8d5a50f3a2"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "-p",
+                                        "partitionline"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.1896144650017959,
+                                "log_sha256": "5e6f36cf06d66a16b4ad62d3d40d11d377a35e4c6546b498db374ae0a3973892"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.1624017880021711,
+                                "log_sha256": "b1a7ebb15deecbec46aea054f436ab1ee893a864cafe695473cbbcfd5d400823"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "fmt",
+                                        "--check",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 0.0422963420060114,
+                                "log_sha256": "c9f93d243a577d0a61e03ebb8544b79d94a9593cea93d5217b422efab0d2292a"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "build",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 25.921542806005164,
+                                "log_sha256": "343d1dac9bca5275b358c887778d121c2f7b342f0ca46a465525318d25fd23a6"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 6.761049880005885,
+                                "log_sha256": "3b1a23372f4aa8d1a6ab1b617348641cf6559834a6332b764f441774e824d688"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "build",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 17.768977728999744,
+                                "log_sha256": "7c1a942e0c497023513c19c3ba6c7a31dac35e56c758add22798c333c69303a8"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 7.268404846996418,
+                                "log_sha256": "8fdd8a79a20fea4a1be66497a180ad6c33a18d282f5f22c5073faee5a76ba585"
+                        },
+                        {
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "fetch",
+                                        "--no-run",
+                                        "--message-format=json"
+                                ],
+                                "exit_code": 0,
+                                "timed_out": false,
+                                "seconds": 8.511749350000173,
+                                "log_sha256": "c10b6ae825e6795aa124bf9e0c1ea832c46c5c26bd8f1d4035c9bd78e619f3a5"
+                        },
+                        {
+                                "toolchain": "stable",
+                                "features": "default",
+                                "phase": "seed",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/seed-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "stable",
+                                        "--features",
+                                        "default",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/stable/default/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/stable/default/clients"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "stable",
+                                "features": "default",
+                                "phase": "restart",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/restart-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "stable",
+                                        "--features",
+                                        "default",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/stable/default/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/stable/default/clients",
+                                        "--restart"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "stable",
+                                "features": "all-features",
+                                "phase": "seed",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/seed-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "stable",
+                                        "--features",
+                                        "all-features",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/stable/all-features/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/stable/all-features/clients"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "stable",
+                                "features": "all-features",
+                                "phase": "restart",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/restart-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "stable",
+                                        "--features",
+                                        "all-features",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/stable/all-features/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/stable/all-features/clients",
+                                        "--restart"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "features": "default",
+                                "phase": "seed",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/seed-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "1.85.0",
+                                        "--features",
+                                        "default",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/default/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/default/clients"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "features": "default",
+                                "phase": "restart",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/restart-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "1.85.0",
+                                        "--features",
+                                        "default",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/default/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/default/clients",
+                                        "--restart"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "features": "all-features",
+                                "phase": "seed",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/seed-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "1.85.0",
+                                        "--features",
+                                        "all-features",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/all-features/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/all-features/clients"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "toolchain": "1.85.0",
+                                "features": "all-features",
+                                "phase": "restart",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/scripts/broker-interop.py",
+                                        "run",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--scratch",
+                                        "/workspace/work/broker-interop-final/peers",
+                                        "--target",
+                                        "/workspace/work/target-client-capabilities",
+                                        "--evidence",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/restart-attempt-1",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--toolchain",
+                                        "1.85.0",
+                                        "--features",
+                                        "all-features",
+                                        "--port",
+                                        "19135",
+                                        "--state",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/all-features/state",
+                                        "--clients",
+                                        "/workspace/work/broker-interop-final/lanes/1.85.0/all-features/clients",
+                                        "--restart"
+                                ],
+                                "exit_code": 0
+                        },
+                        {
+                                "name": "independent-offline-sealer",
+                                "command": [
+                                        "python3",
+                                        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/seal.py",
+                                        "--source",
+                                        "/workspace/work/broker-interop-final/source",
+                                        "--integrity",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "--preparation",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "--runs",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/accepted-runs.json",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1"
+                                ],
+                                "exit_code": 0,
+                                "log_sha256": "dc37237d21a6a82f7adea2b23b14116933a8ae2f2e0422b05a7c749260025e44"
+                        },
+                        {
+                                "name": "all-artifact-checksums",
+                                "command": [
+                                        "sha256sum",
+                                        "-c",
+                                        "SHA256SUMS"
+                                ],
+                                "cwd": "docs/evidence/broker/KL11-08",
+                                "exit_code": 0,
+                                "verified_artifacts": 3764
+                        }
+                ],
+                "results": {
+                        "schema_version": 1,
+                        "card": "KL11-08",
+                        "passed": true,
+                        "acceptance_complete": true,
+                        "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+                        "verified_git_files": 25713,
+                        "closure_eligible": true,
+                        "dependent_capability_card": "KL05-28",
+                        "actual_peer_executions": 204,
+                        "actual_server_executions": 8,
+                        "actual_apache_offline_decoder_executions": 600,
+                        "actual_peer_assertions": 86892,
+                        "public_rust_assertions": 21424,
+                        "public_rust_record_checks": 4404,
+                        "cross_peer_receipt_comparisons": 12348,
+                        "independent_apache_persisted_record_comparisons": 8268,
+                        "actual_seven_api_versions_v4_wire_profiles": 168,
+                        "crc_corrupt_produce_errors": 132,
+                        "acks0_success_keep_open": 132,
+                        "acks0_error_eof": 132,
+                        "toolchains": [
+                                "stable1.99.0",
+                                "Rust1.85.0"
+                        ],
+                        "client_features": [
+                                "default",
+                                "all-features"
+                        ],
+                        "official_apache_releases": [
+                                "4.1.2",
+                                "4.2.1",
+                                "4.3.1"
+                        ],
+                        "native_version": "librdkafka2.15.0",
+                        "complete_journals_per_phase": 26,
+                        "topic_identities_retained_per_lane": 17,
+                        "unique_live_seed_records_per_lane": 340,
+                        "unique_live_restart_records_per_lane": 347,
+                        "retired_identity_records_retained_per_lane": 1,
+                        "checks": {
+                                "all_four_fresh_lanes": true,
+                                "all_eight_initial_attempts_passed": true,
+                                "source_before_and_after_every_runtime_phase": true,
+                                "strict_peer_format_and_clippy_both_compilers_features": true,
+                                "strict_all_nine_java_class_compiles": true,
+                                "every_seeded_live_id_hash_order_before_and_after_restart": true,
+                                "deleted_uuid_unknown_and_recreated_uuid_distinct": true,
+                                "complete_journal_hashes_unchanged_during_recovery_reads": true,
+                                "independent_apache_full_journal_record_decode": true,
+                                "crc_invalid_inputs_do_not_advance_log": true,
+                                "actual_seven_api_wire_profile_independent_decode": true
+                        },
+                        "artifacts": [
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                        "sha256": "b3c4368821d983bf8949371448918fbaf7d7a2b8ffebedce941fdaa423c3fa22"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                        "sha256": "db7e8c5c6bd3a8806e80ee8b70e2b31f161b056c242a61aa53237f93372b91ae"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/accepted-runs.json",
+                                        "sha256": "1cca4e3d7ff879a83b5b696ece75b8a128a50f73b2e93bedacc94100360d7de8"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/run-attempt-1.json",
+                                        "sha256": "3c7c4d042caf5f3d5d53159107dd3f450639e35635ee67f9a78a031616e590d1"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/sealed-attempt-1/validation.json",
+                                        "sha256": "2908360b94f27a145b2ad5e9308f00e063254f7e29bb74574d2c5b07ebd77589"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/seal-attempt-1.log",
+                                        "sha256": "dc37237d21a6a82f7adea2b23b14116933a8ae2f2e0422b05a7c749260025e44"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/counts.json",
+                                        "sha256": "52c9013ec4ac958c393855aab378d9eac983523d67f5c1439aad19232ab73e19"
+                                },
+                                {
+                                        "path": "docs/evidence/broker/KL11-08/final/runtime-environment.json",
+                                        "sha256": "9c5a851a3da96c375f31a22c51c54fba89ee4b47f3886e7f91eb0f63c770d99d"
+                                }
+                        ],
+                        "lanes": [
+                                {
+                                        "toolchain": "stable",
+                                        "features": "default",
+                                        "phases": [
+                                                {
+                                                        "phase": "seed",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/seed-attempt-1",
+                                                        "run_sha256": "82bea0f45fb95f0dfc193a3082dd19fd2cef0779645d6f909b1c520a7353b016",
+                                                        "rust_records_checked": 364,
+                                                        "unique_live_records": 340,
+                                                        "record_receipt_comparisons": 1429,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 27,
+                                                        "actual_seven_api_wire_profiles": 39,
+                                                        "independent_apache_journal_record_comparisons": 1023
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/default/restart-attempt-1",
+                                                        "run_sha256": "d7a635bb66daef01f4a2e83f8fe06835fbeb398dfa88a24bb53e800ea1fd732d",
+                                                        "rust_records_checked": 373,
+                                                        "unique_live_records": 347,
+                                                        "record_receipt_comparisons": 1658,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 24,
+                                                        "actual_seven_api_wire_profiles": 3,
+                                                        "independent_apache_journal_record_comparisons": 1044
+                                                }
+                                        ]
+                                },
+                                {
+                                        "toolchain": "stable",
+                                        "features": "all-features",
+                                        "phases": [
+                                                {
+                                                        "phase": "seed",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/seed-attempt-1",
+                                                        "run_sha256": "665804c39851dd252abc290c4040aa348524c9b572d96538b846cbc49bbb0364",
+                                                        "rust_records_checked": 364,
+                                                        "unique_live_records": 340,
+                                                        "record_receipt_comparisons": 1429,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 27,
+                                                        "actual_seven_api_wire_profiles": 39,
+                                                        "independent_apache_journal_record_comparisons": 1023
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/stable/all-features/restart-attempt-1",
+                                                        "run_sha256": "239b78a0bdbc711bfc75c398dd7df14aa840145edd9edb72de470cdcb5727ab3",
+                                                        "rust_records_checked": 373,
+                                                        "unique_live_records": 347,
+                                                        "record_receipt_comparisons": 1658,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 24,
+                                                        "actual_seven_api_wire_profiles": 3,
+                                                        "independent_apache_journal_record_comparisons": 1044
+                                                }
+                                        ]
+                                },
+                                {
+                                        "toolchain": "1.85.0",
+                                        "features": "default",
+                                        "phases": [
+                                                {
+                                                        "phase": "seed",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/seed-attempt-1",
+                                                        "run_sha256": "4e523ad5348c08696b215fd97eeeab5ab5a67127ba0ad8d0e1c6538724c53155",
+                                                        "rust_records_checked": 364,
+                                                        "unique_live_records": 340,
+                                                        "record_receipt_comparisons": 1429,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 27,
+                                                        "actual_seven_api_wire_profiles": 39,
+                                                        "independent_apache_journal_record_comparisons": 1023
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/default/restart-attempt-1",
+                                                        "run_sha256": "63e04fe5390214f32f47060102040516a2577dedc556f4b8b0bcb1cc27f1fd40",
+                                                        "rust_records_checked": 373,
+                                                        "unique_live_records": 347,
+                                                        "record_receipt_comparisons": 1658,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 24,
+                                                        "actual_seven_api_wire_profiles": 3,
+                                                        "independent_apache_journal_record_comparisons": 1044
+                                                }
+                                        ]
+                                },
+                                {
+                                        "toolchain": "1.85.0",
+                                        "features": "all-features",
+                                        "phases": [
+                                                {
+                                                        "phase": "seed",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/seed-attempt-1",
+                                                        "run_sha256": "8b3337c73ff16d3906a60a7fd95bf5f275fee77a8f06b0793b12aa14561248ba",
+                                                        "rust_records_checked": 364,
+                                                        "unique_live_records": 340,
+                                                        "record_receipt_comparisons": 1429,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 27,
+                                                        "actual_seven_api_wire_profiles": 39,
+                                                        "independent_apache_journal_record_comparisons": 1023
+                                                },
+                                                {
+                                                        "phase": "restart",
+                                                        "run": "/workspace/partitionline/docs/evidence/broker/KL11-08/final/runtime/1.85.0/all-features/restart-attempt-1",
+                                                        "run_sha256": "e08328c8f929e2fe4edf238f3804c8bb8702b958819b84e6cdc8466c9ca33efe",
+                                                        "rust_records_checked": 373,
+                                                        "unique_live_records": 347,
+                                                        "record_receipt_comparisons": 1658,
+                                                        "stable_topic_identities": 17,
+                                                        "actual_peer_executions": 24,
+                                                        "actual_seven_api_wire_profiles": 3,
+                                                        "independent_apache_journal_record_comparisons": 1044
+                                                }
+                                        ]
+                                }
+                        ],
+                        "failures": {
+                                "accepted_immutable_build": 0,
+                                "accepted_runtime": 0,
+                                "accepted_offline_decode": 0,
+                                "historical_preparation": "All initial tuple/filesystem/await/ENOSPC/sample-selection failures retained under preparation and source-freeze.json; none counted as runtime passes.",
+                                "count_summary": "final/failures/count-summary-attempt-1.txt"
+                        },
+                        "limitations": [
+                                "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+                                "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+                                "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+                                "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+                                "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+                        ],
+                        "qualifying_scope": "Public Producer/Consumer/Admin ordinary persisted single-node interop. Whole client capability matrix is separately pinned to6d6ca9ae and completed by this fresh runtime constituent."
+                },
+                "artifacts": [
+                        {
+                                "path": "docs/evidence/broker/KL11-08/validation.json",
+                                "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/SHA256SUMS",
+                                "sha256": "a90e9ed2c7facaa7b615e5eef3af517478ca3ff51af81a9a8550576058480297"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/source-freeze.json",
+                                "sha256": "bd16952652b025843acc86ab92dbc40a40113d3693b85b7a71fb9f6f4d480512"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/source-integrity.json",
+                                "sha256": "b3c4368821d983bf8949371448918fbaf7d7a2b8ffebedce941fdaa423c3fa22"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/build-attempt-1/preparation.json",
+                                "sha256": "db7e8c5c6bd3a8806e80ee8b70e2b31f161b056c242a61aa53237f93372b91ae"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/accepted-runs.json",
+                                "sha256": "1cca4e3d7ff879a83b5b696ece75b8a128a50f73b2e93bedacc94100360d7de8"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/run-attempt-1.json",
+                                "sha256": "3c7c4d042caf5f3d5d53159107dd3f450639e35635ee67f9a78a031616e590d1"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/sealed-attempt-1/validation.json",
+                                "sha256": "2908360b94f27a145b2ad5e9308f00e063254f7e29bb74574d2c5b07ebd77589"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/seal-attempt-1.log",
+                                "sha256": "dc37237d21a6a82f7adea2b23b14116933a8ae2f2e0422b05a7c749260025e44"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/counts.json",
+                                "sha256": "52c9013ec4ac958c393855aab378d9eac983523d67f5c1439aad19232ab73e19"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/runtime-environment.json",
+                                "sha256": "9c5a851a3da96c375f31a22c51c54fba89ee4b47f3886e7f91eb0f63c770d99d"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/final/README.md",
+                                "sha256": "6b326ad0ce8eacb265dfdadfacece88bab7323aa8552c2b4f9c586485d183839"
+                        },
+                        {
+                                "path": "tests/conformance/broker/interop/pins.json",
+                                "sha256": "48e14121ef37ea952691f4766285463a38481168cd12f3630be350390c6c6671"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/live-interop.json",
+                                "sha256": "b11379698e6ef08fb60467cfe211637ef35d9b0adaab11463a541af490c7ed1d"
+                        }
+                ],
+                "acceptance_complete": true,
+                "limitations": [
+                        "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+                        "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+                        "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+                        "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+                        "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+                ],
+                "remaining_acceptance_work": []
+        }
+      ],
       "write_set": [
         "scripts/broker-interop.py",
         "tests/conformance/broker/interop/",
@@ -40317,7 +41450,7 @@
       "title": "Negotiate Producer and Admin capabilities per requested operation",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-avro-adapter-20261003",
       "depends_on": [
         "KL05-11",
@@ -40346,7 +41479,672 @@
         "Stable/MSRV default/all-feature focused capability and existing behavioral tests; full client strict fmt/Clippy/docs gates.",
         "Actual Rust Producer/Consumer/Admin interoperability is qualified by dependent KL11-08; no fake broker advertisements."
       ],
-      "evidence": []
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL05-28",
+                "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+                "fresh_public_interop_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+                "disposition": "accepted operation-specific Producer/Admin capabilities with fresh public-client persisted interop",
+                "commands": [
+                        {
+                                "name": "format",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--check"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 2.7712243310015765,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-default-cli-examples",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 2.7933632459971705,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-default-behavior",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 53.82374264599639,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-default-clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 44.80198520999693,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-default-docs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--locked",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 2.4642350750000332,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "stable-default-doctests",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--doc"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 1.4462703800018062,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "stable-all-features-cli-examples",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 12.349064146001183,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-all-features-behavior",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 156.81960631399852,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-all-features-clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 43.30999884800258,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "stable-all-features-docs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--locked",
+                                        "--no-deps",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 2.6113758360006614,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "stable-all-features-doctests",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--doc",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 1.60607597699709,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "1.85.0-package-clean",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "-p",
+                                        "partitionline"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 0.9189037949981866,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-default-cli-examples",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 15.004234383995936,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-default-behavior",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 188.93547620599566,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-default-clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 78.38984493499447,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-default-docs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--locked",
+                                        "--no-deps"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 3.316912369002239,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "1.85.0-default-doctests",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--doc"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 1.7099575949978316,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "1.85.0-all-features-cli-examples",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "build",
+                                        "--locked",
+                                        "--example",
+                                        "verifiable_producer",
+                                        "--example",
+                                        "verifiable_consumer",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 14.64784378799959,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-all-features-behavior",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 189.88184648299648,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-all-features-clippy",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--locked",
+                                        "--all-targets",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 77.18089350399532,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {}
+                        },
+                        {
+                                "name": "1.85.0-all-features-docs",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--locked",
+                                        "--no-deps",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 4.049843034998048,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "1.85.0-all-features-doctests",
+                                "command": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--doc",
+                                        "--all-features"
+                                ],
+                                "exit_code": 0,
+                                "seconds": 2.196191729999555,
+                                "git_files_verified_before": 20193,
+                                "git_files_verified_after": 20193,
+                                "extra_environment": {
+                                        "RUSTDOCFLAGS": "-D warnings"
+                                }
+                        },
+                        {
+                                "name": "fresh-public-interop-four-lanes",
+                                "command": [
+                                        "python3",
+                                        "docs/evidence/broker/KL11-08/final/run-all.py"
+                                ],
+                                "exit_code": 0,
+                                "actual_peer_processes": 204
+                        },
+                        {
+                                "name": "whole-client-artifact-checksums",
+                                "command": [
+                                        "sha256sum",
+                                        "-c",
+                                        "SHA256SUMS"
+                                ],
+                                "cwd": "docs/evidence/client/KL05-28",
+                                "exit_code": 0,
+                                "verified_artifacts": 53
+                        },
+                        {
+                                "name": "live-interop-supplement-checksum",
+                                "command": [
+                                        "sha256sum",
+                                        "-c",
+                                        "LIVE-SHA256SUMS"
+                                ],
+                                "cwd": "docs/evidence/client/KL05-28",
+                                "exit_code": 0,
+                                "verified_artifacts": 1
+                        }
+                ],
+                "results": {
+                        "whole_client_qualification": {
+                                "schema_version": 1,
+                                "card": "KL05-28",
+                                "source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+                                "passed": true,
+                                "verified_git_files_before_and_after_every_final_command": 20193,
+                                "whole_client_matrix": [
+                                        {
+                                                "toolchain": "stable",
+                                                "features": "default",
+                                                "behavior_passed": 1814,
+                                                "behavior_ignored": 4,
+                                                "behavior_suites": 49,
+                                                "doctests_passed": 4,
+                                                "strict_all_target_clippy": true,
+                                                "strict_rustdoc": true,
+                                                "standalone_cli_examples_built_before_all_target_tests": true
+                                        },
+                                        {
+                                                "toolchain": "stable",
+                                                "features": "all-features",
+                                                "behavior_passed": 1815,
+                                                "behavior_ignored": 4,
+                                                "behavior_suites": 49,
+                                                "doctests_passed": 4,
+                                                "strict_all_target_clippy": true,
+                                                "strict_rustdoc": true,
+                                                "standalone_cli_examples_built_before_all_target_tests": true
+                                        },
+                                        {
+                                                "toolchain": "1.85.0",
+                                                "features": "default",
+                                                "behavior_passed": 1814,
+                                                "behavior_ignored": 4,
+                                                "behavior_suites": 49,
+                                                "doctests_passed": 4,
+                                                "strict_all_target_clippy": true,
+                                                "strict_rustdoc": true,
+                                                "standalone_cli_examples_built_before_all_target_tests": true
+                                        },
+                                        {
+                                                "toolchain": "1.85.0",
+                                                "features": "all-features",
+                                                "behavior_passed": 1815,
+                                                "behavior_ignored": 4,
+                                                "behavior_suites": 49,
+                                                "doctests_passed": 4,
+                                                "strict_all_target_clippy": true,
+                                                "strict_rustdoc": true,
+                                                "standalone_cli_examples_built_before_all_target_tests": true
+                                        }
+                                ],
+                                "focused_public_socket_cases_per_cell": 10,
+                                "checks": {
+                                        "format": true,
+                                        "public_socket_capability_regressions": true,
+                                        "core_protocol_and_resource_behavior_retained": true
+                                },
+                                "scope": "Operation-specific capability selection for ordinary Producer and basic Admin; public signatures and dependency defaults unchanged.",
+                                "limitations": [
+                                        "This prerequisite proves capability behavior against bounded mock TCP peers; real persisted broker interop is a separate KL11-08 lane.",
+                                        "Transactional Producer still requires FindCoordinator and InitProducerId; idempotent nontransactional Producer still requires InitProducerId.",
+                                        "Existing documented empty Admin inputs remain no-ops; nonempty unavailable operations return Unsupported before unrelated network work.",
+                                        "Four existing ignored tests remain ignored; no integration broker availability claim is inferred from this client matrix."
+                                ],
+                                "retained_failures": [
+                                        {
+                                                "path": "development/stable-default-attempt-1.log",
+                                                "classification": "Draft test imports/results lint errors; corrected before source freeze."
+                                        },
+                                        {
+                                                "path": "development/stable-default-attempt-2.log",
+                                                "classification": "Draft mock assumed broker node0 rather than fixture node1; corrected before source freeze."
+                                        },
+                                        {
+                                                "path": "development/focused-attempt-1",
+                                                "classification": "Draft focused test Clippy style errors; corrected before source freeze."
+                                        },
+                                        {
+                                                "path": "final/attempt-1",
+                                                "classification": "Exact-source QA preparation omitted standalone CLI examples required by existing CI; all ten verifiable_contract cases failed. Attempt2 built examples first with identical source and all four cells passed."
+                                        }
+                                ],
+                                "final_receipt": "final/attempt-2/results.json",
+                                "source_integrity": "final/source-integrity.json",
+                                "closure_dependency": "KL11-08 fresh public Rust-client persisted broker interop; this matrix/socket constituent is complete, but card28 closes together with08 after that independent runtime qualification."
+                        },
+                        "fresh_public_runtime": {
+                                "schema_version": 1,
+                                "card": "KL05-28",
+                                "passed": true,
+                                "acceptance_complete": true,
+                                "closure_eligible": true,
+                                "client_matrix_source_sha": "6d6ca9aeed263f24870c4b06531d801be655294e",
+                                "fresh_public_runtime_source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+                                "unchanged_capability_source_files": {
+                                        "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+                                        "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+                                        "tests/client_capabilities.rs": "0d43c7fc441c481b79a7747bd433a7826ffd3d3f67db0c2f5795ac5f34a26abe"
+                                },
+                                "client_matrix": {
+                                        "path": "docs/evidence/client/KL05-28/validation.json",
+                                        "sha256": "b296ec262eafc2d1e418a8b503be6edc370ce63fe888778ea3bc41c21836fc43"
+                                },
+                                "actual_broker_interop": {
+                                        "path": "docs/evidence/broker/KL11-08/validation.json",
+                                        "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+                                },
+                                "actual_peer_executions": 204,
+                                "actual_public_rust_assertions": 21424,
+                                "actual_public_rust_record_checks": 4404,
+                                "note": "The exact6d whole client matrix plus fresh45582234 public-client persisted broker runtime satisfy the capability card together. No socket-only closure or repinned QA history."
+                        },
+                        "fresh_broker_peer_counts": {
+                                "actual_peers": 204,
+                                "actual_assertions": 86892,
+                                "public_rust_assertions": 21424,
+                                "public_rust_record_checks": 4404,
+                                "all_four_toolchain_feature_lanes": true
+                        },
+                        "actual_operation_local_unsupported": {
+                                "admin_describe_configs": "Unsupported",
+                                "ordinary_idempotent_producer": "Unsupported InitProducerId",
+                                "transactional_producer": "Unsupported FindCoordinator"
+                        },
+                        "source_preservation": "producer/admin/focused tests match exact6d bytes in fresh455 archive; public signatures/dependency defaults unchanged"
+                },
+                "artifacts": [
+                        {
+                                "path": "docs/evidence/client/KL05-28/validation.json",
+                                "sha256": "b296ec262eafc2d1e418a8b503be6edc370ce63fe888778ea3bc41c21836fc43"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/source-freeze.json",
+                                "sha256": "28ceec8bc33520fdd3d3397a7bc17eef9e74ed726cda91f079a658814c2f5834"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/final/source-integrity.json",
+                                "sha256": "fe265c2e65c5cc45961b7d3410b9782d0473662bfb2213dc1dc6be3e7f37803c"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/final/attempt-2/results.json",
+                                "sha256": "42007e954025b03266aebceefa1956da55119a8d6635c24865fcdd5b8406e932"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/final/attempt-1/results.json",
+                                "sha256": "d57c69c3958ccd2cd83067939ad945fbfecdc43b33a5b2e907e82c8f8cdc62f3"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/SHA256SUMS",
+                                "sha256": "aec3a8a8c8b1e85fdf48d6f52762ee77fbca944fd3549e35012550d470c36207"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/live-interop.json",
+                                "sha256": "b11379698e6ef08fb60467cfe211637ef35d9b0adaab11463a541af490c7ed1d"
+                        },
+                        {
+                                "path": "docs/evidence/client/KL05-28/LIVE-SHA256SUMS",
+                                "sha256": "62395afb8969483a8f942c349923aa94202bf39cbab91111789c53a4a358f5ff"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-08/validation.json",
+                                "sha256": "f647017b4eb65efdfc910d99feb75e2507872cff7b55f24de1728cfa57c64787"
+                        }
+                ],
+                "acceptance_complete": true,
+                "limitations": [
+                        "This prerequisite proves capability behavior against bounded mock TCP peers; real persisted broker interop is a separate KL11-08 lane.",
+                        "Transactional Producer still requires FindCoordinator and InitProducerId; idempotent nontransactional Producer still requires InitProducerId.",
+                        "Existing documented empty Admin inputs remain no-ops; nonempty unavailable operations return Unsupported before unrelated network work.",
+                        "Four existing ignored tests remain ignored; no integration broker availability claim is inferred from this client matrix.",
+                        "Fresh loopback single-node ordinary uncompressed histories; no replication, group coordination, transaction, idempotence, retention or production-readiness claim.",
+                        "acks1 and acks-1 are local sync/declared single-node ISR; acks0 has no durable client acknowledgment, verified by subsequent real reads.",
+                        "Manual assignment and auto.commit=false. read_committed equals ordinary log HW only because this broker rejects transactional/control/idempotent writes.",
+                        "Both client feature variants use the real default-feature server binary for their toolchain; no optional server-codec claim.",
+                        "Deliberately corrupt wire CRC is tested in every Produce3\u201313 version; physical journal corruption recovery has separate storage-card evidence."
+                ],
+                "remaining_acceptance_work": []
+        }
+      ]
     }
   ]
 }

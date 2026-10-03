@@ -1,0 +1,3544 @@
+{
+  "passed": true,
+  "topics_partitions_including_deleted_identity": 25,
+  "decoded_record_comparisons": 1023,
+  "rows": [
+    {
+      "topic": "ordinary-4-1-2-acks-1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "5a19bd37bb584d4d99231ee0f9cbf441",
+      "framing": {
+        "journal_bytes": 1175,
+        "journal_sha256": "d416ee560e6a4596e7b64b919ca075b433ae7449c22e100b17016c3598007410",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1119,
+            "payload_crc32c": 4222174833,
+            "payload_sha256": "47239c032835616d3b2bbe64fb317fde245028a02c1149c8bc62f3620ab6dfe9"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12545609600056196,
+          "log_sha256": "fb96288caf56279b8f69f625eb51e9b8cfa3945a762b4672b5e77ca98444a9d2",
+          "decoded_sha256": "7930b52636af459a10243f3bb6104f20d9dad7fe5b140b2a578bfb2f44a1c490",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12764824199985014,
+          "log_sha256": "23a2f373186a0afec4925bc40b98c9e52c74967e250aec93fdb517900ece580a",
+          "decoded_sha256": "7930b52636af459a10243f3bb6104f20d9dad7fe5b140b2a578bfb2f44a1c490",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks-1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1298142169980565,
+          "log_sha256": "34dc08e681aa53966364f28e5e0bf75314b6a9198bdb73ae1f94c5b99f2c45b9",
+          "decoded_sha256": "7930b52636af459a10243f3bb6104f20d9dad7fe5b140b2a578bfb2f44a1c490",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-1-2-acks0",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "493cefffd0b04f599f7f813c60eb0ce5",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "2d5e3fb5d0287188cb9662ee775e96c912e8c4f177da11ffb826aaf0f29223b6",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 3765564260,
+            "payload_sha256": "972911267067236a0ad597f2e6b17526de8e89815d7ae21465ed0f7f9e59d33c"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13190983300592052,
+          "log_sha256": "b0efc744bfc242665883c9395ee8aafe409db4b7d3856f4a7d37709a52212719",
+          "decoded_sha256": "dd8eaa903ad6bff5d5abe260b97b8a667d5ff8f29a9fcb69606a3441bdf90d13",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1351099189996603,
+          "log_sha256": "2f88cf9ddb8d70500bee1a76aefe2d23fab7ca0e6b80321537cc9f45127d0329",
+          "decoded_sha256": "dd8eaa903ad6bff5d5abe260b97b8a667d5ff8f29a9fcb69606a3441bdf90d13",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks0-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1391691719982191,
+          "log_sha256": "7c32329efb1f8b682b9977a30ea0501c4a355ae4bc01760d59f0eae76a8cbe01",
+          "decoded_sha256": "dd8eaa903ad6bff5d5abe260b97b8a667d5ff8f29a9fcb69606a3441bdf90d13",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-1-2-acks1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "5fbf5431f700406bb89eded4c04aab8d",
+      "framing": {
+        "journal_bytes": 1242,
+        "journal_sha256": "e57089879403e716ddf27d98298fa1b02b3f92672fa2b865be203a450818af67",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 4229518369,
+            "payload_sha256": "8597d6b4cbe78f0dd27d2da0f601478dcdfc941f2ff67f78e93113d108b2b5e8"
+          },
+          {
+            "first_offset": 1,
+            "count": 11,
+            "bytes": 1042,
+            "payload_crc32c": 2877948753,
+            "payload_sha256": "7b0cd6c8682bab23ee1d4169ba3ad877c8bfa50fff06ed0e3744c1c6530d0172"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12718719099939335,
+          "log_sha256": "97540c56f9acecfdaf423f47ef0fa7b6f89a149ba785b9967f79304211687a05",
+          "decoded_sha256": "48d3d87bc5fae5234775025f7680c4df431b527f65388dd3d82cbc2e7fd71e80",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13031254000088666,
+          "log_sha256": "42474ae8657c234eb9ed41276af8783d7eddb11257572322e1ec5441119cc0ee",
+          "decoded_sha256": "48d3d87bc5fae5234775025f7680c4df431b527f65388dd3d82cbc2e7fd71e80",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14445704100216972,
+          "log_sha256": "f54177bd41d5464d1411cfe1e8c670dae645179cea2e2f91314fa27941bc2772",
+          "decoded_sha256": "48d3d87bc5fae5234775025f7680c4df431b527f65388dd3d82cbc2e7fd71e80",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-1-2-acks1",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "5fbf5431f700406bb89eded4c04aab8d",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "2c8a58fee3c20a394bd1441e7df65c675c4250a45c35096c362072a13cfb5dd2",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 1903808524,
+            "payload_sha256": "a83acef09c937c4c294c71e8f645522326f22a4c28af4dcff10f12d337ad83c2"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12361752099968726,
+          "log_sha256": "46b686ab3aa0493a08a1430412b5ec13af08cb3edfa646f949b108d445fd01b8",
+          "decoded_sha256": "6ac5f32d26afdc6502197b47723f90a33fcfda8d2cabb2464cc8169cc20e48fd",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1267068650049623,
+          "log_sha256": "25ac5dfb6b376fe666f69d9b26708a6e65c8c1fa077ff518d8b53cf698eafbf5",
+          "decoded_sha256": "6ac5f32d26afdc6502197b47723f90a33fcfda8d2cabb2464cc8169cc20e48fd",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-acks1-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13274927200109232,
+          "log_sha256": "45174557dddf4b5e9929952b52087723f44532cca5e6ea7bfd66e6961bc08377",
+          "decoded_sha256": "6ac5f32d26afdc6502197b47723f90a33fcfda8d2cabb2464cc8169cc20e48fd",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-1-2-raw",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "ff3ffcbbfb35457786b0fbfa92ee31fb",
+      "framing": {
+        "journal_bytes": 5010,
+        "journal_sha256": "02f6c20057991129b8c5edc451c7cbabe606b62548c295ec70a2b819bd3111d4",
+        "next_offset": 33,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1246192126,
+            "payload_sha256": "3f5b71984b9dd182159f8de7a8bb600c50fbb7e2601f58593f398aeb32d91733"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 4857969,
+            "payload_sha256": "cae0da5e02ff8333633899998beaa9bb1ecb26ea3a1415a1697a0b42abcc3615"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3985742220,
+            "payload_sha256": "6b4c9390251a6f74d9068d1ee6424298f2dad9f729595f205cd8381dbd744e93"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2812073987,
+            "payload_sha256": "c801e0e2658e9947777fe7c21b8d407af5b972909309074378016edc809f9765"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3256535721,
+            "payload_sha256": "da4b7bc49d240c84103086db36f13c38d7e63baab9c01c8c66f375a26c82eee4"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2283244326,
+            "payload_sha256": "bac2b86d43783b94f24ff32530f2047c38eb2c5fc51bf3b2155e1d01a85cff9a"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1707881179,
+            "payload_sha256": "cd840cb6e7da103ac93447d2e39c6c87563adf2dd57fd486304e224fb41aea91"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 801207124,
+            "payload_sha256": "9e6aafdb9045048846c6f36372511a9d4158a0965cf21f288d737e363604df7c"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1826372301,
+            "payload_sha256": "0c5d964017c1e0b5cca59a9e91eddba101f29227349172ec2f199928a2c4a3a5"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 651262786,
+            "payload_sha256": "6f42ed6347e01cb17c49ef6f852495681a8b2ac333c0723c803f14df929b8875"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2450462196,
+            "payload_sha256": "74f43e9eb5081fdb18ded6b6379c3567898780e6aa0139691720d0d38a531a9d"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 273691106,
+            "payload_sha256": "a410d8c8808945d59f8680b6d6abd040c2defe423b09d2fd4c13bcba1585c712"
+          },
+          {
+            "first_offset": 12,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1769384204,
+            "payload_sha256": "d8dddf75192d8fb44db5c1d773e6d9e414267f019a59b696809fa40850bacb18"
+          },
+          {
+            "first_offset": 13,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3945368858,
+            "payload_sha256": "3e577b3c0d3ebebeed85364b3e81c0d340c880a161939a7c025b2a3a5b37f33c"
+          },
+          {
+            "first_offset": 14,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3165104705,
+            "payload_sha256": "880475773ec04b7ef1d6c1f0e47fe299ec3e1556c7ae53fd68d1a2cfe2a7369e"
+          },
+          {
+            "first_offset": 15,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1056476759,
+            "payload_sha256": "a3592193d06984cf10571a44ce38c44380dd68804bcb28be5daa1992e1544ec4"
+          },
+          {
+            "first_offset": 16,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2298918607,
+            "payload_sha256": "6bc41b3a43d1eca97145afffa6b7e413ca2fa8d29c0f4d4b2c127a1ac2144638"
+          },
+          {
+            "first_offset": 17,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 190419673,
+            "payload_sha256": "c78e10cd50c763dd176cdbed46cf60e32aa0f61c45dab13fae56ffe5dd073f65"
+          },
+          {
+            "first_offset": 18,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 930200752,
+            "payload_sha256": "4268f63488e95c287e882c55c0babb31459ded5b8129f4ef1aed5b40de030f7e"
+          },
+          {
+            "first_offset": 19,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3039729830,
+            "payload_sha256": "69041df73ace325acf274deb18680ec46cd3078b824306c2e20d30975ad4711a"
+          },
+          {
+            "first_offset": 20,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 333633241,
+            "payload_sha256": "0dda18aedc876e692be454509e91e3b7825fd9b61fb21b31bfbfd852b68b2432"
+          },
+          {
+            "first_offset": 21,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2445144783,
+            "payload_sha256": "2438a34a9184c44d99433a8ac00147d2c39b81d87d539599b88a4376a52ed0c9"
+          },
+          {
+            "first_offset": 22,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3687389111,
+            "payload_sha256": "9c814c3e81bece19ee891e2cbbec3deec178e11b6e9fd4baa9029e1401c0d0e8"
+          },
+          {
+            "first_offset": 23,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1503015841,
+            "payload_sha256": "3f41b3fd89e64ed6baac99b8fda803a16eef5f45689860d3703a7585c1eea886"
+          },
+          {
+            "first_offset": 24,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 696526443,
+            "payload_sha256": "f1174ef2063bd6643a41b2ce4e8657ab53b73f95a85ac7eb68bdc4d2e5a929da"
+          },
+          {
+            "first_offset": 25,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2883256957,
+            "payload_sha256": "317bcb206edcaf92fa42b07152891a722c3d8b90230be5530571f2600c498d37"
+          },
+          {
+            "first_offset": 26,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3786401541,
+            "payload_sha256": "0c566fd044bb17361a7c56f8ae92c8d49ff190936ce2ddd19c972da4b897cf3f"
+          },
+          {
+            "first_offset": 27,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1676722963,
+            "payload_sha256": "789586051da413dc795f5a61203366b99456139236e6fb01e62587c6a1a16894"
+          },
+          {
+            "first_offset": 28,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1821020396,
+            "payload_sha256": "98440ed5cae0736b54a47a8295a283c37322c52e33a176f17ccdc662d8743614"
+          },
+          {
+            "first_offset": 29,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 4006982906,
+            "payload_sha256": "fbb65ee76ed891387f1e2141835b371078be869fb0eb67b13889b303e29cb38c"
+          },
+          {
+            "first_offset": 30,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1117780955,
+            "payload_sha256": "5b06076f5a17e0f5f194f2f568e112ebffc66f786fffe8178ff4eb1ad977d810"
+          },
+          {
+            "first_offset": 31,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3233865677,
+            "payload_sha256": "408776c2ebeeb55d035cb5691fe448c0f8f5b45852ddee124afe7359f6975357"
+          },
+          {
+            "first_offset": 32,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1697035085,
+            "payload_sha256": "e28e8d3f94b637a6b7454e10e239647420bb66716655f35fe421e2ee5e863b82"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12933977200009394,
+          "log_sha256": "a6eccb02983ebcdad43cbf2d14f44a31633b9830e57b89deaef411356d746156",
+          "decoded_sha256": "b4ff8ed4bbe3f411f38d2568507a5d7a3985ec76e87d246e7c5b5c5a6edb117a",
+          "records": 33
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14282865999848582,
+          "log_sha256": "57a071af6b7b3c810bfc12f599b98ca2a6a1d14f2c80dd6022fc686699a31d07",
+          "decoded_sha256": "b4ff8ed4bbe3f411f38d2568507a5d7a3985ec76e87d246e7c5b5c5a6edb117a",
+          "records": 33
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-1-2-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-1-2-raw-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1358036079982412,
+          "log_sha256": "5162e8e6c272489a9c30e99835e528ad06c26f0a66825a33af9d9f7cc24bac2d",
+          "decoded_sha256": "b4ff8ed4bbe3f411f38d2568507a5d7a3985ec76e87d246e7c5b5c5a6edb117a",
+          "records": 33
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-2-1-acks-1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "9970ce79627d4f7e9a85d09836ba5193",
+      "framing": {
+        "journal_bytes": 1268,
+        "journal_sha256": "0a9b4326fc73acda4d4ef8c0253002928fe20e0192f610866ff021a75babba32",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 7,
+            "bytes": 640,
+            "payload_crc32c": 4110396952,
+            "payload_sha256": "d8623fccde06307e894831278480d6e1b1eeba8cb17a764bc365b27d46df1ef8"
+          },
+          {
+            "first_offset": 7,
+            "count": 5,
+            "bytes": 540,
+            "payload_crc32c": 3634233270,
+            "payload_sha256": "7629eeaa06ffa9b622c8648c4d7f9061d6527b69363f0661d446edefb5d905e5"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12181350200262386,
+          "log_sha256": "e2e6efd902b7ff1b5a4b6ffd084341ce88a8c1ccd5e2ee39088ec8622468cb0f",
+          "decoded_sha256": "ea224aa6c3e4093d877e482e0d3bd1e04355cf975e985d69286ec7a285088142",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14344066400371958,
+          "log_sha256": "418ff4ae4a624a0ad875d18724705644e7b2a4d025a9fd4bc3b5013a33144839",
+          "decoded_sha256": "ea224aa6c3e4093d877e482e0d3bd1e04355cf975e985d69286ec7a285088142",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks-1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1454447709984379,
+          "log_sha256": "ab0426c526474fbce110d141a94f729c831bdcc2416aaac8f1ec482d71299d3d",
+          "decoded_sha256": "ea224aa6c3e4093d877e482e0d3bd1e04355cf975e985d69286ec7a285088142",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-2-1-acks0",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "f0ece649cb4648268cc2657599e65761",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "a007eea9b9150287d166fa7792cf40bb484bcc2489401cff5e4982d692f196ad",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 1121956148,
+            "payload_sha256": "60251a9fb75cfa468728c5aea9f350b0cf99ce6b2d316a186c4280620e9bf0da"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.11996917399665108,
+          "log_sha256": "b1fa76895c71cf2bcc6c28cb9201e3f540ef347419d00f5bcbf817a2f68c07e3",
+          "decoded_sha256": "93d1f7d4f28d4dc62af241114b4cb322b93b7554e561061baf566a1e2db5cb25",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1334499560034601,
+          "log_sha256": "73e9125c0f3891f30ba8cf1141f925c0ff7b8b90a145b97c7dbe5227d064df55",
+          "decoded_sha256": "93d1f7d4f28d4dc62af241114b4cb322b93b7554e561061baf566a1e2db5cb25",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks0-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.15018894500099123,
+          "log_sha256": "79c332c1d5912ab9667f311c02a6518a6bb959efb8f68baf84b55208a117fff8",
+          "decoded_sha256": "93d1f7d4f28d4dc62af241114b4cb322b93b7554e561061baf566a1e2db5cb25",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-2-1-acks1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "ef8ae8a400484ac39d567f8b8c098b70",
+      "framing": {
+        "journal_bytes": 1242,
+        "journal_sha256": "0d000086e13c65902e920da893b42c466be372128123fdd8d351948ac10b809b",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 3315985218,
+            "payload_sha256": "aa79d96e3b7463477ec25becef218ac61c03834baf11f27f779d658cee134f29"
+          },
+          {
+            "first_offset": 1,
+            "count": 11,
+            "bytes": 1042,
+            "payload_crc32c": 1555060323,
+            "payload_sha256": "e8fb469d9c6d1264faf456f3bbb536f744e968d26fbcb2332400f57a6259b5a5"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1519622880005045,
+          "log_sha256": "fdfdf9e92306650655d4f99f12a5019a242b02280b1cb18d48ae9c8f758beb59",
+          "decoded_sha256": "d9f6f6fbf040bfd0d90fc8dae4bf5a58100c24d007d18b2264ca388e7d21262e",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12483155399968382,
+          "log_sha256": "31d0abcb4bc6a9194abf09e3c26cc06f95bf6e12c3fbfd88e7276adaf2c3fcca",
+          "decoded_sha256": "d9f6f6fbf040bfd0d90fc8dae4bf5a58100c24d007d18b2264ca388e7d21262e",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12235512600454967,
+          "log_sha256": "197bfdd8397405ab6ccd3a942c96d98de51f4b1c7bf038e3a95805d89889eeef",
+          "decoded_sha256": "d9f6f6fbf040bfd0d90fc8dae4bf5a58100c24d007d18b2264ca388e7d21262e",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-2-1-acks1",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "ef8ae8a400484ac39d567f8b8c098b70",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "12174dcfc696a4e7d518774e64999e22af77bf05098c00a3bbc5892f87c11eb5",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 3554120284,
+            "payload_sha256": "2b86b2dc9b22c5da88bedf8bc73ecd7c5db00285208b929d383408cc3148b755"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12560439099615905,
+          "log_sha256": "d968252601b86a90998ca0e14b7b745982e12548ed3bfe22c042607d7e33cef6",
+          "decoded_sha256": "47aae015d08c9f69f032b3cbaf04be9a33a6b1bc4817f590abc7ac3f2d842271",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13227191400073934,
+          "log_sha256": "5e276c6606d114d71b667290316112cc6d52b76edb556c1cb3d44a16b8aa7b14",
+          "decoded_sha256": "47aae015d08c9f69f032b3cbaf04be9a33a6b1bc4817f590abc7ac3f2d842271",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-acks1-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12302695700054755,
+          "log_sha256": "4a6f61a1c7fbc0b1dda10a670cce234957c362a8da3115bc69b08149e5b6d0ba",
+          "decoded_sha256": "47aae015d08c9f69f032b3cbaf04be9a33a6b1bc4817f590abc7ac3f2d842271",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-2-1-raw",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "ee3f2579f66d407c9f4c82708dad261f",
+      "framing": {
+        "journal_bytes": 5010,
+        "journal_sha256": "a4bfc41ddb6142cbcead453a278ee37053fe6962c4fec8fb0d65d54e561822db",
+        "next_offset": 33,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 4083809987,
+            "payload_sha256": "cc5745f805a3f83e03b6926d08b68b9adb176814e14a8e309e22901a2d40869d"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3110387532,
+            "payload_sha256": "8139036b93154c06f0da7c1020bebbd57871202f6521e3a68e0d46e8bff2e84a"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1421805233,
+            "payload_sha256": "20cd2b6e6d23d01dae7a2474b43f413bbd0a662c5f5b94129bd789f471fcc9ec"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 515000126,
+            "payload_sha256": "9cd5bcff92560a4008d375885361c91f00fa176e9223a0ca459fae59b46ab292"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2067027348,
+            "payload_sha256": "43ae406b3fb35a63e3170686034668db11bf9d27feea7a48afde83a1eea5c1c7"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 825824283,
+            "payload_sha256": "7f9e28848a65eb6db4e9090594588c9bda415ccf8b62ea9dc527769cfcbee926"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3705843174,
+            "payload_sha256": "33f16931abe31751902627496b48c0109de046af9de691d5087651b8cce63d0b"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2532306025,
+            "payload_sha256": "b49c47a17133b7cc5a0104d16b61dbdc8e23235c0327171488eb274fe5236fc5"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3589449200,
+            "payload_sha256": "a2b5c5cc6de67cfe220c1bfba7e8f17ea5d0c35c4314b44a026196115250a7de"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2684347519,
+            "payload_sha256": "c29263426bbed2346404e96688043866efaecfc373474f361e7931dca0a26c68"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2924498261,
+            "payload_sha256": "a3128c82975fdf693b2a16e620e3e59e17bba508857004612ba9f5600df18539"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 739207491,
+            "payload_sha256": "494b90128972d5e3e848793a1e5f1b675cce637448ba3deac46f5faa102f9ab0"
+          },
+          {
+            "first_offset": 12,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1428812205,
+            "payload_sha256": "b587c32dde964e112310e3cc1e788ac55966478936009da105f6dcf399face80"
+          },
+          {
+            "first_offset": 13,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3614889403,
+            "payload_sha256": "063973bc56f84a28a89d1ddfbdba8194970861462948422b15197541624b9c90"
+          },
+          {
+            "first_offset": 14,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2163798752,
+            "payload_sha256": "72866aea5d15d1b8f51498f7bcda15189424b6ebc669ff6e5bbae833d7a1f44c"
+          },
+          {
+            "first_offset": 15,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 44553974,
+            "payload_sha256": "72bb6adc66e06b75f351db2e0800c0e8069d957b079e2067281064699059c3a6"
+          },
+          {
+            "first_offset": 16,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3042569838,
+            "payload_sha256": "6a8ec358393ca22dc4146d66883e6602eaf9f360d94839256613b3e892d47e9a"
+          },
+          {
+            "first_offset": 17,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 923191928,
+            "payload_sha256": "33c28f8275ba00a640fa2b418b4ec04115e0fcd06a3a9abf483e0c5e3e34b4e5"
+          },
+          {
+            "first_offset": 18,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 187622417,
+            "payload_sha256": "d49cab41932b34a6b0d38faa43ef9124b6064f3e4756571c43dcd3dcf60e1808"
+          },
+          {
+            "first_offset": 19,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2305933319,
+            "payload_sha256": "bbf6258f73439f0e0173111dd0b84d7c4d172ca44f80fb4b38838593186338aa"
+          },
+          {
+            "first_offset": 20,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 800951928,
+            "payload_sha256": "b040c6c9d33755ec15e7a439c0968b68dd74dd5104f5b6b37497a94bb7929975"
+          },
+          {
+            "first_offset": 21,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2917313134,
+            "payload_sha256": "e7341b364858734e9e91b77943b864827f950ac764a3b02c49248e1ddd413d03"
+          },
+          {
+            "first_offset": 22,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3885387542,
+            "payload_sha256": "cd172988f67c9193a0c47fbd798b3fb9deffb07a9616b0c5e95fb3db3e11ea14"
+          },
+          {
+            "first_offset": 23,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1707698944,
+            "payload_sha256": "4cad2421a47b3133fcd894f312525e2d1f01402b0ff662ba807355eb9dc375db"
+          },
+          {
+            "first_offset": 24,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 366706378,
+            "payload_sha256": "0ca8606a72bf7399cc3ddbd528ba32cd2f34a5e304a997c9bd080bd71a6671b1"
+          },
+          {
+            "first_offset": 25,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2542033628,
+            "payload_sha256": "3a01a598bb8e24c51806723a8e7f75969ca3f2e3467fa1c766acb6cf7da0384a"
+          },
+          {
+            "first_offset": 26,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3723542436,
+            "payload_sha256": "4b4c16794dfc9b09228403b60adb9d5aca27183bbc6e77473f634fffe71e62f9"
+          },
+          {
+            "first_offset": 27,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1605344178,
+            "payload_sha256": "4bee24cc6bca5f296a7608661e1a87c3f31e2faf917c3e0bdc8a46e8a36e1e1f"
+          },
+          {
+            "first_offset": 28,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1356187725,
+            "payload_sha256": "63ace05234aca13f9f4b47f99bafd5a20c51edef697695be09ab612e73fea3d6"
+          },
+          {
+            "first_offset": 29,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3532319835,
+            "payload_sha256": "30186b7c8410ec3f1fac761da5b0851fc9a161b3e822c0205459f55e914417e4"
+          },
+          {
+            "first_offset": 30,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2126553978,
+            "payload_sha256": "b806650d9bacf6ab1df90245d3e1ce5b2432c13b46616547c1a48f829ddb8f70"
+          },
+          {
+            "first_offset": 31,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 4238313324,
+            "payload_sha256": "74b194d626879e0b7b5ea19fd18b3bfaf161a71870ef5295dd0c9dd5b4f485d2"
+          },
+          {
+            "first_offset": 32,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1501162476,
+            "payload_sha256": "e7c803a6e83a9605655397b7c8730214c2a7f2f3b92db65740571d44ff05991e"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13685724399692845,
+          "log_sha256": "366940fa4f5e5bc19efeeebf6b9d9aca000f37dd8a5cc2b0da612aab4005fc56",
+          "decoded_sha256": "2a2de79b4b5ca3482ee3eacd05eae473218d97d01599b4307b5008a4b2067df3",
+          "records": 33
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1320999860035954,
+          "log_sha256": "889f68a9829e247185e5927aa36659f772516f6aee54c92399216b9135bf22b3",
+          "decoded_sha256": "2a2de79b4b5ca3482ee3eacd05eae473218d97d01599b4307b5008a4b2067df3",
+          "records": 33
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-2-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-2-1-raw-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12786374900315423,
+          "log_sha256": "f1c448aba6913e891d235aad14db31091d3b84018f43dfbbd7697f9eb83dfcc0",
+          "decoded_sha256": "2a2de79b4b5ca3482ee3eacd05eae473218d97d01599b4307b5008a4b2067df3",
+          "records": 33
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-3-1-acks-1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "46fdf8f7b4fc4400a53367d500ea62f3",
+      "framing": {
+        "journal_bytes": 1175,
+        "journal_sha256": "2dd7cb22b47f8a8e473821c6e837d78991e556e797ebc0ddea9c26a480bf285f",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1119,
+            "payload_crc32c": 3062365685,
+            "payload_sha256": "66eb66d505082cdbbce41311d4e397d7b80268a2e65203c9865d8783ddd682c6"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12516039200272644,
+          "log_sha256": "8ee746bb7ce8b72f1c2cc5ffeb660e7e168c21ba3e87ece5b25f79eb37944dad",
+          "decoded_sha256": "b1775e2eab648a65bdea91a89913b451a307de44a71a3cab27c85e980ee8de5d",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13422482700116234,
+          "log_sha256": "4e241b5f643f792cfa0e9e2136adf28bcaab8afb3517cf6204895336f20152af",
+          "decoded_sha256": "b1775e2eab648a65bdea91a89913b451a307de44a71a3cab27c85e980ee8de5d",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks-1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14231384800223168,
+          "log_sha256": "959783c6bf6e0b092d41c507afbb57b1bbdb9736e7ed177017184640f6071bfe",
+          "decoded_sha256": "b1775e2eab648a65bdea91a89913b451a307de44a71a3cab27c85e980ee8de5d",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-3-1-acks0",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "7bd8cbf8f9a24d9a84caf152a394cf75",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "3e9f40e6aaaca08adf76a7bd0023dd57a9b2f5465e9aea967d2c3eb74f844aca",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 3475563037,
+            "payload_sha256": "1cf3d915c274723b40e7ef01d96f238458c729d3f375eecf89418a8aa9362df3"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13244131700048456,
+          "log_sha256": "f2238cd4e43b677a7846c4e0e1b62cc3aa8c988e5a26a4bf025214e405db127d",
+          "decoded_sha256": "171d3fc625a64766cc905846e590241fa493b0f21925d650de92b87e52ae31fd",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1544418850025977,
+          "log_sha256": "8129e58ece88c9c0b2ad46f6e5dce819ec8c333f6a074f4c1ecac5341796dd16",
+          "decoded_sha256": "171d3fc625a64766cc905846e590241fa493b0f21925d650de92b87e52ae31fd",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks0-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1458456659966032,
+          "log_sha256": "59fe45384fe80cb32558a4b6ec24eee289ee07a80dbeca054be74e4ec18c8a44",
+          "decoded_sha256": "171d3fc625a64766cc905846e590241fa493b0f21925d650de92b87e52ae31fd",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-3-1-acks1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "1e5c555931a64cb590c279e9f5136572",
+      "framing": {
+        "journal_bytes": 1242,
+        "journal_sha256": "941b32da14e775dc17273df4a00b70c50643dcee38210a34347fd063c537138c",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 4283579023,
+            "payload_sha256": "cffe612b854a3bb8a1e20f46e1074d7b01fb94bdf3cc4ee284f3c5d3f221283f"
+          },
+          {
+            "first_offset": 1,
+            "count": 11,
+            "bytes": 1042,
+            "payload_crc32c": 3997019418,
+            "payload_sha256": "b9299d5e3edc6c85d9653c0419ae0fe4c3bc7e3571442dc5f0127ddd6993e2a3"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.15410080500441836,
+          "log_sha256": "53131b7bc1e50561cd4fdc8df588d1a4fa8f7b38cb802114d91534e3d9b531a3",
+          "decoded_sha256": "8d790bda1c22f3be487495ea1072de78ce538e5cc4e929677eacf104e0f5db50",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1319069059973117,
+          "log_sha256": "5e401836a0f62a51f3cf22b9aba6c6db9d9021c060e78d91d7f27ea03fc49a5b",
+          "decoded_sha256": "8d790bda1c22f3be487495ea1072de78ce538e5cc4e929677eacf104e0f5db50",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.15225769999960903,
+          "log_sha256": "3e95c8c88ccc47cc40a113ad5a67808af49c39fdacd1f0527d31e9f86e3c1d62",
+          "decoded_sha256": "8d790bda1c22f3be487495ea1072de78ce538e5cc4e929677eacf104e0f5db50",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-3-1-acks1",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "1e5c555931a64cb590c279e9f5136572",
+      "framing": {
+        "journal_bytes": 1149,
+        "journal_sha256": "f0c7499be548546a9ae676b1f18f9a0fd6e46b3e881731bc4f94a0d3506c5994",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 1093,
+            "payload_crc32c": 1579204981,
+            "payload_sha256": "e5a9f127014acf2b05df4e6780edf67cdefbe2cbe7ed038e5c2c9267c6874422"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12177686600625748,
+          "log_sha256": "ca13edfa32de079a9db8de8990a7356e9bce290c26d80041202d6bd598c27c6e",
+          "decoded_sha256": "d865e1b1d9ebf1728c8577e99c17d0b6df38841ebc625dc4d57e7412e420282e",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12946802099759225,
+          "log_sha256": "c311aa85ed0633f611f19c1faecd9f20e899c0ecb163f8a643f2cdac4a8b1581",
+          "decoded_sha256": "d865e1b1d9ebf1728c8577e99c17d0b6df38841ebc625dc4d57e7412e420282e",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-acks1-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12865076700109057,
+          "log_sha256": "aae25c278a424fa49dfabdb90f66e2d5176a7d7b0d4cd3f96b16c956a72a1125",
+          "decoded_sha256": "d865e1b1d9ebf1728c8577e99c17d0b6df38841ebc625dc4d57e7412e420282e",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-4-3-1-raw",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "bf505e40d2244da99a96befd989337ca",
+      "framing": {
+        "journal_bytes": 5010,
+        "journal_sha256": "5eea3e2798133b388ea42afabb4af3052e091acd1afaccbadb684357fc5a3ec3",
+        "next_offset": 33,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1562537755,
+            "payload_sha256": "4acbe69ae61a75888cd455b797f9e4d24f0f42c303c26bc479882680467ef7f4"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 388968084,
+            "payload_sha256": "df832e12c1c718b413d873c7087d2c7125d18e0116e4a30ab86fcb140c54eb39"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 4210333545,
+            "payload_sha256": "01989275699ca12e555cd92f3297b08d33b639eba724dc38d5016465f13e9dc4"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2969163494,
+            "payload_sha256": "56acce1ed0236b65048dfeb1e565acc555484ac474f48e2aeff8a76fc43df3ed"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 3581920332,
+            "payload_sha256": "b4bbe98bb9dcf56c29f0ac566dc2338b26ffcee9611f93b3ef10921ef84d2ecb"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2675082691,
+            "payload_sha256": "baf6340f8587349b626828634dcc70544e40cc3e37db34e61c059ebf4506b08c"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 1923693630,
+            "payload_sha256": "2280af28846e1f462250eebd2de1c01f1dea64ef03b31ad99099a6870003d188"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 950304177,
+            "payload_sha256": "5433337c09698a3ddd24262440c1c9890e62af025d3dfa35d0471d0486876b7b"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 2075735080,
+            "payload_sha256": "53b88b64c190d8d7eabed5251d5530dd3b2255b495fb524a569ce7770eece6d3"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 117,
+            "payload_crc32c": 833910183,
+            "payload_sha256": "c7f9221c4c7d014e37107236eab0b18bd8a038eb48262230bae7edec26bdb53f"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2203799851,
+            "payload_sha256": "0f9a559e1646821e8ff79400ee696a640baff06546a33d925ac34d53b03a620d"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 17069373,
+            "payload_sha256": "8389d028360888eb9ded149cca870cf6d68ca4e2dcc39044e501640474713365"
+          },
+          {
+            "first_offset": 12,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2015555027,
+            "payload_sha256": "160f3aaf35bfd2b4d6a4fa57ff75edf6fe887de6b9aac1a7f32b2e8a3866b05d"
+          },
+          {
+            "first_offset": 13,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 4202547653,
+            "payload_sha256": "080753816ca14d22f9e5821e27879104c371cc43378740e2212022e8a23874a0"
+          },
+          {
+            "first_offset": 14,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2918444702,
+            "payload_sha256": "2c88d889177677c4aaab66586f0c90fd55dab36df56fa8a9c6b0afb83f69be21"
+          },
+          {
+            "first_offset": 15,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 799853192,
+            "payload_sha256": "53e9133ce995194705ab6bba5c2951804aea4379334a4e3da793aab585ea62eb"
+          },
+          {
+            "first_offset": 16,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2555572752,
+            "payload_sha256": "2bab2fcdc7ea3ce3a7a5dfebcdf71a02ff6e5480023b5d24973089ec0809c05e"
+          },
+          {
+            "first_offset": 17,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 437114374,
+            "payload_sha256": "7b818ba1d73ff5c9b9a0d2fc031c70f9178d268b49af07f1fa05b7e42697564f"
+          },
+          {
+            "first_offset": 18,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 640022639,
+            "payload_sha256": "46ce0b8f44c9ee8da8b2b679af2dcea0a5491f0f7b4eac39f1188e688ca41897"
+          },
+          {
+            "first_offset": 19,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2759515257,
+            "payload_sha256": "d803a173beee1959304bfaf404f02cadbcb84bda6acbb00c8c29b72f2f05fab4"
+          },
+          {
+            "first_offset": 20,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 45519366,
+            "payload_sha256": "791428644eeb8d434ccb1b9b71f3edf4838c37804c62c04f9577b4c830e83d02"
+          },
+          {
+            "first_offset": 21,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2162800144,
+            "payload_sha256": "6520235fe33889b467c304790f6d28836aa201908e720f6f336d40a86d2e72fc"
+          },
+          {
+            "first_offset": 22,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3399308136,
+            "payload_sha256": "1fd4d0837b831722a26f5509ceb091e9d5cb31728b0bc58223a97b8ed1467fca"
+          },
+          {
+            "first_offset": 23,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1220704126,
+            "payload_sha256": "f84d7a5de13b9d596a7933524d808ec4e5a6be55cc05be2823e6d296c7bed343"
+          },
+          {
+            "first_offset": 24,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 953180852,
+            "payload_sha256": "8b112bbdce18e35625fec244271da8eee99e4a9a6d2c07a80172b0fb10fdc212"
+          },
+          {
+            "first_offset": 25,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3129951906,
+            "payload_sha256": "6f9a3967a330db1b9efe54a9c2dbc23acfd5fb8842d9a36d6d9bc325c387fbd6"
+          },
+          {
+            "first_offset": 26,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 4043023322,
+            "payload_sha256": "fecef5382637c29220997d72845631fbedde1dc7befb39e98d083c9a9175a18d"
+          },
+          {
+            "first_offset": 27,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1923385292,
+            "payload_sha256": "c43adb30c037b722750cae1eb8f00f4cce02bf6ccfe2b35237bf8dc0ad3892b3"
+          },
+          {
+            "first_offset": 28,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 2111755315,
+            "payload_sha256": "8dba414bdbd75d667a0beb45493d4705d3a9f97c6b66b8e8089764c35146f9a8"
+          },
+          {
+            "first_offset": 29,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 4286705701,
+            "payload_sha256": "b98f378c24d69398d5169fcbe85bc17e8974b502829c8b69dd22e8dc62ca7fc6"
+          },
+          {
+            "first_offset": 30,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1405861636,
+            "payload_sha256": "86ee68317ac79eb8d7437ffd7439a33f44687ebc66ec7e3d85bf11bb982a69e2"
+          },
+          {
+            "first_offset": 31,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 3516177170,
+            "payload_sha256": "e71fb8613e24c871656bad6842b6e1ce0b30707dd770c6ab3890a1bd8d362740"
+          },
+          {
+            "first_offset": 32,
+            "count": 1,
+            "bytes": 120,
+            "payload_crc32c": 1953691538,
+            "payload_sha256": "d1a7a9eab57807b322f3467711fefa51d74b6940ea90de8de0793afdb626f75e"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1353839470029925,
+          "log_sha256": "201847122e4eb42100ae3da2aaaaf9367b5843fe39d04c1d53f54c0bf1b547fa",
+          "decoded_sha256": "3bbfc76474e6bbcec94c0fbf8a57e89eb5061794b801bbf0f8dc0f2a007c1154",
+          "records": 33
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13000021199695766,
+          "log_sha256": "3a28bdc16feefe89c91799fad9160a04273af038f42fccc1849102b37339a8d6",
+          "decoded_sha256": "3bbfc76474e6bbcec94c0fbf8a57e89eb5061794b801bbf0f8dc0f2a007c1154",
+          "records": 33
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-4-3-1-raw",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-4-3-1-raw-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1381313309975667,
+          "log_sha256": "9e375eacd2d6541367c512792aa6600664a6dffbbe0bcbee4bc25036ab886594",
+          "decoded_sha256": "3bbfc76474e6bbcec94c0fbf8a57e89eb5061794b801bbf0f8dc0f2a007c1154",
+          "records": 33
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-native",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "aba5c9b7c3fc4043aea4ab2c646496b6",
+      "framing": {
+        "journal_bytes": 1019,
+        "journal_sha256": "1843d0fc18b3d82fa9ee50599882ffa304888223853b329d5f9f54cfa3e43ec2",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 963,
+            "payload_crc32c": 1453094167,
+            "payload_sha256": "ce96a981fc965e3773d0d8ae0b28689019b09c4a2d68b5b1b13cf93b849b3493"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1282330620015273,
+          "log_sha256": "47c8bbe10d89c5bc472655f012fdd67da8bf877ef8300bf67e240afcb4ed82e6",
+          "decoded_sha256": "6fa6d3ba526ea0049d5162f761cd45f30fa9fabc632d083b75976cb99598505a",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1289168060029624,
+          "log_sha256": "db130636d995810da5f270f69a81ffd21a7a5a161e0f0d9f32acdd0b45c8dbf7",
+          "decoded_sha256": "6fa6d3ba526ea0049d5162f761cd45f30fa9fabc632d083b75976cb99598505a",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13323355300235562,
+          "log_sha256": "07f77b915d17dac994d4e63edba69ddbee1e07b2e7a44a74db533829e76dd774",
+          "decoded_sha256": "6fa6d3ba526ea0049d5162f761cd45f30fa9fabc632d083b75976cb99598505a",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-native",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "aba5c9b7c3fc4043aea4ab2c646496b6",
+      "framing": {
+        "journal_bytes": 1019,
+        "journal_sha256": "a2d76fbbc53c8ad53a203e76b2101ae2a23e5bda3ae3dd39e975146702b232c8",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 12,
+            "bytes": 963,
+            "payload_crc32c": 727995367,
+            "payload_sha256": "dcc394adcc0d756749e31ffa442b152bb85d186390c0df4bf8084e0140bcb5cc"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1258155569958035,
+          "log_sha256": "1dbc6916a27efa754e9da5d3dec578e2a8cafd60dba7e39b3d1c71eaf150b4c8",
+          "decoded_sha256": "bf2e3cc8786c11bffab717af2bd61aa22dfd044f92ba8929189625aa70610ef0",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12677762700332096,
+          "log_sha256": "6aa91588551aeaf0ead9be995c38fbad26e544de4df689d4b3af74aa6af5c94a",
+          "decoded_sha256": "bf2e3cc8786c11bffab717af2bd61aa22dfd044f92ba8929189625aa70610ef0",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-native",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-native-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1213572929991642,
+          "log_sha256": "653f5adec5033af53c6ac42ae0c23fcab1ef0e7072e0f99f74c6a23c582f63ba",
+          "decoded_sha256": "bf2e3cc8786c11bffab717af2bd61aa22dfd044f92ba8929189625aa70610ef0",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks-1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "df52158c68f24f6089ce2b4ab01bbf4b",
+      "framing": {
+        "journal_bytes": 2172,
+        "journal_sha256": "ce25f6b84586306043129a719a296694dfcf994c3a4a4efd93f0fc56380f8c40",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 439951462,
+            "payload_sha256": "c5444cd2bf2f71960128c6e80d7e2bd1a6658953aa41efdab906d6764dbff8a3"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 3100259805,
+            "payload_sha256": "3245b5de65dd968972535cdcc9899ce14583d10bf3fc4a50fcf6338eb1de4dcf"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 898643633,
+            "payload_sha256": "4dd061655115e18160dc011396962829dbd887ba56915af080bc64e466274729"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 143,
+            "payload_crc32c": 225429584,
+            "payload_sha256": "2d709b8e68b4ed2095cb2e0ff38ef3f9a0761cbd29a9c57cde6ff6b0f577e35e"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2083503377,
+            "payload_sha256": "8edda8898ac43746f7d6492476a88edd804e04ca71be14cfa8eda9fc32e49a89"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 1982410547,
+            "payload_sha256": "a46ac129ce3ff2c0f5f3773c995e653d1129c52838afd5f463ccee2d454e3193"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 143,
+            "payload_crc32c": 3961111018,
+            "payload_sha256": "01ff878626601f0f0dfee1245567083bd75865dc99158c7f3a213ff2023d333a"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 394836908,
+            "payload_sha256": "efa6d5c625fe3fe5d2952903125ce4f059067ea11cbd6c453def9badae0e179f"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 3170584748,
+            "payload_sha256": "5eafd8dfe4dbbc6a260454d83b0e486f4db79d2b2e894a89b4fcdf106921e815"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 83163675,
+            "payload_sha256": "a2d0d9b726d8e3b0bc2030dccbdb6fc718f0b47fbc04e43c800c032875d680c5"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 174,
+            "payload_crc32c": 128988126,
+            "payload_sha256": "fa3b5c22829efec4f05084bfaff89142020741c37585f755f2a5ea9a61eb83ce"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 174,
+            "payload_crc32c": 814944392,
+            "payload_sha256": "71fdd82bf76e4bce13db7b00bf5198bfe9c88177d66a0fc20417fbccfaddce93"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12398607900104253,
+          "log_sha256": "33744bc06ad31f1165bfa2882dd24e137384fec6b934eb4e306161da7f868cd2",
+          "decoded_sha256": "12f6877b58f0e79e8033d9527034579c4c76b4b0bb225ea876250c67c51ff18e",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14619666100043105,
+          "log_sha256": "779f8f0ac026671666df7b033bab46cbcd2e88f7ab115b9b53d937cdea4cfeca",
+          "decoded_sha256": "12f6877b58f0e79e8033d9527034579c4c76b4b0bb225ea876250c67c51ff18e",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.14020611500018276,
+          "log_sha256": "acce668b97bdef87b0abb56abf55b8c9a9fcb67b8d6510b9740095c1c0c20bd2",
+          "decoded_sha256": "12f6877b58f0e79e8033d9527034579c4c76b4b0bb225ea876250c67c51ff18e",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks-1",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "df52158c68f24f6089ce2b4ab01bbf4b",
+      "framing": {
+        "journal_bytes": 2172,
+        "journal_sha256": "50ba7f339fc6833b29f6af24e5902666edd64e61cb8be1a7b720fd31d9fb47ee",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 42921903,
+            "payload_sha256": "ba7eeae1cd8ebcdb9e7535c39fe6b27615f27205759b026dcd10272c7545bd6e"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2660791511,
+            "payload_sha256": "07a35c4ce764f735d4cd55b60fc211cde8619b9edcb901e293f6cd9fbbd1df7b"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 3140039938,
+            "payload_sha256": "24cd2fe3940bace0a3ab48253c993d037e78fc59501d930f7ab55cc09563f4aa"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 143,
+            "payload_crc32c": 3719826208,
+            "payload_sha256": "11f64a19f3a0c01beb5fcf854e1fb2adc626a96e70e0fcaf4354f3a505f93d83"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 3915087435,
+            "payload_sha256": "9d0012b57077100cf910bee1eb9387db1ede0c19199c3b20c6117edc559144fb"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 3814583401,
+            "payload_sha256": "97012897fd3a3d9f6e43e948d5508cb927711b8c4e843ed41a7a7c598bc2fd8c"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 143,
+            "payload_crc32c": 254064983,
+            "payload_sha256": "333005c0ed792409bef603947c488f6ab1b2f872b39d5792ecf0f370a34828fd"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 2429699600,
+            "payload_sha256": "1cd310c0de692b214bc00bda9215b959f8643411aa92bdf26fed70a7b8b5dc5f"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2594769318,
+            "payload_sha256": "30d9941636e200314822f7984d3f870b56c5d472bbc2e0062f5e78f0198d3ae7"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 112,
+            "payload_crc32c": 474166738,
+            "payload_sha256": "f871bfe12e270e90e0f18c38b9f190e0e567acdcb9987d5f31a2185508e57cae"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 174,
+            "payload_crc32c": 3933565638,
+            "payload_sha256": "7c1516fee111c48c8826f7b45c3a9714078f795105134ed6450f6cf08bbbbda0"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 174,
+            "payload_crc32c": 3713421712,
+            "payload_sha256": "6f33e51b17181316ac886a9d066ef5055cbe9013efa6107bd669897971b1d43f"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12047793999954592,
+          "log_sha256": "5e8ba2c7487ccc183ab12b0ca0cd94e89f2f2b1329a7ae5c3e013ea051652573",
+          "decoded_sha256": "fdb9587cafe1a66d6122ea2f8dbf99a5b82e3bbf61f55f9831d708f1b0374e72",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12618755999574205,
+          "log_sha256": "8854133b3846c29cb279f93b841e0cef536d539d5c233f215bbb4198bda69ce4",
+          "decoded_sha256": "fdb9587cafe1a66d6122ea2f8dbf99a5b82e3bbf61f55f9831d708f1b0374e72",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks-1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks-1-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12059607599803712,
+          "log_sha256": "d303e5e437a44f55e83c1741056c2657d3b050bc6c0a0a5fb77869269424ed61",
+          "decoded_sha256": "fdb9587cafe1a66d6122ea2f8dbf99a5b82e3bbf61f55f9831d708f1b0374e72",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks0",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "9d2d8f157ba341baa7c3bab722bc1445",
+      "framing": {
+        "journal_bytes": 2146,
+        "journal_sha256": "7eb9a1fdc770d20c6f80a0d6360be8d62ac976eda22f1fd29d6519607fbdf95f",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 3422781956,
+            "payload_sha256": "d6282b693fe2c627b889c5df7050f8a0a61ba69de3308cc8175626f9cbc38724"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 3139580271,
+            "payload_sha256": "a2886cab8650d2a7f0d40d539f2a13422e96da7f1d29d2b300755fb6a60d28d2"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 2685682926,
+            "payload_sha256": "c40428087cec86e077f2f09b82f66d05a65be741a10503310e818ab6613c1c0d"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 1761915463,
+            "payload_sha256": "936f5281873422794759637295d4cfbbca6aec69adfcfeb24325675e4e588d91"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 2210965693,
+            "payload_sha256": "b2caef9d4e1cd4b02f4912ebd2ed3c20608ebee503c441cedf4cec89fb25b3b3"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 1795261186,
+            "payload_sha256": "5693d4399759c8f2bef9102afa4992b8ff0914e9f3cc083b634ab9bf607a7461"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2825145378,
+            "payload_sha256": "7c408f10a951f07554cc6da37be40af963d3eae945baa922ff1b347f517e2594"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 2527805590,
+            "payload_sha256": "5a219c2111ef9b8d456f91f77ca08ff7ec719d463d200f6154a214611c6cb2f8"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 205451931,
+            "payload_sha256": "863e4fc7cfe68c0e884852a7e5c0f47475962784590f5a5ba0542862392e4fef"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 2200717229,
+            "payload_sha256": "ca81d219c405e3f0c114f146a71408d9a9c657c829b1d20d3b5620e9a4ab9ad2"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 2223562646,
+            "payload_sha256": "7b77ca9eb1c5921582b8bfdac95a9728ea4636ed1cadce8f653aa0c8acf2fea9"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 3919990620,
+            "payload_sha256": "6f1b1ebf8f1ecd966365bd35d30a5a33bac5ce528341a9f1dc51125732dabc64"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13287652700091712,
+          "log_sha256": "3ae47a1cd0bba573b2caf38d0be57b0eb8d0e737fdedd3a38a377e5cac65a01f",
+          "decoded_sha256": "86fbb03af9f541e3b437206f8e0c698a629eb5bead9e636ac03519199c228500",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13005557699943893,
+          "log_sha256": "1860d5021fa6f03a00d3f074876ef37c75f1b3fd6314f1eb0796db5234eceb00",
+          "decoded_sha256": "86fbb03af9f541e3b437206f8e0c698a629eb5bead9e636ac03519199c228500",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12320945000101347,
+          "log_sha256": "6c0286204e0de48ffc50f7b54a47ab002202d12af74ccf8ea0687f571b9ef858",
+          "decoded_sha256": "86fbb03af9f541e3b437206f8e0c698a629eb5bead9e636ac03519199c228500",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks0",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "9d2d8f157ba341baa7c3bab722bc1445",
+      "framing": {
+        "journal_bytes": 2146,
+        "journal_sha256": "925f47513b68f261f18c0bb75e291f634bc85d7f61f442d70ccdbb96a3276c45",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 2331100095,
+            "payload_sha256": "a8683464d7f8d869b220c28d67872ef0102e095a243394e222b30a859255650d"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 690278229,
+            "payload_sha256": "6a970716b19163b01d5475cb6c767a1248859f31dfbcc959c843167bca2749a8"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 3296703106,
+            "payload_sha256": "507931b888d4e1b43b49ba5998d323979c224c34a4eae880c7d016baeda96ded"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2006061454,
+            "payload_sha256": "1fffd538f7013ad761773098c04241c9a36e2515fc6007277b99edda5728a869"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 4012786209,
+            "payload_sha256": "beeecf9ad049709063f4e346613f3d2697e18c449b48f0f77fab67f2101f055e"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 132606366,
+            "payload_sha256": "49366a38382d9f155099067b7004e45933ed366d8b20e7036a84d3e97046c764"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 97807803,
+            "payload_sha256": "c2720a5ab45a4278d2bedbad82ad7c5776eece9dcfc7ea69e0d905d97aea3941"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 2061354641,
+            "payload_sha256": "3b04bebc75f05a6dd3779305cb4188c8165679acf11e3e1a62a30456b9b50aad"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 2654473377,
+            "payload_sha256": "af4736f41f4b9971575e8a7f7471f56d9b367fd64d12d98dbaed35ae191ed4f1"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 3319662102,
+            "payload_sha256": "140c89689c9bd73698f2275a10f143b79ac3db0feab95a2a81faf362b46bf853"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 3250342955,
+            "payload_sha256": "7a0d741fe92b338d24d909a4f4f910321e547b924f0f6286345c771731080e32"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 2895305953,
+            "payload_sha256": "454439e9155bb7b62c395b6ef07f7ae335fc7e294294f2cbfdfdcdf9bb0140da"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13057295799808344,
+          "log_sha256": "0f93ccd749a379391af64dab253b924242600a5f51de34c4e42154635b36caea",
+          "decoded_sha256": "858478774b7c99c60498a87778a82e8a112ce548c26af06d9be46a28cff14735",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.126020443996822,
+          "log_sha256": "5b8ead25c8c2d29ad2c132c813c422bc6efb370d13116ad18406fc41f6ec8aaf",
+          "decoded_sha256": "858478774b7c99c60498a87778a82e8a112ce548c26af06d9be46a28cff14735",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks0",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks0-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12411456099653151,
+          "log_sha256": "51e795ec0c2c85b7388ad6ea135ca22f934f11b450d3b6d45562d2e6d1de6101",
+          "decoded_sha256": "858478774b7c99c60498a87778a82e8a112ce548c26af06d9be46a28cff14735",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks1",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "89c79a47747a418d886d49fc66e59a17",
+      "framing": {
+        "journal_bytes": 2146,
+        "journal_sha256": "eb73960e2b76d20633e3a299095fd31b7464251dfc05ef7738df9e651fbcece3",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 1712475516,
+            "payload_sha256": "a9aa34fa983a25dd56276b53bdbae2b83fdf1f4803288a34f7e7b4c354e23917"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 2556119486,
+            "payload_sha256": "1ce672f4303d6ef0008fa40e6b3fc913c75f78bf54def3d0475ebbfc21696574"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 4088681987,
+            "payload_sha256": "4a07526beb9804f8d90f85853c95a67af15cccd0f3f4ead2e4b6e426c2ecc448"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 455534734,
+            "payload_sha256": "cce7a389c3e880dfd25a5484641af6db6c84a2e4d3aaf336c6333fbf71e54ed3"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 2696007788,
+            "payload_sha256": "007c9b8c3524a675fc69d7e4daa4537cf867c60ca4ba252c10f03c8d3348487c"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 1215888339,
+            "payload_sha256": "a20c4cb11abe00835ff6c427758d0eb7abaee6177540a0826f8bfccf4b22d27f"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 3662026475,
+            "payload_sha256": "3d48e6a0826f2027beecfb4bd13bc8f8ea4e7e964fe0910151afee24360bda93"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 3305853563,
+            "payload_sha256": "658ddc99ac65e94feee0de322a25e2857776bb96044afa261578db4700b50982"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 793217610,
+            "payload_sha256": "bd97bee6a085c74967ae3401fc91c1fa9aae287fa0656fb918853381c7043fdf"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 691898581,
+            "payload_sha256": "3824bb081d4480658a276d1f2f8f39eac988d54572d8e1f5f00e8020849e45c0"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 2187591413,
+            "payload_sha256": "a1053529a2c6334e43ec4ce24f2eee0a5af7ef93516118868efdf3e941eb7c51"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 4014829119,
+            "payload_sha256": "b5a6a4d664b39142f6d68dc81441796610c016cd382653da2df6dfc66aec89bf"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1528891600028146,
+          "log_sha256": "03543de3ca12d9beda17d96938c9376492206a1a1bf485d10abfb03f677c1136",
+          "decoded_sha256": "8f9a53158d20fb7cbb9e54aadccad5517464b5f0d01e329ca8a4087b32a8d04a",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1262181510028313,
+          "log_sha256": "1d3b88947cef658b0736c36c8c3641eff51222220277e2be376bc6a79e4f4393",
+          "decoded_sha256": "8f9a53158d20fb7cbb9e54aadccad5517464b5f0d01e329ca8a4087b32a8d04a",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12674201499612536,
+          "log_sha256": "382f7c0f7a07725da46396529f5d44d4939c1fb58c7245af2f20fa2d5ceaef28",
+          "decoded_sha256": "8f9a53158d20fb7cbb9e54aadccad5517464b5f0d01e329ca8a4087b32a8d04a",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-acks1",
+      "partition": 1,
+      "deleted_identity": false,
+      "uuid_hex": "89c79a47747a418d886d49fc66e59a17",
+      "framing": {
+        "journal_bytes": 2146,
+        "journal_sha256": "5b8a33f21a0956a1d09e8c360717d03c6d4c47e3f653c20ab6d5ee7532cba4cb",
+        "next_offset": 12,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 551554247,
+            "payload_sha256": "cc0c06c36a92015edb0e133122140d1f2e97343879f1ff48a28e270b8cf61ec1"
+          },
+          {
+            "first_offset": 1,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 173913988,
+            "payload_sha256": "b8e97d6691e38a7f512b9821489ca2fcddb337a91445723e2eadc2d911b3370e"
+          },
+          {
+            "first_offset": 2,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 2548015215,
+            "payload_sha256": "be8f84272327020a35e972b8dba418fd687a395e16cf90ca631b6f16c0a3d51c"
+          },
+          {
+            "first_offset": 3,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 95439687,
+            "payload_sha256": "ed67e58ec60ef9d4b1c671ad453ad59b1cda5edf97abb8463dde137cec4ca71b"
+          },
+          {
+            "first_offset": 4,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 3428268784,
+            "payload_sha256": "833de31fee610d2a63095c7a58e0412bb8c494b5d469bbda3d24392954f7e3dc"
+          },
+          {
+            "first_offset": 5,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 614338895,
+            "payload_sha256": "7a09f577f3f5c6d66f1bf62fc2947c84e9d8ba022359ffbe0639bf5ba9ab0c52"
+          },
+          {
+            "first_offset": 6,
+            "count": 1,
+            "bytes": 141,
+            "payload_crc32c": 2012624754,
+            "payload_sha256": "4c3a9eecb464aeed1c0143119301244b7ea43aaa500f56557e363419a019ae9d"
+          },
+          {
+            "first_offset": 7,
+            "count": 1,
+            "bytes": 168,
+            "payload_crc32c": 696112252,
+            "payload_sha256": "344919fd203abf0a08c2ce05c8c237e098238b303a3489c8f2c07ee5e8c66ffa"
+          },
+          {
+            "first_offset": 8,
+            "count": 1,
+            "bytes": 139,
+            "payload_crc32c": 3175183472,
+            "payload_sha256": "704eea23ac7446c96cb9f186dd01efe5ce55c71000b518d29f6ae9e9714a7518"
+          },
+          {
+            "first_offset": 9,
+            "count": 1,
+            "bytes": 111,
+            "payload_crc32c": 1875888494,
+            "payload_sha256": "3335bd1088dd16da0631c5264c44077ce8329594df06b7c6f60cd94f5a311f45"
+          },
+          {
+            "first_offset": 10,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 3344395592,
+            "payload_sha256": "e52eef10ae1c26af6b8ad932e0dd7388bf7393ca52e45a975f4578702f232d1a"
+          },
+          {
+            "first_offset": 11,
+            "count": 1,
+            "bytes": 171,
+            "payload_crc32c": 2860121474,
+            "payload_sha256": "bd2ef69737992cfa194129997f2a417028c892d0d2eeb8c99d2ef7cf4578ef42"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12708160300098825,
+          "log_sha256": "b4704eb1ec888e6bfec3c9bc9584de74711c0b61d8528bbbeac1d344848f07d6",
+          "decoded_sha256": "0b3484ba0161a3c7f937912f3597dd9129795acc36868548c12bb38002970559",
+          "records": 12
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13464817500062054,
+          "log_sha256": "e7010bd936e5e07720dbbbab1673c70dde74bf38f0bf0f72d7459bb462f7b0b3",
+          "decoded_sha256": "0b3484ba0161a3c7f937912f3597dd9129795acc36868548c12bb38002970559",
+          "records": 12
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-acks1",
+            "1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-acks1-1/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.13586150600167457,
+          "log_sha256": "ae4884112650d4d4c6d0f4aecce1088d86f37fd3de125678355f0970c46bf31c",
+          "decoded_sha256": "0b3484ba0161a3c7f937912f3597dd9129795acc36868548c12bb38002970559",
+          "records": 12
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-lifecycle",
+      "partition": 0,
+      "deleted_identity": false,
+      "uuid_hex": "4e68fd0a731b402f9ecb2ca0e2d8c636",
+      "framing": {
+        "journal_bytes": 171,
+        "journal_sha256": "659b0364b59087001ab2ce4673533ddbfd114586704f09301484596e4d0bfdab",
+        "next_offset": 1,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 115,
+            "payload_crc32c": 1226898749,
+            "payload_sha256": "c245a9f3c2f3a13fc9ad6d817cb13cbbabe9ba3cdebcf5943cac82289604510d"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.1303255460006767,
+          "log_sha256": "bf481246daf08fc5085cde9e6ded5eaf30c633a90ea327a47dc2cf49344c4222",
+          "decoded_sha256": "5b710258d1ad484bfebf297ad20b0bf975a458912f56589279ab310d10c2ff4f",
+          "records": 1
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12065952800185187,
+          "log_sha256": "0046b47b3af53ab62908c2f83163ae0acb58ee75d1d90a147d83adf33486bf4d",
+          "decoded_sha256": "5b710258d1ad484bfebf297ad20b0bf975a458912f56589279ab310d10c2ff4f",
+          "records": 1
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12106935600604629,
+          "log_sha256": "77ef9eae2ba729ebd6080565fa3d0adbf0c11a7c8466a4f4019182ef319dc77f",
+          "decoded_sha256": "5b710258d1ad484bfebf297ad20b0bf975a458912f56589279ab310d10c2ff4f",
+          "records": 1
+        }
+      ]
+    },
+    {
+      "topic": "ordinary-rust-lifecycle",
+      "partition": 0,
+      "deleted_identity": true,
+      "uuid_hex": "eeee48a8aaf74bacb891bd2246136623",
+      "framing": {
+        "journal_bytes": 192,
+        "journal_sha256": "df9a21474a6b733c8931d1b2d3dc8980d9f82a4485eb94512522622d840ead3f",
+        "next_offset": 1,
+        "entries": [
+          {
+            "first_offset": 0,
+            "count": 1,
+            "bytes": 136,
+            "payload_crc32c": 2753495463,
+            "payload_sha256": "f05ccaeb7f0bcec70f6fcc9a34e1ec0bed981520e45b9eb939a3600461a9ec34"
+          }
+        ],
+        "framing": "independent standard-library big-endian parsing and bitwise Castagnoli CRC32C"
+      },
+      "readers": [
+        {
+          "release": "4.1.2",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.1.2:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0/decoded-4.1.2.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12382144699950004,
+          "log_sha256": "442b3a5c54725c1efee61ba0afad4597caf895d51f05edd3359b47a27ea3d65f",
+          "decoded_sha256": "0819103cff3c36c9450fa4f0e22100aacb4d7e7063f669d4726dcdaa18f2cfa1",
+          "records": 1
+        },
+        {
+          "release": "4.2.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0/decoded-4.2.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12417463099700399,
+          "log_sha256": "76c0a347636efb13a4aaa420340fe511091157390aa20342511ec2015d9abbe1",
+          "decoded_sha256": "0819103cff3c36c9450fa4f0e22100aacb4d7e7063f669d4726dcdaa18f2cfa1",
+          "records": 1
+        },
+        {
+          "release": "4.3.1",
+          "command": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-Xms16m",
+            "-Xmx128m",
+            "-cp",
+            "/workspace/work/broker-interop-final/peers/java/4.3.1:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+            "JournalPeer",
+            "ordinary-rust-lifecycle",
+            "0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0",
+            "/workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-all-features-seed/ordinary-rust-lifecycle-deleted-0/decoded-4.3.1.json"
+          ],
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.12467935599852353,
+          "log_sha256": "e1cce7ba359f1672b734e9feca85ba5a159399b2d36580c1d327dea005258ba8",
+          "decoded_sha256": "0819103cff3c36c9450fa4f0e22100aacb4d7e7063f669d4726dcdaa18f2cfa1",
+          "records": 1
+        }
+      ]
+    }
+  ]
+}

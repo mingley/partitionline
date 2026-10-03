@@ -1,0 +1,5 @@
+$ java -Xms16m -Xmx128m -cp /workspace/work/broker-interop-final/peers/java/4.2.1:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar JournalPeer ordinary-native 0 /workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-default-seed/ordinary-native-0 /workspace/partitionline/docs/evidence/broker/KL11-08/final/sealed-attempt-1/stable-default-seed/ordinary-native-0/decoded-4.2.1.json
+{"batches":1,"records":12,"next_offset":12}
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.

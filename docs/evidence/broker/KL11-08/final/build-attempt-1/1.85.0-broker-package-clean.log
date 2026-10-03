@@ -1,0 +1,2 @@
+$ cargo +1.85.0 clean --manifest-path /workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml -p partitionline-broker
+     Removed 13 files, 16.9MiB total

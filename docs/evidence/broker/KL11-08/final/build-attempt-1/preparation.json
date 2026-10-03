@@ -1,0 +1,725 @@
+{
+  "source_sha": "45582234de9a40620f038ba6b68ab57d2616beb2",
+  "verified_git_files": 25713,
+  "target": "/workspace/work/target-client-capabilities",
+  "passed": true,
+  "rust": {
+    "stable/default": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/stable/default/rust-peer",
+      "binary_sha256": "ef9106155f9234a84361d62242a68db14b95fa7b975ebe72e0fd31a49a639e6f"
+    },
+    "stable/all-features": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/stable/all-features/rust-peer",
+      "binary_sha256": "9b899070d31da5d876e79e685ada55b47b34f0eb6fdf00e30d1d1850e227f1d7"
+    },
+    "1.85.0/default": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/1.85.0/default/rust-peer",
+      "binary_sha256": "c1ba661b82cd0b3aeedda4915a7d63f932e6e04eb72947995d4d286603a7efb3"
+    },
+    "1.85.0/all-features": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/1.85.0/all-features/rust-peer",
+      "binary_sha256": "b515ddfef29c4872ee281fba2910f53487bccdea73576a98d5b8c389cb2758ed"
+    }
+  },
+  "server": {
+    "stable": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/stable/fetch-server",
+      "binary_sha256": "4d0e246eab24378c8422da9d659c18acaac8488aab8758b785a0218d8224ef8f"
+    },
+    "1.85.0": {
+      "binary": "/workspace/work/broker-interop-final/peers/bin/1.85.0/fetch-server",
+      "binary_sha256": "19fd26d22d4521a7fa7c3a312154db04738b9faab9917ca03eaf5eaabdd019bc"
+    }
+  },
+  "java": [
+    {
+      "release": "4.1.2",
+      "name": "OrdinaryPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.1.2",
+      "source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "adapted_source_sha256": "da944a4925f2194fbe716a619baeb17a705e4927daf2374e3e37c392194e50ad",
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.1.2",
+      "name": "JournalPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.1.2",
+      "source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "8fcab777c40b372047ed26f4cc969e3ced42dd8ee525a8c6cf35117b8fec4f88",
+      "class_sha256": "394790b07b3165d44264f76a9217acd3ae763a67b619361763a32bd6e18a46e3",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.1.2",
+      "name": "CrossReadPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.1.2",
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "adapted_source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "jar_sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.2.1",
+      "name": "OrdinaryPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.2.1",
+      "source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "adapted_source_sha256": "da944a4925f2194fbe716a619baeb17a705e4927daf2374e3e37c392194e50ad",
+      "class_sha256": "370443db8935ce9c97e6dedd838c1b19e1def202fe58af7bb455663947183b4f",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.2.1",
+      "name": "JournalPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.2.1",
+      "source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "8fcab777c40b372047ed26f4cc969e3ced42dd8ee525a8c6cf35117b8fec4f88",
+      "class_sha256": "394790b07b3165d44264f76a9217acd3ae763a67b619361763a32bd6e18a46e3",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.2.1",
+      "name": "CrossReadPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.2.1",
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "adapted_source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "jar_sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.3.1",
+      "name": "OrdinaryPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.3.1",
+      "source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "adapted_source_sha256": "981ae4dbe716fb1a7252fdd40a47cd9478f70868331a52ae973f3742fa2a5cb0",
+      "class_sha256": "312aa76baebe18440bf43bc516a74f90ce5728cfc73869349e8b555f1d955d31",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.3.1",
+      "name": "JournalPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.3.1",
+      "source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "adapted_source_sha256": "4aab2603613bc21c7de3497376100aef38dbe5464ccd472ceb73e6cd648ac287",
+      "class_sha256": "5660b42e9067743daab34737c2b7f679a84a76b63d7ad818fb67d4e0d77f7e8a",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    },
+    {
+      "release": "4.3.1",
+      "name": "CrossReadPeer",
+      "directory": "/workspace/work/broker-interop-final/peers/java/4.3.1",
+      "source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "adapted_source_sha256": "e3ee0f7aa13786fd61012967697142f3018d71c5833a9efdb89536d5ea91abd7",
+      "class_sha256": "d9de757faf3de2a77625b08f5f61083d915505dd1717ec22e7f15df36db997dc",
+      "jar": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "jar_sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e",
+      "slf": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "slf_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    }
+  ],
+  "native": {
+    "binary": "/workspace/work/broker-log-oracle/live-peer/ordinary-native",
+    "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+    "pins": {
+      "native_version": "2.15.0",
+      "source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+      "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+      "header_sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+      "library_sha256": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-pedantic",
+        "-isystem",
+        "/workspace/work/c-peer/source/src",
+        "/workspace/partitionline/docs/evidence/broker/KL11-68/ordinary-peer.c",
+        "/workspace/work/c-peer/lib/librdkafka.so.1",
+        "-Wl,-rpath,/workspace/work/c-peer/lib",
+        "-o",
+        "/workspace/work/broker-log-oracle/live-peer/ordinary-native"
+      ],
+      "exit_code": 0,
+      "status": "strict compile only; runtime awaits actual Fetch+ListOffsets advertisement",
+      "ordinary_foreign_sdk_reads": "optional read-only topic/count12or13; exact same independent receipt recipe as actual SDK acks1 topics",
+      "binary_sha256": "fa8cb2e049d80819c83f37b921fd98caceaf4384f86bdd5bba2f5989db3f4e30",
+      "corrected_consumer_property": "fetch.wait.max.ms; initialwrongspellingretainedasruntimepreparationfailure",
+      "consumer_limits": "message.max.bytes=fetch.max.bytes=65536; partitionfetch4096; fetch.wait.max.ms20"
+    },
+    "source_sha256": "2a3386957827dc62b7c4029d8b7fbb3e77ceec2b72c51348b95f8ec6e4067b5c",
+    "header": "/workspace/work/c-peer/source/src/rdkafka.h",
+    "library": "/workspace/work/c-peer/lib/librdkafka.so.1"
+  },
+  "commands": [
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2/OrdinaryPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.8365257139957976,
+      "log_sha256": "beb1b1f8c82726652178bc1a8d1b06cf2f57d32d1586870e89963d35b94546ff"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.5697876289996202,
+      "log_sha256": "ecbad56abfe99907dcbd88243ebbb7bb0c366d4878016411dd8d6f77d2066126"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2",
+        "/workspace/work/broker-interop-final/peers/java/4.1.2/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.6461441999999806,
+      "log_sha256": "63bbcabbf2d82135aed787e40e1e1258c22a6249bad1362ab4cc8918ad4db3a8"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1/OrdinaryPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.7714140079988283,
+      "log_sha256": "ef48ba9d58c976fb28e6143ed86b4d0f372aa45fa240ba04dd38994700151649"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.5394093340000836,
+      "log_sha256": "9b65bd3664a0573df31e89bdbc931025eba9e799bc8feb17c5ba8314c069015d"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1",
+        "/workspace/work/broker-interop-final/peers/java/4.2.1/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.6220474560032017,
+      "log_sha256": "15d3df0721ebc6ec6b8eed007cbc6aa22e491779ab7513ba35700cf31e89561c"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1/OrdinaryPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.790110656998877,
+      "log_sha256": "209b613c4239b2b833102e07edd9f157662198773bba12c3ac34472dd1671eb3"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1/JournalPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.5724907819967484,
+      "log_sha256": "0dfa273f77f12c6aa917e1c004ab9efa11f3a614918b01b54d2ba7d0fe0d5038"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "java",
+        "--add-modules",
+        "jdk.compiler",
+        "com.sun.tools.javac.Main",
+        "-Xlint:all",
+        "-Werror",
+        "-cp",
+        "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+        "-d",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1",
+        "/workspace/work/broker-interop-final/peers/java/4.3.1/CrossReadPeer.java"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.6489477099967189,
+      "log_sha256": "8b105c96acc67c3828ea781ea3648cd5863dee87a16b226681ed8464ed385e06"
+    },
+    {
+      "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "-p",
+        "partitionline-broker-interop-peer"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.03784340999845881,
+      "log_sha256": "16518650da68f43a281a27e3cd5e205fd3ae9770063b555bb298f2851dacd703"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.028847253001003992,
+      "log_sha256": "cf2ac157b071ef4ea8a2815d4ec77f74cff8a7dd91f713854820aeccd53aee02"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.027726555003027897,
+      "log_sha256": "552727e2e751ab18c81d76bb8c0bfe5974ae22947b296ac4e12b650bec3d1832"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--check",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.03958128500380553,
+      "log_sha256": "ddf9c1f399bcb1f0804bf3304476a2fd5aba71d0af5bd6d01515fc0daae11086"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 23.96913787200174,
+      "log_sha256": "eac06c814d9eba8bca986ff53cf5952bca1df96e187a5d08ed28ee8b5c18cecd"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 6.44161065100343,
+      "log_sha256": "a3cf7292c4ea8215307f5b1eaa1b54bb923c07ad8df801668a5ada9ce2533029"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "build",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 14.74254606100294,
+      "log_sha256": "612effd5edb19b4af6fc53b5bd07b4251fe2f87956caf3494e0bc793c9f348bc"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 6.590615199995227,
+      "log_sha256": "2b2048237f950f72cc1b25d8e007aadeb1bbb2e8eaac55963e94fa807bbcbcc1"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+        "--test",
+        "fetch",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 7.276683762000175,
+      "log_sha256": "6db6b1acb691bd931b88dee18a8ab27470b7be92704230b351fe2e4d1da83fcd"
+    },
+    {
+      "rustc": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "-p",
+        "partitionline-broker-interop-peer"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.05040371599898208,
+      "log_sha256": "6ef033b3668741f40c539f590bb996f72bc522a0ed8374a41bcb4a8d5a50f3a2"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "-p",
+        "partitionline"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.1896144650017959,
+      "log_sha256": "5e6f36cf06d66a16b4ad62d3d40d11d377a35e4c6546b498db374ae0a3973892"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.1624017880021711,
+      "log_sha256": "b1a7ebb15deecbec46aea054f436ab1ee893a864cafe695473cbbcfd5d400823"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "fmt",
+        "--check",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 0.0422963420060114,
+      "log_sha256": "c9f93d243a577d0a61e03ebb8544b79d94a9593cea93d5217b422efab0d2292a"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 25.921542806005164,
+      "log_sha256": "343d1dac9bca5275b358c887778d121c2f7b342f0ca46a465525318d25fd23a6"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 6.761049880005885,
+      "log_sha256": "3b1a23372f4aa8d1a6ab1b617348641cf6559834a6332b764f441774e824d688"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "build",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--all-features"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 17.768977728999744,
+      "log_sha256": "7c1a942e0c497023513c19c3ba6c7a31dac35e56c758add22798c333c69303a8"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 7.268404846996418,
+      "log_sha256": "8fdd8a79a20fea4a1be66497a180ad6c33a18d282f5f22c5073faee5a76ba585"
+    },
+    {
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--manifest-path",
+        "/workspace/work/broker-interop-final/source/partitionline-broker/Cargo.toml",
+        "--test",
+        "fetch",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "exit_code": 0,
+      "timed_out": false,
+      "seconds": 8.511749350000173,
+      "log_sha256": "c10b6ae825e6795aa124bf9e0c1ea832c46c5c26bd8f1d4035c9bd78e619f3a5"
+    }
+  ],
+  "verified_git_files_after": 25713
+}

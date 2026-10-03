@@ -1,0 +1,7 @@
+$ cargo +1.85.0 build --locked --manifest-path /workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml --all-features
+   Compiling rustls v0.23.45
+   Compiling tracing v0.1.44
+   Compiling tokio-rustls v0.26.6
+   Compiling partitionline v0.1.0 (/workspace/work/broker-interop-final/source)
+   Compiling partitionline-broker-interop-peer v0.0.0 (/workspace/work/broker-interop-final/source/tests/conformance/broker/interop)
+    Finished `dev` profile [unoptimized] target(s) in 17.74s

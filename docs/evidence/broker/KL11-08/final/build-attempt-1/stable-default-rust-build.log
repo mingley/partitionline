@@ -1,0 +1,31 @@
+$ cargo +stable build --locked --manifest-path /workspace/work/broker-interop-final/source/tests/conformance/broker/interop/Cargo.toml
+   Compiling libc v0.2.190
+   Compiling cfg-if v1.0.5
+   Compiling hybrid-array v0.4.15
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling digest v0.11.3
+   Compiling ring v0.17.14
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling rustls-webpki v0.103.15
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling smallvec v1.16.2
+   Compiling rustls v0.23.45
+   Compiling parking_lot_core v0.9.12
+   Compiling tokio v1.53.1
+   Compiling crc32fast v1.5.2
+   Compiling hmac v0.13.0
+   Compiling twox-hash v2.1.4
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling tokio-rustls v0.26.6
+   Compiling getrandom v0.4.3
+   Compiling parking_lot v0.12.5
+   Compiling partitionline v0.1.0 (/workspace/work/broker-interop-final/source)
+   Compiling partitionline-broker-interop-peer v0.0.0 (/workspace/work/broker-interop-final/source/tests/conformance/broker/interop)
+    Finished `dev` profile [unoptimized] target(s) in 23.95s
