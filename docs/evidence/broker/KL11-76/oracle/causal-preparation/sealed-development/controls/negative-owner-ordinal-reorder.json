@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-ordinal-reorder",
+  "passed": true,
+  "rejection": "owner ordinal gap/reorder",
+  "seconds": 0.150255
+}

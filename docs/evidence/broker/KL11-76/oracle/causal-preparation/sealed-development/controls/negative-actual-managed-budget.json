@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-actual-managed-budget",
+  "passed": true,
+  "rejection": "actual retained-byte envelope",
+  "seconds": 0.145592
+}

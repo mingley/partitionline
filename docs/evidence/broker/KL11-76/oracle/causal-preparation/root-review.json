@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "reviewer": "root",
+  "published_scope": "independent development replay of retained ea9 private TCP runtime captures; task KL11-76 remains in progress",
+  "packet_manifest_sha256": "3bbc03e2c36d4afbe63531bffe615d76a57f6582d363a10d251319af3e867f29",
+  "reviewed_files": 73,
+  "all_payload_hashes_bytes_full_permission_modes_verified": true,
+  "actual_new_Cargo_or_broker_or_SDK_executions": 0,
+  "independent_development_results": {
+    "positive_controls": 2,
+    "negative_controls": 32,
+    "actual_TCP_frames": 1218,
+    "complete_Hello_sessions": 90,
+    "successful_exact_owner_ACK_consumptions": 492,
+    "current_term_NEW_view_commit_majority_proofs": 18,
+    "byte_exact_restart_bridges": 2
+  },
+  "publication_note": "The frozen README retains its WORK-only origin wording. This additive publication records completed development preparation; it does not upgrade historical scope or close qualification.",
+  "remaining_requirements": [
+    "Complete actual Finish/Finished image stream, installation and durable restart evidence",
+    "Exact typed abandoned RPC targets, errors, late ACK correlation and supervisor joins",
+    "Actual peak live task/socket/admission counters",
+    "Route admission for non-genesis observers",
+    "Independent TCP or separate lifecycle qualification for thirteen raw-only owner traces"
+  ],
+  "review_limits": [
+    "Remote WAL append validation checks record membership under the exact recorded authority; a separately frozen stronger contiguous-suffix check is still required for unrestricted claims.",
+    "Configured managed-memory budgets exclude allocator overhead, OS socket buffers and RSS.",
+    "No full Kafka native peer compatibility or exhaustive consensus proof."
+  ]
+}

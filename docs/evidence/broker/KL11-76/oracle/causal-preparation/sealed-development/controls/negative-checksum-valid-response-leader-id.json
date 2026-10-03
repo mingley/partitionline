@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-checksum-valid-response-leader-id",
+  "passed": true,
+  "rejection": "Append response complete correlation",
+  "seconds": 1.334174
+}

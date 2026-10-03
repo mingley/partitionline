@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-global-clock-claim",
+  "passed": true,
+  "rejection": "owner source/layer/clock epoch",
+  "seconds": 0.15469
+}

@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-reported-Leader-without-consumed-majority",
+  "passed": true,
+  "rejection": "leader activation lacks consumed distinct current-view majority grants",
+  "seconds": 1.471705
+}

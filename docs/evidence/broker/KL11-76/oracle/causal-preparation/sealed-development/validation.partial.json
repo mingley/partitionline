@@ -1,0 +1,250 @@
+{
+  "actual_new_broker_or_Cargo_executions": 0,
+  "commands": [
+    {
+      "actual_affinity": "taskset2,4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "python3",
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py",
+        "--captures",
+        "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/captures/stable-default-runtime-lib-tests",
+        "--source-sha",
+        "ea9ff29393526b57e1203612bb12c9c99deccc61",
+        "--membership-oracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history",
+        "--out-dir",
+        "/workspace/work/raft-runtime-76/oracle-preparation/sealed-development-ea9ff293-01/controls"
+      ],
+      "ended_utc": "2026-10-03T16:22:15.575265+00:00",
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/oracle-preparation/sealed-development-ea9ff293-01/command-1.log",
+      "log_bytes": 7548,
+      "log_sha256": "c41081a6123e48a6c8e7d41f3f66f9ac824583bbe177983a269fe51d3b459856",
+      "sources_after": {
+        "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+          "bytes": 46429,
+          "mode": 384,
+          "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+          "bytes": 12932,
+          "mode": 384,
+          "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+          "bytes": 4393,
+          "mode": 384,
+          "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py": {
+          "bytes": 8109,
+          "mode": 384,
+          "sha256": "987bc7558b88c3c548da144d5493a86d2c7790936b840564edff661335e81780"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/decoder-controls.json": {
+          "bytes": 5549,
+          "mode": 384,
+          "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+          "bytes": 9666,
+          "mode": 384,
+          "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/run-development-checks.py": {
+          "bytes": 3019,
+          "mode": 384,
+          "sha256": "351dc3e50123656e3c08a829d22c980d4d9acdaddabbfbc6bb1439dde0f520a8"
+        }
+      },
+      "sources_before": {
+        "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+          "bytes": 46429,
+          "mode": 384,
+          "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+          "bytes": 12932,
+          "mode": 384,
+          "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+          "bytes": 4393,
+          "mode": 384,
+          "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py": {
+          "bytes": 8109,
+          "mode": 384,
+          "sha256": "987bc7558b88c3c548da144d5493a86d2c7790936b840564edff661335e81780"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/decoder-controls.json": {
+          "bytes": 5549,
+          "mode": 384,
+          "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+          "bytes": 9666,
+          "mode": 384,
+          "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/run-development-checks.py": {
+          "bytes": 3019,
+          "mode": 384,
+          "sha256": "351dc3e50123656e3c08a829d22c980d4d9acdaddabbfbc6bb1439dde0f520a8"
+        }
+      },
+      "started_utc": "2026-10-03T16:21:46.772632+00:00"
+    },
+    {
+      "actual_affinity": "taskset2,4",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "env",
+        "PYTHONDONTWRITEBYTECODE=1",
+        "python3",
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py",
+        "--producer-proof",
+        "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/validation.json",
+        "--producer-command",
+        "stable-default-runtime-lib-tests",
+        "--captures",
+        "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/captures/stable-default-runtime-lib-tests",
+        "--source-sha",
+        "ea9ff29393526b57e1203612bb12c9c99deccc61",
+        "--membership-oracle",
+        "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history",
+        "--out",
+        "/workspace/work/raft-runtime-76/oracle-preparation/sealed-development-ea9ff293-01/causal-replay.json"
+      ],
+      "ended_utc": "2026-10-03T16:22:30.056348+00:00",
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/oracle-preparation/sealed-development-ea9ff293-01/command-2.log",
+      "log_bytes": 781,
+      "log_sha256": "b8bdea2a32d2c5eae55e05d8b7ebb6e27ddbb763ad46d7a9f886a4b53c1bb04e",
+      "sources_after": {
+        "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+          "bytes": 46429,
+          "mode": 384,
+          "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+          "bytes": 12932,
+          "mode": 384,
+          "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+          "bytes": 4393,
+          "mode": 384,
+          "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py": {
+          "bytes": 8109,
+          "mode": 384,
+          "sha256": "987bc7558b88c3c548da144d5493a86d2c7790936b840564edff661335e81780"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/decoder-controls.json": {
+          "bytes": 5549,
+          "mode": 384,
+          "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+          "bytes": 9666,
+          "mode": 384,
+          "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/run-development-checks.py": {
+          "bytes": 3019,
+          "mode": 384,
+          "sha256": "351dc3e50123656e3c08a829d22c980d4d9acdaddabbfbc6bb1439dde0f520a8"
+        }
+      },
+      "sources_before": {
+        "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+          "bytes": 46429,
+          "mode": 384,
+          "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+          "bytes": 12932,
+          "mode": 384,
+          "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+          "bytes": 4393,
+          "mode": 384,
+          "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py": {
+          "bytes": 8109,
+          "mode": 384,
+          "sha256": "987bc7558b88c3c548da144d5493a86d2c7790936b840564edff661335e81780"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/decoder-controls.json": {
+          "bytes": 5549,
+          "mode": 384,
+          "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+          "bytes": 9666,
+          "mode": 384,
+          "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+        },
+        "/workspace/work/raft-runtime-76/oracle-preparation/run-development-checks.py": {
+          "bytes": 3019,
+          "mode": 384,
+          "sha256": "351dc3e50123656e3c08a829d22c980d4d9acdaddabbfbc6bb1439dde0f520a8"
+        }
+      },
+      "started_utc": "2026-10-03T16:22:15.576093+00:00"
+    }
+  ],
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "schema_version": 1,
+  "scope": "WORK source preparation and actual retained diagnostic replay; not full76 qualification",
+  "source_sha": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "sources_before": {
+    "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+      "bytes": 46429,
+      "mode": 384,
+      "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+      "bytes": 12932,
+      "mode": 384,
+      "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+      "bytes": 4393,
+      "mode": 384,
+      "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-runtime-capture.py": {
+      "bytes": 8109,
+      "mode": 384,
+      "sha256": "987bc7558b88c3c548da144d5493a86d2c7790936b840564edff661335e81780"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/decoder-controls.json": {
+      "bytes": 5549,
+      "mode": 384,
+      "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+      "bytes": 9666,
+      "mode": 384,
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/run-development-checks.py": {
+      "bytes": 3019,
+      "mode": 384,
+      "sha256": "351dc3e50123656e3c08a829d22c980d4d9acdaddabbfbc6bb1439dde0f520a8"
+    }
+  }
+}

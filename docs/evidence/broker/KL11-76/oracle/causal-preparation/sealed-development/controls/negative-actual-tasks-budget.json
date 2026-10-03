@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-actual-tasks-budget",
+  "passed": true,
+  "rejection": "actual task/socket/channel/zero-DNS envelope",
+  "seconds": 0.153842
+}

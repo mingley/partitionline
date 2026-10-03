@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-expired-local-quorum-admission",
+  "passed": true,
+  "rejection": "write admission lacks fresh actual quorum contacts",
+  "seconds": 1.485654
+}

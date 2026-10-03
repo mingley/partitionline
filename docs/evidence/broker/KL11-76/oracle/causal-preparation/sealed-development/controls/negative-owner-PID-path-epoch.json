@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-PID-path-epoch",
+  "passed": true,
+  "rejection": "owner process identity/path epoch mismatch",
+  "seconds": 0.150611
+}

@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-actual-quorum-budget",
+  "passed": true,
+  "rejection": "actual quorum/election settings",
+  "seconds": 0.141138
+}

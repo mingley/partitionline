@@ -1,0 +1,24 @@
+{
+  "accepted": true,
+  "counters": {
+    "actual_tcp_frames": 1218,
+    "actual_tcp_response_consumptions": 492,
+    "clock_epoch_bounded_write_admissions": 10,
+    "committed_unique_positions": 22,
+    "complete_hello_sessions": 90,
+    "consumed_durable_append_or_image_receipts": 143,
+    "consumed_vote_grants": 32,
+    "exact_restart_clock_epoch_bridges": 2,
+    "exact_vote_cancellations": 38,
+    "majority_activations": 15,
+    "new_view_commit_majorities": 18,
+    "remote_wal_authority_bindings": 94,
+    "successful_owner_acks": 492,
+    "synced_append_receipts": 150,
+    "synced_vote_grants": 32
+  },
+  "expected_accepted": true,
+  "name": "positive-disjoint-restart-clock-epoch",
+  "passed": true,
+  "seconds": 1.91511
+}

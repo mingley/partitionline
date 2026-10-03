@@ -1,0 +1,6 @@
+{
+  "sha256": "95db79ebb92e804515e44fd047bce925c6c41472bd51fd76379b2903cae4888d",
+  "bytes": 38612,
+  "mode": 384,
+  "note": "reviewer lexicographic filename ordering assumption; no product failure"
+}

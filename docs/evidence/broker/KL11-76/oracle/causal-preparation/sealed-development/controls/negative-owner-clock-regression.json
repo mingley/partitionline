@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-clock-regression",
+  "passed": true,
+  "rejection": "owner-local clock regression",
+  "seconds": 0.150522
+}

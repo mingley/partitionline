@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-checksum-valid-response-wrong-RPC",
+  "passed": true,
+  "rejection": "response RPC lacks same-session request",
+  "seconds": 1.376289
+}

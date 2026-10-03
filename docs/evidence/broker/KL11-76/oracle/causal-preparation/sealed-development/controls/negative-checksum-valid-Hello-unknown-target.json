@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-checksum-valid-Hello-unknown-target",
+  "passed": true,
+  "rejection": "Hello complete group/full-directory identity",
+  "seconds": 1.39474
+}

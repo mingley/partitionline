@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-checksum-valid-source-record-bytes",
+  "passed": true,
+  "rejection": "forwarded packet lacks unique actual owner generation/rejection",
+  "seconds": 1.60807
+}

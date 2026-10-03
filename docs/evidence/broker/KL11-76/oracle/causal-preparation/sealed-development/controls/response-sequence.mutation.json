@@ -1,0 +1,9 @@
+{
+  "bytes": 8,
+  "changed_sha256": "408613b1fb75a98d7f4924aa812d237f4bc16533516bc95d980ec6f7824f6e32",
+  "offset": 84,
+  "original_path": "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/captures/stable-default-runtime-lib-tests/partitionline76-tcp-3-1185827-1/wire/wire-0-1-9-response-16.bin",
+  "original_sha256": "9cef771eafd2b2b30a25c51f6c66a063f1f615ce3a2d4a4246e1d8c79d1916d2",
+  "private_CRC_recomputed": true,
+  "valid_independent_frame_decode": true
+}

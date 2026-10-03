@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py", line 638, in <module>
+    main()
+  File "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py", line 632, in main
+    result=verify(args.captures,args.source_sha,args.membership_oracle)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py", line 504, in verify
+    groups.append(Packets(d,raw,packet_overrides))
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py", line 302, in __init__
+    need(d['rpc'] > last_rpc, 'session RPC not strictly increasing')
+  File "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py", line 31, in need
+    raise Rejected(message)
+Rejected: session RPC not strictly increasing

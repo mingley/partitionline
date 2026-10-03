@@ -1,0 +1,423 @@
+{
+  "actual_checker_affinity": [
+    2,
+    4
+  ],
+  "actual_new_broker_or_Cargo_executions": 0,
+  "all_checker_source_bytes_and_full_modes_unchanged": true,
+  "argv": [
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py",
+    "--captures",
+    "/workspace/work/raft-runtime-76/development/diagnostic-ea9ff293-01/captures/stable-default-runtime-lib-tests",
+    "--source-sha",
+    "ea9ff29393526b57e1203612bb12c9c99deccc61",
+    "--membership-oracle",
+    "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history",
+    "--out-dir",
+    "/workspace/work/raft-runtime-76/oracle-preparation/sealed-development-ea9ff293-01/controls"
+  ],
+  "checker_sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a",
+  "checker_sources_after": {
+    "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+      "bytes": 11564,
+      "mode": 384,
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae"
+    },
+    "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "bytes": 25651,
+      "mode": 384,
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+      "bytes": 46429,
+      "mode": 384,
+      "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+      "bytes": 12932,
+      "mode": 384,
+      "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+      "bytes": 9666,
+      "mode": 384,
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+    }
+  },
+  "checker_sources_before": {
+    "/workspace/partitionline/docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+      "bytes": 11564,
+      "mode": 384,
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae"
+    },
+    "/workspace/partitionline/docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "bytes": 25651,
+      "mode": 384,
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/causal_runtime.py": {
+      "bytes": 46429,
+      "mode": 384,
+      "sha256": "e954abe27d3eefcb55b928a9a0be05b15589196b7e6bb15a309faf681710b21a"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-causal-controls.py": {
+      "bytes": 12932,
+      "mode": 384,
+      "sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce"
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+      "bytes": 9666,
+      "mode": 384,
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+    }
+  },
+  "control_source_sha256": "3b85ec33a7ca39db548af595faa9068826090e7e829ee703d9e3d9dce0be00ce",
+  "controls": [
+    {
+      "accepted": true,
+      "counters": {
+        "actual_tcp_frames": 1218,
+        "actual_tcp_response_consumptions": 492,
+        "clock_epoch_bounded_write_admissions": 10,
+        "committed_unique_positions": 22,
+        "complete_hello_sessions": 90,
+        "consumed_durable_append_or_image_receipts": 143,
+        "consumed_vote_grants": 32,
+        "exact_restart_clock_epoch_bridges": 2,
+        "exact_vote_cancellations": 38,
+        "majority_activations": 15,
+        "new_view_commit_majorities": 18,
+        "remote_wal_authority_bindings": 94,
+        "successful_owner_acks": 492,
+        "synced_append_receipts": 150,
+        "synced_vote_grants": 32
+      },
+      "expected_accepted": true,
+      "name": "positive-original-actual-three-five",
+      "passed": true,
+      "seconds": 1.805629
+    },
+    {
+      "accepted": true,
+      "counters": {
+        "actual_tcp_frames": 1218,
+        "actual_tcp_response_consumptions": 492,
+        "clock_epoch_bounded_write_admissions": 10,
+        "committed_unique_positions": 22,
+        "complete_hello_sessions": 90,
+        "consumed_durable_append_or_image_receipts": 143,
+        "consumed_vote_grants": 32,
+        "exact_restart_clock_epoch_bridges": 2,
+        "exact_vote_cancellations": 38,
+        "majority_activations": 15,
+        "new_view_commit_majorities": 18,
+        "remote_wal_authority_bindings": 94,
+        "successful_owner_acks": 492,
+        "synced_append_receipts": 150,
+        "synced_vote_grants": 32
+      },
+      "expected_accepted": true,
+      "name": "positive-disjoint-restart-clock-epoch",
+      "passed": true,
+      "seconds": 1.91511
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-source-pin",
+      "passed": true,
+      "rejection": "owner source/layer/clock epoch",
+      "seconds": 0.15245
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-clock-regression",
+      "passed": true,
+      "rejection": "owner-local clock regression",
+      "seconds": 0.150522
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-ordinal-reorder",
+      "passed": true,
+      "rejection": "owner ordinal gap/reorder",
+      "seconds": 0.150255
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-committed-summary",
+      "passed": true,
+      "rejection": "owner summary differs from actual checkpoint bytes",
+      "seconds": 0.14391
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-term-summary",
+      "passed": true,
+      "rejection": "owner summary differs from actual checkpoint bytes",
+      "seconds": 0.149288
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-full-directory",
+      "passed": true,
+      "rejection": "foreign content identity",
+      "seconds": 0.151965
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-PID-path-epoch",
+      "passed": true,
+      "rejection": "owner process identity/path epoch mismatch",
+      "seconds": 0.150611
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-owner-global-clock-claim",
+      "passed": true,
+      "rejection": "owner source/layer/clock epoch",
+      "seconds": 0.15469
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-tasks-budget",
+      "passed": true,
+      "rejection": "actual task/socket/channel/zero-DNS envelope",
+      "seconds": 0.153842
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-socket-budget",
+      "passed": true,
+      "rejection": "actual task/socket/channel/zero-DNS envelope",
+      "seconds": 0.174689
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-queue-budget",
+      "passed": true,
+      "rejection": "actual task/socket/channel/zero-DNS envelope",
+      "seconds": 0.140404
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-dns-budget",
+      "passed": true,
+      "rejection": "actual task/socket/channel/zero-DNS envelope",
+      "seconds": 0.146349
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-pool-budget",
+      "passed": true,
+      "rejection": "actual retained-byte envelope",
+      "seconds": 0.138287
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-managed-budget",
+      "passed": true,
+      "rejection": "actual retained-byte envelope",
+      "seconds": 0.145592
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-frame-budget",
+      "passed": true,
+      "rejection": "message exceeds actual captured frame budget",
+      "seconds": 0.141767
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-quorum-budget",
+      "passed": true,
+      "rejection": "actual quorum/election settings",
+      "seconds": 0.141138
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-actual-record-parser-budget",
+      "passed": true,
+      "rejection": "message exceeds actual captured record/count/chunk budget",
+      "seconds": 0.150547
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-ACK-unprepared-sequence",
+      "passed": true,
+      "rejection": "successful ACK lacks unique earlier prepared exact request",
+      "seconds": 1.549821
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-ACK-after-local-correlation-deadline",
+      "passed": true,
+      "rejection": "successful ACK exceeded captured owner-local correlation deadline",
+      "seconds": 1.539086
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-dispatched-without-owner-request",
+      "passed": true,
+      "rejection": "successful ACK lacks unique earlier prepared exact request",
+      "seconds": 1.571094
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-wrong-RPC",
+      "passed": true,
+      "rejection": "response RPC lacks same-session request",
+      "seconds": 1.376289
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-leader-directory",
+      "passed": true,
+      "rejection": "packet contradicts Hello full-directory identities",
+      "seconds": 1.315388
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-peer-directory",
+      "passed": true,
+      "rejection": "packet contradicts Hello full-directory identities",
+      "seconds": 1.312189
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-configuration-epoch",
+      "passed": true,
+      "rejection": "Append response complete correlation",
+      "seconds": 1.354313
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-sequence",
+      "passed": true,
+      "rejection": "Append response complete correlation",
+      "seconds": 1.376093
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-leader-id",
+      "passed": true,
+      "rejection": "Append response complete correlation",
+      "seconds": 1.334174
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-fabricated-match",
+      "passed": true,
+      "rejection": "forwarded packet lacks unique actual owner generation/rejection",
+      "seconds": 1.636283
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-response-fabricated-refusal",
+      "passed": true,
+      "rejection": "forwarded packet lacks unique actual owner generation/rejection",
+      "seconds": 1.691609
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-source-record-bytes",
+      "passed": true,
+      "rejection": "forwarded packet lacks unique actual owner generation/rejection",
+      "seconds": 1.60807
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-checksum-valid-Hello-unknown-target",
+      "passed": true,
+      "rejection": "Hello complete group/full-directory identity",
+      "seconds": 1.39474
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-reported-Leader-without-consumed-majority",
+      "passed": true,
+      "rejection": "leader activation lacks consumed distinct current-view majority grants",
+      "seconds": 1.471705
+    },
+    {
+      "accepted": false,
+      "expected_accepted": false,
+      "name": "negative-expired-local-quorum-admission",
+      "passed": true,
+      "rejection": "write admission lacks fresh actual quorum contacts",
+      "seconds": 1.485654
+    }
+  ],
+  "initial_decoder_2_positive_26_negative_files_unchanged": true,
+  "initial_decoder_files_after": {
+    "check-peer-bytes.py": {
+      "bytes": 4393,
+      "mode": 384,
+      "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+    },
+    "decoder-controls.json": {
+      "bytes": 5549,
+      "mode": 384,
+      "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+    },
+    "peer_bytes.py": {
+      "bytes": 9666,
+      "mode": 384,
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+    }
+  },
+  "initial_decoder_files_before": {
+    "check-peer-bytes.py": {
+      "bytes": 4393,
+      "mode": 384,
+      "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4"
+    },
+    "decoder-controls.json": {
+      "bytes": 5549,
+      "mode": 384,
+      "sha256": "665705927eac256ad79f438e95ef9acaa00d3b7bf97f99a92718967cebae4e65"
+    },
+    "peer_bytes.py": {
+      "bytes": 9666,
+      "mode": 384,
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459"
+    }
+  },
+  "negative_controls": 32,
+  "original_actual_capture_bytes_and_full_modes_unchanged": true,
+  "passed": true,
+  "positive_controls": 2,
+  "schema_version": 1,
+  "scope": "WORK development actual retained-history replay",
+  "source_sha": "ea9ff29393526b57e1203612bb12c9c99deccc61"
+}

@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-dispatched-without-owner-request",
+  "passed": true,
+  "rejection": "successful ACK lacks unique earlier prepared exact request",
+  "seconds": 1.571094
+}

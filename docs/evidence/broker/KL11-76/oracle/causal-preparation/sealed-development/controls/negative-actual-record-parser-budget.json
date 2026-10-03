@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-actual-record-parser-budget",
+  "passed": true,
+  "rejection": "message exceeds actual captured record/count/chunk budget",
+  "seconds": 0.150547
+}

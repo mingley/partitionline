@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-checksum-valid-response-leader-directory",
+  "passed": true,
+  "rejection": "packet contradicts Hello full-directory identities",
+  "seconds": 1.315388
+}

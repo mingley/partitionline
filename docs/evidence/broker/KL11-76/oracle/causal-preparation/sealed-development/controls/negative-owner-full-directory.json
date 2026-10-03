@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-full-directory",
+  "passed": true,
+  "rejection": "foreign content identity",
+  "seconds": 0.151965
+}

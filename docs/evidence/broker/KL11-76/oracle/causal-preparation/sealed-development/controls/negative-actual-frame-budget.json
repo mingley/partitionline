@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-actual-frame-budget",
+  "passed": true,
+  "rejection": "message exceeds actual captured frame budget",
+  "seconds": 0.141767
+}

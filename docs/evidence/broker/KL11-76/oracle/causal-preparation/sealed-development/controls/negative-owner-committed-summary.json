@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "expected_accepted": false,
+  "name": "negative-owner-committed-summary",
+  "passed": true,
+  "rejection": "owner summary differs from actual checkpoint bytes",
+  "seconds": 0.14391
+}
