@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "phase": "after",
+  "sampled_at_unix": 1791048939.737764,
+  "scope": "entire unchanged original403 tree before/after the separate selective baseline experiment",
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "source_origin_receipt_sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff",
+  "source_manifest_compressed_sha256": "881b301d30acab326cfb52df3a26e71cdb4944cfe602e9f23658ff77e2b0341d",
+  "source_manifest_uncompressed_sha256": "089e750c4c4c0427037be76034005c569283810d1eaf262479c27795c7a40f28",
+  "guard": {
+    "files": 71885,
+    "bytes": 653466714,
+    "whole_declared_path_set_match": true,
+    "all_declared_blobs_sha256_lengths_and_full_modes_match": true,
+    "set_blob_fullmode_sha256": "8ef181d8d9f63cb6bd2ed6e8bd9011d3b29b733c989eecc822317f7d16b3c7fc"
+  },
+  "helper_sha256": "7d17437a0bdeaf030ccc385e5884ad53d6f6cbb1f0189e501adc31b1d9850594"
+}

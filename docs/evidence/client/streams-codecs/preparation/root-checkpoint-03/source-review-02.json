@@ -1,0 +1,72 @@
+{
+  "review_base_sha": "f2e3021bccc506e2d75d4f81a6f2c49b92ef607b",
+  "scope": "WORK-only source candidate for KL05-31: all four API88/89 v0 typed bounded codecs. No repo install, Cargo/typecheck/JVM execution or generated-vector qualification.",
+  "card_mapping": {
+    "KL05-31": "API88 and API89 request/response codecs",
+    "KL05-32": "Future runtime public caller-driven heartbeat; no implementation claim",
+    "KL05-33": "Future sole-owner Admin Streams describe; no implementation claim"
+  },
+  "model_count": 20,
+  "field_count": 101,
+  "source_checks": {
+    "rustfmt_1_85_parsing": "passed; source/tests only, not a compiler/typecheck",
+    "three_pinned_reachable_schema_layouts": "12 actual source schemas read; all four roots agree on wire layout",
+    "local_tests_authored": 21,
+    "tests_executed": 0,
+    "oracle_compiled": false,
+    "oracle_executed": false,
+    "vectors_generated": 0
+  },
+  "bounds": {
+    "positive_limits": 9,
+    "allocation": "Requested Vec slot capacity plus copied String bytes checked cumulatively before allocation; fixed acyclic schema nesting; output measured and validated before one owned Vec allocation",
+    "proof_before_array_allocation": "Checked count*minimum-element-wire <= remaining input, plus per-array and whole-message elements and reservation limits",
+    "tags": "Per-struct and whole-message count, whole-message payload bytes, checked ordered unique tags; payloads borrowed and discarded",
+    "local_policies": "Strict UTF8 and ascending unique tags are local admission rules; actual Apache outcomes must be captured separately. Nonzero booleans and all negative nullable struct markers accepted; canonical encoder outputs 0/1 bool and -1/1 markers."
+  },
+  "coordinator_registration": {
+    "protocol_mod": "pub mod streams;",
+    "api_constants": "Existing 88/89 constants remain identifiers; source registration does not imply runtime coverage.",
+    "header": "request_header_version(88/89,0)=2; response_header_version(88/89,0)=1; existing header.rs currently falls back to classic. Coordinator-owned change required.",
+    "exports": "Optional protocol reexports of models/functions via root-owned mod.rs; no Admin.rs edits."
+  },
+  "files": [
+    {
+      "work_path": "/workspace/work/streams-codecs/src/protocol/streams.rs",
+      "proposed_repository_path": "src/protocol/streams.rs",
+      "sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+      "mode": "0644"
+    },
+    {
+      "work_path": "/workspace/work/streams-codecs/tests/streams_protocol.rs",
+      "proposed_repository_path": "tests/streams_protocol.rs",
+      "sha256": "d3ec0b14efcad2a8370747a73128ffd7aeae801052345bfadcf4c8700929ca86",
+      "mode": "0644"
+    },
+    {
+      "work_path": "/workspace/work/streams-codecs/fixtures/oracle/StreamsWireOracle.java",
+      "proposed_repository_path": "tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "sha256": "ee9845c8e133a01d5f262304e951626b640c5db64ceab6946204e34cbac955d2",
+      "mode": "0644"
+    },
+    {
+      "work_path": "/workspace/work/streams-codecs/model-index.json",
+      "proposed_repository_path": "docs/evidence/client/streams-codecs/preparation/model-index.json",
+      "sha256": "17ef3569efeed0f2acc37605590a2d0183d481df1d7b96a490eef3d49e3d13f8",
+      "mode": "0644"
+    },
+    {
+      "work_path": "/workspace/work/streams-codecs/schema-review-02.json",
+      "proposed_repository_path": "docs/evidence/client/streams-codecs/preparation/schema-review-02.json",
+      "sha256": "5b2ed9f40273ab9a3d5a4ac2c610073bc201cee6738ce35c616ec790e8e67df2",
+      "mode": "0644"
+    },
+    {
+      "work_path": "/workspace/work/streams-codecs/source-preparation-failures.json",
+      "proposed_repository_path": "docs/evidence/client/streams-codecs/preparation/source-preparation-failures.json",
+      "sha256": "94835768a941ad8675127a27daa451a137dadb3136148a219ee93a36bd3f4add",
+      "mode": "0644"
+    }
+  ],
+  "next_gates": "Root source review and registration/lease first; actual targeted compile/strict lint, actual pinned Java generation twice + reverse parse and parser leniency receipts, source push then immutable both toolchains/default/all-feature gates."
+}

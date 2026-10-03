@@ -1,0 +1,6 @@
+{"elapsed_seconds": 0, "free_bytes": 1111396352, "process_group": 1216579, "pre_launch": true, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.0032525799906579778, "free_bytes": 1111388160, "process_group": 1216579, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.20341672899667174, "free_bytes": 1111371776, "process_group": 1216579, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.4037248249951517, "free_bytes": 1110040576, "process_group": 1216579, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.6039353539963486, "free_bytes": 1108303872, "process_group": 1216579, "process_completed": false, "exit_code": null}
+{"elapsed_seconds": 0.8042122119950363, "free_bytes": 1100136448, "process_group": 1216579, "process_completed": true, "exit_code": 101}

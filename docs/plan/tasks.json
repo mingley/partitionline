@@ -49647,6 +49647,7 @@
         "codex-coordinator-20261003": [
           "src/protocol/mod.rs",
           "src/protocol/api_keys.rs",
+          "src/protocol/header.rs",
           "src/lib.rs exports/docs"
         ]
       },

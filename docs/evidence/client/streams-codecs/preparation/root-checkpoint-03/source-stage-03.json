@@ -1,0 +1,87 @@
+{
+  "scope": "Reviewed exact source-only install;21body tests and production codec unchanged; no fixtureconsumerinclude, Cargo/JVM/typecheck or vectors. Initial ee9845 source preserved verbatim.",
+  "source_review_sha256": "6c26e0df133e3e7ab658ff9d1eaba27b2fae0e096a069840d66b4838742e4a5a",
+  "files": [
+    {
+      "path": "src/protocol/streams.rs",
+      "sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+      "mode": "0644",
+      "source_review_sha256": "2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e"
+    },
+    {
+      "path": "tests/streams_protocol.rs",
+      "sha256": "d3ec0b14efcad2a8370747a73128ffd7aeae801052345bfadcf4c8700929ca86",
+      "mode": "0644",
+      "source_review_sha256": "2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e"
+    },
+    {
+      "path": "tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "mode": "0644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/model-index.json",
+      "sha256": "17ef3569efeed0f2acc37605590a2d0183d481df1d7b96a490eef3d49e3d13f8",
+      "mode": "0644",
+      "source_review_sha256": "2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/schema-review-02.json",
+      "sha256": "5b2ed9f40273ab9a3d5a4ac2c610073bc201cee6738ce35c616ec790e8e67df2",
+      "mode": "0644",
+      "source_review_sha256": "2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/source-preparation-failures.json",
+      "sha256": "94835768a941ad8675127a27daa451a137dadb3136148a219ee93a36bd3f4add",
+      "mode": "0644",
+      "source_review_sha256": "2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/oracle-01.java",
+      "sha256": "ee9845c8e133a01d5f262304e951626b640c5db64ceab6946204e34cbac955d2",
+      "mode": "0644"
+    },
+    {
+      "path": "tests/fixtures/streams/oracle/expected_models.rs",
+      "sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de",
+      "mode": "0644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/sentinels-02.json",
+      "sha256": "f3705b35b0b1e3a7361695df3cab24fa31c5e639c7de1456de365f97f35a6cd6",
+      "mode": "0644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/class-source-review-02.json",
+      "sha256": "68db8a1addfb2cdac9c040f9fee9cc0f09c545159f34719e1adcc77551382165",
+      "mode": "0644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/oracle-review-02.json",
+      "sha256": "6c26e0df133e3e7ab658ff9d1eaba27b2fae0e096a069840d66b4838742e4a5a",
+      "mode": "0644"
+    }
+  ],
+  "unchanged_codec_sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+  "unchanged_test_sha256": "d3ec0b14efcad2a8370747a73128ffd7aeae801052345bfadcf4c8700929ca86",
+  "format_receipt": {
+    "command": "/workspace/work/cargo/bin/rustfmt +1.85.0 --edition 2021 --check /workspace/partitionline/src/protocol/streams.rs /workspace/partitionline/tests/streams_protocol.rs",
+    "exit_status": 0,
+    "stdout": "",
+    "stderr": "",
+    "scope": "Standalone source formatting/parsing only; no Cargo/typecheck/JVM"
+  },
+  "review_correction": {
+    "original_review": "source-review-02.json 2303fe880ca5bfce034d7419b8d65cbb30340da16e465c19d27f5b00a4c0263e",
+    "incorrect_phrase": "Existing88/89 constants remain identifiers",
+    "correction": "Root confirmed no STREAMS_GROUP constants yet exist in api_keys.rs; coordinator must add88/89 constants and names as well as flexible header registration."
+  },
+  "format_receipt_refinement": {
+    "command": "/workspace/work/cargo/bin/rustfmt +1.85.0 --edition 2021 --check /workspace/partitionline/src/protocol/streams.rs /workspace/partitionline/tests/streams_protocol.rs /workspace/partitionline/tests/fixtures/streams/oracle/expected_models.rs",
+    "exit_status": 0,
+    "stdout": "",
+    "stderr": "",
+    "scope": "Standalone parsing/formatting; no compiler/typecheck/JVM"
+  }
+}

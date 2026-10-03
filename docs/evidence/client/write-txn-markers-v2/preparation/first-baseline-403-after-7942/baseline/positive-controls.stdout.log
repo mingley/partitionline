@@ -1,0 +1,25 @@
+
+running 2 tests
+test old_supported_v0_share_positive_control ... FAILED
+test old_supported_v1_abort_positive_control ... FAILED
+
+failures:
+
+---- old_supported_v0_share_positive_control stdout ----
+
+thread 'old_supported_v0_share_positive_control' (1216610) panicked at tests/fixtures/write-txn-markers-v2/socket_peer.rs:311:10:
+called `Result::unwrap()` on an `Err` value: Unsupported("broker does not support CreateTopics v0-7")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- old_supported_v1_abort_positive_control stdout ----
+
+thread 'old_supported_v1_abort_positive_control' (1216611) panicked at tests/fixtures/write-txn-markers-v2/socket_peer.rs:311:10:
+called `Result::unwrap()` on an `Err` value: Unsupported("broker does not support CreateTopics v0-7")
+
+
+failures:
+    old_supported_v0_share_positive_control
+    old_supported_v1_abort_positive_control
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

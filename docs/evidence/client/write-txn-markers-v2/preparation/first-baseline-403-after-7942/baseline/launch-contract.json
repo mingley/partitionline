@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "candidate_source_sha": "7942fbac784b35220ae02f6983e6454399f42ba5",
+  "origin_receipt_sha256": "6b32de0a48931c1a7fcb85ae15165661f9303f501e5936c17c36cb1c570f4007",
+  "forecast": {
+    "sampled_free_bytes": 1123065856,
+    "current_generated_cache_allocated_bytes": 216690688,
+    "phase_index": 0,
+    "remaining_named_baseline_targets": 3,
+    "remaining_package_library_allowance_bytes": 83002787,
+    "persistent_incremental_allowance_bytes": 269226467,
+    "lossless_ELF_capture_allowance_bytes": 194612288,
+    "required_free_bytes": 1054395619,
+    "minimum_remaining_free_bytes": 367001600,
+    "headroom_bytes": 68670237,
+    "fits": true,
+    "reference_forecast_sha256": "2aadcb377c0cf3173ac46004ff1d7448b12e11454f9164e050b7153e70745f02",
+    "scope": "only exact selective403 baseline with five pinned overlays; candidate tests/strict/MSRV/JVM/full held"
+  },
+  "baseline_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "baseline_selected_inputs": 66,
+  "explicit_overlay_count": 5,
+  "expected_actual_behavior": "positive2 passes then exact3+1 old behavior failures; never compile/setup failures",
+  "root_authorized_scope": "baseline-only once ROOT GO; following candidate phases held"
+}

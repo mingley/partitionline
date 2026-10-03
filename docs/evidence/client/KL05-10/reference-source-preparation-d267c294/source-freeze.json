@@ -1,0 +1,134 @@
+{
+  "Cargo_JVM_benchmark_executed": false,
+  "candidate_source_identity": {
+    "files": {
+      "src/lib.rs": {
+        "bytes": 211645,
+        "mode": "0o600",
+        "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a"
+      },
+      "src/partitioner.rs": {
+        "bytes": 43985,
+        "mode": "0o600",
+        "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a"
+      },
+      "src/producer.rs": {
+        "bytes": 218265,
+        "mode": "0o600",
+        "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+      },
+      "src/protocol/buf.rs": {
+        "bytes": 61797,
+        "mode": "0o600",
+        "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+      },
+      "src/protocol/records.rs": {
+        "bytes": 171836,
+        "mode": "0o600",
+        "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+      },
+      "tests/sticky_partitioner.rs": {
+        "bytes": 37620,
+        "mode": "0o600",
+        "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+      }
+    },
+    "no_Cargo_JVM_benchmark": true,
+    "observed_main": "d267c294d91c8c43f3b37d42538075f212f1c37c",
+    "schema": 1,
+    "scope": "Current actual candidate source observation; earlier89dd snapshot remains historical"
+  },
+  "cfg_test_include_installed": false,
+  "evidence_files": {
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/Rust-fixture-integration-pending.md": {
+      "bytes": 499,
+      "mode": "0o600",
+      "sha256": "ed1005be839148011e4169616e7bbf9070c65287b620d2ff22ed654e408b626c"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-focused-qa-plan.json": {
+      "bytes": 5583,
+      "mode": "0o600",
+      "sha256": "445c24d7474c7dce7d6ca42545ffd7e1a280dac3c2545a5e4096397569c9df7b"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-reference-plan.json": {
+      "bytes": 10646,
+      "mode": "0o600",
+      "sha256": "469d5b46c9911b3a25de8c1426663e962c33230ad29ff326544d2c9f7602751e"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-source-identity.json": {
+      "bytes": 1216,
+      "mode": "0o600",
+      "sha256": "7ec3a266d30d2f046b91b597dc3264c7fdaed35781538cb95eecdf3ac64c833a"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/genuine-artifact-read-identity.json": {
+      "bytes": 1384,
+      "mode": "0o600",
+      "sha256": "4f5b5773bd4e5291420a686e524df7e2c4d9877e6ae3b59e0daf54a4b6528bb6"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/java-reference-tests.rs": {
+      "bytes": 9292,
+      "mode": "0o600",
+      "sha256": "0b74ed71b2d583da2b3df924eb1ff1452d1f54e367db3b2f8ad30f927a9ba6d0"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prepare_inputs.py": {
+      "bytes": 6110,
+      "mode": "0o600",
+      "sha256": "a3c10f00e47fe7b426a0fa5229ac043815d97a0e3c946a46d484b68e0814ddbc"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prior-prep-manifest.json": {
+      "bytes": 6053,
+      "mode": "0o600",
+      "sha256": "4b0da607033163571aaed894a9a367b8827f1a497cf9dcb1ad0f9208d30fff97"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prior-prep-preservation.json": {
+      "bytes": 701,
+      "mode": "0o600",
+      "sha256": "41b303e1b18ea6b9ae902f9697f1de368ac31826088d33fcc638820c7b5135d6"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/resource-forecast.json": {
+      "bytes": 1494,
+      "mode": "0o600",
+      "sha256": "33907ecfb6c26a829d7c4ed17804df059d5e0361acd5259027f6e66ecea6a3c4"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/run-focused.py": {
+      "bytes": 12129,
+      "mode": "0o600",
+      "sha256": "ddaf79f57b016411f002795c51c7cc258f858f6bd3f7c89225fcf5ba588b975e"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/run-java-reference.py": {
+      "bytes": 18293,
+      "mode": "0o600",
+      "sha256": "133b50fb74ee5d7267bec97786b57ebe92e437b6e00d99f472198656ced22703"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/runner-amendment.patch": {
+      "bytes": 13850,
+      "mode": "0o600",
+      "sha256": "f027061612c2a538abc5228b46824d75e2e79a8870b17d7976f8072cd0da8257"
+    },
+    "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/seal_source_packet.py": {
+      "bytes": 11812,
+      "mode": "0o600",
+      "sha256": "569360549a0981e72509b8a79849928b03f645369c5f957b52fa4f248d5a9653"
+    }
+  },
+  "expected_outputs_or_generated_classes_installed": false,
+  "fixture_files": {
+    "tests/fixtures/sticky-partitioner/GenerateUniformStickyFixture.java": {
+      "bytes": 7703,
+      "mode": "0o600",
+      "sha256": "ec994c3cb46b5463c5378b11425b1ae7904c99b49d2b944d56e1c3b38782b5fa"
+    },
+    "tests/fixtures/sticky-partitioner/uniform-input-provenance.json": {
+      "bytes": 3333,
+      "mode": "0o600",
+      "sha256": "e7805ea86533aeb9a3ac203d9a6bd346018aafa783ea91c054778cfef47bb6ab"
+    },
+    "tests/fixtures/sticky-partitioner/uniform-input.tsv": {
+      "bytes": 9959,
+      "mode": "0o600",
+      "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a"
+    }
+  },
+  "schema": 1,
+  "status": "Source-only reference checkpoint, uncompiled/unexecuted"
+}

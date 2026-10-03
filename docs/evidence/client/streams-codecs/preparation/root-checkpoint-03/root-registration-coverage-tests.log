@@ -1,0 +1,52 @@
+test_all_93_current_keys_match_retained_source_contracts (__main__.TestProtocolCoverageChecker.test_all_93_current_keys_match_retained_source_contracts) ... ok
+test_blanket_public_admin_exclusion_is_a_failure (__main__.TestProtocolCoverageChecker.test_blanket_public_admin_exclusion_is_a_failure) ... ok
+test_classification_pass_is_not_complete_functionality (__main__.TestProtocolCoverageChecker.test_classification_pass_is_not_complete_functionality) ... ok
+test_classified_synthetic_api_passes_check (__main__.TestProtocolCoverageChecker.test_classified_synthetic_api_passes_check)
+Once classified, a synthetic new API passes the check cleanly. ... ok
+test_classified_synthetic_version_passes_check (__main__.TestProtocolCoverageChecker.test_classified_synthetic_version_passes_check)
+Once classified, a synthetic new version passes the check cleanly. ... ok
+test_cli_diff_only (__main__.TestProtocolCoverageChecker.test_cli_diff_only)
+CLI with --diff-only suppresses the list of implemented APIs. ... ok
+test_cli_execution_clean_exit_0 (__main__.TestProtocolCoverageChecker.test_cli_execution_clean_exit_0)
+CLI invocation against repo frozen pins produces exit 0 and human report. ... ok
+test_cli_json_output_and_file_writing (__main__.TestProtocolCoverageChecker.test_cli_json_output_and_file_writing)
+CLI with --json and -o writes structured JSON report. ... ok
+test_cli_nonexistent_inventory_file_exits_2 (__main__.TestProtocolCoverageChecker.test_cli_nonexistent_inventory_file_exits_2)
+CLI with nonexistent inventory file exits with error code 2. ... ok
+test_cli_self_test_flag (__main__.TestProtocolCoverageChecker.test_cli_self_test_flag)
+CLI --self-test flag executes built-in self-test suite. ... ok
+test_cli_synthetic_inventory_file_fails_exit_1 (__main__.TestProtocolCoverageChecker.test_cli_synthetic_inventory_file_fails_exit_1)
+CLI with custom inventory containing synthetic new API fails with exit 1. ... ok
+test_client_cap_regression_for_27_or_90_fails (__main__.TestProtocolCoverageChecker.test_client_cap_regression_for_27_or_90_fails) ... ok
+test_constants_and_codec_ranges_do_not_establish_streams_runtime (__main__.TestProtocolCoverageChecker.test_constants_and_codec_ranges_do_not_establish_streams_runtime) ... ok
+test_current_write_markers_and_share_lag_ranges (__main__.TestProtocolCoverageChecker.test_current_write_markers_and_share_lag_ranges) ... ok
+test_default_frozen_pins_pass_with_zero_drift (__main__.TestProtocolCoverageChecker.test_default_frozen_pins_pass_with_zero_drift)
+Verify that running against default frozen pins (3.9.1, 4.1.0, 4.1.2, 4.2.1, 4.3.1) ... ok
+test_deterministic_results (__main__.TestProtocolCoverageChecker.test_deterministic_results)
+Ensure evaluation is deterministic: two consecutive runs produce identical results. ... ok
+test_do_not_claim_uncovered_apis_implemented (__main__.TestProtocolCoverageChecker.test_do_not_claim_uncovered_apis_implemented)
+Verify that uncovered APIs and features are not claimed as implemented: ... ok
+test_forging_current_version_range_cannot_be_classified_away (__main__.TestProtocolCoverageChecker.test_forging_current_version_range_cannot_be_classified_away) ... ok
+test_key_names_and_helpers_not_counted_as_implemented (__main__.TestProtocolCoverageChecker.test_key_names_and_helpers_not_counted_as_implemented)
+Acceptance rule: Do not count a key name or helper type as an implemented client operation. ... ok
+test_matrix_corruption_fails_against_retained_sources (__main__.TestProtocolCoverageChecker.test_matrix_corruption_fails_against_retained_sources) ... ok
+test_missing_callable_feature_cannot_be_blessed_by_version_table (__main__.TestProtocolCoverageChecker.test_missing_callable_feature_cannot_be_blessed_by_version_table) ... ok
+test_new_current_public_cases_preserve_unqualified_status (__main__.TestProtocolCoverageChecker.test_new_current_public_cases_preserve_unqualified_status) ... ok
+test_omitting_any_current_key_fails_closed (__main__.TestProtocolCoverageChecker.test_omitting_any_current_key_fails_closed) ... ok
+test_public_cluster_action_apis_have_dual_use (__main__.TestProtocolCoverageChecker.test_public_cluster_action_apis_have_dual_use) ... ok
+test_removed_contracts_have_no_usable_versions (__main__.TestProtocolCoverageChecker.test_removed_contracts_have_no_usable_versions) ... ok
+test_removed_reserved_keys_cannot_be_advertised (__main__.TestProtocolCoverageChecker.test_removed_reserved_keys_cannot_be_advertised) ... ok
+test_separate_reporting_categories (__main__.TestProtocolCoverageChecker.test_separate_reporting_categories)
+Acceptance rule: Report version gaps, missing runtime wiring, and excluded broker-internal APIs separately. ... ok
+test_share_v2_coverage_matches_official_sdk_ranges_and_qualified_runtime (__main__.TestProtocolCoverageChecker.test_share_v2_coverage_matches_official_sdk_ranges_and_qualified_runtime) ... ok
+test_streams_stability_metadata_is_not_lost (__main__.TestProtocolCoverageChecker.test_streams_stability_metadata_is_not_lost) ... ok
+test_synthetic_unclassified_api_fails_check (__main__.TestProtocolCoverageChecker.test_synthetic_unclassified_api_fails_check)
+Acceptance rule: One synthetic new API fails the check until classified. ... ok
+test_synthetic_unclassified_version_fails_check (__main__.TestProtocolCoverageChecker.test_synthetic_unclassified_version_fails_check)
+Acceptance rule: One synthetic new version fails the check until classified. ... ok
+test_wire_helper_entrypoint_cannot_be_called_runtime (__main__.TestProtocolCoverageChecker.test_wire_helper_entrypoint_cannot_be_called_runtime) ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 3.938s
+
+OK

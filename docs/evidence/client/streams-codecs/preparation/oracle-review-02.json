@@ -1,0 +1,37 @@
+{
+  "scope": "Separate source-only Apache oracle refinement; no compiler/JVM/serializer/parser execution, no generated fixtures or runtime claims",
+  "unchanged_codec_sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+  "original_oracle_source_sha256": "ee9845c8e133a01d5f262304e951626b640c5db64ceab6946204e34cbac955d2",
+  "refinement": "144 context-distinct primitive sentinels across all reachable fields; matching Rust expected models; unknown tags in every nested structure; actual RequestHeaderData v2 classic nullable clientId(null/empty/UTF8) with tags and ResponseHeaderData v1 with tags for both APIs; actual whole header/body selfparse planned; reverse mode parses real original and Rust reencoding, clears unknown tags from original, compares actual typed messages and canonical Rust bytes. Full boolean fields are true (non-default); contextual numeric/string sentinels differ.",
+  "planned_cases": "41 body cases and12 header+body cases per SDK; counts are source-planned until actual execution",
+  "source_checks": {
+    "class_objects_inspected_from_actual_jars": 88,
+    "all_required_setters_present": true,
+    "rust_expected_models_rustfmt_1_85": "passed --check only, no compiler/typecheck",
+    "oracle_compiled": false,
+    "oracle_executed": false
+  },
+  "files": [
+    {
+      "path": "/workspace/work/streams-codecs/revision-02/StreamsWireOracle.java",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "mode": "0644"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-02/class-source-review.json",
+      "sha256": "68db8a1addfb2cdac9c040f9fee9cc0f09c545159f34719e1adcc77551382165",
+      "mode": "0644"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-02/expected_models.rs",
+      "sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de",
+      "mode": "0644"
+    },
+    {
+      "path": "/workspace/work/streams-codecs/revision-02/sentinels.json",
+      "sha256": "f3705b35b0b1e3a7361695df3cab24fa31c5e639c7de1456de365f97f35a6cd6",
+      "mode": "0644"
+    }
+  ],
+  "install_proposal": "Preserve initial ee9845 source in preparation/oracle-01.java; replace fixture oracle only after source review; add Rust expected sentinel models and sentinel/class provenance under claimed paths, no production codec delta."
+}

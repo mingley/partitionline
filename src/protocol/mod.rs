@@ -16,6 +16,7 @@ pub mod records;
 pub mod sasl;
 pub mod scram;
 pub mod share;
+pub mod streams;
 pub mod txn;
 
 pub use api::{

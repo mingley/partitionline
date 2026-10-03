@@ -1,0 +1,19 @@
+{
+  "CPU": "Parent and SDK children0,1 only",
+  "JVM_heap_mib": 128,
+  "JVM_max_metaspace_mib": 128,
+  "Rust_focus": "Separate later lease; one exclusively owned cache, no stale own-package reuse, initial>=1150MiB and350MiB live floor as prior plan. No Cargo launched here.",
+  "bounds": "Input<=32KiB, positive/negative reference stdout<=32KiB each, each captured file kernel<=256KiB, each run exact2 caller classes, invalid inputs tiny<=32769bytes",
+  "disk": "Official JARs already retained, no download/container/image. Reuse root materialized whole source, no additional tree extraction. Complete source audit gzip and10 child command capture sets forecast<=16MiB output, caller classes<=1MiB; source manifest memory/raw encoding transient is in RAM.",
+  "disk_initial_minimum_mib": 400,
+  "failures": "Stop only owned child group, retain all raw captured output/exit/source/resource/membership observations, require zero membership. Resource failure is not Java invalid-control proof and never fixture success.",
+  "memory_forecast_mib": "Up to768 for Python whole-source dictionaries/audit plus one JVM; not a hard total RSS cap",
+  "monitor_seconds": 0.2,
+  "performance": "Proposal remains WORK-only; no build/JVM/broker/performance lease or CPU3 use implied.",
+  "physical_floor_mib": 350,
+  "runtime_child_seconds": 120,
+  "runtime_code_cache_mib": 64,
+  "runtime_total_seconds": 300,
+  "schema": 1,
+  "status": "Conservative future forecast, not a measurement or execution lease"
+}

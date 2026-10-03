@@ -14,8 +14,7 @@ use partitionline::protocol::api::{
     Broker, MetadataResponse, PartitionMetadata, TopicMetadata,
 };
 use partitionline::protocol::api_keys::{
-    API_VERSIONS, CREATE_TOPICS, DELETE_TOPICS, DESCRIBE_SHARE_GROUP_OFFSETS, FIND_COORDINATOR,
-    METADATA, WRITE_TXN_MARKERS,
+    API_VERSIONS, DESCRIBE_SHARE_GROUP_OFFSETS, FIND_COORDINATOR, METADATA, WRITE_TXN_MARKERS,
 };
 use partitionline::protocol::group::{
     decode_find_coordinator_request_keys, encode_find_coordinator_response_coordinators,
@@ -77,19 +76,6 @@ impl Peer {
             })
             .collect();
         let mut ranges = vec![
-            // Admin::new requires these bootstrap capabilities in both403 and7942.
-            // This scripted peer exercises no Create/Delete dispatch; those APIs
-            // are present only so the targeted27/90 operation is reachable.
-            ApiVersion {
-                api_key: CREATE_TOPICS,
-                min_version: 0,
-                max_version: 7,
-            },
-            ApiVersion {
-                api_key: DELETE_TOPICS,
-                min_version: 0,
-                max_version: 6,
-            },
             ApiVersion {
                 api_key: API_VERSIONS,
                 min_version: 0,

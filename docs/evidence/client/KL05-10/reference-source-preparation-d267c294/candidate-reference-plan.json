@@ -1,0 +1,205 @@
+{
+  "Cargo_JVM_benchmark_executed": false,
+  "Rust_consumer_source": {
+    "bytes": 9292,
+    "mode": "0o600",
+    "path": "/workspace/work/client-sticky-qualification-prep-9f5a22cb/java-reference-tests.rs",
+    "sha256": "0b74ed71b2d583da2b3df924eb1ff1452d1f54e367db3b2f8ad30f927a9ba6d0"
+  },
+  "Rust_package_reuse_guard": "All future qualification must retain existing own package/cached ELFs, format FIRST, then cargo clean --package partitionline in the exclusively owned target before strict/build/tests. Dependencies may remain; confirm no libpartitionline rlib/rmeta or package fingerprint leftovers. Recompile actual package for each candidate/profile when mtimes can hide changed bytes.",
+  "actual_commands_executed_in_this_stage": [
+    "Python source AST parse, immutable prior-preparation hash/full-mode verification, source-only fixture/evidence installation"
+  ],
+  "bounds": {
+    "JVM_heap_mib": 128,
+    "batch_bytes": 65536,
+    "cases": 32,
+    "compile_and_runtime_timeout_seconds_each": 120,
+    "draws_per_case": 128,
+    "events": 256,
+    "input_bytes": 32768,
+    "output_bytes": 32768,
+    "packed_record_bytes": 65536,
+    "partitions": 8,
+    "record_cap_per_cohort": 256
+  },
+  "caller_source": {
+    "bytes": 7703,
+    "mode": "0o600",
+    "path": "/workspace/work/client-sticky-qualification-prep-9f5a22cb/GenerateUniformStickyFixture.java",
+    "sha256": "ec994c3cb46b5463c5378b11425b1ae7904c99b49d2b944d56e1c3b38782b5fa"
+  },
+  "candidate_source_identity": {
+    "files": {
+      "src/lib.rs": {
+        "bytes": 211645,
+        "mode": "0o600",
+        "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a"
+      },
+      "src/partitioner.rs": {
+        "bytes": 43985,
+        "mode": "0o600",
+        "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a"
+      },
+      "src/producer.rs": {
+        "bytes": 218265,
+        "mode": "0o600",
+        "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+      },
+      "src/protocol/buf.rs": {
+        "bytes": 61797,
+        "mode": "0o600",
+        "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+      },
+      "src/protocol/records.rs": {
+        "bytes": 171836,
+        "mode": "0o600",
+        "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+      },
+      "tests/sticky_partitioner.rs": {
+        "bytes": 37620,
+        "mode": "0o600",
+        "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+      }
+    },
+    "no_Cargo_JVM_benchmark": true,
+    "observed_main": "d267c294d91c8c43f3b37d42538075f212f1c37c",
+    "schema": 1,
+    "scope": "Current actual candidate source observation; earlier89dd snapshot remains historical"
+  },
+  "checkpoint_sequence": [
+    "Push caller/shared input source only, then root materializes actual whole pin",
+    "Run genuine caller from that immutable pin, capture positive and two independent genuine negative fixture outputs",
+    "Freeze/push real outputs+provenance+Rust cfg(test) consumer include; no synthesized expectations",
+    "Run focused reference tests and full four-client QA against that final actual pin before qualification"
+  ],
+  "fail_closed_guards": [
+    "Artifacts SHA/bytes/full mode and embedded version/commit equal pinned facts before/after",
+    "Fresh empty output classes; only GenerateUniformStickyFixture and Controlled class compiled, no shadow BuiltInPartitioner/source class",
+    "Caller/input/source freeze, javac/java executable/version identity, actual classpath, process exit/stdout/stderr captured",
+    "Output path initially absent; only exit0 genuine stdout is copied to immutable expected fixture; no Python or Rust synthesis",
+    "Output has exactly the72 input event rows, each case/ordinal exactly once, partitions/generations typed/in range, no extra or missing rows",
+    "Generated fixture/source/module frozen and pushed together before actual immutable Rust fixture tests"
+  ],
+  "genuine_artifacts": [
+    {
+      "bytes": 10204032,
+      "mode": "0o600",
+      "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+    },
+    {
+      "bytes": 41125,
+      "mode": "0o600",
+      "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+    }
+  ],
+  "genuine_runner_source": {
+    "bytes": 18293,
+    "mode": "0o600",
+    "sha256": "133b50fb74ee5d7267bec97786b57ebe92e437b6e00d99f472198656ced22703"
+  },
+  "independent_negative_controls": [
+    {
+      "action": "Run genuine caller with first CASE B300 changed301 in a copied input; original Rust input remains fixed",
+      "must_observe": "Different generation transitions, and Rust comparison with genuine negative stdout must reject; no modified Java algorithm",
+      "name": "different_genuine_Java_B"
+    },
+    {
+      "action": "Change first accepted draw by one in copied Java input only; keep original Rust seed/input fixed",
+      "must_observe": "Different leader-eligible partition transition; Rust comparison rejects",
+      "name": "different_controlled_Java_draw"
+    },
+    {
+      "action": "Prepared Rust comparison negative test changes one expected field or removes a row from an in-memory expected clone",
+      "must_observe": "Each independent mismatch rejected after the genuine original fixture first matches",
+      "name": "changed_generation_partition_missing_row"
+    },
+    {
+      "action": "Separate tiny copied inputs: >32KiB input, out-of-range mask, duplicate/unknown record alias, unknown event",
+      "must_observe": "Nonzero genuine caller process; retain exact stdout/stderr/exit, never use as positive fixture",
+      "name": "bounds_and_aliases"
+    },
+    {
+      "action": "Runner preflight against a tiny unrelated file supplied as artifact path",
+      "must_observe": "SHA/version guard rejection before javac; do not modify retained official JAR",
+      "name": "wrong_artifact_identity"
+    }
+  ],
+  "input": {
+    "bytes": 9959,
+    "mode": "0o600",
+    "path": "/workspace/work/client-sticky-qualification-prep-9f5a22cb/uniform-input.tsv",
+    "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a"
+  },
+  "input_details": {
+    "bytes": 1584,
+    "mode": "0o600",
+    "path": "/workspace/work/client-sticky-qualification-prep-9f5a22cb/input-provenance.json",
+    "sha256": "4b3d8f9dd731268ff46ac907facbf0069cff254eb3fd8cca3a0e95b8db857dc1"
+  },
+  "limits": [
+    "Java raw RNG is controlled; fixed accepted Rust draws align choices, not Java RNG identity. Rust unbiased rejection differs from official Java small modulo bias and is separately tested.",
+    "Cohort open deltas/full flags prescribed independently in input; Rust consumer calls actual plan/commit/drain/release and asserts both, so Java expectations are not emitted by Rust.",
+    "Reference is policy-level, one topic per case, not a real producer, Java accumulator/compression metric, whole-history or per-topic lifetime oracle.",
+    "All-unavailable policy selection does not authorize actual admission or live delivery; actual routing failure is a separate framed socket proof.",
+    "Caller and Rust module are uncompiled; first syntax/compile results may expose bugs and must be retained and corrected before qualification."
+  ],
+  "module_integration": {
+    "location": "cfg(test) child module of src/partitioner.rs using include!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/tests/fixtures/sticky-partitioner/java-reference-tests.rs\"));",
+    "minimum_future_write_set": [
+      "src/partitioner.rs (cfg(test) include only)",
+      "tests/fixtures/sticky-partitioner/GenerateUniformStickyFixture.java",
+      "tests/fixtures/sticky-partitioner/java-reference-tests.rs",
+      "tests/fixtures/sticky-partitioner/uniform-input.tsv",
+      "tests/fixtures/sticky-partitioner/uniform-java-4.3.1.tsv (actual JVM stdout only)",
+      "tests/fixtures/sticky-partitioner/uniform-java-4.3.1-negative-batch.tsv (actual independent JVM stdout)",
+      "tests/fixtures/sticky-partitioner/uniform-java-4.3.1-negative-draw.tsv (actual independent JVM stdout)",
+      "tests/fixtures/sticky-partitioner/uniform-java-4.3.1-provenance.json",
+      "docs/evidence/client/KL05-10/reference/ (source-only actual stdout/stderr/exit and exact identities)"
+    ],
+    "no_public_API_or_held_file_change": true,
+    "owner": "same src/partitioner.rs writer, only after root-approved source checkpoint"
+  },
+  "prepared_commands": [
+    [
+      "taskset",
+      "-c",
+      "0,1",
+      "javac",
+      "-cp",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "-d",
+      "fresh-empty-WORK/classes",
+      "/workspace/work/client-sticky-qualification-prep-9f5a22cb/GenerateUniformStickyFixture.java"
+    ],
+    [
+      "taskset",
+      "-c",
+      "0,1",
+      "java",
+      "-Xms16m",
+      "-Xmx128m",
+      "-cp",
+      "fresh-empty-WORK/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "org.apache.kafka.clients.producer.internals.GenerateUniformStickyFixture",
+      "/workspace/work/client-sticky-qualification-prep-9f5a22cb/uniform-input.tsv"
+    ]
+  ],
+  "schema": 1,
+  "selected_contract": "Kafka4.3 uniform adaptive=false state transitions, Rust prescribed conservative successful-admission packed bytes and actual cohort notifications",
+  "status": "Source-only caller/input checkpoint. No javac/java/Rust/reference test/runtime acceptance",
+  "supplemental_resource_guards": {
+    "compiled_artifact_scope": "Only two caller class files, WORK-only. No compiled artifacts or expected output installed by this checkpoint",
+    "disk_monitor_period_seconds": 0.2,
+    "invalid_control_exit": "Exactly1 with genuine IllegalArgumentException; resource/time/signal/classpath failures cannot count as expected invalid input",
+    "kernel_per_captured_file_cap_bytes": 262144,
+    "owned_process_group": "start_new_session; /proc pid/group/session membership histories, only own-session signals, parent reaped and zero membership required",
+    "per_child_runtime_seconds_maximum": 120,
+    "physical_disk_floor_mib": 350,
+    "reference_stdout_validation_cap_bytes": 32768,
+    "total_runtime_seconds": 300,
+    "whole_source": "Actual Git blob/path set and full600/700 modes verified initially, complete SHA/bytes/full file and directory modes before/after every child command"
+  }
+}

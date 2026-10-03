@@ -1,0 +1,17 @@
+{
+  "scope": "Source-preparation failures only; no Rust/Java execution",
+  "attempts": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 /workspace/work/streams-codecs/prepare-oracle.py",
+      "exit_code": 1,
+      "observed_error": "SyntaxError: expected else after if expression (line105)",
+      "correction": "Separate else89 into else 89; no source execution had occurred"
+    },
+    {
+      "command": "source-review manifest preparation immediately after failed producer preparation",
+      "exit_code": 1,
+      "observed_error": "FileNotFoundError: StreamsWireOracle.java",
+      "correction": "Generate producer source successfully before manifest handoff"
+    }
+  ]
+}

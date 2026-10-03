@@ -1,0 +1,176 @@
+{
+  "files": {
+    "GenerateUniformStickyFixture.java": {
+      "bytes": 7703,
+      "mode": "0o600",
+      "sha256": "ec994c3cb46b5463c5378b11425b1ae7904c99b49d2b944d56e1c3b38782b5fa"
+    },
+    "focused-qa-plan.json": {
+      "bytes": 3928,
+      "mode": "0o600",
+      "sha256": "48786ce0179ddceed18e218af8b29412185a8556ee74123d6989a1f37bc819cd"
+    },
+    "genuine-artifact-read-identity.json": {
+      "bytes": 1384,
+      "mode": "0o600",
+      "sha256": "4f5b5773bd4e5291420a686e524df7e2c4d9877e6ae3b59e0daf54a4b6528bb6"
+    },
+    "input-preparation.exit": {
+      "bytes": 2,
+      "mode": "0o600",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    "input-preparation.stderr": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "input-preparation.stdout": {
+      "bytes": 213,
+      "mode": "0o600",
+      "sha256": "00c1deb8cde2492d13700d1f17434b3307b9cdcb6bc30792724aaa24524c7813"
+    },
+    "input-provenance.json": {
+      "bytes": 1584,
+      "mode": "0o600",
+      "sha256": "4b3d8f9dd731268ff46ac907facbf0069cff254eb3fd8cca3a0e95b8db857dc1"
+    },
+    "java-reference-plan.json": {
+      "bytes": 7816,
+      "mode": "0o600",
+      "sha256": "8b1a9436e237c1fcc0d8cd8430ac1709fe9e25b3172f5c9c721c51c0db5c57ca"
+    },
+    "java-reference-tests.rs": {
+      "bytes": 9292,
+      "mode": "0o600",
+      "sha256": "0b74ed71b2d583da2b3df924eb1ff1452d1f54e367db3b2f8ad30f927a9ba6d0"
+    },
+    "performance-proposed-matrix.json": {
+      "bytes": 5175,
+      "mode": "0o600",
+      "sha256": "dd50f59682c8cc6b17ca2343d97b30766a1f22bc95c2abb2d6d12f4258cb879b"
+    },
+    "plan-preparation.exit": {
+      "bytes": 2,
+      "mode": "0o600",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    "plan-preparation.stderr": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "plan-preparation.stdout": {
+      "bytes": 193,
+      "mode": "0o600",
+      "sha256": "d18a82921074ef500d695faecf55a0911a850a31cb34d283cd3c4874b6447718"
+    },
+    "preparation-receipt.json": {
+      "bytes": 474,
+      "mode": "0o600",
+      "sha256": "fe611d9b08f636dd2341581ec0d96204044e340fadd84ff976e07307a8b27721"
+    },
+    "prepare_inputs.py": {
+      "bytes": 6110,
+      "mode": "0o600",
+      "sha256": "a3c10f00e47fe7b426a0fa5229ac043815d97a0e3c946a46d484b68e0814ddbc"
+    },
+    "prepare_plan.py": {
+      "bytes": 18513,
+      "mode": "0o600",
+      "sha256": "ac0b41209343f97c3ef87b3986be0fddd3a397fc0f3a0e9d5b9b6ca371df60fc"
+    },
+    "run-focused.py": {
+      "bytes": 11317,
+      "mode": "0o600",
+      "sha256": "ea78700116289974c2fcdcaea367db49e720c139e6385ccb0f9b7cbc3b95a596"
+    },
+    "run-java-reference.py": {
+      "bytes": 9943,
+      "mode": "0o600",
+      "sha256": "bcb6c6ae0cc07fea37a25165f5333e84928b60d3c95e72ce52a2e85e2613d5ae"
+    },
+    "source-snapshot/partitioner.rs": {
+      "bytes": 43758,
+      "mode": "0o600",
+      "sha256": "89dd6ee18b26b5e8590bc919b9ce176b28fc093cce4cb82dbeb58e7dadb3c3f5"
+    },
+    "source-snapshot/producer.rs": {
+      "bytes": 218265,
+      "mode": "0o600",
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+    },
+    "test-visibility-correction/candidate-sticky_partitioner.rs": {
+      "bytes": 37620,
+      "mode": "0o600",
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+    },
+    "test-visibility-correction/correction.patch": {
+      "bytes": 1528,
+      "mode": "0o600",
+      "sha256": "ee1667c40872270a8994d13b87160e27463f85fd1aee4e2d26a03863de0af5b4"
+    },
+    "test-visibility-correction/msrv-format-check.exit": {
+      "bytes": 2,
+      "mode": "0o600",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    "test-visibility-correction/msrv-format-check.stderr": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-visibility-correction/msrv-format-check.stdout": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-visibility-correction/pre-edit.json": {
+      "bytes": 439,
+      "mode": "0o600",
+      "sha256": "6db3a36bbd7f2a6f5eac0648adad6211cb3db33edb1db38b74f844cff00e3b8a"
+    },
+    "test-visibility-correction/prior-sticky_partitioner.rs": {
+      "bytes": 37454,
+      "mode": "0o600",
+      "sha256": "9d42a3a64008bac73e4b4d88c0bdaffa89d0b3b421da8ada5ab4f43add2785fc"
+    },
+    "test-visibility-correction/source-freeze.json": {
+      "bytes": 2536,
+      "mode": "0o600",
+      "sha256": "d6d264dae156ebd76634a33959033b82259c2292b43140aa3b44655da1d7da61"
+    },
+    "test-visibility-correction/stable-format.exit": {
+      "bytes": 2,
+      "mode": "0o600",
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    "test-visibility-correction/stable-format.stderr": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-visibility-correction/stable-format.stdout": {
+      "bytes": 0,
+      "mode": "0o600",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "test-visibility-stage-handoff.json": {
+      "bytes": 3017,
+      "mode": "0o600",
+      "sha256": "48031547dff0bedf9048b9707c63c1eaa8a1388a9f94f718fd6c2a8673326a83"
+    },
+    "uniform-input.tsv": {
+      "bytes": 9959,
+      "mode": "0o600",
+      "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a"
+    }
+  },
+  "files_count": 33,
+  "fixture_output_absent_and_not_synthesized": true,
+  "prepared_cases": 12,
+  "prepared_events": 72,
+  "schema": 1,
+  "status": "WORK-only preparation; Java/Rust/test/Clippy/performance runners unexecuted",
+  "total_bytes": 438229
+}

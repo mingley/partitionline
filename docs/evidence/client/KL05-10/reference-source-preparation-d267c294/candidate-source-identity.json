@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "scope": "Current actual candidate source observation; earlier89dd snapshot remains historical",
+  "observed_main": "d267c294d91c8c43f3b37d42538075f212f1c37c",
+  "files": {
+    "src/partitioner.rs": {
+      "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a",
+      "bytes": 43985,
+      "mode": "0o600"
+    },
+    "src/producer.rs": {
+      "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10",
+      "bytes": 218265,
+      "mode": "0o600"
+    },
+    "tests/sticky_partitioner.rs": {
+      "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f",
+      "bytes": 37620,
+      "mode": "0o600"
+    },
+    "src/lib.rs": {
+      "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a",
+      "bytes": 211645,
+      "mode": "0o600"
+    },
+    "src/protocol/records.rs": {
+      "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+      "bytes": 171836,
+      "mode": "0o600"
+    },
+    "src/protocol/buf.rs": {
+      "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe",
+      "bytes": 61797,
+      "mode": "0o600"
+    }
+  },
+  "no_Cargo_JVM_benchmark": true
+}

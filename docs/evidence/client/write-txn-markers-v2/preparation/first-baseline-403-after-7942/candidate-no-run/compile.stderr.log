@@ -1,0 +1,4 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-capabilities-source-7942fbac)
+    Finished `test` profile [unoptimized] target(s) in 12.05s
+  Executable tests/share_offsets_v1.rs (/workspace/work/client-share-target/debug/deps/share_offsets_v1-c33d5760ad7cc827)
+  Executable tests/write_txn_markers_v2.rs (/workspace/work/client-share-target/debug/deps/write_txn_markers_v2-3690429a045642cf)

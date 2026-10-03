@@ -75,7 +75,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertFalse(results["summary"]["drift_detected"])
         self.assertEqual(len(results["unclassified_drift"]), 0)
         self.assertEqual(results["summary"]["total_pinned_apis"], 93)
-        self.assertEqual(results["summary"]["total_catalog_keys"], 91)
+        self.assertEqual(results["summary"]["total_catalog_keys"], 93)
         self.assertEqual(results["summary"]["implemented_client_apis_count"], 71)
         self.assertEqual(results["gap_counts"]["missing_runtime_wiring_apis"], 2)
         self.assertEqual(results["gap_counts"]["excluded_broker_internal_apis"], 20)

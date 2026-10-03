@@ -1,0 +1,2422 @@
+{
+  "scope": "Source-only schema comparison; no serializer/parser execution or runtime coverage",
+  "wire_layout_equal_across_three_pinned_releases": true,
+  "versions": [
+    "4.1.2",
+    "4.2.1",
+    "4.3.1"
+  ],
+  "source_schemas": [
+    {
+      "release": "4.1.2",
+      "name": "StreamsGroupHeartbeatRequest",
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+      "sha256": "d040e5345fa47ad600b3d3400ca79a56f9cb6a57db7c6a516aa20ad9f39f3935",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": true,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatRequest.GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RebalanceTimeoutMs",
+          "name": "RebalanceTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups",
+          "name": "CopartitionGroups",
+          "type": "[]CopartitionGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ShutdownApplication",
+          "name": "ShutdownApplication",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "InstanceId": "null",
+        "RackId": "null",
+        "RebalanceTimeoutMs": -1,
+        "Topology": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "ProcessId": "null",
+        "UserEndpoint": "null",
+        "ClientTags": "null",
+        "TaskOffsets": "null",
+        "TaskEndOffsets": "null",
+        "ShutdownApplication": false
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "StreamsGroupHeartbeatResponse",
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+      "sha256": "a9048b5f2a73a9962323887bad527608858098921f1a89eead3a955862a89d1c",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.HeartbeatIntervalMs",
+          "name": "HeartbeatIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.AcceptableRecoveryLag",
+          "name": "AcceptableRecoveryLag",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.TaskOffsetIntervalMs",
+          "name": "TaskOffsetIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status",
+          "name": "Status",
+          "type": "[]Status",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusCode",
+          "name": "StatusCode",
+          "type": "int8",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusDetail",
+          "name": "StatusDetail",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint",
+          "name": "PartitionsByUserEndpoint",
+          "type": "[]EndpointToPartitions",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions",
+          "name": "ActivePartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Topic",
+          "name": "Topic",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].StandbyPartitions",
+          "name": "StandbyPartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "ErrorMessage": "null",
+        "Status": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "PartitionsByUserEndpoint": "null"
+      }
+    },
+    {
+      "release": "4.1.2",
+      "name": "StreamsGroupDescribeRequest",
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+      "sha256": "c224f107b9282b0d8e79b92513b2f39e190603f9619a0231e9c44e7ef7bbef42",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": true,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeRequest.GroupIds",
+          "name": "GroupIds",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeRequest.IncludeAuthorizedOperations",
+          "name": "IncludeAuthorizedOperations",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    },
+    {
+      "release": "4.1.2",
+      "name": "StreamsGroupDescribeResponse",
+      "path": "/workspace/work/broker-api/4.1.2/clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+      "sha256": "1b0bf406eb283e13a3d51be054829f639ab011e490b2c89f0781439e013cef1f",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups",
+          "name": "Groups",
+          "type": "[]DescribedGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupState",
+          "name": "GroupState",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupEpoch",
+          "name": "GroupEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AssignmentEpoch",
+          "name": "AssignmentEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members",
+          "name": "Members",
+          "type": "[]Member",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientId",
+          "name": "ClientId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientHost",
+          "name": "ClientHost",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TopologyEpoch",
+          "name": "TopologyEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment",
+          "name": "Assignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TargetAssignment",
+          "name": "TargetAssignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].IsClassic",
+          "name": "IsClassic",
+          "type": "bool",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AuthorizedOperations",
+          "name": "AuthorizedOperations",
+          "type": "int32",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    },
+    {
+      "release": "4.2.1",
+      "name": "StreamsGroupHeartbeatRequest",
+      "path": "/workspace/work/broker-api/4.2.1/clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+      "sha256": "fb701487a63b11bdbae033b0d0e078f7e844abff36775ddb65f61460a0c06b96",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatRequest.GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RebalanceTimeoutMs",
+          "name": "RebalanceTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups",
+          "name": "CopartitionGroups",
+          "type": "[]CopartitionGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ShutdownApplication",
+          "name": "ShutdownApplication",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "InstanceId": "null",
+        "RackId": "null",
+        "RebalanceTimeoutMs": -1,
+        "Topology": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "ProcessId": "null",
+        "UserEndpoint": "null",
+        "ClientTags": "null",
+        "TaskOffsets": "null",
+        "TaskEndOffsets": "null",
+        "ShutdownApplication": false
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "StreamsGroupHeartbeatResponse",
+      "path": "/workspace/work/broker-api/4.2.1/clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+      "sha256": "3702a2f166b6644e887fb20d92496d73d43935dd6fcdf22029e892f04d38bde0",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.HeartbeatIntervalMs",
+          "name": "HeartbeatIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.AcceptableRecoveryLag",
+          "name": "AcceptableRecoveryLag",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.TaskOffsetIntervalMs",
+          "name": "TaskOffsetIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status",
+          "name": "Status",
+          "type": "[]Status",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusCode",
+          "name": "StatusCode",
+          "type": "int8",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusDetail",
+          "name": "StatusDetail",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint",
+          "name": "PartitionsByUserEndpoint",
+          "type": "[]EndpointToPartitions",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions",
+          "name": "ActivePartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Topic",
+          "name": "Topic",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].StandbyPartitions",
+          "name": "StandbyPartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "ErrorMessage": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "PartitionsByUserEndpoint": "null"
+      }
+    },
+    {
+      "release": "4.2.1",
+      "name": "StreamsGroupDescribeRequest",
+      "path": "/workspace/work/broker-api/4.2.1/clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+      "sha256": "ee884e3d4db77832db618485691820c393ee3286cfff38ad0a4d1e395f5f4dfc",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeRequest.GroupIds",
+          "name": "GroupIds",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeRequest.IncludeAuthorizedOperations",
+          "name": "IncludeAuthorizedOperations",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    },
+    {
+      "release": "4.2.1",
+      "name": "StreamsGroupDescribeResponse",
+      "path": "/workspace/work/broker-api/4.2.1/clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+      "sha256": "1b9a866d6fec371a9cdbd112a05b471d5d518f84c3ec8ea7b384422e919d946b",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups",
+          "name": "Groups",
+          "type": "[]DescribedGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupState",
+          "name": "GroupState",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupEpoch",
+          "name": "GroupEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AssignmentEpoch",
+          "name": "AssignmentEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members",
+          "name": "Members",
+          "type": "[]Member",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientId",
+          "name": "ClientId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientHost",
+          "name": "ClientHost",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TopologyEpoch",
+          "name": "TopologyEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment",
+          "name": "Assignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TargetAssignment",
+          "name": "TargetAssignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].IsClassic",
+          "name": "IsClassic",
+          "type": "bool",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AuthorizedOperations",
+          "name": "AuthorizedOperations",
+          "type": "int32",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    },
+    {
+      "release": "4.3.1",
+      "name": "StreamsGroupHeartbeatRequest",
+      "path": "/workspace/work/broker-api/4.3.1/clients/src/main/resources/common/message/StreamsGroupHeartbeatRequest.json",
+      "sha256": "fb701487a63b11bdbae033b0d0e078f7e844abff36775ddb65f61460a0c06b96",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatRequest.GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.RebalanceTimeoutMs",
+          "name": "RebalanceTimeoutMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups",
+          "name": "CopartitionGroups",
+          "type": "[]CopartitionGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].SourceTopicRegex",
+          "name": "SourceTopicRegex",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[].CopartitionGroups[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatRequest.ShutdownApplication",
+          "name": "ShutdownApplication",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "InstanceId": "null",
+        "RackId": "null",
+        "RebalanceTimeoutMs": -1,
+        "Topology": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "ProcessId": "null",
+        "UserEndpoint": "null",
+        "ClientTags": "null",
+        "TaskOffsets": "null",
+        "TaskEndOffsets": "null",
+        "ShutdownApplication": false
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "StreamsGroupHeartbeatResponse",
+      "path": "/workspace/work/broker-api/4.3.1/clients/src/main/resources/common/message/StreamsGroupHeartbeatResponse.json",
+      "sha256": "3702a2f166b6644e887fb20d92496d73d43935dd6fcdf22029e892f04d38bde0",
+      "api_key": 88,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupHeartbeatResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.HeartbeatIntervalMs",
+          "name": "HeartbeatIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.AcceptableRecoveryLag",
+          "name": "AcceptableRecoveryLag",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.TaskOffsetIntervalMs",
+          "name": "TaskOffsetIntervalMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status",
+          "name": "Status",
+          "type": "[]Status",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusCode",
+          "name": "StatusCode",
+          "type": "int8",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.Status[].StatusDetail",
+          "name": "StatusDetail",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.EndpointInformationEpoch",
+          "name": "EndpointInformationEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint",
+          "name": "PartitionsByUserEndpoint",
+          "type": "[]EndpointToPartitions",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions",
+          "name": "ActivePartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Topic",
+          "name": "Topic",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].ActivePartitions[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[].StandbyPartitions",
+          "name": "StandbyPartitions",
+          "type": "[]TopicPartition",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {
+        "ErrorMessage": "null",
+        "ActiveTasks": "null",
+        "StandbyTasks": "null",
+        "WarmupTasks": "null",
+        "PartitionsByUserEndpoint": "null"
+      }
+    },
+    {
+      "release": "4.3.1",
+      "name": "StreamsGroupDescribeRequest",
+      "path": "/workspace/work/broker-api/4.3.1/clients/src/main/resources/common/message/StreamsGroupDescribeRequest.json",
+      "sha256": "ee884e3d4db77832db618485691820c393ee3286cfff38ad0a4d1e395f5f4dfc",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeRequest.GroupIds",
+          "name": "GroupIds",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeRequest.IncludeAuthorizedOperations",
+          "name": "IncludeAuthorizedOperations",
+          "type": "bool",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    },
+    {
+      "release": "4.3.1",
+      "name": "StreamsGroupDescribeResponse",
+      "path": "/workspace/work/broker-api/4.3.1/clients/src/main/resources/common/message/StreamsGroupDescribeResponse.json",
+      "sha256": "1b9a866d6fec371a9cdbd112a05b471d5d518f84c3ec8ea7b384422e919d946b",
+      "api_key": 89,
+      "valid_versions": "0",
+      "flexible_versions": "0+",
+      "last_version_unstable": false,
+      "reachable_wire_fields": [
+        {
+          "path": "StreamsGroupDescribeResponse.ThrottleTimeMs",
+          "name": "ThrottleTimeMs",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups",
+          "name": "Groups",
+          "type": "[]DescribedGroup",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorCode",
+          "name": "ErrorCode",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].ErrorMessage",
+          "name": "ErrorMessage",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupId",
+          "name": "GroupId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupState",
+          "name": "GroupState",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].GroupEpoch",
+          "name": "GroupEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AssignmentEpoch",
+          "name": "AssignmentEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology",
+          "name": "Topology",
+          "type": "Topology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Epoch",
+          "name": "Epoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies",
+          "name": "Subtopologies",
+          "type": "[]Subtopology",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].SourceTopics",
+          "name": "SourceTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSinkTopics",
+          "name": "RepartitionSinkTopics",
+          "type": "[]string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics",
+          "name": "StateChangelogTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Name",
+          "name": "Name",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].Partitions",
+          "name": "Partitions",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].ReplicationFactor",
+          "name": "ReplicationFactor",
+          "type": "int16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs",
+          "name": "TopicConfigs",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Key",
+          "name": "Key",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].StateChangelogTopics[].TopicConfigs[].Value",
+          "name": "Value",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Topology.Subtopologies[].RepartitionSourceTopics",
+          "name": "RepartitionSourceTopics",
+          "type": "[]TopicInfo",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members",
+          "name": "Members",
+          "type": "[]Member",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberId",
+          "name": "MemberId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].MemberEpoch",
+          "name": "MemberEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].InstanceId",
+          "name": "InstanceId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].RackId",
+          "name": "RackId",
+          "type": "string",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientId",
+          "name": "ClientId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientHost",
+          "name": "ClientHost",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TopologyEpoch",
+          "name": "TopologyEpoch",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ProcessId",
+          "name": "ProcessId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint",
+          "name": "UserEndpoint",
+          "type": "Endpoint",
+          "versions": "0+",
+          "nullableVersions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Host",
+          "name": "Host",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].UserEndpoint.Port",
+          "name": "Port",
+          "type": "uint16",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].ClientTags",
+          "name": "ClientTags",
+          "type": "[]KeyValue",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets",
+          "name": "TaskOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Partition",
+          "name": "Partition",
+          "type": "int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskOffsets[].Offset",
+          "name": "Offset",
+          "type": "int64",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TaskEndOffsets",
+          "name": "TaskEndOffsets",
+          "type": "[]TaskOffset",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment",
+          "name": "Assignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks",
+          "name": "ActiveTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].SubtopologyId",
+          "name": "SubtopologyId",
+          "type": "string",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.ActiveTasks[].Partitions",
+          "name": "Partitions",
+          "type": "[]int32",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.StandbyTasks",
+          "name": "StandbyTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].Assignment.WarmupTasks",
+          "name": "WarmupTasks",
+          "type": "[]TaskIds",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].TargetAssignment",
+          "name": "TargetAssignment",
+          "type": "Assignment",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].Members[].IsClassic",
+          "name": "IsClassic",
+          "type": "bool",
+          "versions": "0+"
+        },
+        {
+          "path": "StreamsGroupDescribeResponse.Groups[].AuthorizedOperations",
+          "name": "AuthorizedOperations",
+          "type": "int32",
+          "versions": "0+"
+        }
+      ],
+      "constructor_defaults": {}
+    }
+  ],
+  "constructor_default_difference": "Heartbeat response Status has default null in4.1.2 and [] in4.2.1/4.3.1; nullable wire layout is unchanged. Rust Default follows4.3.1 and decoding retains actual null/empty."
+}

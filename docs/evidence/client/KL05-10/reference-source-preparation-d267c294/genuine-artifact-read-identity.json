@@ -1,0 +1,32 @@
+{
+  "classes": [
+    {
+      "bytes": 7452,
+      "path": "org/apache/kafka/clients/producer/internals/BuiltInPartitioner.class",
+      "sha256": "f4b049d4fd475a54548f13884e3fdd9b4ae970b9eac7ba2d687c0c0b4bb8884e"
+    },
+    {
+      "bytes": 833,
+      "path": "org/apache/kafka/clients/producer/internals/BuiltInPartitioner$StickyPartitionInfo.class",
+      "sha256": "b96269de6e789e5f112ff8c78286afa2104e88d83ce52b2ee801c9022d499fbb"
+    }
+  ],
+  "kafka_clients": {
+    "bytes": 10204032,
+    "mode": "0o600",
+    "path": "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+    "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+  },
+  "kafka_version_properties_verbatim": "commitId=26b251a451ce941d\nversion=4.3.1",
+  "prior_published_independent_receipt": "docs/evidence/client/write-txn-markers-v2/preparation/java-compile-e90efb49/checked-official-signature-matrix.json",
+  "prior_receipt_sha256": "b4499c2cac921075a7ef3465fc1f400d416242502a9047340af357da512c4fb9",
+  "schema": 1,
+  "scope": "Read-only ZIP/header/hash inspection, no javac/java/JVM execution",
+  "slf4j_api": {
+    "bytes": 41125,
+    "mode": "0o600",
+    "path": "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+    "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+  },
+  "upstream_full_commit": "26b251a451ce941d3d7a55e6487bcb7f16b5ad48"
+}

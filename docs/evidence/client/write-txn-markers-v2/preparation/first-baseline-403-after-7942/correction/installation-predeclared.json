@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "at_unix": 1791049644.7037957,
+  "target": "/workspace/partitionline/tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+  "before_sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+  "after_sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+  "full_mode_before": 384,
+  "full_mode_after": 384,
+  "exact_root_approved_change": "imports plus mandatory advertised19:0\u20137/20:0\u20136/comments; all27/90 target controls unchanged",
+  "source_helper_git_blob_sha1_before": "8199c550bf34da1442f5082bf9e07c67a80198ad",
+  "source_helper_git_blob_sha1_after": "7e469b59af821be6231b3b184bc426628993070d",
+  "no_product_changes": true,
+  "immutable403_7942_sources_unchanged": true
+}

@@ -1,0 +1,157 @@
+{
+  "roots": [
+    "StreamsGroupHeartbeatRequest",
+    "StreamsGroupHeartbeatResponse",
+    "StreamsGroupDescribeRequest",
+    "StreamsGroupDescribeResponse"
+  ],
+  "models": {
+    "KeyValue": [
+      "Key",
+      "Value"
+    ],
+    "TopicInfo": [
+      "Name",
+      "Partitions",
+      "ReplicationFactor",
+      "TopicConfigs"
+    ],
+    "Endpoint": [
+      "Host",
+      "Port"
+    ],
+    "TaskOffset": [
+      "SubtopologyId",
+      "Partition",
+      "Offset"
+    ],
+    "TaskIds": [
+      "SubtopologyId",
+      "Partitions"
+    ],
+    "CopartitionGroup": [
+      "SourceTopics",
+      "SourceTopicRegex",
+      "RepartitionSourceTopics"
+    ],
+    "HeartbeatSubtopology": [
+      "SubtopologyId",
+      "SourceTopics",
+      "SourceTopicRegex",
+      "StateChangelogTopics",
+      "RepartitionSinkTopics",
+      "RepartitionSourceTopics",
+      "CopartitionGroups"
+    ],
+    "HeartbeatTopology": [
+      "Epoch",
+      "Subtopologies"
+    ],
+    "StreamsGroupHeartbeatRequest": [
+      "GroupId",
+      "MemberId",
+      "MemberEpoch",
+      "EndpointInformationEpoch",
+      "InstanceId",
+      "RackId",
+      "RebalanceTimeoutMs",
+      "Topology",
+      "ActiveTasks",
+      "StandbyTasks",
+      "WarmupTasks",
+      "ProcessId",
+      "UserEndpoint",
+      "ClientTags",
+      "TaskOffsets",
+      "TaskEndOffsets",
+      "ShutdownApplication"
+    ],
+    "Status": [
+      "StatusCode",
+      "StatusDetail"
+    ],
+    "TopicPartition": [
+      "Topic",
+      "Partitions"
+    ],
+    "EndpointToPartitions": [
+      "UserEndpoint",
+      "ActivePartitions",
+      "StandbyPartitions"
+    ],
+    "StreamsGroupHeartbeatResponse": [
+      "ThrottleTimeMs",
+      "ErrorCode",
+      "ErrorMessage",
+      "MemberId",
+      "MemberEpoch",
+      "HeartbeatIntervalMs",
+      "AcceptableRecoveryLag",
+      "TaskOffsetIntervalMs",
+      "Status",
+      "ActiveTasks",
+      "StandbyTasks",
+      "WarmupTasks",
+      "EndpointInformationEpoch",
+      "PartitionsByUserEndpoint"
+    ],
+    "StreamsGroupDescribeRequest": [
+      "GroupIds",
+      "IncludeAuthorizedOperations"
+    ],
+    "Assignment": [
+      "ActiveTasks",
+      "StandbyTasks",
+      "WarmupTasks"
+    ],
+    "DescribedSubtopology": [
+      "SubtopologyId",
+      "SourceTopics",
+      "RepartitionSinkTopics",
+      "StateChangelogTopics",
+      "RepartitionSourceTopics"
+    ],
+    "DescribedTopology": [
+      "Epoch",
+      "Subtopologies"
+    ],
+    "StreamsMember": [
+      "MemberId",
+      "MemberEpoch",
+      "InstanceId",
+      "RackId",
+      "ClientId",
+      "ClientHost",
+      "TopologyEpoch",
+      "ProcessId",
+      "UserEndpoint",
+      "ClientTags",
+      "TaskOffsets",
+      "TaskEndOffsets",
+      "Assignment",
+      "TargetAssignment",
+      "IsClassic"
+    ],
+    "DescribedStreamsGroup": [
+      "ErrorCode",
+      "ErrorMessage",
+      "GroupId",
+      "GroupState",
+      "GroupEpoch",
+      "AssignmentEpoch",
+      "Topology",
+      "Members",
+      "AuthorizedOperations"
+    ],
+    "StreamsGroupDescribeResponse": [
+      "ThrottleTimeMs",
+      "Groups"
+    ]
+  },
+  "schemas": {
+    "StreamsGroupHeartbeatRequest": "fb701487a63b11bdbae033b0d0e078f7e844abff36775ddb65f61460a0c06b96",
+    "StreamsGroupHeartbeatResponse": "3702a2f166b6644e887fb20d92496d73d43935dd6fcdf22029e892f04d38bde0",
+    "StreamsGroupDescribeRequest": "ee884e3d4db77832db618485691820c393ee3286cfff38ad0a4d1e395f5f4dfc",
+    "StreamsGroupDescribeResponse": "1b9a866d6fec371a9cdbd112a05b471d5d518f84c3ec8ea7b384422e919d946b"
+  }
+}

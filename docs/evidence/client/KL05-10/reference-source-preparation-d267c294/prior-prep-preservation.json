@@ -1,0 +1,18 @@
+{
+  "exact_bytes_full_modes_verified_before_new_phase": true,
+  "files": 33,
+  "full_directory_modes": {
+    ".": "0o700",
+    "source-snapshot": "0o700",
+    "test-visibility-correction": "0o700"
+  },
+  "original_snapshot_89dd_status": "Historical pre-unused-results source only; current production identity40a756 is separately observed",
+  "prior_manifest": {
+    "bytes": 6053,
+    "mode": "0o600",
+    "sha256": "4b0da607033163571aaed894a9a367b8827f1a497cf9dcb1ad0f9208d30fff97"
+  },
+  "prior_root": "/workspace/work/client-sticky-qualification-prep-9f5a22cb",
+  "schema": 1,
+  "scope": "Prior33 files and their manifest remain untouched in WORK; copies in this new phase are independent files"
+}

@@ -1,0 +1,451 @@
+{
+  "source_only_checkpoint": true,
+  "actual_protocol_or_producer_runtime_or_JVM_tests": 0,
+  "packets": [
+    {
+      "path": "/workspace/work/streams-codecs/source-stage-03.json",
+      "sha256": "5cb5954758501d2e35df6a670f5abd8f16de0f3b647a36fe93ac3702ee968897"
+    },
+    {
+      "path": "/workspace/work/client-capability-qa-preparation-e90efb49/baseline-helper-correction-stage.json",
+      "sha256": "fa1c6b9c7d6817e283559638394b5ef2103d4d7123ed5a0f6ebd0e7dff0bf4bd"
+    },
+    {
+      "path": "/workspace/work/client-sticky-reference-source-prep-40a756c2/stage-handoff.json",
+      "sha256": "164c546c7e29858b8791cd6a10c5b7c3624997a82fe9854a2e154ee877140c32"
+    }
+  ],
+  "files": [
+    {
+      "path": "src/protocol/streams.rs",
+      "sha256": "cdc0ac89962f3bd634674ad3456ff5c77f9fc338edc1dc1839dba496aeb65c5d",
+      "bytes": 35537,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "tests/streams_protocol.rs",
+      "sha256": "d3ec0b14efcad2a8370747a73128ffd7aeae801052345bfadcf4c8700929ca86",
+      "bytes": 23642,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "tests/fixtures/streams/oracle/StreamsWireOracle.java",
+      "sha256": "7f81f6eeb83938ed6b5411e17b2d308ae9153feabf4bbcc50d13cc16c4557f2d",
+      "bytes": 56444,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/model-index.json",
+      "sha256": "17ef3569efeed0f2acc37605590a2d0183d481df1d7b96a490eef3d49e3d13f8",
+      "bytes": 3512,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/schema-review-02.json",
+      "sha256": "5b2ed9f40273ab9a3d5a4ac2c610073bc201cee6738ce35c616ec790e8e67df2",
+      "bytes": 79163,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/source-preparation-failures.json",
+      "sha256": "94835768a941ad8675127a27daa451a137dadb3136148a219ee93a36bd3f4add",
+      "bytes": 690,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/oracle-01.java",
+      "sha256": "ee9845c8e133a01d5f262304e951626b640c5db64ceab6946204e34cbac955d2",
+      "bytes": 26355,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "tests/fixtures/streams/oracle/expected_models.rs",
+      "sha256": "03189050c1eb98dcf584311c2ed9f6b7fa317bd95daac6ae3201820ef45d26de",
+      "bytes": 13982,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/sentinels-02.json",
+      "sha256": "f3705b35b0b1e3a7361695df3cab24fa31c5e639c7de1456de365f97f35a6cd6",
+      "bytes": 26463,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/class-source-review-02.json",
+      "sha256": "68db8a1addfb2cdac9c040f9fee9cc0f09c545159f34719e1adcc77551382165",
+      "bytes": 100397,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/streams-codecs/preparation/oracle-review-02.json",
+      "sha256": "6c26e0df133e3e7ab658ff9d1eaba27b2fae0e096a069840d66b4838742e4a5a",
+      "bytes": 2362,
+      "full_mode": "0o644"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/README.md",
+      "sha256": "a756d99bf31618bef4d424576ea76fd50a1e214714b852d21a0bd079e09be4e3",
+      "bytes": 2114,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/driver.log",
+      "sha256": "eb76f91bde8d1e493ae1b39b41e0e6bbe33aab7c477dfc52f2c700def04d5bd3",
+      "bytes": 848,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/failure.json",
+      "sha256": "8571182acdda5095bfa1bdae957f79941dccfc30c8df3316075a59b03f66ccbb",
+      "bytes": 281,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/guard-original403.py",
+      "sha256": "7d17437a0bdeaf030ccc385e5884ad53d6f6cbb1f0189e501adc31b1d9850594",
+      "bytes": 2226,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/launch-contract.json",
+      "sha256": "ab7346ae95416dff7cbd1293df5aae3e2f84752cea01948cb1abaf1e634ff6e7",
+      "bytes": 1238,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/materialization.json",
+      "sha256": "ee293820f8b07d59836fc8e965d79485131b8dfb6efc7d0fe525be758ce9f722",
+      "bytes": 23849,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original-amended-five-overlays.json",
+      "sha256": "6bdb43d5f9d5f6719508ae231377c1f556576231079425813a2e6c626400a800",
+      "bytes": 2955,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original-selected66-manifest.json",
+      "sha256": "9ab0fc64bdbfb64e10d06b3fbe657f8726788c4e9df2604f0394b937ec592592",
+      "bytes": 24217,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original403-after.json",
+      "sha256": "1aca7bae32ef3a9eab1ca54e255d49cc269ada3945b8a46b62fb9f073345fdec",
+      "bytes": 927,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/original403-before.json",
+      "sha256": "07734d883691ffab345775792b03711959a16b0a9e49dabf4997b3fa93232657",
+      "bytes": 929,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.disk-monitor.jsonl",
+      "sha256": "54bb310f897e6721361b94e864f88220f96c21d673b8dba2bf2c6bef88f1289b",
+      "bytes": 839,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.stderr.log",
+      "sha256": "05eaa8e6c9423451c65528b2581ef15e8692065c04710c42b4e936567bb20fa0",
+      "bytes": 398,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/positive-controls.stdout.log",
+      "sha256": "ecd7f198225c607c2ef690b03f7a4eee70797f24e58838712bd7b076eec82905",
+      "bytes": 1000,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/run-baseline.py",
+      "sha256": "8cd64667d1de746abb483ae45c89afcad4ee47b2f6acb8a1273613d95fc3247b",
+      "bytes": 22526,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/baseline/validation.json",
+      "sha256": "d185913b2a1b89f4d8025d2ebd24625863332c8f9304f9092f5f02228776761e",
+      "bytes": 176396,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/current-rlib-new-api-symbols.log",
+      "sha256": "f538d0a43cae90b034c8bb025eaaf6a5c1b3bed639aba829ecd0c7f750c100ff",
+      "bytes": 96,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/current-rlib-nm.stderr.log",
+      "sha256": "1a3343ce9a19685ffd15a200ea283ae18c5a7f36aa76f0b07b851666a68bd11c",
+      "bytes": 57,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/cache/package-retention-and-invalidation-proposal.json",
+      "sha256": "791e813056e1e8aafb0f2a8af17b217d86864369b06192780c7176ab9adac528",
+      "bytes": 171951,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/authorized-no-run-summary.json",
+      "sha256": "3a093ac9f76182c5f5f111587ecfc833e60eed8ca1ec6697b024be8b0f2e3976",
+      "bytes": 2328,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/compile.stderr.log",
+      "sha256": "dde02df537fdf5863a58a063020c7298e4c6ba07a21179351596e74ed3603054",
+      "bytes": 402,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/compile.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/launch-contract.json",
+      "sha256": "5be9ab0aa35c9cc328e70e57242bc573d6c275931f7253209d4fe22501bf443e",
+      "bytes": 3187,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/candidate-no-run/validation.json",
+      "sha256": "c5f7e4ddcc931673cf8080e336ad4ca7dfbffce7c95efe795163783405b0ef9b",
+      "bytes": 148436,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/1.85.0.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/1.85.0.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/amended-five-overlays.proposed.json",
+      "sha256": "997749b60d857ed3bc0ea15a1844b17c6e8ca097f892510eb38f61e5ac5c136e",
+      "bytes": 3066,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/format-validation.json",
+      "sha256": "27641a98f55176e2baa70e74c97f9efe10d54ba32bcf499ba98118bed2259bd1",
+      "bytes": 1518,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.before.rs",
+      "sha256": "13efa5a95e1691a02dbc1896ca6fa9da61e416db12b3f9be4c3a24bed8e74868",
+      "bytes": 15289,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.corrected.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/helper.patch",
+      "sha256": "caa30a9deedf43b5dade50fa7286154438911b880b92c12ac1f6cd08d4dd7746",
+      "bytes": 1294,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/installation-predeclared.json",
+      "sha256": "f26899f51eb48b3051527fe7fb1ce5e834e287be0c6c9f49c810cda5188bb60f",
+      "bytes": 757,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/proposal.json",
+      "sha256": "d84e63be50fe6278c9195c885716776b03f1d6d5eed7d838552a627af198231d",
+      "bytes": 1944,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/stable.fmt.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/write-txn-markers-v2/preparation/first-baseline-403-after-7942/correction/stable.fmt.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/write-txn-markers-v2/socket_peer.rs",
+      "sha256": "104e6490511fe8acc5a75d96b3ca08aa810986dbdaf66b3c15567259d382d5ad",
+      "bytes": 15854,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/Rust-fixture-integration-pending.md",
+      "sha256": "ed1005be839148011e4169616e7bbf9070c65287b620d2ff22ed654e408b626c",
+      "bytes": 499,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-focused-qa-plan.json",
+      "sha256": "445c24d7474c7dce7d6ca42545ffd7e1a280dac3c2545a5e4096397569c9df7b",
+      "bytes": 5583,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-reference-plan.json",
+      "sha256": "469d5b46c9911b3a25de8c1426663e962c33230ad29ff326544d2c9f7602751e",
+      "bytes": 10646,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/candidate-source-identity.json",
+      "sha256": "7ec3a266d30d2f046b91b597dc3264c7fdaed35781538cb95eecdf3ac64c833a",
+      "bytes": 1216,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/genuine-artifact-read-identity.json",
+      "sha256": "4f5b5773bd4e5291420a686e524df7e2c4d9877e6ae3b59e0daf54a4b6528bb6",
+      "bytes": 1384,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/java-reference-tests.rs",
+      "sha256": "0b74ed71b2d583da2b3df924eb1ff1452d1f54e367db3b2f8ad30f927a9ba6d0",
+      "bytes": 9292,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prepare_inputs.py",
+      "sha256": "a3c10f00e47fe7b426a0fa5229ac043815d97a0e3c946a46d484b68e0814ddbc",
+      "bytes": 6110,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prior-prep-manifest.json",
+      "sha256": "4b0da607033163571aaed894a9a367b8827f1a497cf9dcb1ad0f9208d30fff97",
+      "bytes": 6053,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/prior-prep-preservation.json",
+      "sha256": "41b303e1b18ea6b9ae902f9697f1de368ac31826088d33fcc638820c7b5135d6",
+      "bytes": 701,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/resource-forecast.json",
+      "sha256": "33907ecfb6c26a829d7c4ed17804df059d5e0361acd5259027f6e66ecea6a3c4",
+      "bytes": 1494,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/run-focused.py",
+      "sha256": "ddaf79f57b016411f002795c51c7cc258f858f6bd3f7c89225fcf5ba588b975e",
+      "bytes": 12129,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/run-java-reference.py",
+      "sha256": "133b50fb74ee5d7267bec97786b57ebe92e437b6e00d99f472198656ced22703",
+      "bytes": 18293,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/runner-amendment.patch",
+      "sha256": "f027061612c2a538abc5228b46824d75e2e79a8870b17d7976f8072cd0da8257",
+      "bytes": 13850,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/seal_source_packet.py",
+      "sha256": "569360549a0981e72509b8a79849928b03f645369c5f957b52fa4f248d5a9653",
+      "bytes": 11812,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/evidence/client/KL05-10/reference-source-preparation-d267c294/source-freeze.json",
+      "sha256": "0eaf73d5df2a6b4248d319f2bfe3ad7342f0fce5c09ac7fa8f864b5da5012c2f",
+      "bytes": 5523,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/sticky-partitioner/GenerateUniformStickyFixture.java",
+      "sha256": "ec994c3cb46b5463c5378b11425b1ae7904c99b49d2b944d56e1c3b38782b5fa",
+      "bytes": 7703,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/sticky-partitioner/uniform-input-provenance.json",
+      "sha256": "e7805ea86533aeb9a3ac203d9a6bd346018aafa783ea91c054778cfef47bb6ab",
+      "bytes": 3333,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/fixtures/sticky-partitioner/uniform-input.tsv",
+      "sha256": "2a5a37d8d173f6181d332f492d53a7a3d00b8217cf11ffe22a93cefdf9dea79a",
+      "bytes": 9959,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/protocol/mod.rs",
+      "sha256": "fa09149d89ac3076dada38a0c8d0692d379d2d8b3ecf443b7161a28b3571af23",
+      "bytes": 1779,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/protocol/api_keys.rs",
+      "sha256": "b2e40e2552caab8af8150d86f2f3b12912b6c42d50a78658240aae42c8b0a5fa",
+      "bytes": 17336,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "src/protocol/header.rs",
+      "sha256": "39d3a51966bdb3d7ff580865e51c977c9e37cd2330c5e4e141b9f2729c0be8ba",
+      "bytes": 74563,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "tests/conformance/test_check_protocol_coverage.py",
+      "sha256": "672fcd157acb591f5a3dc074a94b68c2ad7a4c52883db3715dc2a7461d5327ba",
+      "bytes": 27217,
+      "full_mode": "0o600"
+    },
+    {
+      "path": "docs/plan/tasks.json",
+      "sha256": "bebeb10c7c7d91aa0e0560a420f59a5bbe0047f2c72612343ca5279df72f8bf8",
+      "bytes": 3368383,
+      "full_mode": "0o600"
+    }
+  ],
+  "registration_python_tests_passed": 32,
+  "streams_request_header": 2,
+  "streams_response_header": 1,
+  "current_catalog_identifiers": 93,
+  "missing_streams_runtime_operations_remain": 2,
+  "source_format_check": {
+    "toolchain": "1.85.0",
+    "exit_code": 0,
+    "scope": "Root registration and installed module syntax/format only"
+  },
+  "limits": [
+    "Typed Streams88/89 source and independent oracle preparation await actual compilation and generated vectors; heartbeat/Admin runtime remains open.",
+    "Corrected peer adds only actual required Admin bootstrap19/20 advertisements; firstpositive-control setup failure and proven candidate-library reuse preserved.",
+    "Old403/current candidate behavior requires own-package forced rebuild and actual rustc/library identity before credit.",
+    "Sticky caller/shared input source uses genuine Kafka4.3.1 BuiltInPartitioner; no expected outputs synthesized or fixtureconsumer included.",
+    "No source change in held records.rs/buf.rs and no production full-functionality/performance claim."
+  ]
+}

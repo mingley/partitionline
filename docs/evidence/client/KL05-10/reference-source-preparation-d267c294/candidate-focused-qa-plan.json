@@ -1,0 +1,107 @@
+{
+  "actual_first_compile_failure": {
+    "corrected_uncompiled_handoff": "/workspace/work/client-sticky-unused-results-f0ca05da/stage-handoff.json",
+    "handoff_sha256": "a290307c2dabf8a223510f8de102818d6373f971a5bafe6a151938b46b7046b7",
+    "pin": "f0ca05da9c04942b211e2f56ddc615b9860cdea2",
+    "scope": "Cargo101 at two production discarded HashMap insert returns; no runtime tests"
+  },
+  "candidate_source_identity": {
+    "files": {
+      "src/lib.rs": {
+        "bytes": 211645,
+        "mode": "0o600",
+        "sha256": "f8c2f171b15d1accd3fe8d2978caded223db58ffbe62720f08d4c1a0b4f85b3a"
+      },
+      "src/partitioner.rs": {
+        "bytes": 43985,
+        "mode": "0o600",
+        "sha256": "40a756c2f12f65c1f53cc44a42f604619156ab760321745f4d0899fb30dbdc9a"
+      },
+      "src/producer.rs": {
+        "bytes": 218265,
+        "mode": "0o600",
+        "sha256": "37098eee8da69a2e8c39b24cd88358447d55a8992d3ef6b21e9097fabcfebc10"
+      },
+      "src/protocol/buf.rs": {
+        "bytes": 61797,
+        "mode": "0o600",
+        "sha256": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+      },
+      "src/protocol/records.rs": {
+        "bytes": 171836,
+        "mode": "0o600",
+        "sha256": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8"
+      },
+      "tests/sticky_partitioner.rs": {
+        "bytes": 37620,
+        "mode": "0o600",
+        "sha256": "959361daf4d29ba1615fa33ea97f0a06e7992044ea7d5fb10ffe57b2f3b9808f"
+      }
+    },
+    "no_Cargo_JVM_benchmark": true,
+    "observed_main": "d267c294d91c8c43f3b37d42538075f212f1c37c",
+    "schema": 1,
+    "scope": "Current actual candidate source observation; earlier89dd snapshot remains historical"
+  },
+  "capture": "All raw stdout/stderr/exit/commands/disk samples/source guards, every actual executed ELF immediately before overwrite and all cache ELF paths/full modes before cleanup. Failed code/resource/installer outcomes retained distinctly; no test count inferred from source.",
+  "cells": [
+    {
+      "features": "default",
+      "toolchain": "stable"
+    },
+    {
+      "features": "all-features",
+      "toolchain": "stable"
+    },
+    {
+      "features": "default",
+      "toolchain": "1.85.0"
+    },
+    {
+      "features": "all-features",
+      "toolchain": "1.85.0"
+    }
+  ],
+  "commands_per_cell": [
+    "cargo fmt --all -- --check FIRST",
+    "cargo clippy --locked --lib --test sticky_partitioner --test client_api [--all-features] -- -D warnings",
+    "cargo test --locked --lib [--all-features] partitioner:: -- --nocapture",
+    "cargo test --locked --test sticky_partitioner [--all-features] -- --nocapture",
+    "cargo test --locked --test client_api [--all-features] custom_partitioner_pins_keyed_records -- --exact --nocapture",
+    "cargo test --locked --test client_api [--all-features] sticky_partitioner_descriptor_is_additive_and_default_routing_stays_compatible -- --exact --nocapture"
+  ],
+  "force_package_recompile": "Format FIRST, verified own-cache ELF retention receipt for an existing target, cargo clean --package partitionline, assert no own library rlib/rmeta or .fingerprint leftovers before strict/build/tests. Shared dependency cache may remain; no inference that prior mtime-based library reuse validated this pin.",
+  "future_reference_module_cases": 2,
+  "identity": "Actual Git commit/tree/blob set before initial command; exact code-file path set excluding root Git metadata; actual SHA256/bytes/full0600-or0700 baseline checked before/after each command; root materialization provenance independently hash-bound",
+  "next_actual_pin": "Root-owned, after visibility correction and Java/Admin overlay checkpoints; do not qualify mutable WORK or stale9f5a",
+  "observed_source_checkpoint": "9f5a22cb1a1f3bb0d42fd2b94d633d1fd46b1acf",
+  "performance_proposal": "Unchanged WORK-only prior phase; no benchmark sources installed and no CPU3 use",
+  "prepared_production_policy_cases": 11,
+  "prepared_socket_cases": 28,
+  "resources": {
+    "cache_forecast": "One sequential generated target; cold stable roughly650-900MiB, optional tracing incremental; MSRV separate compiler artifacts require verified retention+clean first. Reforecast actual disk before every cell, not a measured cache claim.",
+    "cpu": "0,1 only after root explicit lease",
+    "dev_test_debug": 0,
+    "incremental": 0,
+    "initial_free_mib_minimum": 1150,
+    "jobs": 1,
+    "live_floor_mib": 350
+  },
+  "runner": {
+    "bytes": 12129,
+    "mode": "0o600",
+    "sha256": "ddaf79f57b016411f002795c51c7cc258f858f6bd3f7c89225fcf5ba588b975e"
+  },
+  "schema": 1,
+  "source_only_visibility_correction": {
+    "bytes": 3017,
+    "mode": "0o600",
+    "path": "/workspace/work/client-sticky-qualification-prep-9f5a22cb/test-visibility-stage-handoff.json",
+    "sha256": "48031547dff0bedf9048b9707c63c1eaa8a1388a9f94f718fd6c2a8673326a83"
+  },
+  "status": "Amended WORK source-only runner; not executed",
+  "strict_scope_limit": "Focused check, not all-target Clippy or complete client qualification. Final full stable/MSRV default/all matrix still required on actual final pin.",
+  "task": "KL05-10",
+  "uncompiled_runner_limits": "Runner source prepared and Python AST checked only. Whole-source Git guards/runtime timeouts/ELF retention have not executed for this task. Root reviews final invocation and origin path on lease.",
+  "what_compiles": "Entire production library, including current root-owned Admin changes, plus two owned integration targets; individual fixture modules compile only after genuinely generated expected output is frozen/pushed"
+}

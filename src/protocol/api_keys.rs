@@ -141,6 +141,10 @@ pub const SHARE_ACKNOWLEDGE: i16 = 79;
 pub const ADD_RAFT_VOTER: i16 = 80;
 /// RemoveRaftVoter (81). Kafka 4.1 `validVersions` is `0`.
 pub const REMOVE_RAFT_VOTER: i16 = 81;
+/// StreamsGroupHeartbeat (88), version 0; unstable in Kafka 4.1.2.
+pub const STREAMS_GROUP_HEARTBEAT: i16 = 88;
+/// StreamsGroupDescribe (89), version 0; unstable in Kafka 4.1.2.
+pub const STREAMS_GROUP_DESCRIBE: i16 = 89;
 /// DescribeShareGroupOffsets (90).
 pub const DESCRIBE_SHARE_GROUP_OFFSETS: i16 = 90;
 /// AlterShareGroupOffsets (91).
@@ -247,6 +251,8 @@ pub const fn name(id: i16) -> Option<&'static str> {
         85 => Some("WRITE_SHARE_GROUP_STATE"),
         86 => Some("DELETE_SHARE_GROUP_STATE"),
         87 => Some("READ_SHARE_GROUP_STATE_SUMMARY"),
+        STREAMS_GROUP_HEARTBEAT => Some("STREAMS_GROUP_HEARTBEAT"),
+        STREAMS_GROUP_DESCRIBE => Some("STREAMS_GROUP_DESCRIBE"),
         DESCRIBE_SHARE_GROUP_OFFSETS => Some("DESCRIBE_SHARE_GROUP_OFFSETS"),
         ALTER_SHARE_GROUP_OFFSETS => Some("ALTER_SHARE_GROUP_OFFSETS"),
         DELETE_SHARE_GROUP_OFFSETS => Some("DELETE_SHARE_GROUP_OFFSETS"),

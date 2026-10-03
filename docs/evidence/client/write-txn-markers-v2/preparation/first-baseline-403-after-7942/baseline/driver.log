@@ -1,0 +1,10 @@
+started stable-baseline-positive-controls pid=1216579
+closed stable-baseline-positive-controls exit=101 minfree=1100136448
+Traceback (most recent call last):
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-baseline403-after-7942.py", line 382, in <module>
+    row=run(name,argv,BASELINE,BASELINE_MANIFEST,expected_exit)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/client-capability-qa-preparation-e90efb49/run-baseline403-after-7942.py", line 293, in run
+    assert row['passed_expected_process_outcome'], ('baseline command failed or expected regression outcome differs', name, actual_code, trigger)
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: ('baseline command failed or expected regression outcome differs', 'stable-baseline-positive-controls', 101, None)

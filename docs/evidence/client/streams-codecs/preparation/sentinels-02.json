@@ -1,0 +1,726 @@
+{
+  "scope": "Source-only all-reachable-field contextual sentinels, not executed Java or generated fixture evidence",
+  "count": 144,
+  "values": [
+    {
+      "path": "StreamsGroupHeartbeatRequest.GroupId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.GroupId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.MemberId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.MemberId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.MemberEpoch",
+      "type": "int32",
+      "value": -1000003
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.EndpointInformationEpoch",
+      "type": "int32",
+      "value": -1000004
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.InstanceId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.InstanceId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.RackId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.RackId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.RebalanceTimeoutMs",
+      "type": "int32",
+      "value": -1000007
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Epoch",
+      "type": "int32",
+      "value": -1000008
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopics[0]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopics[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopics[1]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopics[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopicRegex[0]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopicRegex[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopicRegex[1]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].SourceTopicRegex[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].Name",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].Name-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].Partitions",
+      "type": "int32",
+      "value": -1000015
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].ReplicationFactor",
+      "type": "int16",
+      "value": -9984
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Key",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Value",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSinkTopics[0]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSinkTopics[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSinkTopics[1]",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSinkTopics[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].Name",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].Name-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].Partitions",
+      "type": "int32",
+      "value": -1000022
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].ReplicationFactor",
+      "type": "int16",
+      "value": -9977
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Key",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Value",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].SourceTopics[0]",
+      "type": "int16",
+      "value": -9974
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].SourceTopics[1]",
+      "type": "int16",
+      "value": -9973
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].SourceTopicRegex[0]",
+      "type": "int16",
+      "value": -9972
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].SourceTopicRegex[1]",
+      "type": "int16",
+      "value": -9971
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].RepartitionSourceTopics[0]",
+      "type": "int16",
+      "value": -9970
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.Topology.Subtopologies[0].CopartitionGroups[0].RepartitionSourceTopics[1]",
+      "type": "int16",
+      "value": -9969
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ActiveTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.ActiveTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ActiveTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000033
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ActiveTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000034
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.StandbyTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.StandbyTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.StandbyTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000036
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.StandbyTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000037
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.WarmupTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.WarmupTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.WarmupTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000039
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.WarmupTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000040
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ProcessId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.ProcessId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Host",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.UserEndpoint.Host-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.UserEndpoint.Port",
+      "type": "uint16",
+      "value": 65492
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ClientTags[0].Key",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.ClientTags[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ClientTags[0].Value",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.ClientTags[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskOffsets[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.TaskOffsets[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskOffsets[0].Partition",
+      "type": "int32",
+      "value": -1000047
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskOffsets[0].Offset",
+      "type": "int64",
+      "value": -9223372036854775760
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatRequest.TaskEndOffsets[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets[0].Partition",
+      "type": "int32",
+      "value": -1000050
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.TaskEndOffsets[0].Offset",
+      "type": "int64",
+      "value": -9223372036854775757
+    },
+    {
+      "path": "StreamsGroupHeartbeatRequest.ShutdownApplication",
+      "type": "bool",
+      "value": true
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ThrottleTimeMs",
+      "type": "int32",
+      "value": -1000053
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ErrorCode",
+      "type": "int16",
+      "value": -9946
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ErrorMessage",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.ErrorMessage-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.MemberId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.MemberId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.MemberEpoch",
+      "type": "int32",
+      "value": -1000057
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.HeartbeatIntervalMs",
+      "type": "int32",
+      "value": -1000058
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.AcceptableRecoveryLag",
+      "type": "int32",
+      "value": -1000059
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.TaskOffsetIntervalMs",
+      "type": "int32",
+      "value": -1000060
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.Status[0].StatusCode",
+      "type": "int8",
+      "value": -59
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.Status[0].StatusDetail",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.Status[0].StatusDetail-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ActiveTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.ActiveTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ActiveTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000064
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.ActiveTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000065
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.StandbyTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.StandbyTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.StandbyTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000067
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.StandbyTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000068
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.WarmupTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.WarmupTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.WarmupTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000070
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.WarmupTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000071
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.EndpointInformationEpoch",
+      "type": "int32",
+      "value": -1000072
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].UserEndpoint.Host",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].UserEndpoint.Host-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].UserEndpoint.Port",
+      "type": "uint16",
+      "value": 65461
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].ActivePartitions[0].Topic",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].ActivePartitions[0].Topic-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].ActivePartitions[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000076
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].ActivePartitions[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000077
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].StandbyPartitions[0].Topic",
+      "type": "string",
+      "value": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].StandbyPartitions[0].Topic-詳細"
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].StandbyPartitions[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000079
+    },
+    {
+      "path": "StreamsGroupHeartbeatResponse.PartitionsByUserEndpoint[0].StandbyPartitions[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000080
+    },
+    {
+      "path": "StreamsGroupDescribeRequest.GroupIds[0]",
+      "type": "string",
+      "value": "StreamsGroupDescribeRequest.GroupIds[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeRequest.GroupIds[1]",
+      "type": "string",
+      "value": "StreamsGroupDescribeRequest.GroupIds[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeRequest.IncludeAuthorizedOperations",
+      "type": "bool",
+      "value": true
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.ThrottleTimeMs",
+      "type": "int32",
+      "value": -1000084
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].ErrorCode",
+      "type": "int16",
+      "value": -9915
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].ErrorMessage",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].ErrorMessage-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].GroupId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].GroupId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].GroupState",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].GroupState-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].GroupEpoch",
+      "type": "int32",
+      "value": -1000089
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].AssignmentEpoch",
+      "type": "int32",
+      "value": -1000090
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Epoch",
+      "type": "int32",
+      "value": -1000091
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SourceTopics[0]",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SourceTopics[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SourceTopics[1]",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].SourceTopics[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSinkTopics[0]",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSinkTopics[0]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSinkTopics[1]",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSinkTopics[1]-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].Name",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].Name-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].Partitions",
+      "type": "int32",
+      "value": -1000098
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].ReplicationFactor",
+      "type": "int16",
+      "value": -9901
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Key",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Value",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].StateChangelogTopics[0].TopicConfigs[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].Name",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].Name-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].Partitions",
+      "type": "int32",
+      "value": -1000103
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].ReplicationFactor",
+      "type": "int16",
+      "value": -9896
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Key",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Value",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Topology.Subtopologies[0].RepartitionSourceTopics[0].TopicConfigs[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].MemberId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].MemberId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].MemberEpoch",
+      "type": "int32",
+      "value": -1000108
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].InstanceId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].InstanceId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].RackId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].RackId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientHost",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientHost-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TopologyEpoch",
+      "type": "int32",
+      "value": -1000113
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].ProcessId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].ProcessId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].UserEndpoint.Host",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].UserEndpoint.Host-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].UserEndpoint.Port",
+      "type": "uint16",
+      "value": 65419
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientTags[0].Key",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientTags[0].Key-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientTags[0].Value",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].ClientTags[0].Value-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskOffsets[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskOffsets[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskOffsets[0].Partition",
+      "type": "int32",
+      "value": -1000120
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskOffsets[0].Offset",
+      "type": "int64",
+      "value": -9223372036854775687
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskEndOffsets[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskEndOffsets[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskEndOffsets[0].Partition",
+      "type": "int32",
+      "value": -1000123
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TaskEndOffsets[0].Offset",
+      "type": "int64",
+      "value": -9223372036854775684
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.ActiveTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.ActiveTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.ActiveTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000126
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.ActiveTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000127
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.StandbyTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.StandbyTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.StandbyTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000129
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.StandbyTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000130
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.WarmupTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.WarmupTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.WarmupTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000132
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].Assignment.WarmupTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000133
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.ActiveTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.ActiveTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.ActiveTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000135
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.ActiveTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000136
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.StandbyTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.StandbyTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.StandbyTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000138
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.StandbyTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000139
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.WarmupTasks[0].SubtopologyId",
+      "type": "string",
+      "value": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.WarmupTasks[0].SubtopologyId-詳細"
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.WarmupTasks[0].Partitions[0]",
+      "type": "int32",
+      "value": -1000141
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].TargetAssignment.WarmupTasks[0].Partitions[1]",
+      "type": "int32",
+      "value": -1000142
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].Members[0].IsClassic",
+      "type": "bool",
+      "value": true
+    },
+    {
+      "path": "StreamsGroupDescribeResponse.Groups[0].AuthorizedOperations",
+      "type": "int32",
+      "value": -1000144
+    }
+  ]
+}
