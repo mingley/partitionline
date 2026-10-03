@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "claim_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "scope": "Additive optional retention8 registry/verifier; existing standalone/metadata4/Produce5/read-write7/controller4 profiles preserved. Upstream api-matrix.json is unchanged and read-only. Production qualification remains not_run.",
+  "files_sha256": {
+    "scripts/check-broker-api-matrix.py": "7c4d4d6577609659d7468be83a6498230ca329ef6da61e4eaf8b5557fb2e5388",
+    "tests/ci/test_broker_api_matrix.py": "18c480081ae2510a66b9d57bb3ac95d8dad088c79e6c18df1d8fc880d1e5fee6",
+    "tests/conformance/broker/features.json": "7c5c0612ace951ebb6c517a194fcf48f6249618b541d79dd46167c923951b443",
+    "tests/conformance/broker/implemented-api-versions.json": "92969ca3c357a5fc4ccab544a0d41e89e05006dc200c4757471fcec4a5f10e7b"
+  },
+  "files_git_blob": {
+    "scripts/check-broker-api-matrix.py": "f6d6a3f802ac60821fd58cdb12a2a2a1fdc14a89",
+    "tests/ci/test_broker_api_matrix.py": "fb7c1f7ff50f5a34a3b6f95d1e2bfe310f2980d7",
+    "tests/conformance/broker/features.json": "4873ca57afaec453d55fbf3e595d07131b77149d",
+    "tests/conformance/broker/implemented-api-versions.json": "cb6cfc820ddad27e8b917087794ec7f4e6654939"
+  },
+  "runtime_proof_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "fixture_manifest_sha256": {
+    "4.1.2": "0d47af0e54f7aa95a32d2b6bd49e61e08982ab98eb1a44e12aa662a48b3396ed",
+    "4.2.1": "cf512971ecf9c48157c945c09a01a0e809925c3896a1d5e62cf4460c9be27618",
+    "4.3.1": "30ad2193ecdebfd72aa20718415ab540204bebb4c802217c683b7a2fb8a69aed"
+  },
+  "upstream_matrix_sha256": "bf610ee15485f4a79c7a06f2a234fc5aea8057beb339052b84c36f63afade685",
+  "limitations": [
+    "Development commands used the four owned working-tree source files; final verification must use a new pushed immutable Git source.",
+    "Synthetic reports in Python mutation tests qualify decoder rejection, not runtime execution. Actual fresh compiled reports have their separate d147 immutable command receipts."
+  ]
+}

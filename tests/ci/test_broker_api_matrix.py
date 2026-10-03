@@ -313,7 +313,8 @@ class BrokerApiMatrix(unittest.TestCase):
 
 
     def implementation_mutation(self, mutate_registry=None, mutate_files=None, mutate_report=None, mutate_metadata_report=None,
-                                mutate_produce_report=None, mutate_controller_report=None, mutate_fetch_report=None):
+                                mutate_produce_report=None, mutate_controller_report=None, mutate_fetch_report=None,
+                                mutate_retention_report=None):
         """Synthetic report exercises validation; Rust tests prove real behavior."""
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
@@ -324,7 +325,7 @@ class BrokerApiMatrix(unittest.TestCase):
                 shutil.copyfile(ROOT / registry[label], target)
             shutil.copytree(ROOT / registry["fixture_root"], root / registry["fixture_root"])
             shutil.copytree(ROOT / registry["metadata_fixture_root"], root / registry["metadata_fixture_root"])
-            for label in ("produce", "controller", "fetch"):
+            for label in ("produce", "controller", "fetch", "retention"):
                 shutil.copytree(ROOT / registry[label + "_fixture_root"], root / registry[label + "_fixture_root"])
             report = {"schema_version": 1, "implemented_api_versions": copy.deepcopy(MATRIX.IMPLEMENTED),
                       "protocol_source_sha256": registry["protocol_source_sha256"],
@@ -360,6 +361,18 @@ class BrokerApiMatrix(unittest.TestCase):
                                  "qualification": "not_run", "independent_fixture_cases": 201,
                                  "implemented_api_versions": copy.deepcopy(MATRIX.CONTROLLER_APIS),
                                  "case_results": []}
+            retention_report = {"schema_version": 1, "retention_api_versions": copy.deepcopy(MATRIX.RETENTION_APIS),
+                                "case_results": [], "api_versions_cases": []}
+            for release in MATRIX.TARGETS:
+                golden = MATRIX.load_json(root / registry["retention_fixture_root"] / release / "goldens.json")
+                retention_report["case_results"].extend({"release": release, "case": case["name"],
+                    "outcome": case["expected_outcome"], "response_hex": case["response_hex"]} for case in golden["cases"])
+                metadata = MATRIX.load_json(root / registry["metadata_fixture_root"] / release / "goldens.json")
+                for version in range(5):
+                    case = next(row for row in metadata["cases"] if row["name"] == f"api-versions-v{version}")
+                    retention_report["api_versions_cases"].append({"release": release, "api_version": version,
+                        "correlation_id": 7, "request_hex": case["request_hex"],
+                        "response_hex": self.synthetic_api_versions(version, 7, MATRIX.RETENTION_APIS)})
             for label in ("controller_source", "controller_test_source", "election_source", "raft_module_source"):
                 controller_report[label + "_sha256"] = registry[label + "_sha256"]
             controller = MATRIX.load_json(root / registry["controller_fixture_root"] / "manifest.json")
@@ -373,6 +386,8 @@ class BrokerApiMatrix(unittest.TestCase):
                 mutate_controller_report(controller_report)
             if mutate_fetch_report:
                 mutate_fetch_report(fetch_report)
+            if mutate_retention_report:
+                mutate_retention_report(retention_report)
             if mutate_metadata_report:
                 mutate_metadata_report(metadata_report)
             if mutate_registry:
@@ -392,8 +407,11 @@ class BrokerApiMatrix(unittest.TestCase):
             controller_path.write_text(json.dumps(controller_report), encoding="utf-8")
             fetch_path = root / "fetch-report.json"
             fetch_path.write_text(json.dumps(fetch_report), encoding="utf-8")
+            retention_path = root / "retention-report.json"
+            retention_path.write_text(json.dumps(retention_report), encoding="utf-8")
             return MATRIX.verify_implementation(registry_path, root, inventories, report_path, metadata_path,
-                                                produce_path, controller_path, read_write_handler_report=fetch_path)
+                                                produce_path, controller_path, read_write_handler_report=fetch_path,
+                                                retention_handler_report=retention_path)
 
     @staticmethod
     def synthetic_api_versions(version, correlation, apis):
@@ -692,13 +710,13 @@ class BrokerApiMatrix(unittest.TestCase):
                 features.__setitem__("full_controller_api_versions", MATRIX.CONTROLLER_APIS))
 
     def test_optional_feature_dispositions_cannot_claim_full_or_modern_support(self):
-        for key in (0, 1, 2, 52, 53, 54):
+        for key in (0, 1, 2, 21, 52, 53, 54):
             for field, value in (("implementation", "implemented"), ("implemented_versions", "0-99"),
                                  ("implementation_profile", "default"), ("qualification", "passed")):
                 with self.subTest(key=key, field=field), self.assertRaises(ValueError):
                     self.verify_mutation(mutate_features=lambda features:
                         features["features"][key].__setitem__(field, value))
-        for field in ("data_api_versions", "read_write_api_versions", "controller_api_versions"):
+        for field in ("data_api_versions", "read_write_api_versions", "controller_api_versions", "retention_api_versions"):
             with self.assertRaises(ValueError):
                 self.verify_mutation(mutate_features=lambda features: features[field].pop())
 
@@ -792,6 +810,119 @@ class BrokerApiMatrix(unittest.TestCase):
                 registry["fetch_fixtures_sha256"][name] = MATRIX.digest(path.read_bytes())
         with self.assertRaisesRegex(ValueError, "independently anchored response records"):
             self.implementation_mutation(mutate_files=corrupt)
+
+    def test_retention_eight_profile_preserves_other_profiles_and_checks_all_layouts(self):
+        registry, report = self.implementation_mutation()
+        self.assertEqual(registry["retention_api_versions"], MATRIX.RETENTION_APIS)
+        self.assertEqual(registry["implemented_api_versions"], MATRIX.IMPLEMENTED)
+        self.assertEqual(registry["data_api_versions"], MATRIX.DATA_APIS)
+        self.assertEqual(registry["read_write_api_versions"], MATRIX.READ_WRITE_APIS)
+        self.assertEqual(registry["controller_api_versions"], MATRIX.CONTROLLER_APIS)
+        self.assertEqual(report["retention_golden_cases"], 363)
+        self.assertEqual(report["retention_response_cases"], 345)
+        self.assertEqual(report["retention_local_rejections"], 18)
+        self.assertTrue(report["compiled_retention_report_checked"])
+        self.assertEqual(report["compiled_retention_api_versions_layouts_checked"], 15)
+        self.assertEqual(report["qualification"], "not_run")
+
+    def test_retention_registry_range_gate_source_and_fixture_path_forgery_fail(self):
+        for field, value in (
+            ("retention_api_versions", MATRIX.READ_WRITE_APIS),
+            ("retention_api_versions", MATRIX.RETENTION_APIS * 2),
+            ("retention_api_versions", MATRIX.RETENTION_APIS[:-1] + [{"api_key": 21, "min_version": 0, "max_version": 3}]),
+            ("retention_implementation_gate", "KL11-07"),
+            ("retention_source_sha256", "0" * 64),
+            ("retention_test_source_sha256", "0" * 64),
+            ("segments_source_sha256", "0" * 64),
+            ("partition_source_sha256", "0" * 64),
+            ("retention_source", "../outside"),
+            ("retention_fixture_root", "../outside"),
+        ):
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                self.implementation_mutation(lambda registry: registry.__setitem__(field, value))
+
+    def test_retention_actual_source_changes_fail_without_registry_rebinding(self):
+        for label in ("retention_source", "retention_test_source", "segments_source",
+                      "segments_test_source", "partition_source", "partition_test_source"):
+            with self.subTest(label=label), self.assertRaisesRegex(ValueError, "profile source checksum mismatch"):
+                self.implementation_mutation(mutate_files=lambda root, registry:
+                    (root / registry[label]).write_text("forged source", encoding="utf-8"))
+
+    def test_retention_report_missing_duplicate_outcome_and_response_forgery_fail(self):
+        for mutate in (
+            lambda value: value.__setitem__("schema_version", True),
+            lambda value: value["case_results"].pop(),
+            lambda value: value["case_results"].__setitem__(0, value["case_results"][1]),
+            lambda value: value["case_results"][0].__setitem__("response_hex", "00"),
+            lambda value: value["case_results"][0].__setitem__("response_hex", value["case_results"][0]["response_hex"] + "00"),
+            lambda value: value["case_results"][0].__setitem__("outcome", "reject"),
+            lambda value: value["case_results"][0].__setitem__("release", "4.0.0"),
+            lambda value: next(row for row in value["case_results"] if row["outcome"] == "reject").__setitem__("response_hex", "00000007"),
+            lambda value: value["retention_api_versions"][-1].__setitem__("min_version", False),
+            lambda value: value["retention_api_versions"][-1].__setitem__("max_version", 3),
+            lambda value: value.__setitem__("qualification", "passed"),
+        ):
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_retention_report=mutate)
+
+    def test_retention_api_versions_missing_pairs_and_forged_input_output_fail(self):
+        for mutate in (
+            lambda value: value["api_versions_cases"].pop(),
+            lambda value: value["api_versions_cases"].__setitem__(0, value["api_versions_cases"][1]),
+            lambda value: value["api_versions_cases"][0].__setitem__("api_version", False),
+            lambda value: value["api_versions_cases"][0].__setitem__("correlation_id", 99),
+            lambda value: value["api_versions_cases"][0].__setitem__("request_hex", "00"),
+            lambda value: value["api_versions_cases"][0].__setitem__("request_hex", value["api_versions_cases"][0]["request_hex"] + "00"),
+            lambda value: value["api_versions_cases"][0].__setitem__("response_hex", "00"),
+            lambda value: value["api_versions_cases"][0].__setitem__("response_hex", value["api_versions_cases"][0]["response_hex"] + "00"),
+            lambda value: value["api_versions_cases"][0].__setitem__("response_hex", self.synthetic_api_versions(0, 7, MATRIX.READ_WRITE_APIS)),
+            lambda value: value["api_versions_cases"][0].__setitem__("response_hex", self.synthetic_api_versions(0, 99, MATRIX.RETENTION_APIS)),
+        ):
+            with self.subTest(mutation=mutate), self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_retention_report=mutate)
+
+    def test_retention_rehashed_manifest_cannot_bless_changed_policy_or_observations(self):
+        for mutate in (
+            lambda manifest: manifest["cases"].pop(),
+            lambda manifest: manifest["cases"][0].__setitem__("name", "../escaped"),
+            lambda manifest: manifest["cases"][0].__setitem__("response_hex", "00"),
+            lambda manifest: manifest["cases"][0]["apache_request_parse"].__setitem__("accepted", False),
+            lambda manifest: manifest["cases"][-1]["apache_request_parse"].__setitem__("remaining_bytes", 0),
+            lambda manifest: manifest.__setitem__("actual_serializer_parser_checks", 999),
+        ):
+            def corrupt(root, registry):
+                filename = "4.3.1/goldens.json"
+                path = root / registry["retention_fixture_root"] / filename
+                manifest = MATRIX.load_json(path)
+                mutate(manifest)
+                path.write_text(json.dumps(manifest), encoding="utf-8")
+                registry["retention_fixtures_sha256"][filename] = MATRIX.digest(path.read_bytes())
+            with self.subTest(mutation=mutate), self.assertRaisesRegex(ValueError, "independent retention manifest checksum"):
+                self.implementation_mutation(mutate_files=corrupt)
+
+    def test_retention_fixture_missing_extra_corrupt_and_index_controls_fail(self):
+        for action in ("missing", "extra", "corrupt", "index", "symlink"):
+            def corrupt(root, registry):
+                base = root / registry["retention_fixture_root"]
+                name = "4.3.1/delete-records-v0-offset--1.response.bin"
+                path = base / name
+                if action == "missing":
+                    path.unlink()
+                    del registry["retention_fixtures_sha256"][name]
+                elif action == "extra":
+                    (base / "extra.bin").write_bytes(b"extra")
+                    registry["retention_fixtures_sha256"]["extra.bin"] = MATRIX.digest(b"extra")
+                elif action == "symlink":
+                    path.unlink()
+                    path.symlink_to(base / "4.1.2/delete-records-v0-offset--1.response.bin")
+                else:
+                    if action == "index":
+                        name = "4.3.1/cases.tsv"
+                        path = base / name
+                    path.write_bytes(b"forged")
+                    registry["retention_fixtures_sha256"][name] = MATRIX.digest(path.read_bytes())
+            with self.subTest(action=action), self.assertRaises(ValueError):
+                self.implementation_mutation(mutate_files=corrupt)
 
 
 if __name__ == "__main__":

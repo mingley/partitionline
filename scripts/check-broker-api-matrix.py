@@ -68,10 +68,17 @@ READ_WRITE_APIS = DATA_APIS[:1] + [
     {"api_key": 1, "min_version": 4, "max_version": 6},
     {"api_key": 2, "min_version": 1, "max_version": 3},
 ] + IMPLEMENTED
+RETENTION_APIS = READ_WRITE_APIS + [{"api_key": 21, "min_version": 0, "max_version": 2}]
 CONTROLLER_APIS = [IMPLEMENTED_BY_KEY[18]] + [
     {"api_key": key, "min_version": 0, "max_version": 0} for key in (52, 53, 54)
 ]
 PROFILE_SOURCE_PATHS = {
+    "retention_source": "partitionline-broker/src/retention.rs",
+    "retention_test_source": "partitionline-broker/tests/retention.rs",
+    "segments_source": "partitionline-broker/src/segments.rs",
+    "segments_test_source": "partitionline-broker/tests/segments.rs",
+    "partition_source": "partitionline-broker/src/partition.rs",
+    "partition_test_source": "partitionline-broker/tests/partition.rs",
     "fetch_source": "partitionline-broker/src/fetch.rs",
     "fetch_test_source": "partitionline-broker/tests/fetch.rs",
     "produce_source": "partitionline-broker/src/produce.rs",
@@ -92,10 +99,16 @@ FETCH_MANIFEST_SHA256 = {
     "4.2.1": "6e46d7344582dc70aa395aa320a5c4da2f65a01dbf584e77b85b915bcef16e0f",
     "4.3.1": "99dd07c38038a29ac634f46e54d5b68cd8ccf4cc9b0e7c4de1929053a32ce25a",
 }
+RETENTION_MANIFEST_SHA256 = {
+    "4.1.2": "0d47af0e54f7aa95a32d2b6bd49e61e08982ab98eb1a44e12aa662a48b3396ed",
+    "4.2.1": "cf512971ecf9c48157c945c09a01a0e809925c3896a1d5e62cf4460c9be27618",
+    "4.3.1": "30ad2193ecdebfd72aa20718415ab540204bebb4c802217c683b7a2fb8a69aed",
+}
 PROFILE_NOTES = {
     0: "Optional ordinary data router Produce3-13; one magic2 batch/partition, local fsync/RF1 only; transactions/idempotence/control unsupported; qualification not_run.",
     1: "Optional ordinary read/write router Fetch4-6 from persisted batches; bounded snapshots/wait/scan, read-committed LSO=HW while transactional writes rejected; modern sessions/replica reads unsupported; qualification not_run.",
     2: "Optional ordinary read/write router ListOffsets1-3 from persisted record timestamps; bounded complete scans, no retention/tiered offsets; newer versions unsupported; qualification not_run.",
+    21: "Optional ordinary retention router DeleteRecords0-2; guarded RF1 local durable floor and bounded whole-segment age/payload sweeps; negative-time segments are age-ineligible; no replicated low-watermark or transactional retention claim; qualification not_run.",
     52: "Optional fixed trusted controller Vote0 with pinned handler/policy distinctions; modern Vote/pre-vote versions missing; qualification not_run.",
     53: "Optional fixed trusted controller BeginQuorumEpoch0; modern membership/endpoint versions missing; qualification not_run.",
     54: "Optional fixed trusted controller EndQuorumEpoch0 with bounded configured successors; modern membership versions missing; qualification not_run.",
@@ -139,14 +152,15 @@ def checked_implemented(value):
 
 def verify_implementation(registry_path, repository_root, inventories, handler_report=None, metadata_handler_report=None,
                           produce_handler_report=None, controller_handler_report=None, controller_tcp_responses=None, data_api_versions_report=None,
-                          read_write_handler_report=None, read_write_api_versions_report=None):
+                          read_write_handler_report=None, read_write_api_versions_report=None, retention_handler_report=None):
     registry = load_json(registry_path)
     fields = {"schema_version", "scope", "implementation_gate", "implemented_api_versions", "qualification",
               "behavior_check", "standalone_api_versions", "fixture_root", "fixtures_sha256",
               "metadata_fixture_root", "metadata_fixtures_sha256", "produce_fixture_root", "produce_fixtures_sha256",
               "controller_fixture_root", "controller_fixtures_sha256", "data_api_versions", "controller_api_versions",
               "data_implementation_gate", "controller_implementation_gate", "read_write_api_versions",
-              "read_write_implementation_gate", "fetch_fixture_root", "fetch_fixtures_sha256"}
+              "read_write_implementation_gate", "fetch_fixture_root", "fetch_fixtures_sha256",
+              "retention_api_versions", "retention_implementation_gate", "retention_fixture_root", "retention_fixtures_sha256"}
     for label in {**SOURCE_PATHS, **PROFILE_SOURCE_PATHS}:
         fields.update({label, label + "_sha256"})
     require(registry.keys() == fields, "missing/extra registry fields or unreviewed profile claim")
@@ -204,7 +218,7 @@ def verify_implementation(registry_path, repository_root, inventories, handler_r
     metadata_expected = verify_metadata_fixtures(registry, repository_root)
     profiles = verify_profiles(registry, repository_root, inventories,
                                produce_handler_report, controller_handler_report, controller_tcp_responses, data_api_versions_report,
-                               read_write_handler_report, read_write_api_versions_report)
+                               read_write_handler_report, read_write_api_versions_report, retention_handler_report)
     metadata_checked = False
     if metadata_handler_report is not None:
         verify_compiled_report(metadata_handler_report, registry, metadata_expected, ("metadata_source", "metadata_test_source"))
@@ -485,6 +499,126 @@ def verify_fetch_fixtures(registry, repository_root):
     return expected
 
 
+def verify_retention_fixtures(registry, repository_root):
+    root, actual = fixture_map(registry, repository_root, "retention",
+                               "partitionline-broker/tests/fixtures/retention", 714)
+    paths, expected = set(), {}
+    for release in TARGETS:
+        manifest = root / release / "goldens.json"
+        require(digest(manifest.read_bytes()) == RETENTION_MANIFEST_SHA256[release],
+                f"{release}: independent retention manifest checksum mismatch")
+        golden = load_json(manifest)
+        require(type(golden.get("schema_version")) is int and golden["schema_version"] == 1 and
+                golden.get("release") == release and isinstance(golden.get("cases"), list) and
+                len(golden["cases"]) == 121 and golden.get("actual_serializer_parser_checks") == 248 and
+                isinstance(golden.get("apache_global_error_helpers"), list) and
+                len(golden["apache_global_error_helpers"]) == 12,
+                "missing/incorrect retention golden cases or actual Apache observations")
+        paths.update({f"{release}/goldens.json", f"{release}/cases.tsv"})
+        rows, versions, counts = [], set(), {}
+        for case in golden["cases"]:
+            name, key, version, seed, outcome = (case.get(field) for field in
+                ("name", "api_key", "api_version", "seed", "expected_outcome"))
+            require(isinstance(name, str) and re.fullmatch(r"delete-records-v[012]-[a-z0-9-]+", name) and
+                    (release, name) not in expected and type(key) is int and key == 21 and
+                    type(version) is int and 0 <= version <= 2 and
+                    name.startswith(f"delete-records-v{version}-") and
+                    seed in ("fixture", "fixture_floor_2", "fixture_empty") and
+                    outcome in ("response", "reject"), "invalid/duplicate retention case")
+            require(isinstance(case.get("basis"), str) and bool(case["basis"]),
+                    "retention Apache component/local-policy basis missing")
+            require(type(case.get("request_header_version")) is int and
+                    case["request_header_version"] == (2 if version == 2 else 1) and
+                    type(case.get("response_header_version")) is int and
+                    case["response_header_version"] == (1 if version == 2 else 0),
+                    "retention header layout mismatch")
+            versions.add(version)
+            counts[outcome] = counts.get(outcome, 0) + 1
+            response = case.get("response_hex")
+            require((outcome == "response") == isinstance(response, str) and
+                    (outcome == "response" or response is None), "retention response/outcome mismatch")
+            expected[(release, name)] = (outcome, response)
+            for direction in ("request", "response"):
+                value = case.get(direction + "_hex")
+                if value is None:
+                    require(direction == "response" and outcome == "reject" and
+                            case.get(direction + "_sha256") is None,
+                            "missing retention request/incorrect null response hash")
+                    continue
+                require(isinstance(value, str) and re.fullmatch(r"(?:[0-9a-f]{2})+", value) and
+                        len(value) <= 256 * 1024, "invalid/unbounded retention hex")
+                raw = bytes.fromhex(value)
+                path = f"{release}/{name}.{direction}.bin"
+                paths.add(path)
+                require(digest(raw) == case.get(direction + "_sha256") and (root / path).read_bytes() == raw,
+                        "retention golden byte/hash mismatch")
+                if direction == "request":
+                    require(len(raw) >= 10 and int.from_bytes(raw[:2], "big", signed=True) == key and
+                            int.from_bytes(raw[2:4], "big", signed=True) == version and
+                            int.from_bytes(raw[4:8], "big", signed=True) == 7,
+                            "retention request header/correlation mismatch")
+            parsed = case.get("apache_request_parse")
+            require(isinstance(parsed, dict) and type(parsed.get("accepted")) is bool,
+                    "missing actual Apache retention parse observation")
+            if outcome == "response":
+                require(parsed["accepted"] and type(parsed.get("remaining_bytes")) is int and
+                        parsed["remaining_bytes"] == 0 and parsed.get("correlation_id") == 7 and
+                        parsed.get("request_header_version") == case["request_header_version"],
+                        "incomplete positive Apache retention parse")
+            elif name.endswith("trailing-zero"):
+                require(parsed["accepted"] and type(parsed.get("remaining_bytes")) is int and
+                        parsed["remaining_bytes"] == 1,
+                        "missing Apache-accepted/local-rejected retention trailing remainder")
+            else:
+                require(name.endswith("truncated") and not parsed["accepted"] and
+                        isinstance(parsed.get("exception_class"), str),
+                        "unreviewed retention rejection/Apache parser outcome")
+            rows.append(f"{name}\t{key}\t{version}\t{seed}\t{outcome}\n")
+        require(versions == {0, 1, 2} and counts == {"response": 115, "reject": 6},
+                "incomplete retention version/outcome coverage")
+        require((root / release / "cases.tsv").read_text(encoding="utf-8") == "".join(rows),
+                "retention golden index mismatch")
+    require(actual.keys() == paths, "missing/extra retention fixture paths")
+    return expected
+
+
+def verify_retention_report(path, expected, api_requests):
+    report = load_json(path)
+    require(report.keys() == {"schema_version", "retention_api_versions", "case_results", "api_versions_cases"} and
+            type(report.get("schema_version")) is int and report["schema_version"] == 1,
+            "invalid compiled retention schema/scope")
+    checked_profile(report.get("retention_api_versions"), RETENTION_APIS, "compiled retention")
+    rows = report.get("case_results")
+    require(isinstance(rows, list) and len(rows) == 363, "incomplete compiled retention report")
+    observed = {}
+    for row in rows:
+        require(isinstance(row, dict) and row.keys() == {"release", "case", "outcome", "response_hex"},
+                "invalid compiled retention case shape")
+        pair = (row.get("release"), row.get("case"))
+        require(pair not in observed, "duplicate compiled retention case")
+        observed[pair] = (row.get("outcome"), row.get("response_hex"))
+    require(observed == expected, "compiled retention/golden outcome or bytes mismatch")
+    rows = report.get("api_versions_cases")
+    require(isinstance(rows, list) and len(rows) == 15, "incomplete compiled retention ApiVersions layouts")
+    seen = set()
+    for row in rows:
+        require(isinstance(row, dict) and row.keys() ==
+                {"release", "api_version", "correlation_id", "request_hex", "response_hex"} and
+                row.get("release") in TARGETS and type(row.get("api_version")) is int and
+                0 <= row["api_version"] <= 4 and type(row.get("correlation_id")) is int and
+                row["correlation_id"] == 7,
+                "invalid compiled retention ApiVersions identity/canonical fixture correlation")
+        pair = (row["release"], row["api_version"])
+        require(pair not in seen, "duplicate compiled retention ApiVersions layout")
+        seen.add(pair)
+        require(row.get("request_hex") == api_requests[pair],
+                "compiled retention ApiVersions request differs from pinned Apache input")
+        verify_api_versions_response(row.get("response_hex"), row["api_version"], row["correlation_id"], RETENTION_APIS)
+    require(seen == {(release, version) for release in TARGETS for version in range(5)},
+            "missing compiled retention ApiVersions layout")
+    return len(seen)
+
+
 def verify_api_versions_response(value, version, correlation, apis):
     """Decode complete API18 response fields independently of the Rust encoder."""
     require(type(version) is int and 0 <= version <= 4 and type(correlation) is int and
@@ -746,13 +880,14 @@ def verify_controller_tcp(directory, expected):
 
 
 def verify_profiles(registry, repository_root, inventories, produce_report, controller_report, controller_tcp_responses=None, data_api_versions_report=None,
-                    read_write_handler_report=None, read_write_api_versions_report=None):
+                    read_write_handler_report=None, read_write_api_versions_report=None, retention_handler_report=None):
     for label, expected in PROFILE_SOURCE_PATHS.items():
         require(registry.get(label) == expected, f"{label}: unexpected profile source path")
         require(registry.get(label + "_sha256") == digest((repository_root / expected).read_bytes()),
                 f"{label}: profile source checksum mismatch")
     for label, apis, gate, listener in (("data", DATA_APIS, "KL11-06", "broker"),
                                        ("read_write", READ_WRITE_APIS, "KL11-07", "broker"),
+                                       ("retention", RETENTION_APIS, "KL11-10", "broker"),
                                        ("controller", CONTROLLER_APIS, "KL11-13", "controller")):
         checked_profile(registry.get(label + "_api_versions"), apis, label)
         require(registry.get(label + "_implementation_gate") == gate, f"{label}: profile gate mismatch")
@@ -767,6 +902,7 @@ def verify_profiles(registry, repository_root, inventories, produce_report, cont
                             f"{release}: profile outside upstream version contract")
     produce_expected = verify_produce_fixtures(registry, repository_root)
     fetch_expected = verify_fetch_fixtures(registry, repository_root)
+    retention_expected = verify_retention_fixtures(registry, repository_root)
     controller_expected = verify_controller_fixtures(registry, repository_root)
     if produce_report is not None:
         report = load_json(produce_report)
@@ -807,10 +943,25 @@ def verify_profiles(registry, repository_root, inventories, produce_report, cont
     data_wire = verify_data_wire_profile(data_api_versions_report) if data_api_versions_report is not None else {}
     fetch_layouts = verify_fetch_report(read_write_handler_report, fetch_expected) if read_write_handler_report is not None else 0
     read_write_wire = verify_read_write_wire_profile(read_write_api_versions_report) if read_write_api_versions_report is not None else {}
+    # These requests were generated by the independent Metadata Apache oracle.
+    # Its anchored manifests are already checked by verify_metadata_fixtures.
+    api_requests = {}
+    for release in TARGETS:
+        golden = load_json(repository_root / registry["metadata_fixture_root"] / release / "goldens.json")
+        api_requests.update({(release, case["api_version"]): case["request_hex"]
+                             for case in golden["cases"] if case["name"] in
+                             {f"api-versions-v{version}" for version in range(5)}})
+    retention_layouts = verify_retention_report(retention_handler_report, retention_expected, api_requests) if retention_handler_report is not None else 0
     return {"data_api_versions": DATA_APIS, "read_write_api_versions": READ_WRITE_APIS, "controller_api_versions": CONTROLLER_APIS,
+            "retention_api_versions": RETENTION_APIS,
             "produce_golden_cases": len(produce_expected), "controller_golden_cases": len(controller_expected),
             "fetch_golden_cases": len(fetch_expected), "compiled_fetch_report_checked": read_write_handler_report is not None,
             "compiled_read_write_api_versions_layouts_checked": fetch_layouts,
+            "retention_golden_cases": len(retention_expected),
+            "retention_response_cases": sum(outcome == "response" for outcome, _ in retention_expected.values()),
+            "retention_local_rejections": sum(outcome == "reject" for outcome, _ in retention_expected.values()),
+            "compiled_retention_report_checked": retention_handler_report is not None,
+            "compiled_retention_api_versions_layouts_checked": retention_layouts,
             "compiled_produce_report_checked": produce_report is not None,
             "compiled_controller_report_checked": controller_report is not None,
             "controller_tcp_capture_bytes_checked": bool(tcp), "controller_tcp_capture_pairs": len(tcp) // 2,
@@ -1145,7 +1296,7 @@ def projected_feature(row_by_version):
 def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
            repository_root=None, handler_report=None, metadata_handler_report=None,
            produce_handler_report=None, controller_handler_report=None, controller_tcp_responses=None, data_api_versions_report=None,
-           read_write_handler_report=None, read_write_api_versions_report=None):
+           read_write_handler_report=None, read_write_api_versions_report=None, retention_handler_report=None):
     matrix, features = load_json(matrix_path), load_json(features_path)
     require(type(matrix.get("schema_version")) is int and matrix["schema_version"] == 1 and matrix.get("scope") == SCOPE and
             matrix.get("implementation_claim") is False, "invalid broker inventory schema/scope")
@@ -1180,19 +1331,19 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
                         "header_version_pairs": sum(len(row["headers"]) for row in inventory)})
     require(features.keys() == {"schema_version", "scope", "target_releases", "upstream_pin_gate",
                                 "implemented_api_versions", "features", "implementation_registry",
-                                "data_api_versions", "controller_api_versions", "read_write_api_versions"},
+                                "data_api_versions", "controller_api_versions", "read_write_api_versions", "retention_api_versions"},
             "missing/extra feature fields or unreviewed profile claim")
     require(type(features.get("schema_version")) is int and features["schema_version"] == 1 and features.get("target_releases") == list(TARGETS) and
             features.get("upstream_pin_gate") == "KL11-57", "features release/inventory gate mismatch")
     registry, implementation = verify_implementation(
         registry_path or ROOT / REGISTRY_PATH, repository_root or ROOT,
         inventories, handler_report, metadata_handler_report, produce_handler_report, controller_handler_report, controller_tcp_responses, data_api_versions_report,
-        read_write_handler_report, read_write_api_versions_report)
+        read_write_handler_report, read_write_api_versions_report, retention_handler_report)
     checked_implemented(features.get("implemented_api_versions"))
     require(features.get("implemented_api_versions") == registry["implemented_api_versions"] and
             features.get("implementation_registry") == REGISTRY_PATH,
             "features/implementation registry mismatch")
-    for label, expected in (("data", DATA_APIS), ("read_write", READ_WRITE_APIS), ("controller", CONTROLLER_APIS)):
+    for label, expected in (("data", DATA_APIS), ("read_write", READ_WRITE_APIS), ("controller", CONTROLLER_APIS), ("retention", RETENTION_APIS)):
         checked_profile(features.get(label + "_api_versions"), expected, label)
         require(features[label + "_api_versions"] == registry[label + "_api_versions"],
                 f"{label}: features/profile registry mismatch")
@@ -1220,6 +1371,7 @@ def verify(matrix_path, features_path, upstream_dir=None, registry_path=None,
         elif key in PROFILE_NOTES:
             gate, versions, profile = (("KL11-06", "3-13", "ordinary-data") if key == 0 else
                 ("KL11-07", "4-6" if key == 1 else "1-3", "ordinary-read-write") if key in (1, 2) else
+                ("KL11-10", "0-2", "ordinary-retention") if key == 21 else
                 ("KL11-13", "0", "fixed-controller-v0"))
             require(row.get("implementation_gate") == gate and row.get("implemented_versions") == versions and
                     row.get("implementation_profile") == profile, f"API {key}: optional profile version/gate mismatch")
@@ -1258,6 +1410,8 @@ def main():
                         help="Compiled Fetch/ListOffsets outcomes and seven-profile API18 response layouts")
     parser.add_argument("--read-write-api-versions-report", type=Path,
                         help="Independent KL11-68 seven-profile API18 v0-4 seed/restart exchanges")
+    parser.add_argument("--retention-handler-report", type=Path,
+                        help="Compiled DeleteRecords outcomes and eight-profile API18 request/response layouts")
     parser.add_argument("--controller-handler-report", type=Path,
                         help="Actual response bytes from the compiled fixed-controller golden test")
     parser.add_argument("--controller-tcp-responses", type=Path,
@@ -1270,7 +1424,8 @@ def main():
                         handler_report=args.handler_report, metadata_handler_report=args.metadata_handler_report,
                         produce_handler_report=args.produce_handler_report, controller_handler_report=args.controller_handler_report, controller_tcp_responses=args.controller_tcp_responses, data_api_versions_report=args.data_api_versions_report,
                         read_write_handler_report=args.read_write_handler_report,
-                        read_write_api_versions_report=args.read_write_api_versions_report)
+                        read_write_api_versions_report=args.read_write_api_versions_report,
+                        retention_handler_report=args.retention_handler_report)
     except (ValueError, KeyError, TypeError, OSError, EOFError, tarfile.TarError) as error:
         report = {"schema_version": 1, "verdict": "failed", "implementation_claim": False, "error": str(error)}
     if args.report:

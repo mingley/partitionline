@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "claim_source_sha": "d147bcf1c0164778bdbad625842363f3721bc10e",
+  "source_freeze_sha256": "d00918150ffe88bafc54dde5413743d8cf86e7c7400c78984cdfd54a6f6a1a1a",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests/ci",
+        "-p",
+        "test_broker_api_matrix.py"
+      ],
+      "exit_code": 0,
+      "tests": 55,
+      "raw_log": "retention-gates-development.log"
+    },
+    {
+      "kind": "actual fresh stable/default combined compiled reports and controller TCP plus separately pinned historical five/seven live API18 proofs",
+      "exit_code": 0,
+      "report": "retention-gates-development-report.json",
+      "raw_log": "retention-gates-development-cli.log"
+    }
+  ],
+  "counts": {
+    "golden_cases": 99,
+    "metadata_golden_cases": 555,
+    "produce_golden_cases": 708,
+    "fetch_golden_cases": 366,
+    "controller_golden_cases": 201,
+    "controller_tcp_capture_pairs": 18,
+    "retention_golden_cases": 363,
+    "retention_response_cases": 345,
+    "retention_local_rejections": 18,
+    "compiled_retention_api_versions_layouts_checked": 15
+  },
+  "qualification": "not_run",
+  "artifacts_sha256": {
+    "retention-gates-development-cli.log": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "retention-gates-development-report.json": "4538ffbff505db350844a3941f255091edd51d835bb56a8c60c9ddd86f84cbd8",
+    "retention-gates-development.log": "0a40d9cf64565dcae25861617a1210a13384727b9a280699fc1b92e41e3fdc73",
+    "source.patch": "4e723c57d28e3637ff5a2941b3b009905d2804ec863bb9e422e58bc5ac764f4d"
+  }
+}
