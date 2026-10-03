@@ -1,0 +1,47 @@
+{
+  "task": "KL05-28",
+  "status": "source frozen; exact pushed-source full qualification pending",
+  "base_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_files": {
+    "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+    "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+    "tests/client_capabilities.rs": "0d43c7fc441c481b79a7747bd433a7826ffd3d3f67db0c2f5795ac5f34a26abe"
+  },
+  "focused_actual_tests_per_cell": 10,
+  "cells": [
+    "stable/default",
+    "stable/all-features",
+    "1.85.0/default",
+    "1.85.0/all-features"
+  ],
+  "strict_clippy": [
+    "stable/lib+focused-all-features",
+    "1.85.0/lib+focused-all-features"
+  ],
+  "format": "three owned Rust files; skip_children=true leaves held shared test helper unchanged",
+  "command_receipt": "docs/evidence/client/KL05-28/development/focused-attempt-2/results.json",
+  "command_receipt_sha256": "552718dd7c23e8a1f8d75a3d2dd0afdda964d9fb3a444c5a8c5d6dafbda9bcb5",
+  "preserved_failures": [
+    "development/stable-default-attempt-1.log: unused test imports, unconsumed read_exact and response-header results",
+    "development/stable-default-attempt-2.log: incorrect test expectation node0 versus actual mock node1; six other public/socket tests passed",
+    "development/focused-attempt-1/stable-clippy.log: test while-let style and cloned slice reference; fixed without product behavior change"
+  ],
+  "scope": [
+    "Private optional capability fields only; public signatures unchanged",
+    "Producer FindCoordinator required for transactional IDs; nontransactional InitProducerId still required when idempotence enabled",
+    "Admin CreateTopics/DeleteTopics/Metadata remain required at connect; eleven unrelated capabilities are method-checked",
+    "Unavailable coordinator discovery is rejected before metadata lookup; documented empty no-op inputs unchanged",
+    "Bounded negotiation-only socket peers verify no operation/discovery frames; positive public operations use the existing test broker",
+    "Fresh actual persisted-broker Rust/Java/C proof belongs to dependent KL11-08"
+  ],
+  "source_stage": [
+    "src/producer.rs",
+    "src/admin.rs",
+    "tests/client_capabilities.rs"
+  ],
+  "evidence_stage": [
+    "docs/evidence/client/KL05-28/"
+  ],
+  "plan_edits_by_worker": false,
+  "commits_or_pushes_by_worker": false
+}

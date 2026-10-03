@@ -1,0 +1,19 @@
+$ taskset -c 0-2,4 cargo +stable test --locked --test client_capabilities
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 3.87s
+     Running tests/client_capabilities.rs (/workspace/work/target-client-capabilities/debug/deps/client_capabilities-d07fed71f6769104)
+
+running 10 tests
+test a_supported_configuration_api_keeps_its_negotiated_version ... ok
+test basic_admin_create_describe_and_delete_work_without_unrelated_apis ... ok
+test missing_identity_and_transaction_capabilities_fail_before_discovery ... ok
+test nontransactional_idempotence_uses_init_producer_id_without_a_coordinator ... ok
+test ordinary_produce_and_manual_fetch_use_only_the_limited_profile ... ok
+test transactional_producer_still_discovers_and_commits_when_supported ... ok
+test advertised_group_operation_without_coordinator_fails_before_metadata ... ok
+test documented_empty_group_and_delete_inputs_remain_no_ops ... ok
+test nonoverlapping_optional_versions_are_unavailable_locally ... ok
+test unavailable_admin_operations_send_no_frames_and_keep_the_socket_open ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

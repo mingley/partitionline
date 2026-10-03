@@ -7072,7 +7072,8 @@
         "tests/protocol_oracles.rs",
         "tests/fixtures/protocol_oracles/share_v2/",
         "docs/evidence/client/KL05-14/",
-        "docs/plan/evidence/KL05-14.json"
+        "docs/plan/evidence/KL05-14.json",
+        "tests/fixtures/protocol_oracles/share_v2_pin.json"
       ],
       "reopened_reason": "Independent current Apache4.3.1 schema inspection finds both ShareFetch and ShareAcknowledge versions1-2; previous evidence rejected Fetch2 and incorrectly stated Ack2 absent. Retain that scoped/stale proof as superseded, implement and independently qualify real current version2 codecs before high-level advertisement."
     },
@@ -23497,7 +23498,13 @@
         "partitionline-broker/tests/fetch.rs",
         "docs/evidence/broker/KL11-09/",
         "docs/plan/evidence/KL11-09.json"
-      ]
+      ],
+      "delegated_write_sets": {
+        "codex-coordinator-20261003": [
+          "docs/evidence/broker/KL11-09/oracle/"
+        ]
+      },
+      "delegation_note": "Root independently executes actual pinned Apache offset/time/segment storage components; runtime implementation remains open_loop-owned. No oracle import of Rust implementation."
     },
     {
       "id": "KL11-10",

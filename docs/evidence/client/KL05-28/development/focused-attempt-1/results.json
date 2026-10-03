@@ -1,0 +1,46 @@
+{
+  "base_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_hashes": {
+    "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+    "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+    "tests/client_capabilities.rs": "be22e2252bcaf91381f1e2c20dab8be809c65df5fc5e1e9f6a11a361b6dd2a40"
+  },
+  "steps": [
+    {
+      "name": "stable-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "client_capabilities",
+        "--all-features"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--lib",
+        "--test",
+        "client_capabilities",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 101
+    }
+  ]
+}

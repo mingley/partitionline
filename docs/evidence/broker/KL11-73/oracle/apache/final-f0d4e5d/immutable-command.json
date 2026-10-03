@@ -1,0 +1,29 @@
+{
+  "argv": [
+    "taskset",
+    "-c",
+    "0-2,4",
+    "python3",
+    "/workspace/work/raft-quorum-final-f0d4e5d/source/docs/evidence/broker/KL11-73/oracle/apache/prepare-and-run.py",
+    "--work",
+    "/workspace/work/raft-quorum-final-f0d4e5d/runtime",
+    "--output",
+    "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d",
+    "--source-archives",
+    "/workspace/work/broker-api",
+    "--distributions",
+    "/workspace/work/broker-wire/releases"
+  ],
+  "cwd": "/workspace/work/raft-quorum-final-f0d4e5d/source",
+  "exit_code": 0,
+  "elapsed_seconds": 10.938,
+  "source_before": {
+    "tracked_files_checked": 20124,
+    "passed": true
+  },
+  "source_after": {
+    "tracked_files_checked": 20124,
+    "passed": true
+  },
+  "runner_log_sha256": "410554984b1b96bf0bb08eac081d68055dae107794266c759a39c787b27b93b1"
+}

@@ -873,7 +873,7 @@ struct Shared {
     add_offsets_version: i16,
     end_txn_version: i16,
     txn_offset_version: i16,
-    find_coord_version: i16,
+    find_coord_version: Option<i16>,
     init_producer_id_version: i16,
     telemetry_version: Option<i16>,
     client_instance_id: parking_lot::Mutex<Option<[u8; 16]>>,
@@ -1293,6 +1293,7 @@ impl Producer {
 
     /// Connect using `cfg`. Negotiates ApiVersions, optional SASL/TLS, and
     /// `InitProducerId` when idempotent or transactional.
+    /// FindCoordinator is required only when a transactional id is configured.
     pub async fn new(cfg: ProducerConfig) -> Result<Self> {
         let mut cfg = cfg;
         if !matches!(cfg.acks, -1..=1) {
@@ -1331,9 +1332,10 @@ impl Producer {
             cfg.acks = -1;
             cfg.max_in_flight = cfg.max_in_flight.min(5);
         }
-        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6).ok_or_else(|| {
-            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
-        })?;
+        let find_coord_version = pick(&versions, FIND_COORDINATOR, 1, 6);
+        if cfg.transactional_id.is_some() {
+            let _version = required_find_coordinator(find_coord_version)?;
+        }
         if let Some(pv) = pick(&versions, PRODUCE, 3, 13) {
             meta.set_produce_version(pv);
         }
@@ -1368,8 +1370,13 @@ impl Producer {
         let mut init_producer_id_version = 0i16;
         let mut txn = if let Some(tid) = cfg.transactional_id.as_deref() {
             Some(
-                discover_typed_coord(&cfg, tid, COORDINATOR_TRANSACTION, find_coord_version)
-                    .await?,
+                discover_typed_coord(
+                    &cfg,
+                    tid,
+                    COORDINATOR_TRANSACTION,
+                    required_find_coordinator(find_coord_version)?,
+                )
+                .await?,
             )
         } else {
             None
@@ -2665,12 +2672,16 @@ async fn discover_typed_coord(
     Err(last)
 }
 
+fn required_find_coordinator(version: Option<i16>) -> Result<i16> {
+    version.ok_or_else(|| Error::Unsupported("broker does not support FindCoordinator v1-6".into()))
+}
+
 async fn init_producer_id_roundtrip(
     cfg: &ProducerConfig,
     txn: &mut Option<BrokerConn>,
     meta: &mut BrokerConn,
     version: i16,
-    find_coord_version: i16,
+    find_coord_version: Option<i16>,
     identity: (i64, i16),
 ) -> Result<Bytes> {
     let txn_id = cfg.transactional_id.clone();
@@ -2714,7 +2725,13 @@ async fn init_producer_id_roundtrip(
         Err(e) if e.is_retriable() || matches!(e, Error::Closed) => {}
         Err(e) => return Err(e),
     }
-    let new = discover_typed_coord(cfg, &tid, COORDINATOR_TRANSACTION, find_coord_version).await?;
+    let new = discover_typed_coord(
+        cfg,
+        &tid,
+        COORDINATOR_TRANSACTION,
+        required_find_coordinator(find_coord_version)?,
+    )
+    .await?;
     *txn = Some(new);
     let conn = txn
         .as_mut()
@@ -2880,7 +2897,7 @@ async fn txn_roundtrip(
         &shared.cfg,
         &tid,
         COORDINATOR_TRANSACTION,
-        shared.find_coord_version,
+        required_find_coordinator(shared.find_coord_version)?,
     )
     .await?;
     let mut guard = shared.txn.lock().await;
@@ -2906,11 +2923,12 @@ async fn group_coord_roundtrip(
     group_id: &str,
     api_key: i16,
     api_version: i16,
-    find_coord_version: i16,
+    find_coord_version: Option<i16>,
     encode_body: impl Fn(&mut BytesMut) -> Result<()>,
     request_timeout: Duration,
     error_of: impl Fn(&[u8]) -> Result<i16>,
 ) -> Result<Bytes> {
+    let find_coord_version = required_find_coordinator(find_coord_version)?;
     let mut coord =
         discover_typed_coord(cfg, group_id, COORDINATOR_GROUP, find_coord_version).await?;
     let body = coord

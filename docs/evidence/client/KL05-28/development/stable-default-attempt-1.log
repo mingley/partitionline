@@ -1,0 +1,100 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.11
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.4
+   Compiling proc-macro2 v1.0.107
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.14
+   Compiling ring v0.17.14
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling ctutils v0.4.2
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling semver v1.0.28
+   Compiling const-oid v0.10.2
+   Compiling untrusted v0.9.0
+   Compiling digest v0.11.3
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.4
+   Compiling errno v0.3.14
+   Compiling crc32fast v1.5.1
+   Compiling rustls v0.23.45
+   Compiling parking_lot_core v0.9.12
+   Compiling signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+   Compiling crc32c v0.6.8
+   Compiling rustls-webpki v0.103.15
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.2
+   Compiling scopeguard v1.2.0
+   Compiling subtle v2.6.1
+   Compiling once_cell v1.21.4
+   Compiling bytes v1.12.1
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling getrandom v0.4.3
+   Compiling pin-project-lite v0.2.17
+   Compiling smallvec v1.15.2
+   Compiling snap v1.1.2
+   Compiling tokio v1.53.1
+   Compiling miniz_oxide v0.9.1
+   Compiling lock_api v0.4.14
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling zlib-rs v0.6.8
+   Compiling twox-hash v2.1.2
+   Compiling lz4_flex v0.14.0
+   Compiling flate2 v1.1.10
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling parking_lot v0.12.5
+   Compiling tokio-rustls v0.26.5
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+warning: unused imports: `ALTER_CONFIGS`, `CREATE_ACLS`, `CREATE_PARTITIONS`, `DELETE_ACLS`, `DELETE_RECORDS`, `DESCRIBE_ACLS`, `FIND_COORDINATOR`, and `LIST_GROUPS`
+  --> tests/client_capabilities.rs:16:5
+   |
+16 |     ALTER_CONFIGS, API_VERSIONS, CREATE_ACLS, CREATE_PARTITIONS, CREATE_TOPICS, DELETE_ACLS,
+   |     ^^^^^^^^^^^^^                ^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^                 ^^^^^^^^^^^
+17 |     DELETE_GROUPS, DELETE_RECORDS, DELETE_TOPICS, DESCRIBE_ACLS, DESCRIBE_CONFIGS, DESCRIBE_GROUPS,
+   |                    ^^^^^^^^^^^^^^                 ^^^^^^^^^^^^^
+18 |     FETCH, FIND_COORDINATOR, INIT_PRODUCER_ID, LIST_GROUPS, LIST_OFFSETS, METADATA, PRODUCE,
+   |            ^^^^^^^^^^^^^^^^                    ^^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error: unused result of type `usize`
+  --> tests/client_capabilities.rs:71:17
+   |
+71 |                 stream.read_exact(&mut frame).await.unwrap();
+   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: requested on the command line with `-D unused-results`
+
+error: unused `Result` that must be used
+  --> tests/client_capabilities.rs:80:17
+   |
+80 | /                 encode_response_header(
+81 | |                     &mut response,
+82 | |                     API_VERSIONS,
+83 | |                     header.api_version,
+84 | |                     header.correlation_id,
+85 | |                 );
+   | |_________________^
+   |
+   = note: this `Result` may be an `Err` variant, which should be handled
+   = note: requested on the command line with `-D unused-must-use`
+help: use `let _ = ...` to ignore the resulting value
+   |
+80 |                 let _ = encode_response_header(
+   |                 +++++++
+
+warning: `partitionline` (test "client_capabilities") generated 1 warning
+error: could not compile `partitionline` (test "client_capabilities") due to 2 previous errors; 1 warning emitted

@@ -1,0 +1,3 @@
+$ taskset -c 0-2,4 cargo +stable clippy --locked --lib --test client_capabilities --all-features -- -D warnings
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+    Finished `dev` profile [unoptimized] target(s) in 1.14s

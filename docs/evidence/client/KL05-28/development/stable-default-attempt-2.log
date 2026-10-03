@@ -1,0 +1,30 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 4.00s
+     Running tests/client_capabilities.rs (/workspace/work/target-client-capabilities/debug/deps/client_capabilities-d07fed71f6769104)
+
+running 7 tests
+test a_supported_configuration_api_keeps_its_negotiated_version ... ok
+test missing_identity_and_transaction_capabilities_fail_before_discovery ... ok
+test basic_admin_create_describe_and_delete_work_without_unrelated_apis ... ok
+test nontransactional_idempotence_uses_init_producer_id_without_a_coordinator ... FAILED
+test ordinary_produce_and_manual_fetch_use_only_the_limited_profile ... ok
+test advertised_group_operation_without_coordinator_fails_before_metadata ... ok
+test unavailable_admin_operations_send_no_frames_and_keep_the_socket_open ... ok
+
+failures:
+
+---- nontransactional_idempotence_uses_init_producer_id_without_a_coordinator stdout ----
+
+thread 'nontransactional_idempotence_uses_init_producer_id_without_a_coordinator' (615513) panicked at tests/client_capabilities.rs:223:5:
+assertion `left == right` failed
+  left: [1]
+ right: [0]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    nontransactional_idempotence_uses_init_producer_id_without_a_coordinator
+
+test result: FAILED. 6 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+error: test failed, to rerun pass `--test client_capabilities`

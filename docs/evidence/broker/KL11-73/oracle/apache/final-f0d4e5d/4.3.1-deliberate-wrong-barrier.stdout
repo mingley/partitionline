@@ -1,0 +1,3 @@
+{"case":"one.initial-unknown","actual":-1,"expected":-1,"passed":true}
+{"case":"one.at-epoch-start-no-commit","actual":0,"expected":0,"passed":true}
+{"case":"one.current-epoch-barrier","actual":-1,"expected":10,"passed":false}

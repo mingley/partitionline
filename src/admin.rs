@@ -2828,18 +2828,18 @@ pub struct Admin {
     versions: HashMap<i16, ApiVersion>,
     create_version: i16,
     delete_version: i16,
-    describe_version: i16,
-    partitions_version: i16,
+    describe_version: Option<i16>,
+    partitions_version: Option<i16>,
     alter_version: Option<i16>,
-    legacy_alter_version: i16,
-    delete_records_version: i16,
+    legacy_alter_version: Option<i16>,
+    delete_records_version: Option<i16>,
     describe_producers_version: Option<i16>,
     describe_cluster_version: Option<i16>,
-    create_acls_version: i16,
-    describe_acls_version: i16,
-    delete_acls_version: i16,
+    create_acls_version: Option<i16>,
+    describe_acls_version: Option<i16>,
+    delete_acls_version: Option<i16>,
     metadata_version: i16,
-    find_coord_version: i16,
+    find_coord_version: Option<i16>,
     offset_delete_version: Option<i16>,
     reassign_version: Option<i16>,
     list_reassign_version: Option<i16>,
@@ -2853,9 +2853,9 @@ pub struct Admin {
     describe_transactions_version: Option<i16>,
     list_transactions_version: Option<i16>,
     consumer_group_describe_version: Option<i16>,
-    describe_groups_version: i16,
-    list_groups_version: i16,
-    delete_groups_version: i16,
+    describe_groups_version: Option<i16>,
+    list_groups_version: Option<i16>,
+    delete_groups_version: Option<i16>,
     share_group_describe_version: Option<i16>,
     describe_share_group_offsets_version: Option<i16>,
     alter_share_group_offsets_version: Option<i16>,
@@ -3697,6 +3697,11 @@ impl Admin {
 
     /// Connect using `cfg`. Negotiates ApiVersions and optional SASL/TLS.
     ///
+    /// CreateTopics, DeleteTopics, and Metadata are required at connect.
+    /// Configuration, partition expansion, record deletion, ACL, coordinator,
+    /// and group APIs are optional; missing APIs fail on the method with
+    /// [`Error::Unsupported`] before discovery or dispatch.
+    ///
     /// DescribeTopicPartitions, ConsumerGroupDescribe, ShareGroupDescribe,
     /// the share-offset RPCs, AllocateProducerIds, ListConfigResources,
     /// GetTelemetrySubscriptions, PushTelemetry, AssignReplicasToDirs,
@@ -3751,31 +3756,19 @@ impl Admin {
             })?;
         let describe_version = versions
             .get(&DESCRIBE_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeConfigs v0-4".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 4));
         let partitions_version = versions
             .get(&CREATE_PARTITIONS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support CreatePartitions v0-3".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3));
         let alter_version = versions
             .get(&INCREMENTAL_ALTER_CONFIGS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let legacy_alter_version = versions
             .get(&ALTER_CONFIGS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support AlterConfigs v0-2".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let delete_records_version = versions
             .get(&DELETE_RECORDS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DeleteRecords v0-2".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let describe_producers_version = versions
             .get(&DESCRIBE_PRODUCERS)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3784,28 +3777,20 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let create_acls_version = versions
             .get(&CREATE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
-            .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls v0-3".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3));
         let describe_acls_version = versions
             .get(&DESCRIBE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeAcls v0-3".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3));
         let delete_acls_version = versions
             .get(&DELETE_ACLS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3))
-            .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls v0-3".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 3));
         let metadata_version = versions
             .get(&METADATA)
             .and_then(|v| pick_version(v.min_version, v.max_version, 1, 13))
             .ok_or_else(|| Error::Unsupported("broker does not support Metadata".into()))?;
         let find_coord_version = versions
             .get(&FIND_COORDINATOR)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support FindCoordinator v1-6".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 1, 6));
         let offset_delete_version = versions
             .get(&OFFSET_DELETE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 0));
@@ -3847,20 +3832,13 @@ impl Admin {
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
         let describe_groups_version = versions
             .get(&DESCRIBE_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DescribeGroups v0-6".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 6));
         let list_groups_version = versions
             .get(&LIST_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5))
-            .ok_or_else(|| Error::Unsupported("broker does not support ListGroups v0-5".into()))?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 5));
         let delete_groups_version = versions
             .get(&DELETE_GROUPS)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2))
-            .ok_or_else(|| {
-                Error::Unsupported("broker does not support DeleteGroups v0-2".into())
-            })?;
+            .and_then(|v| pick_version(v.min_version, v.max_version, 0, 2));
         let share_group_describe_version = versions
             .get(&SHARE_GROUP_DESCRIBE)
             .and_then(|v| pick_version(v.min_version, v.max_version, 0, 1));
@@ -4942,7 +4920,9 @@ impl Admin {
                 keys: r.keys.clone(),
             })
             .collect();
-        let version = self.describe_version;
+        let version = self.describe_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeConfigs v0-4".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_CONFIGS,
@@ -5058,7 +5038,9 @@ impl Admin {
     ) -> Result<Vec<TopicResult>> {
         let mut pending: Vec<NewPartitions> = topics.to_vec();
         let mut finished: HashMap<String, TopicResult> = HashMap::new();
-        let version = self.partitions_version;
+        let version = self.partitions_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support CreatePartitions v0-3".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         loop {
@@ -5318,7 +5300,9 @@ impl Admin {
         acls: &[AclBinding],
         timeout: Duration,
     ) -> Result<Vec<AclCreationResult>> {
-        let version = self.create_acls_version;
+        let version = self
+            .create_acls_version
+            .ok_or_else(|| Error::Unsupported("broker does not support CreateAcls v0-3".into()))?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let acls = acls.to_vec();
@@ -7054,7 +7038,9 @@ impl Admin {
         filter: &AclBindingFilter,
         timeout: Duration,
     ) -> Result<Vec<AclBinding>> {
-        let version = self.describe_acls_version;
+        let version = self.describe_acls_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeAcls v0-3".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 DESCRIBE_ACLS,
@@ -7227,7 +7213,9 @@ impl Admin {
                     .collect(),
             })
             .collect();
-        let version = self.legacy_alter_version;
+        let version = self.legacy_alter_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support AlterConfigs v0-2".into())
+        })?;
         let body = self
             .roundtrip_bootstrap(
                 ALTER_CONFIGS,
@@ -7537,7 +7525,9 @@ impl Admin {
         if records.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.delete_records_version;
+        let version = self.delete_records_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DeleteRecords v0-2".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<(i64, i16)>> = vec![None; records.len()];
@@ -8456,7 +8446,9 @@ impl Admin {
         if filters.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.delete_acls_version;
+        let version = self
+            .delete_acls_version
+            .ok_or_else(|| Error::Unsupported("broker does not support DeleteAcls v0-3".into()))?;
         let body = self
             .roundtrip_bootstrap(
                 DELETE_ACLS,
@@ -9300,7 +9292,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.describe_groups_version;
+        let version = self.describe_groups_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DescribeGroups v0-6".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DescribedGroup>> = vec![None; ids.len()];
@@ -9520,7 +9514,9 @@ impl Admin {
         types: Vec<String>,
         timeout: Duration,
     ) -> Result<Vec<ListedGroup>> {
-        let version = self.list_groups_version;
+        let version = self
+            .list_groups_version
+            .ok_or_else(|| Error::Unsupported("broker does not support ListGroups v0-5".into()))?;
         let body = self
             .roundtrip_bootstrap(
                 LIST_GROUPS,
@@ -9704,7 +9700,9 @@ impl Admin {
         if ids.is_empty() {
             return Ok(Vec::new());
         }
-        let version = self.delete_groups_version;
+        let version = self.delete_groups_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support DeleteGroups v0-2".into())
+        })?;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
         let mut out: Vec<Option<DeletableGroupResult>> = vec![None; ids.len()];
@@ -11755,10 +11753,12 @@ impl Admin {
     }
 
     async fn discover_group_coord(&mut self, group_id: &str) -> Result<i32> {
+        let version = self.find_coord_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
+        })?;
         if self.cluster.brokers.is_empty() {
             self.refresh_metadata(None).await?;
         }
-        let version = self.find_coord_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;
@@ -11831,7 +11831,9 @@ impl Admin {
         if uniq.is_empty() {
             return Ok(HashMap::new());
         }
-        let version = self.find_coord_version;
+        let version = self.find_coord_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
+        })?;
         if version < 4 {
             let mut out = HashMap::new();
             for k in &uniq {
@@ -12270,10 +12272,12 @@ impl Admin {
     }
 
     async fn discover_txn_coord(&mut self, transactional_id: &str) -> Result<i32> {
+        let version = self.find_coord_version.ok_or_else(|| {
+            Error::Unsupported("broker does not support FindCoordinator v1-6".into())
+        })?;
         if self.cluster.brokers.is_empty() {
             self.refresh_metadata(None).await?;
         }
-        let version = self.find_coord_version;
         let timeout = self.cfg.request_timeout;
         let deadline = Instant::now() + timeout;
         let mut attempt = 0u32;

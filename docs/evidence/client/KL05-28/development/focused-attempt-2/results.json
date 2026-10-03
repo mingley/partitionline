@@ -1,0 +1,131 @@
+{
+  "base_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_hashes": {
+    "src/producer.rs": "5ccee6c3691db29d152c7a4bd9f3abfa0a1d804fcd54fbbe0090454b322fc8a9",
+    "src/admin.rs": "cb93a692db3d59e1cda6b1d26d7b395971350b7a4ce566431e54c081e62c9464",
+    "tests/client_capabilities.rs": "0d43c7fc441c481b79a7747bd433a7826ffd3d3f67db0c2f5795ac5f34a26abe"
+  },
+  "steps": [
+    {
+      "name": "stable-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "client_capabilities"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "--test",
+        "client_capabilities",
+        "--all-features"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "stable-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "--lib",
+        "--test",
+        "client_capabilities",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-default",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "client_capabilities"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-all-features",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--locked",
+        "--test",
+        "client_capabilities",
+        "--all-features"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "1.85.0-clippy",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--locked",
+        "--lib",
+        "--test",
+        "client_capabilities",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0
+    },
+    {
+      "name": "format",
+      "command": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--config",
+        "skip_children=true",
+        "--check",
+        "src/producer.rs",
+        "src/admin.rs",
+        "tests/client_capabilities.rs"
+      ],
+      "exit_code": 0
+    }
+  ]
+}
