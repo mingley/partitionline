@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "status": "WORK-only component preparation, not pushed exact-source live qualification",
+  "original_source_sha": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "source_freeze_sha256": "d25592ed050b3597b1158b7a1a871cc3ae20659824285bc17d208bc59b33d6a0",
+  "runtime_pins": {
+    "path": "runtime-pins.json",
+    "sha256": "868866b8e222900465eb35ead3bcb9d3d1f9995f7d44033ab9ebe3cee46ace50"
+  },
+  "accepted_runs": [
+    {
+      "path": "development/attempt-3/results/validation.json",
+      "sha256": "fcddf85f8b898a495cd6b89da88050e80b44eeac411f9ab3a40fe6ee9da30032",
+      "assertions": 316,
+      "actual_signed_policy_cases": 16,
+      "actual_issuances": 17,
+      "actual_successful_controls": 20,
+      "actual_https_recorded_events": 88,
+      "issuer_owner_joined": true
+    },
+    {
+      "path": "development/attempt-4/results/validation.json",
+      "sha256": "a27bdd0d7f1e4c74025429aeecef1a59bf61c5c46ab890c0fabbb9ae78a9707a",
+      "assertions": 316,
+      "actual_signed_policy_cases": 16,
+      "actual_issuances": 17,
+      "actual_successful_controls": 20,
+      "actual_https_recorded_events": 88,
+      "issuer_owner_joined": true
+    }
+  ],
+  "actual_assertions": 632,
+  "actual_signed_policy_cases": 32,
+  "sdk_or_broker_live_executions": 0,
+  "cargo_executions": 0,
+  "development_history": [
+    {
+      "attempt": 1,
+      "passed": true,
+      "status": "superseded before metadata policy-key compatibility and separate exhaustion objects",
+      "source_snapshot_available": false,
+      "limitation": "Exact source hashes/logs retained, original derivative bytes not captured before edit"
+    },
+    {
+      "attempt": 2,
+      "passed": true,
+      "status": "superseded future_nbf refinement to keep nbf below exp",
+      "source_snapshot_available": true
+    }
+  ],
+  "failed_actual_attempts": 0,
+  "source_inputs": [
+    {
+      "path": "source/README.md",
+      "bytes": 3604,
+      "sha256": "7da19b837c2ebe12130688bf25cb9af0d104ebf0d2cf6c1843615e76d39d4f39",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/check-live-issuer.py",
+      "bytes": 15975,
+      "sha256": "76a429aa7435868a1809fd79a127af60e979863339335d64a8fce8d823be5e1e",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/live-issuer.py",
+      "bytes": 8864,
+      "sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/original-issuer.py",
+      "bytes": 14540,
+      "sha256": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/original-provenance.json",
+      "bytes": 468,
+      "sha256": "2e5287d6abb18e57ab0b191a85b72571f7b5497f8c95d9aa0abd79486740daf8",
+      "full_mode": "0o600"
+    }
+  ],
+  "limits": [
+    "Original repository issuer unchanged",
+    "SDK/provider local negative schema rejection is not a broker SASL rejection",
+    "Synthetic authority, not third-party identity provider evidence",
+    "Per-command fifteen-second OpenSSL bound and120second component alarm; TLS/body/response/token/event bounds preserved",
+    "No private scratch files or compact bearer bytes included in publication set"
+  ]
+}

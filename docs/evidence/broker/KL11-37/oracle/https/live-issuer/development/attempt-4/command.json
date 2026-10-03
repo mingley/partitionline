@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "/usr/bin/taskset",
+    "-c",
+    "0,1",
+    "/usr/bin/python3",
+    "-B",
+    "/workspace/work/live-issuer-preparation/source/check-live-issuer.py",
+    "--scratch",
+    "/workspace/work/live-issuer-preparation/private-attempt-4",
+    "--output",
+    "/workspace/work/live-issuer-preparation/development/attempt-4/results"
+  ],
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PATH": "/usr/bin:/bin",
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup"
+  },
+  "timeout_seconds": 145,
+  "cwd": "/workspace/work/live-issuer-preparation",
+  "launch_kind": "synthetic HTTPS/OpenSSL component only; no broker/SDK/Cargo"
+}

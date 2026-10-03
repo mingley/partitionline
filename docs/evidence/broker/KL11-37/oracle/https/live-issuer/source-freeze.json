@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "kind": "WORK-only additive issuer source and actual component preparation; unpublished derivative",
+  "original_source_sha": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "inputs": [
+    {
+      "path": "source/README.md",
+      "bytes": 3604,
+      "sha256": "7da19b837c2ebe12130688bf25cb9af0d104ebf0d2cf6c1843615e76d39d4f39",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/check-live-issuer.py",
+      "bytes": 15975,
+      "sha256": "76a429aa7435868a1809fd79a127af60e979863339335d64a8fce8d823be5e1e",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/live-issuer.py",
+      "bytes": 8864,
+      "sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/original-issuer.py",
+      "bytes": 14540,
+      "sha256": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "source/original-provenance.json",
+      "bytes": 468,
+      "sha256": "2e5287d6abb18e57ab0b191a85b72571f7b5497f8c95d9aa0abd79486740daf8",
+      "full_mode": "0o600"
+    }
+  ],
+  "changes": [
+    "Fixed authenticated token_policy enum only; no arbitrary payload control",
+    "Exact RS256 issuance hash/claims/policy/key-generation binding",
+    "Atomic strict bounded duplicate-free control validation",
+    "Safe public endpoint/policy counters and unknown-route redaction",
+    "Original HTTPS issuer retained unchanged and SHA-checked at import"
+  ],
+  "source_unchanged_across_accepted_replays": true,
+  "accepted_component_attempts": [
+    3,
+    4
+  ],
+  "sdk_or_broker_live_executions": 0,
+  "cargo_executions": 0
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "source_sha": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "original_relative_path": "docs/evidence/broker/KL11-37/oracle/https/issuer.py",
+  "original_git_object": "2bbc469548a1c1935f0a18cb38369e2efe555b53",
+  "original_sha256": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+  "original_bytes": 14540,
+  "original_git_mode": "100644",
+  "preserved_work_file": "original-issuer.py",
+  "preserved_full_mode": "0o600"
+}

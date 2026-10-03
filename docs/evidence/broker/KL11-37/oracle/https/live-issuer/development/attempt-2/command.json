@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "/usr/bin/taskset",
+    "-c",
+    "0,1",
+    "/usr/bin/python3",
+    "-B",
+    "/workspace/work/live-issuer-preparation/source/check-live-issuer.py",
+    "--scratch",
+    "/workspace/work/live-issuer-preparation/private-attempt-2",
+    "--output",
+    "/workspace/work/live-issuer-preparation/development/attempt-2/results"
+  ],
+  "environment_overrides": {
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PATH": "/usr/bin:/bin"
+  },
+  "timeout_seconds": 145,
+  "cwd": "/workspace/work/live-issuer-preparation",
+  "started_epoch": 1791028304.5754075,
+  "launch_kind": "synthetic HTTPS/OpenSSL component only; no broker/SDK/Cargo"
+}

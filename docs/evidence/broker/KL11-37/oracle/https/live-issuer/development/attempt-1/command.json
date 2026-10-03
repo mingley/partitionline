@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/usr/bin/taskset",
+    "-c",
+    "0,1",
+    "/usr/bin/python3",
+    "-B",
+    "/workspace/work/live-issuer-preparation/source/check-live-issuer.py",
+    "--scratch",
+    "/workspace/work/live-issuer-preparation/private-attempt-1",
+    "--output",
+    "/workspace/work/live-issuer-preparation/development/attempt-1/results"
+  ],
+  "environment": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "timeout_seconds": 145,
+  "cwd": "/workspace/work/live-issuer-preparation",
+  "started_epoch": 1791028097.115041,
+  "launch_kind": "synthetic issuer component only; no broker/SDK/Cargo"
+}

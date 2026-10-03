@@ -1,0 +1,930 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "test_kind": "actual synthetic issuer HTTPS/OpenSSL component execution",
+  "source_sha": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "inputs": [
+    {
+      "path": "live-issuer.py",
+      "bytes": 8864,
+      "sha256": "3a1447f2c59cd9f49cc88ca9eb99f332c52285ebc7185df03e2ff4c6fd492d08",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "original-issuer.py",
+      "bytes": 14540,
+      "sha256": "0c3615c44652d6ef9398c39e6c9ffc5e5486055ece62961a3784bbd5b6f4147e",
+      "full_mode": "0o600"
+    },
+    {
+      "path": "check-live-issuer.py",
+      "bytes": 15975,
+      "sha256": "76a429aa7435868a1809fd79a127af60e979863339335d64a8fce8d823be5e1e",
+      "full_mode": "0o600"
+    }
+  ],
+  "assertion_count": 316,
+  "checks": [
+    "actual trusted discovery",
+    "untrusted CA rejected before HTTP",
+    "actual HTTPS JWKS response",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "damaged signature rejected by OpenSSL",
+    "wrong generation public key rejected by OpenSSL",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "actual HTTPS JWKS response",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "compact RS256 token schema",
+    "exact declared policy schema",
+    "exact protected token header",
+    "exact declared identity audience subject scope",
+    "exact bounded time policy",
+    "actual independent OpenSSL RS256 verify",
+    "exact issued hash policy generation binding",
+    "actual authenticated HTTPS introspection",
+    "introspection binds exact issued claims and actual expiration",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "invalid control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "duplicate malformed or oversized control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "duplicate malformed or oversized control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "duplicate malformed or oversized control is atomic",
+    "HTTPS control status 400",
+    "fixed control envelope",
+    "duplicate malformed or oversized control is atomic",
+    "HTTPS control status 401",
+    "fixed control envelope",
+    "unauthorized control cannot mutate policy",
+    "token client authentication required",
+    "actual authenticated HTTPS introspection",
+    "modified unissued token hash inactive",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual authenticated HTTPS introspection",
+    "actual issued hash revocation inactive",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual declared token outage",
+    "HTTPS control status 200",
+    "fixed control envelope",
+    "actual client-credentials HTTPS token response",
+    "fixed OAuth response schema",
+    "actual authenticated HTTPS introspection",
+    "positive acquisition recovery after controlled outage",
+    "injected finite control ceiling",
+    "injected finite issued ceiling before signing",
+    "injected finite event ceiling"
+  ],
+  "cases": [
+    {
+      "generation": 0,
+      "token_policy": "valid",
+      "token_sha256": "f0954d632eb37952af955959d43977620d1d402113398fb1059d37dac1ea65da",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "c6d16b2d0a7cea1e352ca644c503d682",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "wrong_issuer",
+      "token_sha256": "81f5e7e30ba330854a360b8317b526299313d2fcff3b84b27a8aefeb45d95a03",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer/untrusted",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "08a84ceab8a15548a2017faf1b87e78a",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "wrong_audience",
+      "token_sha256": "2918ce03363e861ca7c92729db9a3fd611f1365e12ab48e435a09e077363fd70",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "untrusted-partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "5f609fcbf82c5213f99fbc4bc9de592f",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "expired",
+      "token_sha256": "aacb7274c8ed23ee9994871c257070fc8b7d384e7e0d559eac4bbd0de8357722",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028279,
+        "exp": 1791028339,
+        "jti": "5a9aab51f3e33ab3c7b55947b9b7d0a7",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": false,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "future_nbf",
+      "token_sha256": "34c3cbad1e9510df755d260cea0cd8404034d06aef1971c3aa3c19a84927336d",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028519,
+        "jti": "94a7e636c21ca72641edb9f85274a92d",
+        "scope": "kafka",
+        "token_use": "access",
+        "nbf": 1791028459
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "wrong_typ",
+      "token_sha256": "dba09b3018ef6b8896157c9e0b51eb847616b4c2022cacb488c656216a8cc0f0",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "access+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "cf4550294dc8f7afff076501fdd8394d",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "missing_typ",
+      "token_sha256": "e60829524d0fedfffd5f91b7e67eff1364b604da5c36ddfca0ce8362fc825fe8",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "a7bd6cedab0391be5021d6e4d6822bfc",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 0,
+      "token_policy": "missing_subject",
+      "token_sha256": "def1d5a963a2a10ddf5261e6a94f9915f4e9a5f9886305187ce7aba65813028c",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-0",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "474c9358247f92e139d5a2fadccc39b8",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "valid",
+      "token_sha256": "d15a64e3778e1db18f9afdd6814cb09d9f1e9b3d43be1da6939872ebcb058a5d",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "b2f893c550b34c3ddc034c100eaae8ee",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "wrong_issuer",
+      "token_sha256": "24c460184f763b4a20dee1dc6e04ebd08c1794c397d72d1cb147412b251cfbaf",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer/untrusted",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "bad237aa71589ffd6b12aab4c599dac6",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "wrong_audience",
+      "token_sha256": "a85810444d7b1743d7456325bc2f6a90fbf5f466d5b0e5aaf6015c2509af79c2",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "untrusted-partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "1e474f5976a05f4dc27fb4b66c03209e",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "expired",
+      "token_sha256": "d3765579e873288881e0243cd48088b0567771c4b09eedf20a6d0ab188c34e2e",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028279,
+        "exp": 1791028339,
+        "jti": "a619a544158594c81057526ed9895aa3",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": false,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "future_nbf",
+      "token_sha256": "ee39607a0f3edf4ad871e4ed283cdd772e87f362a40f101e4f75a9d9af853d24",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028519,
+        "jti": "b6b56b16730a8c3777f713a3ccb607c4",
+        "scope": "kafka",
+        "token_use": "access",
+        "nbf": 1791028459
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "wrong_typ",
+      "token_sha256": "a929b5b79d163de0332483c7f40263e30799ef722f8d0220c3924fd25b771783",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "access+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "7dad5df66ecc750d190b4182befb3348",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "missing_typ",
+      "token_sha256": "95c2a3c7e9b238d2a51b1df7573e283eb2f6b8784c010b394e6c0722d832c32f",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "sub": "issuer-probe",
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "4ee777a51188932b339359568b51915c",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    },
+    {
+      "generation": 1,
+      "token_policy": "missing_subject",
+      "token_sha256": "8689b36543d138718531844a1b871093d29b46df3c1303dd57748c435642f33b",
+      "protected_header": {
+        "alg": "RS256",
+        "kid": "synthetic-1",
+        "typ": "at+jwt"
+      },
+      "claims": {
+        "iss": "https://localhost:41747/issuer",
+        "aud": [
+          "partitionline"
+        ],
+        "iat": 1791028399,
+        "exp": 1791028459,
+        "jti": "7fa15e7d0878a9da8c1ab208a80e89c3",
+        "scope": "kafka",
+        "token_use": "access"
+      },
+      "signature_verified_by_openssl": true,
+      "introspection_active": true,
+      "broker_or_sdk_verdict": null
+    }
+  ],
+  "actual_signed_policy_cases": 16,
+  "authority_public_metadata": {
+    "token_policy": "valid",
+    "generation": 0,
+    "control_count": 20,
+    "endpoint_counts": {
+      "/issuer/.well-known/openid-configuration:200": 1,
+      "/issuer/keys:200": 2,
+      "/control:200": 20,
+      "/issuer/token:200": 17,
+      "/issuer/introspect:200": 19,
+      "/control:400": 26,
+      "/control:401": 1,
+      "/issuer/token:401": 1,
+      "/issuer/token:503": 1
+    },
+    "policy_counts": {
+      "valid": 3,
+      "wrong_issuer": 2,
+      "wrong_audience": 2,
+      "expired": 2,
+      "future_nbf": 2,
+      "wrong_typ": 2,
+      "missing_typ": 2,
+      "missing_subject": 2
+    },
+    "issued": [
+      {
+        "token_sha256": "f0954d632eb37952af955959d43977620d1d402113398fb1059d37dac1ea65da",
+        "policy": "valid",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "81f5e7e30ba330854a360b8317b526299313d2fcff3b84b27a8aefeb45d95a03",
+        "policy": "wrong_issuer",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "2918ce03363e861ca7c92729db9a3fd611f1365e12ab48e435a09e077363fd70",
+        "policy": "wrong_audience",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "aacb7274c8ed23ee9994871c257070fc8b7d384e7e0d559eac4bbd0de8357722",
+        "policy": "expired",
+        "generation": 0,
+        "issued_epoch": 1791028279,
+        "expires_epoch": 1791028339,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "34c3cbad1e9510df755d260cea0cd8404034d06aef1971c3aa3c19a84927336d",
+        "policy": "future_nbf",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028519,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "dba09b3018ef6b8896157c9e0b51eb847616b4c2022cacb488c656216a8cc0f0",
+        "policy": "wrong_typ",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "e60829524d0fedfffd5f91b7e67eff1364b604da5c36ddfca0ce8362fc825fe8",
+        "policy": "missing_typ",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "def1d5a963a2a10ddf5261e6a94f9915f4e9a5f9886305187ce7aba65813028c",
+        "policy": "missing_subject",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": null
+      },
+      {
+        "token_sha256": "d15a64e3778e1db18f9afdd6814cb09d9f1e9b3d43be1da6939872ebcb058a5d",
+        "policy": "valid",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "24c460184f763b4a20dee1dc6e04ebd08c1794c397d72d1cb147412b251cfbaf",
+        "policy": "wrong_issuer",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "a85810444d7b1743d7456325bc2f6a90fbf5f466d5b0e5aaf6015c2509af79c2",
+        "policy": "wrong_audience",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "d3765579e873288881e0243cd48088b0567771c4b09eedf20a6d0ab188c34e2e",
+        "policy": "expired",
+        "generation": 1,
+        "issued_epoch": 1791028279,
+        "expires_epoch": 1791028339,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "ee39607a0f3edf4ad871e4ed283cdd772e87f362a40f101e4f75a9d9af853d24",
+        "policy": "future_nbf",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028519,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "a929b5b79d163de0332483c7f40263e30799ef722f8d0220c3924fd25b771783",
+        "policy": "wrong_typ",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "95c2a3c7e9b238d2a51b1df7573e283eb2f6b8784c010b394e6c0722d832c32f",
+        "policy": "missing_typ",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      },
+      {
+        "token_sha256": "8689b36543d138718531844a1b871093d29b46df3c1303dd57748c435642f33b",
+        "policy": "missing_subject",
+        "generation": 1,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": null
+      },
+      {
+        "token_sha256": "b098ceaa67c0a282b23032b20265c221a5ab460e4c88780541ea2252c49d78ba",
+        "policy": "valid",
+        "generation": 0,
+        "issued_epoch": 1791028399,
+        "expires_epoch": 1791028459,
+        "subject": "issuer-probe"
+      }
+    ]
+  },
+  "issuer_owner_joined": true,
+  "failure_classification": null,
+  "limits": {
+    "issued_tokens": 256,
+    "controls": 256,
+    "http_events": 4096,
+    "http_handlers": 8,
+    "request_body_bytes": 16384,
+    "response_bytes": 65536,
+    "socket_seconds": 3,
+    "openssl_command_seconds": 15,
+    "component_deadline_seconds": 120
+  },
+  "limitations": [
+    "No SDK or broker was launched; no SASL rejection result",
+    "Provider-local rejection must remain separate from observed broker SASL rejection",
+    "Introspection active only means exact issued hash, no revocation and unexpired exp; it does not validate issuer/audience/typ/nbf/sub",
+    "Budget guards use labeled injected exhaustion preconditions",
+    "Private keys credentials signatures and compact tokens are excluded from reports"
+  ]
+}
