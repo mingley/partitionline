@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "passed": false,
+  "scope": "Preparation environment only, no Cargo build or broker runtime",
+  "command": [
+    "/workspace/work/cargo/bin/rustfmt",
+    "+stable",
+    "--edition",
+    "2021",
+    "docs/evidence/broker/KL11-75/oracle/peers/rust-adopter/src/main.rs"
+  ],
+  "failure": "Missing explicit RUSTUP_HOME caused rustup to attempt default-home stable toolchain download; installation rolled back with ENOSPC. Source subsequently formatted with existing explicit /workspace/work/rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustfmt.",
+  "preventive_action": "All future Rust tools use existing absolute toolchain executables and explicit work CARGO_HOME/RUSTUP_HOME."
+}

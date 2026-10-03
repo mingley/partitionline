@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "scope": "Frozen independent public-client peer source and preparation history only; no broker runtime or Cargo outcome claimed",
+  "delegated_peer_claim_sha": "002aa929031f49bb02a785a9307f72906773d2ea",
+  "input_files": 37,
+  "input_bytes": 228839,
+  "files": [
+    {
+      "path": "CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "08be1e1f13186fbfeba754380d5338bb5af144722540e6ae887055a5898c8ad3",
+      "mode": 384
+    },
+    {
+      "path": "README.md",
+      "bytes": 4147,
+      "sha256": "17db00108226b72785769859833e083d513d2a6bbaf8ea0f59a7e0628a467b63",
+      "mode": 384
+    },
+    {
+      "path": "build-java.py",
+      "bytes": 3417,
+      "sha256": "cf8a04928d5398b17cce6ee22412940125634199d0015394ece6c3943349bf2b",
+      "mode": 384
+    },
+    {
+      "path": "build-native.py",
+      "bytes": 2501,
+      "sha256": "1694417e9f2196cca4e111dd61aafc2b59c01ac99a210c967c2c04bbe8b6a434",
+      "mode": 384
+    },
+    {
+      "path": "build-rust.py",
+      "bytes": 4469,
+      "sha256": "10f994964fc2cb3b881ee78a1cac1e51ebe3c6f735bd589c8115e44c53d45f07",
+      "mode": 384
+    },
+    {
+      "path": "compaction-native.c",
+      "bytes": 14500,
+      "sha256": "622fa2cd1986906ce4ab7c6f77ee1716256a874572405e10913eef37ec22bd40",
+      "mode": 384
+    },
+    {
+      "path": "development/formatter-environment-attempt-1/cleanup.json",
+      "bytes": 1545,
+      "sha256": "e9ecde8c227d26acc1d15533be42b301d2a63a9475da9efd238c2f11385e9030",
+      "mode": 384
+    },
+    {
+      "path": "development/formatter-environment-attempt-1/correlation-note.json",
+      "bytes": 596,
+      "sha256": "7d11af8a4393fd9d667cf2c72fc958f8a50befa5455573217ce51f838c7bbe65",
+      "mode": 384
+    },
+    {
+      "path": "development/formatter-environment-attempt-1/failure.json",
+      "bytes": 714,
+      "sha256": "2ecb5d33d69803bf6bca7d38b4219edac24628cb179d926e31d9e1593e9cafe1",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.1.2/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "dab59f1b609a0bcd9575c18825714e563b44ffb63df198021f1a90753928cc9c",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.1.2/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.2.1/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "dab59f1b609a0bcd9575c18825714e563b44ffb63df198021f1a90753928cc9c",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.2.1/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.3.1/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "dab59f1b609a0bcd9575c18825714e563b44ffb63df198021f1a90753928cc9c",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/4.3.1/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-1/validation.json",
+      "bytes": 5048,
+      "sha256": "368f9d3732a7d461ac59540f7fc87b56538a233f58056cdf342349979b1d6252",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.1.2/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "08be1e1f13186fbfeba754380d5338bb5af144722540e6ae887055a5898c8ad3",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.1.2/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.2.1/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "08be1e1f13186fbfeba754380d5338bb5af144722540e6ae887055a5898c8ad3",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.2.1/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.3.1/CompactionPeer.java",
+      "bytes": 12528,
+      "sha256": "08be1e1f13186fbfeba754380d5338bb5af144722540e6ae887055a5898c8ad3",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/4.3.1/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/java-attempt-2/validation.json",
+      "bytes": 5048,
+      "sha256": "16b10d40c667ae08dd4cf900d9c41248a701b1a35f4f28fe48b79bd9dadfbe5b",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-1/compaction-native.c",
+      "bytes": 14500,
+      "sha256": "8b0665a803c75e45d723ab175bb7000adc6b3ab7af9e6c474f030aa5c51911d4",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-1/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-1/validation.json",
+      "bytes": 1632,
+      "sha256": "40dfb233bad6078bd9d9fa0c7f1bcb4f64947cec2ff2f797a2e1e9881c04b648",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-2/compaction-native.c",
+      "bytes": 14500,
+      "sha256": "622fa2cd1986906ce4ab7c6f77ee1716256a874572405e10913eef37ec22bd40",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-2/compile.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": 384
+    },
+    {
+      "path": "development/native-attempt-2/validation.json",
+      "bytes": 1632,
+      "sha256": "2dae5263c1875ab94821f2fbecacb3f5ba236935d710dac4bcbd5ca5bf59572a",
+      "mode": 384
+    },
+    {
+      "path": "development/source-preparation.json",
+      "bytes": 1122,
+      "sha256": "e176f67b8cfba614b641984c1e968cd366225937935bae595194dede4858a812",
+      "mode": 384
+    },
+    {
+      "path": "pins.json",
+      "bytes": 2206,
+      "sha256": "a3be1232a998660e1abde2a5b5b1682db0461369dd0479ba5d9f2ff006735731",
+      "mode": 384
+    },
+    {
+      "path": "run-live.py",
+      "bytes": 18108,
+      "sha256": "45688d992514399f863fdd42b3dc750b578f7ddb28d3dcfd47eaf66df8df02a7",
+      "mode": 384
+    },
+    {
+      "path": "rust-adopter/Cargo.lock",
+      "bytes": 18291,
+      "sha256": "2d276042a8b3769c08fe78233107ae81e4cfc4de6242f1cefcecbcd0e494e38b",
+      "mode": 384
+    },
+    {
+      "path": "rust-adopter/Cargo.toml",
+      "bytes": 700,
+      "sha256": "faf0e2d9201f2581fedbea42caf5527bc3e4b329cf1f088c83bba32d2f03e33d",
+      "mode": 384
+    },
+    {
+      "path": "rust-adopter/src/main.rs",
+      "bytes": 14711,
+      "sha256": "48c1bc78d42cf9e348cdc96a01358bed28f052400c0ad42ae8f0fcfceff92c5e",
+      "mode": 384
+    },
+    {
+      "path": "verify-freeze.py",
+      "bytes": 1578,
+      "sha256": "7898aa35eea07b35fac8680dd5b768e10386017a0bbb701eea0a88eade1e6826",
+      "mode": 384
+    },
+    {
+      "path": "verify-live.py",
+      "bytes": 10178,
+      "sha256": "1fc700f88b38190571d4327b588eee3ab61c5e52da1e9c2bc6e8cdba64717c92",
+      "mode": 384
+    }
+  ],
+  "strict_preparation": {
+    "java_three_sdk_passed": "development/java-attempt-2/validation.json",
+    "native_passed": "development/native-attempt-2/validation.json",
+    "rust_fmt_and_parse_passed": true,
+    "rust_cargo_passed": false,
+    "actual_broker_peer_jobs": 0
+  },
+  "runtime_requires": "Exact pushed compaction core and peer source; single accepted four-cell broker matrix with copied Fetch ELFs; four locked offline public Rust adopter builds; four fresh live lanes and independently decoded public histories.",
+  "compiler_lease": "No Cargo launched in this preparation."
+}

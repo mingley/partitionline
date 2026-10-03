@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "observation": "Storage worker also reported the same six default-home archives after a missing-RUSTUP_HOME invocation. These are shared content-addressed rustup downloads; first-installer attribution is unresolved. cleanup.json records the exact observed files removed once, not two independent152MiB caches.",
+  "root_notified_utc": "2026-10-03T08:06:31Z",
+  "future_invocation_policy": "Explicit CARGO_HOME=/workspace/work/cargo and RUSTUP_HOME=/workspace/work/rustup; absolute already-installed toolchain executables. No new Cargo/JVM launch until root release."
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Source preparation only; no Cargo or broker runtime executed",
+  "java_source_strict_compile": [
+    "development/java-attempt-2/validation.json"
+  ],
+  "native_source_strict_compile": "development/native-attempt-2/validation.json",
+  "rust_source": "Parsed/formatted with explicit already-installed work rustfmt; public API bindings reviewed read-only; actual locked Cargo compile/lint remains pending parent slot and immutable core source.",
+  "python_source_parse": true,
+  "literal_expected_read_event_counts_per_reader_producer": {
+    "initial": 27,
+    "first": 15,
+    "before-expiry": 15,
+    "expired": 9,
+    "restart": 9,
+    "appended": 15
+  },
+  "planned_not_observed": {
+    "peer_jobs_per_lane": 160,
+    "public_record_events_per_lane": 2345,
+    "operator_calls_per_lane": 45,
+    "fresh_lanes": 4
+  },
+  "actual_broker_peer_jobs": 0,
+  "retained_formatter_setup_failure": "development/formatter-environment-attempt-1/failure.json",
+  "limitations": "Preparation cannot establish public-client runtime interoperability or compaction correctness."
+}

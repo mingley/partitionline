@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Strict own-source compilation; unmodified pinned upstream header is a system include. No broker runtime.",
+  "native_source_sha": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "gcc",
+    "-std=c11",
+    "-O2",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+    "-pedantic",
+    "-isystem",
+    "/workspace/work/c-peer/source/src",
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c",
+    "-L/workspace/work/c-peer/lib",
+    "-Wl,-rpath,/workspace/work/c-peer/lib",
+    "-lrdkafka",
+    "-o",
+    "/workspace/work/compaction-peers/native-attempt-2/compaction-native"
+  ],
+  "exit_code": 0,
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0\nCopyright (C) 2024 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n",
+  "pins": {
+    "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c": "622fa2cd1986906ce4ab7c6f77ee1716256a874572405e10913eef37ec22bd40",
+    "/workspace/work/c-peer/source/src/rdkafka.h": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+    "/workspace/work/c-peer/lib/librdkafka.so.1": "8083662863399e55acd8ac411ec7b81b6da707974111591182f1105db967adbc",
+    "/workspace/work/compaction-peers/native-attempt-2/compaction-native": "86f576e018f2d91234f2bc30a7f505f4007e7bb80d1f61e946dd8b719f5bb093"
+  },
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
