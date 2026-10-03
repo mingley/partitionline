@@ -1,0 +1,13 @@
+{
+  "phase": "Canonical sourcebefore guard passed; original runner dependency compile had started before root few-second hold arrived. Paused only own runner process group while root reclaims independently retained inactive cache.",
+  "runner_pgid": 1125253,
+  "signal": "SIGSTOP",
+  "at": "2026-10-03T11:23:38.885874+00:00",
+  "free_bytes": 822185984,
+  "external_disk_monitor_remains_active": true,
+  "resume_at": "2026-10-03T11:24:32.897341+00:00",
+  "resume_signal": "SIGCONT",
+  "resume_free_bytes": 1000210432,
+  "root_cleanup_receipt": "/workspace/work/integration/example-cache-clean-for-kafka42/receipt.json",
+  "runtime_tests_not_started_during_pause": true
+}

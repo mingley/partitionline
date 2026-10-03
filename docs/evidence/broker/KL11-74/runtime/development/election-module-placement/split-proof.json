@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "scope": "test module relocation only; no production or test item edits",
+  "source_path": "/workspace/partitionline/partitionline-broker/src/raft/election.rs",
+  "original_mode": 384,
+  "new_mode": 384,
+  "before_sha256": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+  "after_sha256": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a",
+  "production_prefix_sha256": "40a72d6ea673025d5972fb766970ab5287797c7c64c4141f8e9f46491cc4d77c",
+  "production_suffix_sha256": "7f3ecc01fc14175c73211c94f9ddd8a7dcf5a1705e9ac74b6b7addc5945cc4d1",
+  "test_module_sha256": "f8450ee4da23973dd3bfb8820c445b6b047b99990e01976363b8268ffdf0c2dc",
+  "original_parts": [
+    "production-prefix",
+    "test-module",
+    "separator-newline",
+    "production-suffix"
+  ],
+  "final_parts": [
+    "production-prefix",
+    "production-suffix",
+    "separator-newline",
+    "test-module"
+  ],
+  "lexical_module_depth": 0,
+  "module_tail_only_whitespace": true,
+  "item_bytes_preserved": true,
+  "cargo_executed": false
+}

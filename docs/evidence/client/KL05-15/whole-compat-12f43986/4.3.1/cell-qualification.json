@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "original_complete_runner_exit_code": 0,
+  "runtime_result": "passed",
+  "scenario_count": 8,
+  "share_records_accepted": 16,
+  "container_id": "889ad66875d6b2b66abce75717226023d27dd7e8200661bc83fef7bfb57293e0",
+  "cleanup_container_inspect_exit_code": 1,
+  "container_removed": true,
+  "original_wrapper_postguard_failure": {
+    "classification": "Optional remote-main metadata unavailable: HTTPS Git credential expiry; original source guard helper and exit128 log preserved. Original runtime/script passed.",
+    "raw_log_sha256": "0a29e0eac1af570bdf8a201b7da4d78a7fcf9e8ee0e16a7ec4bd976dd393d9d7"
+  },
+  "pure_local_recovery_guard": "full-source-after-local-recovery.json",
+  "stronger_followup_git_tree_index_exact_path_full600700_guard": "full-source-after-index-guard.json",
+  "three_release_aggregate_status": "pending remaining4.1.2 and4.2.1 genuine whole cells"
+}

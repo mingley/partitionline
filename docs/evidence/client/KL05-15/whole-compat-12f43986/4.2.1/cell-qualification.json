@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "original_complete_runner_exit_code": 0,
+  "runtime_result": "passed",
+  "scenario_count": 8,
+  "share_records_accepted": 16,
+  "share_fetch_ack_api_ranges": {
+    "78": [
+      1,
+      2
+    ],
+    "79": [
+      1,
+      2
+    ]
+  },
+  "container_id": "a9975e061e21ec4aeaa41e19f6b2a5686df9d6d4e5f4b763b0f58dfbc72a0973",
+  "container_removed": true,
+  "source_guards": [
+    "full-source-before.json",
+    "full-source-after.json"
+  ],
+  "runtime_minimum_free_bytes": 822173696,
+  "coordinated_compile_pause": "coordination-build-pause.json",
+  "three_release_aggregate_status": "all three required genuine whole cells passed"
+}

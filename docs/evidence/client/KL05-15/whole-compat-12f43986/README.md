@@ -1,0 +1,5 @@
+All three genuine digest-pinned Apache Kafka compatibility cells passed against clean detached source `12f4398662044947ae653f07923290127457f2ef`, using unchanged original scripts and real Cargo on CPUs0,1. Each cell completed eight required scenarios and accepted16 Share records;4.1.2 additionally completed the required25record verifiable producer/consumer/Java history.
+
+`qualification.json` joins these outcomes to the separately published four client QA cells and current4.3.1 acquisition/Renew/expiry/release/accept proof. Raw failures remain visible: optional remote Git credential metadata, first VFS capacity forecast/pull failure, the OCI config-name verifier correction, and the coordinated compile pause. Controlled socket fault tests are distinct from single-broker genuine delivery.
+
+`publication-restore-map.json` binds every copied raw file and points to lossless local image/ELF retention archives. No ELF, JAR, image archive, secret, or source modification is published in this packet.

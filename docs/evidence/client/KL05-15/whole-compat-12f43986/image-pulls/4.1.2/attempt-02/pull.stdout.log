@@ -1,0 +1,53 @@
+docker.io/apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e: Pulling from apache/kafka
+589002ba0eae: Pulling fs layer
+71075870ab49: Pulling fs layer
+5df9c4c4dcbf: Pulling fs layer
+1a7a516dcbb6: Pulling fs layer
+3655cb26ed1a: Pulling fs layer
+d0d23dfb4b8a: Pulling fs layer
+ce65cd59de6f: Pulling fs layer
+e0d69db66a16: Pulling fs layer
+d1e249c01bc6: Pulling fs layer
+78d4b6f40270: Pulling fs layer
+0a4bb85ea367: Pulling fs layer
+ce65cd59de6f: Waiting
+e0d69db66a16: Waiting
+d1e249c01bc6: Waiting
+78d4b6f40270: Waiting
+0a4bb85ea367: Waiting
+1a7a516dcbb6: Waiting
+3655cb26ed1a: Waiting
+d0d23dfb4b8a: Waiting
+589002ba0eae: Verifying Checksum
+589002ba0eae: Download complete
+589002ba0eae: Pull complete
+1a7a516dcbb6: Download complete
+71075870ab49: Verifying Checksum
+71075870ab49: Download complete
+3655cb26ed1a: Verifying Checksum
+3655cb26ed1a: Download complete
+71075870ab49: Pull complete
+ce65cd59de6f: Verifying Checksum
+ce65cd59de6f: Download complete
+5df9c4c4dcbf: Download complete
+e0d69db66a16: Verifying Checksum
+e0d69db66a16: Download complete
+d1e249c01bc6: Download complete
+0a4bb85ea367: Verifying Checksum
+0a4bb85ea367: Download complete
+78d4b6f40270: Verifying Checksum
+78d4b6f40270: Download complete
+5df9c4c4dcbf: Pull complete
+1a7a516dcbb6: Pull complete
+3655cb26ed1a: Pull complete
+d0d23dfb4b8a: Verifying Checksum
+d0d23dfb4b8a: Download complete
+d0d23dfb4b8a: Pull complete
+ce65cd59de6f: Pull complete
+e0d69db66a16: Pull complete
+d1e249c01bc6: Pull complete
+78d4b6f40270: Pull complete
+0a4bb85ea367: Pull complete
+Digest: sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+Status: Downloaded newer image for apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+docker.io/apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "cache_path": "/workspace/work/client-share-target",
+  "removed_generated_file_bytes": 218630006,
+  "removed_generated_files": 596,
+  "retained_elf_archive_sha256": "48145c25811aa7f9b00620d2794c33f5217a906ef077ec0214994e08cdb0ba98",
+  "retained_elf_archive_verified": true,
+  "active_references": [],
+  "source_rawlogs_fixture_and_retained_binaries_untouched": true,
+  "free_bytes_after": 2477903872
+}

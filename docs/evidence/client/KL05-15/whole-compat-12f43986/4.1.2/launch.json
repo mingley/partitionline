@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "version": "4.1.2",
+  "original_script_argv": [
+    "bash",
+    "scripts/ci-broker-compatibility.sh",
+    "4.1.2"
+  ],
+  "script_sha256": {
+    "scripts/ci-broker-compatibility.sh": "5802854a8c31993bd69679d0cdd33dc4ef921a60c5a7e7c4be699744d9c2f2ac",
+    "scripts/report-broker-compatibility.py": "269f195da645248ddabe49a4648581601c9023fa2de72088ef1ed667bc1f72a5",
+    "scripts/ci-verifiable-scenario.sh": "93cbb07154db57415b00a62dda8f727053fc846a59d8b1765cefc0ae059bbe46",
+    "tests/conformance/current-broker-cells.json": "866061efe403b90bae22571d4e2c82fca913214995ad2f0a7c717f7adc4dc4c1"
+  },
+  "cpuset": "0,1",
+  "real_cargo_proxy": "/workspace/work/cargo/bin/cargo -> rustup",
+  "real_cargo_toolchain": "stable",
+  "cargo_net_offline": true,
+  "free_bytes_before_launch": 2445676544,
+  "live_floor_bytes": 367001600,
+  "cached_genuine_image": {
+    "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+    "image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+    "repo_digests": [
+      "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+    ],
+    "existing_logical_bytes": 434024877,
+    "new_image_pull_bytes": 0
+  },
+  "captured_at": "2026-10-03T11:15:44.707291+00:00",
+  "scope": "Unchanged original complete runner with real Cargo. Verifiable CLI scenario is additionally enabled on its required Kafka 4.1.2 cell. No native fallback or Cargo shim."
+}

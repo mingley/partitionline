@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "published_compressed_path": "docs/evidence/broker/KL11-75/storage/merged-qualification/development/first-6e498e30/source-integrity.json.gz",
+  "path": "source-integrity.json.gz",
+  "sha256": "2910ca0b03307bf4eb2a01740c2edb1ff6e9a1e4d64f3dacdd7fb4d06a3baae7",
+  "uncompressed_sha256": "2e1ba65ac48e6edb19e35317c8fc1f40881c1dfae0759f2e88ff3e5197a697c7",
+  "uncompressed_bytes": 26660984,
+  "original_mode": 384,
+  "restore_path": "source-integrity.json",
+  "compression": "gzip",
+  "decompression_verified": true,
+  "compressed_mode": 384,
+  "scope": "raw complete audit JSON is losslessly restorable; source files remain in the original immutable tree, no second source materialization"
+}

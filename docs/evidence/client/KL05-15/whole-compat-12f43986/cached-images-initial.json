@@ -1,0 +1,64 @@
+{
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "docker_host": "unix:///var/run/docker.sock",
+  "inherited_docker_context_tls_variables_removed": true,
+  "images": [
+    {
+      "version": "4.1.2",
+      "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "argv": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "image",
+        "inspect",
+        "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+        "--format",
+        "{\"Id\":{{json .Id}},\"RepoDigests\":{{json .RepoDigests}},\"Size\":{{.Size}},\"Architecture\":{{json .Architecture}},\"Os\":{{json .Os}}}"
+      ],
+      "exit_code": 1,
+      "cached": false
+    },
+    {
+      "version": "4.2.1",
+      "reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "argv": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "image",
+        "inspect",
+        "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+        "--format",
+        "{\"Id\":{{json .Id}},\"RepoDigests\":{{json .RepoDigests}},\"Size\":{{.Size}},\"Architecture\":{{json .Architecture}},\"Os\":{{json .Os}}}"
+      ],
+      "exit_code": 1,
+      "cached": false
+    },
+    {
+      "version": "4.3.1",
+      "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "argv": [
+        "docker",
+        "--host=unix:///var/run/docker.sock",
+        "image",
+        "inspect",
+        "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+        "--format",
+        "{\"Id\":{{json .Id}},\"RepoDigests\":{{json .RepoDigests}},\"Size\":{{.Size}},\"Architecture\":{{json .Architecture}},\"Os\":{{json .Os}}}"
+      ],
+      "exit_code": 0,
+      "cached": true,
+      "image": {
+        "Id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+        "RepoDigests": [
+          "apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837"
+        ],
+        "Size": 441599684,
+        "Architecture": "amd64",
+        "Os": "linux"
+      }
+    }
+  ],
+  "free_bytes": 1247326208,
+  "captured_at": "2026-10-03T10:43:26.956984+00:00",
+  "scope": "Image preflight only; no pull, broker, Cargo or SDK runtime cell started. First unstripped explicit-host preflight exited1 at4.1.2 (toolchunk0275ce); retained tool transcript, and this explicit stripped localdaemon repetition checks all three independently."
+}

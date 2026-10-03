@@ -32818,6 +32818,11 @@
     ],
     "codex-avro-adapter-20261003": [
       "docs/evidence/broker/KL11-37/peers/java/"
+    ],
+    "codex-consumer-lookups-20261003": [
+      "docs/evidence/broker/KL11-37/peers/native/",
+      "docs/evidence/broker/KL11-37/peers/rust/",
+      "docs/evidence/broker/KL11-37/peers/driver/"
     ]
   },
   "dependency_note": "37 establishes signed OAUTHBEARER/OIDC, bounded real HTTPS discovery/JWKS/introspection authority refresh and post-authentication lease expiry/reconnect. Positive session lifetime and mid-connection renewed-token SASL reauthentication belong to dependent71; zero lifetime until71 qualification.",

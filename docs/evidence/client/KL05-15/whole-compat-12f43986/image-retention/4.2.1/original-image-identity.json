@@ -1,0 +1,74 @@
+{
+  "Id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+  "RepoTags": [],
+  "RepoDigests": [
+    "apache/kafka@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0"
+  ],
+  "Parent": "",
+  "Comment": "buildkit.dockerfile.v0",
+  "Created": "2026-05-13T13:15:15.085862238Z",
+  "DockerVersion": "",
+  "Author": "",
+  "Architecture": "amd64",
+  "Os": "linux",
+  "Size": 434167381,
+  "GraphDriver": {
+    "Data": null,
+    "Name": "vfs"
+  },
+  "RootFS": {
+    "Type": "layers",
+    "Layers": [
+      "sha256:29df493baa13de438d6d2ece3a8333032e0b7b9b9d8cce4ee82194da255f61e1",
+      "sha256:f04f9db94d3ebe8257b2026d7bd35bbb0aa82570c4c55192e00ddabb6056f905",
+      "sha256:9ad256544b54a40720d513294fa906b787902a8753169c7e6366e9695fdc2b13",
+      "sha256:4d88768ec38efa2708edcc95676789e75d7efe13336e17c1130f1caee43dfef4",
+      "sha256:5265264d380dd31ac07bc189084c2c56ce60b90a5d346daa4fc8af681797f57c",
+      "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+      "sha256:23ff2e2d6e8af6793d4819463204b768e00a24db119011ea690f5207d26f2d2c",
+      "sha256:d6b6ec6fc4cc4bccfc160ed3dd2d1375b71f872d2a5f863ddd74dd10c6df5397",
+      "sha256:a85e4430591788819df9b231e4c23bfdb71872ca62b196416c4c853a8ff3ce15",
+      "sha256:8de0c2fec2699d15a9895ba61db4a1034cc809a375b4765f91cb17224fa60cc3",
+      "sha256:be18102e34bc64ccc9050085d7795f207d3a708218b389f9f718a9996c349daa",
+      "sha256:16eb1a91742f0527ef5948710b06ff1fa2309a0ff4dd0fc0354f17f4c4b6b356"
+    ]
+  },
+  "Metadata": {
+    "LastTagTime": "0001-01-01T00:00:00Z"
+  },
+  "Config": {
+    "ArgsEscaped": true,
+    "Cmd": [
+      "/etc/kafka/docker/run"
+    ],
+    "Entrypoint": [
+      "/__cacert_entrypoint.sh"
+    ],
+    "Env": [
+      "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "JAVA_HOME=/opt/java/openjdk",
+      "LANG=en_US.UTF-8",
+      "LANGUAGE=en_US:en",
+      "LC_ALL=en_US.UTF-8",
+      "JAVA_VERSION=jdk-21.0.11+10"
+    ],
+    "ExposedPorts": {
+      "9092/tcp": {}
+    },
+    "Labels": {
+      "org.label-schema.build-date": "2026-05-13",
+      "org.label-schema.description": "Apache Kafka",
+      "org.label-schema.name": "kafka",
+      "org.label-schema.vcs-url": "https://github.com/apache/kafka",
+      "org.opencontainers.image.authors": "Apache Kafka"
+    },
+    "OnBuild": null,
+    "User": "appuser",
+    "Volumes": {
+      "/etc/kafka/secrets": {},
+      "/mnt/shared/config": {},
+      "/var/lib/kafka/data": {}
+    },
+    "WorkingDir": "/"
+  }
+}

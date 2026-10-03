@@ -1,0 +1,2305 @@
+{
+  "schema": 1,
+  "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "archive_sha256": null,
+  "source_manifest_sha256": "2e1ba65ac48e6edb19e35317c8fc1f40881c1dfae0759f2e88ff3e5197a697c7",
+  "source_manifest": {
+    "path": "source-integrity.json.gz",
+    "sha256": "2910ca0b03307bf4eb2a01740c2edb1ff6e9a1e4d64f3dacdd7fb4d06a3baae7",
+    "uncompressed_sha256": "2e1ba65ac48e6edb19e35317c8fc1f40881c1dfae0759f2e88ff3e5197a697c7",
+    "uncompressed_bytes": 26660984,
+    "original_mode": 384,
+    "restore_path": "source-integrity.json",
+    "compression": "gzip",
+    "decompression_verified": true,
+    "compressed_mode": 384
+  },
+  "scope": "complete immutable source; default, TLS, SASL, SASL+TLS, OIDC and all-features profiles on stable and Rust1.85; ordinary compaction/retention/rolling serving and fixed/joint snapshot, membership and replication tests; process/IO histories, not physical power loss, full Kafka cleaner or general KRaft qualification",
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "commands": [
+    {
+      "name": "clean-before-source-switch",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--target-dir",
+        "/workspace/work/target-broker-segments",
+        "--package",
+        "partitionline-broker"
+      ],
+      "ledger": "commands",
+      "cpu_affinity": {
+        "requested": "2,4",
+        "taskset_argument": "2,4",
+        "actual_cpu_ids": [
+          2,
+          4
+        ]
+      },
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 0.065,
+      "source_before": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_before": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "disk_monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 5127602176,
+        "samples": 3,
+        "triggered": false,
+        "trigger": null,
+        "actual_process_exit_code": 0,
+        "sample_log_sha256": "9c038d13de3c4e77e54d6759d2ca71112037ac9d958a375e24f013758a4d0f5b"
+      },
+      "log_sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+      "executed_elfs": [],
+      "post_command_cache_elfs": [],
+      "source_after": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_after": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "cache_clean_guard": {
+        "owners_before": [],
+        "owners_after": [],
+        "retained_cache_elfs": [],
+        "clean_authorized": true,
+        "retention_forecast": {
+          "sampled_free_bytes": 5127634944,
+          "disk_reserve_bytes": 367001600,
+          "metadata_reserve_bytes": 1048576,
+          "new_gzip_upper_bound_bytes": 0,
+          "required_free_bytes": 368050176,
+          "sufficient": true,
+          "unretained_elfs": [],
+          "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+        },
+        "cache_path": "/workspace/work/target-broker-segments",
+        "operation": "package-clean",
+        "process_guard_fields": [
+          "cwd",
+          "exe",
+          "fd",
+          "CARGO_TARGET_DIR_environment",
+          "maps"
+        ]
+      }
+    },
+    {
+      "name": "format",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--check"
+      ],
+      "ledger": "commands",
+      "cpu_affinity": {
+        "requested": "2,4",
+        "taskset_argument": "2,4",
+        "actual_cpu_ids": [
+          2,
+          4
+        ]
+      },
+      "environment_additions": {},
+      "exit_code": 0,
+      "elapsed_seconds": 0.47,
+      "source_before": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_before": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "disk_monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 5127577600,
+        "samples": 3,
+        "triggered": false,
+        "trigger": null,
+        "actual_process_exit_code": 0,
+        "sample_log_sha256": "3f4d1026726149ec5b6df7bcd8e14da87a90eb23d6bf76c929669a8dc93a629b"
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executed_elfs": [],
+      "post_command_cache_elfs": [],
+      "source_after": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_after": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ]
+    },
+    {
+      "name": "stable-default-all-targets",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "ledger": "commands",
+      "cpu_affinity": {
+        "requested": "2,4",
+        "taskset_argument": "2,4",
+        "actual_cpu_ids": [
+          2,
+          4
+        ]
+      },
+      "environment_additions": {
+        "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/wire-report.json",
+        "PARTITIONLINE_METADATA_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/metadata-report.json",
+        "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/produce-report.json",
+        "PARTITIONLINE_FETCH_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/fetch-report.json",
+        "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/rolling-report.json",
+        "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/apache-router-report.json",
+        "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/responses",
+        "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/proof",
+        "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/rolling-fault-histories",
+        "PL_COMPACTION_FAULT_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/compaction-fault-histories",
+        "PARTITIONLINE_COMPACTION_CORPUS_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/compaction-corpus",
+        "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/retention-fault-histories",
+        "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/retention-report.json",
+        "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/fetch-responses",
+        "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/controller-report.json",
+        "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/controller-responses",
+        "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/snapshot",
+        "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/snapshot-inner",
+        "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/replication",
+        "PL_MEMBERSHIP_CAPTURE_DIR": "/workspace/work/broker-merged-qualification-6e498e30/stable-default/membership",
+        "PL_SNAPSHOT_SOURCE_SHA": "6e498e3054180449520767ac040270bb1ba0e61b",
+        "PL_REPLICATION_SOURCE_SHA": "6e498e3054180449520767ac040270bb1ba0e61b",
+        "PL_MEMBERSHIP_SOURCE_SHA": "6e498e3054180449520767ac040270bb1ba0e61b"
+      },
+      "exit_code": 0,
+      "elapsed_seconds": 38.036,
+      "source_before": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_before": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "disk_monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 4934021120,
+        "samples": 78,
+        "triggered": false,
+        "trigger": null,
+        "actual_process_exit_code": 0,
+        "sample_log_sha256": "cbd5d6626e8f6d376b8cbf728a5384ab404124d7ce9b23e1799cef546f85e412"
+      },
+      "log_sha256": "955e1526184402645be39b8eb62b4cff44688d9cd4a4a9b9bb84e9683af2ee6a",
+      "executed_elfs": [
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/catalog-63fcbd6a24aeda18",
+          "sha256": "1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b",
+          "original_mode": 448,
+          "bytes": 1818776,
+          "retained_object": "bin/elf-objects/1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/codecs-e5f83d2b356a999c",
+          "sha256": "17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb",
+          "original_mode": 448,
+          "bytes": 1074832,
+          "retained_object": "bin/elf-objects/17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/compaction-db74215932b4c83c",
+          "sha256": "e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5",
+          "original_mode": 448,
+          "bytes": 2406632,
+          "retained_object": "bin/elf-objects/e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a",
+          "sha256": "b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03",
+          "original_mode": 448,
+          "bytes": 9800704,
+          "retained_object": "bin/elf-objects/b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/journal-e11c6628397343f0",
+          "sha256": "206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75",
+          "original_mode": 448,
+          "bytes": 1720360,
+          "retained_object": "bin/elf-objects/206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/metadata-7d5b85f288b6d75b",
+          "sha256": "9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4",
+          "original_mode": 448,
+          "bytes": 6911288,
+          "retained_object": "bin/elf-objects/9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_http-fa74ee4b226ea04a",
+          "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689",
+          "original_mode": 448,
+          "bytes": 1074856,
+          "retained_object": "bin/elf-objects/7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_sessions-d83634fe1544f8b8",
+          "sha256": "10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_validation-bceae71c7cc60860",
+          "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906",
+          "sha256": "fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c",
+          "original_mode": 448,
+          "bytes": 2128920,
+          "retained_object": "bin/elf-objects/fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+          "sha256": "bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d",
+          "original_mode": 448,
+          "bytes": 9397736,
+          "retained_object": "bin/elf-objects/bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/produce-6082aa461197432c",
+          "sha256": "bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e",
+          "original_mode": 448,
+          "bytes": 6712000,
+          "retained_object": "bin/elf-objects/bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/protocol-85d4e14bfc80e99a",
+          "sha256": "1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536",
+          "original_mode": 448,
+          "bytes": 4195240,
+          "retained_object": "bin/elf-objects/1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_election-fdd916042ccc2539",
+          "sha256": "498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88",
+          "original_mode": 448,
+          "bytes": 1857048,
+          "retained_object": "bin/elf-objects/498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+          "sha256": "13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71",
+          "original_mode": 448,
+          "bytes": 3474488,
+          "retained_object": "bin/elf-objects/13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_protocol-a5d013805f23b48d",
+          "sha256": "05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f",
+          "original_mode": 448,
+          "bytes": 5984696,
+          "retained_object": "bin/elf-objects/05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_replication-0ded16aa4dab486e",
+          "sha256": "c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a",
+          "original_mode": 448,
+          "bytes": 5301320,
+          "retained_object": "bin/elf-objects/c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_snapshot-094df91f92704702",
+          "sha256": "b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1",
+          "original_mode": 448,
+          "bytes": 1895768,
+          "retained_object": "bin/elf-objects/b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4",
+          "sha256": "9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3",
+          "original_mode": 448,
+          "bytes": 1712224,
+          "retained_object": "bin/elf-objects/9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/retention-ddb628fb8c2a0f99",
+          "sha256": "57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124",
+          "original_mode": 448,
+          "bytes": 6593640,
+          "retained_object": "bin/elf-objects/57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl-5b3669f368e2ae49",
+          "sha256": "35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0",
+          "original_mode": 448,
+          "bytes": 1074808,
+          "retained_object": "bin/elf-objects/35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_credentials-6231c978092e056d",
+          "sha256": "ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87",
+          "original_mode": 448,
+          "bytes": 1074928,
+          "retained_object": "bin/elf-objects/ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+          "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c",
+          "sha256": "d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac",
+          "original_mode": 448,
+          "bytes": 2400216,
+          "retained_object": "bin/elf-objects/d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/tls-cfda0bad2b73264b",
+          "sha256": "52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5",
+          "original_mode": 448,
+          "bytes": 1074800,
+          "retained_object": "bin/elf-objects/52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/transport-654727d80d8dea19",
+          "sha256": "03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c",
+          "original_mode": 448,
+          "bytes": 9674968,
+          "retained_object": "bin/elf-objects/03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-5ba0983b59e430c9",
+          "sha256": "d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b.gz",
+          "reason": "Cargo-reported execution, success or failure",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        }
+      ],
+      "post_command_cache_elfs": [
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+          "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "original_mode": 448,
+          "bytes": 756016,
+          "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+          "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "original_mode": 448,
+          "bytes": 756016,
+          "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build-script-build",
+          "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "original_mode": 448,
+          "bytes": 478224,
+          "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+          "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "original_mode": 448,
+          "bytes": 478224,
+          "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build-script-build",
+          "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "original_mode": 448,
+          "bytes": 638632,
+          "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+          "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "original_mode": 448,
+          "bytes": 638632,
+          "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+          "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "original_mode": 448,
+          "bytes": 613824,
+          "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+          "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "original_mode": 448,
+          "bytes": 613824,
+          "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build-script-build",
+          "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "original_mode": 448,
+          "bytes": 556632,
+          "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+          "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "original_mode": 448,
+          "bytes": 556632,
+          "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/catalog-63fcbd6a24aeda18",
+          "sha256": "1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b",
+          "original_mode": 448,
+          "bytes": 1818776,
+          "retained_object": "bin/elf-objects/1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/codecs-e5f83d2b356a999c",
+          "sha256": "17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb",
+          "original_mode": 448,
+          "bytes": 1074832,
+          "retained_object": "bin/elf-objects/17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/compaction-db74215932b4c83c",
+          "sha256": "e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5",
+          "original_mode": 448,
+          "bytes": 2406632,
+          "retained_object": "bin/elf-objects/e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a",
+          "sha256": "b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03",
+          "original_mode": 448,
+          "bytes": 9800704,
+          "retained_object": "bin/elf-objects/b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/journal-e11c6628397343f0",
+          "sha256": "206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75",
+          "original_mode": 448,
+          "bytes": 1720360,
+          "retained_object": "bin/elf-objects/206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+          "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+          "original_mode": 448,
+          "bytes": 3482104,
+          "retained_object": "bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/metadata-7d5b85f288b6d75b",
+          "sha256": "9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4",
+          "original_mode": 448,
+          "bytes": 6911288,
+          "retained_object": "bin/elf-objects/9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_http-fa74ee4b226ea04a",
+          "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689",
+          "original_mode": 448,
+          "bytes": 1074856,
+          "retained_object": "bin/elf-objects/7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_sessions-d83634fe1544f8b8",
+          "sha256": "10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_validation-bceae71c7cc60860",
+          "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906",
+          "sha256": "fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c",
+          "original_mode": 448,
+          "bytes": 2128920,
+          "retained_object": "bin/elf-objects/fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+          "sha256": "bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d",
+          "original_mode": 448,
+          "bytes": 9397736,
+          "retained_object": "bin/elf-objects/bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/produce-6082aa461197432c",
+          "sha256": "bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e",
+          "original_mode": 448,
+          "bytes": 6712000,
+          "retained_object": "bin/elf-objects/bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/protocol-85d4e14bfc80e99a",
+          "sha256": "1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536",
+          "original_mode": 448,
+          "bytes": 4195240,
+          "retained_object": "bin/elf-objects/1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_election-fdd916042ccc2539",
+          "sha256": "498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88",
+          "original_mode": 448,
+          "bytes": 1857048,
+          "retained_object": "bin/elf-objects/498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+          "sha256": "13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71",
+          "original_mode": 448,
+          "bytes": 3474488,
+          "retained_object": "bin/elf-objects/13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_protocol-a5d013805f23b48d",
+          "sha256": "05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f",
+          "original_mode": 448,
+          "bytes": 5984696,
+          "retained_object": "bin/elf-objects/05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_replication-0ded16aa4dab486e",
+          "sha256": "c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a",
+          "original_mode": 448,
+          "bytes": 5301320,
+          "retained_object": "bin/elf-objects/c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_snapshot-094df91f92704702",
+          "sha256": "b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1",
+          "original_mode": 448,
+          "bytes": 1895768,
+          "retained_object": "bin/elf-objects/b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4",
+          "sha256": "9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3",
+          "original_mode": 448,
+          "bytes": 1712224,
+          "retained_object": "bin/elf-objects/9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/retention-ddb628fb8c2a0f99",
+          "sha256": "57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124",
+          "original_mode": 448,
+          "bytes": 6593640,
+          "retained_object": "bin/elf-objects/57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl-5b3669f368e2ae49",
+          "sha256": "35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0",
+          "original_mode": 448,
+          "bytes": 1074808,
+          "retained_object": "bin/elf-objects/35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_credentials-6231c978092e056d",
+          "sha256": "ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87",
+          "original_mode": 448,
+          "bytes": 1074928,
+          "retained_object": "bin/elf-objects/ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+          "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c",
+          "sha256": "d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac",
+          "original_mode": 448,
+          "bytes": 2400216,
+          "retained_object": "bin/elf-objects/d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/tls-cfda0bad2b73264b",
+          "sha256": "52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5",
+          "original_mode": 448,
+          "bytes": 1074800,
+          "retained_object": "bin/elf-objects/52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/transport-654727d80d8dea19",
+          "sha256": "03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c",
+          "original_mode": 448,
+          "bytes": 9674968,
+          "retained_object": "bin/elf-objects/03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-5ba0983b59e430c9",
+          "sha256": "d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-all-targets",
+          "pre_clean_bytes_and_gzip_verified": false
+        }
+      ],
+      "source_after": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_after": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "capture_directory": "stable-default"
+    },
+    {
+      "name": "stable-default-strict-clippy",
+      "argv": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "ledger": "commands",
+      "cpu_affinity": {
+        "requested": "2,4",
+        "taskset_argument": "2,4",
+        "actual_cpu_ids": [
+          2,
+          4
+        ]
+      },
+      "environment_additions": {},
+      "exit_code": 101,
+      "elapsed_seconds": 10.622,
+      "source_before": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_before": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ],
+      "disk_monitor": {
+        "threshold_bytes": 367001600,
+        "poll_interval_seconds": 0.5,
+        "minimum_free_bytes": 4875051008,
+        "samples": 24,
+        "triggered": false,
+        "trigger": null,
+        "actual_process_exit_code": 101,
+        "sample_log_sha256": "fee8f02191747baf482ff1250498a6859af69c365137d7117fb9218fee96c7da"
+      },
+      "log_sha256": "274f5533a08d03a04e84b0530da3b82b05b931e6a847daeb6a9d535ecc2c43e3",
+      "executed_elfs": [],
+      "post_command_cache_elfs": [
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+          "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "original_mode": 448,
+          "bytes": 756016,
+          "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+          "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+          "original_mode": 448,
+          "bytes": 756016,
+          "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build-script-build",
+          "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "original_mode": 448,
+          "bytes": 478224,
+          "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+          "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+          "original_mode": 448,
+          "bytes": 478224,
+          "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build-script-build",
+          "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "original_mode": 448,
+          "bytes": 638632,
+          "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+          "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+          "original_mode": 448,
+          "bytes": 638632,
+          "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+          "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "original_mode": 448,
+          "bytes": 613824,
+          "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+          "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+          "original_mode": 448,
+          "bytes": 613824,
+          "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build-script-build",
+          "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "original_mode": 448,
+          "bytes": 556632,
+          "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+          "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+          "original_mode": 448,
+          "bytes": 556632,
+          "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/catalog-63fcbd6a24aeda18",
+          "sha256": "1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b",
+          "original_mode": 448,
+          "bytes": 1818776,
+          "retained_object": "bin/elf-objects/1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/codecs-e5f83d2b356a999c",
+          "sha256": "17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb",
+          "original_mode": 448,
+          "bytes": 1074832,
+          "retained_object": "bin/elf-objects/17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/compaction-db74215932b4c83c",
+          "sha256": "e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5",
+          "original_mode": 448,
+          "bytes": 2406632,
+          "retained_object": "bin/elf-objects/e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/fetch-dc28d9e99e19d99a",
+          "sha256": "b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03",
+          "original_mode": 448,
+          "bytes": 9800704,
+          "retained_object": "bin/elf-objects/b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/journal-e11c6628397343f0",
+          "sha256": "206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75",
+          "original_mode": 448,
+          "bytes": 1720360,
+          "retained_object": "bin/elf-objects/206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+          "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+          "original_mode": 448,
+          "bytes": 3482104,
+          "retained_object": "bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/metadata-7d5b85f288b6d75b",
+          "sha256": "9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4",
+          "original_mode": 448,
+          "bytes": 6911288,
+          "retained_object": "bin/elf-objects/9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_http-fa74ee4b226ea04a",
+          "sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689",
+          "original_mode": 448,
+          "bytes": 1074856,
+          "retained_object": "bin/elf-objects/7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_sessions-d83634fe1544f8b8",
+          "sha256": "10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_validation-bceae71c7cc60860",
+          "sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partition-59775e1ffb5b8906",
+          "sha256": "fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c",
+          "original_mode": 448,
+          "bytes": 2128920,
+          "retained_object": "bin/elf-objects/fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+          "sha256": "bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d",
+          "original_mode": 448,
+          "bytes": 9397736,
+          "retained_object": "bin/elf-objects/bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/produce-6082aa461197432c",
+          "sha256": "bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e",
+          "original_mode": 448,
+          "bytes": 6712000,
+          "retained_object": "bin/elf-objects/bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/protocol-85d4e14bfc80e99a",
+          "sha256": "1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536",
+          "original_mode": 448,
+          "bytes": 4195240,
+          "retained_object": "bin/elf-objects/1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_election-fdd916042ccc2539",
+          "sha256": "498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88",
+          "original_mode": 448,
+          "bytes": 1857048,
+          "retained_object": "bin/elf-objects/498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-df70681fff0cc180",
+          "sha256": "13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71",
+          "original_mode": 448,
+          "bytes": 3474488,
+          "retained_object": "bin/elf-objects/13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_protocol-a5d013805f23b48d",
+          "sha256": "05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f",
+          "original_mode": 448,
+          "bytes": 5984696,
+          "retained_object": "bin/elf-objects/05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_replication-0ded16aa4dab486e",
+          "sha256": "c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a",
+          "original_mode": 448,
+          "bytes": 5301320,
+          "retained_object": "bin/elf-objects/c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_snapshot-094df91f92704702",
+          "sha256": "b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1",
+          "original_mode": 448,
+          "bytes": 1895768,
+          "retained_object": "bin/elf-objects/b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/records-a33d3fff4f092df4",
+          "sha256": "9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3",
+          "original_mode": 448,
+          "bytes": 1712224,
+          "retained_object": "bin/elf-objects/9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/retention-ddb628fb8c2a0f99",
+          "sha256": "57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124",
+          "original_mode": 448,
+          "bytes": 6593640,
+          "retained_object": "bin/elf-objects/57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl-5b3669f368e2ae49",
+          "sha256": "35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0",
+          "original_mode": 448,
+          "bytes": 1074808,
+          "retained_object": "bin/elf-objects/35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_credentials-6231c978092e056d",
+          "sha256": "ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87",
+          "original_mode": 448,
+          "bytes": 1074928,
+          "retained_object": "bin/elf-objects/ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_sessions-e9364c4dc0ca55dc",
+          "sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+          "original_mode": 448,
+          "bytes": 1074904,
+          "retained_object": "bin/elf-objects/bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/segments-213b0db01981153c",
+          "sha256": "d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac",
+          "original_mode": 448,
+          "bytes": 2400216,
+          "retained_object": "bin/elf-objects/d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/tls-cfda0bad2b73264b",
+          "sha256": "52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5",
+          "original_mode": 448,
+          "bytes": 1074800,
+          "retained_object": "bin/elf-objects/52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/deps/transport-654727d80d8dea19",
+          "sha256": "03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c",
+          "original_mode": 448,
+          "bytes": 9674968,
+          "retained_object": "bin/elf-objects/03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        },
+        {
+          "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-5ba0983b59e430c9",
+          "sha256": "d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b",
+          "original_mode": 448,
+          "bytes": 1074920,
+          "retained_object": "bin/elf-objects/d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b.gz",
+          "reason": "immediate post-command cache snapshot before any later overwrite",
+          "command": "stable-default-strict-clippy",
+          "pre_clean_bytes_and_gzip_verified": false
+        }
+      ],
+      "source_after": {
+        "file_count": 71435,
+        "all_git_blobs_match": true,
+        "all_baseline_permission_modes_match": true,
+        "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2"
+      },
+      "external_test_tools_after": [
+        {
+          "path": "/usr/bin/openssl",
+          "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+          "full_permission_mode": 493
+        }
+      ]
+    }
+  ],
+  "maintenance_commands": [],
+  "execution_order": [
+    {
+      "sequence": 1,
+      "ledger": "commands",
+      "name": "clean-before-source-switch"
+    },
+    {
+      "sequence": 2,
+      "ledger": "commands",
+      "name": "format"
+    },
+    {
+      "sequence": 3,
+      "ledger": "commands",
+      "name": "stable-default-all-targets"
+    },
+    {
+      "sequence": 4,
+      "ledger": "commands",
+      "name": "stable-default-strict-clippy"
+    }
+  ],
+  "toolchains": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+    "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+  },
+  "retained_binaries": [
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable/fetch",
+      "sha256": "b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "original_mode": 448,
+      "copied_bytes_and_mode_verified": true
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable/retention",
+      "sha256": "57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+      "original_mode": 448,
+      "copied_bytes_and_mode_verified": true
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable-default/proof/lib-unit.gz",
+      "compression": "gzip",
+      "sha256": "f6afcd8aa1a129e05b8cb7e4fbf2f84a848c15748ee7155a8c30a37a49ed8ec3",
+      "uncompressed_sha256": "bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d",
+      "uncompressed_bytes": 9397736,
+      "original_mode": 448,
+      "decompression_verified": true,
+      "same_object_hardlink": "bin/elf-objects/bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d.gz",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable-default/proof/raft-replication.gz",
+      "compression": "gzip",
+      "sha256": "ba78b465557076ee6f8e1a1fc997dab5b47d0035a317e9f1cb3cdcf8fe3e512a",
+      "uncompressed_sha256": "c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a",
+      "uncompressed_bytes": 5301320,
+      "original_mode": 448,
+      "decompression_verified": true,
+      "same_object_hardlink": "bin/elf-objects/c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a.gz",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable-default/proof/raft-snapshot.gz",
+      "compression": "gzip",
+      "sha256": "bb0596204c59abc4e409a91b1f87f4235da96002e6cdecc0e519dca762855716",
+      "uncompressed_sha256": "b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1",
+      "uncompressed_bytes": 1895768,
+      "original_mode": 448,
+      "decompression_verified": true,
+      "same_object_hardlink": "bin/elf-objects/b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1.gz",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    },
+    {
+      "lane": "stable-default-all-targets",
+      "path": "bin/stable-default/proof/raft-membership.gz",
+      "compression": "gzip",
+      "sha256": "2a9b0bfd072b2f2da54dcdb4f809d1bb545428cdd1e03104cf0bf3aa87a03171",
+      "uncompressed_sha256": "13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71",
+      "uncompressed_bytes": 3474488,
+      "original_mode": 448,
+      "decompression_verified": true,
+      "same_object_hardlink": "bin/elf-objects/13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71.gz",
+      "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+      "build_command": [
+        "taskset",
+        "-c",
+        "2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--offline",
+        "--locked",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "--",
+        "--test-threads=1",
+        "--nocapture"
+      ],
+      "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+    }
+  ],
+  "driver_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "cpu_affinity": {
+    "requested": "2,4",
+    "taskset_argument": "2,4",
+    "actual_cpu_ids": [
+      2,
+      4
+    ]
+  },
+  "qualification_matrix": {
+    "toolchains": [
+      "stable",
+      "1.85.0"
+    ],
+    "profiles": [
+      {
+        "name": "default",
+        "cargo_flags": []
+      },
+      {
+        "name": "tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "tls"
+        ]
+      },
+      {
+        "name": "sasl",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl"
+        ]
+      },
+      {
+        "name": "sasl+tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl,tls"
+        ]
+      },
+      {
+        "name": "oidc",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "oidc"
+        ]
+      },
+      {
+        "name": "all-features",
+        "cargo_flags": [
+          "--all-features"
+        ]
+      }
+    ],
+    "test_cells": 12,
+    "gates_per_cell": [
+      "all-targets",
+      "strict-clippy",
+      "strict-doc",
+      "strict-doctest"
+    ],
+    "behavior_lint_doc_gates": 48,
+    "format_gates": 1,
+    "package_clean_commands": 2,
+    "expected_command_count": 51,
+    "dependency_flags": [
+      "--offline",
+      "--locked"
+    ],
+    "maintenance_command_count": 10,
+    "expected_actual_command_count": 61,
+    "format_network_policy": "cargo fmt --check with CARGO_NET_OFFLINE=true; dependency flags apply to built-in Cargo commands",
+    "peer_profiles": [
+      "default",
+      "all-features"
+    ],
+    "maintenance_operations": [
+      {
+        "name": "stable-maintenance-after-default",
+        "after_profile": "default",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-tls",
+        "after_profile": "tls",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-sasl",
+        "after_profile": "sasl",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-sasl+tls",
+        "after_profile": "sasl+tls",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-oidc",
+        "after_profile": "oidc",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-default",
+        "after_profile": "default",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-tls",
+        "after_profile": "tls",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-sasl",
+        "after_profile": "sasl",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-sasl+tls",
+        "after_profile": "sasl+tls",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-oidc",
+        "after_profile": "oidc",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      }
+    ]
+  },
+  "disk_policy": {
+    "minimum_free_bytes": 367001600,
+    "poll_interval_seconds": 0.5,
+    "action": "terminate only isolated command process group at threshold, retain failed ELF/log receipt; never delete data automatically"
+  },
+  "source_tree": "/workspace/work/broker-merged-source-6e498e30",
+  "source_materialization": "reused existing complete tree; no copy or extraction",
+  "source_origin_receipt": {
+    "path": "/workspace/work/integration/broker-merged-source-6e498e30/receipt.json",
+    "sha256": "41ddaf9dc7beead5a8add1d21bed196113fdfb32e3e779ad2c4b96f80590e225"
+  },
+  "elf_retention_scope": "every Cargo-reported harness, including failed tests and same-harness fault children, and all target ELF artifacts; OpenSSL separately retained; compiler/runtime prerequisites bound by toolchain provenance",
+  "external_test_tools": [
+    {
+      "original_path": "/usr/bin/openssl",
+      "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+      "original_mode": 493,
+      "bytes": 1103304,
+      "retained_object": "bin/elf-objects/f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1.gz",
+      "reason": "external TLS test prerequisite before any tests",
+      "command": "openssl-prerequisite",
+      "pre_clean_bytes_and_gzip_verified": false,
+      "resolved_path": "/usr/bin/openssl",
+      "version_command": [
+        "/usr/bin/openssl",
+        "version",
+        "-a"
+      ],
+      "version": "OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)\nbuilt on: Sun Aug 23 15:26:22 2026 UTC\nplatform: debian-amd64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.5.7=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2\nOPENSSLDIR: \"/usr/lib/ssl\"\nENGINESDIR: \"/usr/lib/x86_64-linux-gnu/engines-3\"\nMODULESDIR: \"/usr/lib/x86_64-linux-gnu/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_ia32cap=0xfffa3203078bffff:0x00405fc6f1bf07ab:0x0000002020000010:0x0000000000000000:0x0000000000000000\n"
+    }
+  ],
+  "retained_elf_objects": [
+    {
+      "path": "bin/elf-objects/f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1.gz",
+      "sha256": "3764eeba9576e977b81c0cf39638db9548f9b8298cab3fb33a8bb6e7e54e1580",
+      "uncompressed_sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+      "uncompressed_bytes": 1103304,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b.gz",
+      "sha256": "2b066d4b6bf9b45d0df32602ea06ab8ea58dcad4940e1bee554158d84848ec9d",
+      "uncompressed_sha256": "1da6418a7b214adf853b36303eeef5e06afbe9d81b2cf2c2b8e79d19fd9f0a1b",
+      "uncompressed_bytes": 1818776,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb.gz",
+      "sha256": "036314bd96c48e02780198db8307039172f32bc41ee1e5bb8449bc7db3c79623",
+      "uncompressed_sha256": "17154af3d490e001d572625819bb4f1dacaff30685d6e4c1e50cdecf1f8bf4eb",
+      "uncompressed_bytes": 1074832,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5.gz",
+      "sha256": "9e3303770fad981a8eed0caed8728dae21498c4e8ee602b4930c7dfb7a673ce0",
+      "uncompressed_sha256": "e358600491b65fb1623ca51bf46e1f7ef9e29fa57cb3c22087fa43d49af01dc5",
+      "uncompressed_bytes": 2406632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03.gz",
+      "sha256": "c4e1cc375c4ec0a00cb2de046beb3f87410b3a7f80c4faed06c6c1a13d5df3af",
+      "uncompressed_sha256": "b94eb2a811ff4551cd13b641e7bef127d3e71bb219285c0ac54df5ba41f50f03",
+      "uncompressed_bytes": 9800704,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75.gz",
+      "sha256": "ef328b49321855f9687b90cded30d252c8683919326c31e3d4241b6cd988eca6",
+      "uncompressed_sha256": "206c684fb4371a2a3ca60bc99442ef26cfc912321fffd6fda1bc5e8ca2961c75",
+      "uncompressed_bytes": 1720360,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4.gz",
+      "sha256": "52e0484f89fc3f2230d20ec667298ef3961817090bd32e333beab45a856a4528",
+      "uncompressed_sha256": "9c7d6ad146d740669f1f559d60b5c9e22188cf00b04c323344155eccce8978e4",
+      "uncompressed_bytes": 6911288,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689.gz",
+      "sha256": "1b29759a8daeee234ceb98cde5509c434d59fc5be6e57c44b0a18e87eae1b240",
+      "uncompressed_sha256": "7625fa873612fb1fe72c042f4b96b00bb853e6c68694e9738f605fc321527689",
+      "uncompressed_bytes": 1074856,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be.gz",
+      "sha256": "357ccae03b61a266ee64a311aa539e7ba03c59f6cefb1a0fd06992d773468ca3",
+      "uncompressed_sha256": "10fa4c9a19639fed96aadf0811ffaba26ff3c6ccda9f3d2d8764ddb5d08a36be",
+      "uncompressed_bytes": 1074904,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08.gz",
+      "sha256": "c7c0e55e970739f7645b05111ca6e28c64a8bf0be93d1d753ea5380cc8b60bc4",
+      "uncompressed_sha256": "20ed67f41d4f1591e77132a357d7cfac79ba47d6a8e6eca572babb1823aa7d08",
+      "uncompressed_bytes": 1074920,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c.gz",
+      "sha256": "25ac80aad23c5404d0470932744156e7e7d3950a7997261404bd592ba508eee3",
+      "uncompressed_sha256": "fdc6e604e4295c123af90992b816da389d87bdfec28cb7c47bc4e89a61e7615c",
+      "uncompressed_bytes": 2128920,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d.gz",
+      "sha256": "f6afcd8aa1a129e05b8cb7e4fbf2f84a848c15748ee7155a8c30a37a49ed8ec3",
+      "uncompressed_sha256": "bc56937215bdcaf8e6c3f0a3e53fa89551c7ae2f45d621bdda514c1705b83c1d",
+      "uncompressed_bytes": 9397736,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e.gz",
+      "sha256": "d5bca3ab97af6acb68fab5527263a337ff3141a4135fd78f9044f101ffbb2733",
+      "uncompressed_sha256": "bab1d680d35ddddf175e11a93d7cacaaa94ea5eeb9e183d4d6e6f030e09d0e6e",
+      "uncompressed_bytes": 6712000,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536.gz",
+      "sha256": "34672699036723d4079754f7cfe681fdf3ed82a927172aa425fa6ddbe9dcf808",
+      "uncompressed_sha256": "1fd2cee0cb2681287974cc5dc47aee40720b15fb9b0072677ff5daf68ae37536",
+      "uncompressed_bytes": 4195240,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88.gz",
+      "sha256": "ea1c32a98ccab0e56e3764f51189db1ffd660cf129ef2c12d77bde341d9dcb16",
+      "uncompressed_sha256": "498efe33f86b3d4b18f9e563b95a1216fcbfed3baa21c59d24e39492ea68cc88",
+      "uncompressed_bytes": 1857048,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71.gz",
+      "sha256": "2a9b0bfd072b2f2da54dcdb4f809d1bb545428cdd1e03104cf0bf3aa87a03171",
+      "uncompressed_sha256": "13d47a4701971d087b11abb9c469e5f58e8a28d0f68a174ebf3ed40bcd052b71",
+      "uncompressed_bytes": 3474488,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f.gz",
+      "sha256": "c1729449cf1dc88c2303c5c2dcc81c1148336f22baae4a7f91e56fb737c9a345",
+      "uncompressed_sha256": "05cb7807d28f1321d5aed5e878e2d49d90890c60fc68a080ab45802f28da895f",
+      "uncompressed_bytes": 5984696,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a.gz",
+      "sha256": "ba78b465557076ee6f8e1a1fc997dab5b47d0035a317e9f1cb3cdcf8fe3e512a",
+      "uncompressed_sha256": "c36525cc8b5adf3df9179e8b0a9a24de2960096186901cfcde0dfd2f75e8477a",
+      "uncompressed_bytes": 5301320,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1.gz",
+      "sha256": "bb0596204c59abc4e409a91b1f87f4235da96002e6cdecc0e519dca762855716",
+      "uncompressed_sha256": "b4fdadad295bf2a4a2e47633e7247a6e8ef8b8fca4ff884d6795a3390f768ed1",
+      "uncompressed_bytes": 1895768,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3.gz",
+      "sha256": "adaeca01122f6bb57dd7fd81f52614c57b6ce9c06dd576cb3761066e4eff5e53",
+      "uncompressed_sha256": "9c1035c737866b7d685aa4f524cfc66e2eb195f8d9776df8fff36864f8f542c3",
+      "uncompressed_bytes": 1712224,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124.gz",
+      "sha256": "230e40f07c899daab3d10158614b16f92abad894b5fc97e991f2f114f3f89ef2",
+      "uncompressed_sha256": "57eb784a23046840ec433cda76440d46e23176b0fb90c5933ab9958c0df0b124",
+      "uncompressed_bytes": 6593640,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0.gz",
+      "sha256": "0743d604c3759a2af404103432f8d700b0ef27974891b60f2224a4c5e0ae5aa7",
+      "uncompressed_sha256": "35904071920aed62d93c665d6451defe91b75322f4e41c9d56b6bbbe30ce24f0",
+      "uncompressed_bytes": 1074808,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87.gz",
+      "sha256": "da36a4dfe6f9aff19b4092bbddcf65c67b33580bb737d2bbc46ff40cb1906e3d",
+      "uncompressed_sha256": "ebe3501ccab686370c0aff5c88580c3c6764989fe79f7178c59e5430c06d5e87",
+      "uncompressed_bytes": 1074928,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0.gz",
+      "sha256": "74d446e21fb976e03c9bd4663e19d761c00da712c55b5829ad70b289ae0e49d1",
+      "uncompressed_sha256": "bfa395b82ab55e4c864ca09db9749f62657d50efa1944d9d79fbcaf4b6b518f0",
+      "uncompressed_bytes": 1074904,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac.gz",
+      "sha256": "9e1517291b52ba4ef8049ca217804ea96094c0e33554be8dd18bd85644d9cdb8",
+      "uncompressed_sha256": "d50e4a6f9d97db6c0f65886dbc657db48e281766073905d4e07589f228a697ac",
+      "uncompressed_bytes": 2400216,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5.gz",
+      "sha256": "bee6718bef4a8832158932592bb9c47673b6a49c4ed3f3cf3a3ffe904356c817",
+      "uncompressed_sha256": "52f12b14e26d98e21ed96e50d9b3cc340de35defce8e66f0940f03c219e789f5",
+      "uncompressed_bytes": 1074800,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c.gz",
+      "sha256": "5f78a7ab4f51483c1ddee707fa9d967f55c4fd45588d1eca2af9ecc5b7f9dd00",
+      "uncompressed_sha256": "03ecd3c5e41d3f8d6f7588f69f1da9e5019c5b0b627ceb41910abb7fe2ed604c",
+      "uncompressed_bytes": 9674968,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b.gz",
+      "sha256": "b9301c9ab60895796186fab33cd2cfad6d7be3830b722da3243793c7df8a6ac2",
+      "uncompressed_sha256": "d21bedcfa1d0dbddcf02a38bf56bcba8246c4ee3c7cf5260b42f6bf07cec176b",
+      "uncompressed_bytes": 1074920,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+      "sha256": "32e1f6a309404d57feb9ecba6803e89e143266d94c201e1676bf7b7c56fe1215",
+      "uncompressed_sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+      "uncompressed_bytes": 756016,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+      "sha256": "91baad5ebfbe1330c32cade5820c1cb37b951c87a6323cf2bfdc1ab51e4e4b16",
+      "uncompressed_sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+      "uncompressed_bytes": 478224,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+      "sha256": "2decdfed448ccbf98a1199c4829af01d4b878390d4b52ada722cb779ab93428c",
+      "uncompressed_sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+      "uncompressed_bytes": 638632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+      "sha256": "694fba5993051c6b39a83afd87e9d1983f0b8849ec23e00f665e9dd4dad108eb",
+      "uncompressed_sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+      "uncompressed_bytes": 613824,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+      "sha256": "dfe307d8eb4123fac83a3a89ffbcc7c16ddef8f4a1f39479d8cfa2c349a90f33",
+      "uncompressed_sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+      "uncompressed_bytes": 556632,
+      "compression": "gzip",
+      "decompression_verified": true
+    },
+    {
+      "path": "bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+      "sha256": "3e3b8e287d17e32804a9a13e156ddfefb8b004c4fde6df720eff852722ee466a",
+      "uncompressed_sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+      "uncompressed_bytes": 3482104,
+      "compression": "gzip",
+      "decompression_verified": true
+    }
+  ],
+  "retention_forecasts": [
+    {
+      "command": "clean-before-source-switch",
+      "reason": "cache ELF preserved before package clean",
+      "sampled_free_bytes": 5127630848,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 0,
+      "required_free_bytes": 368050176,
+      "sufficient": true,
+      "unretained_elfs": [],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    },
+    {
+      "command": "clean-before-source-switch",
+      "reason": "immediate post-command cache snapshot before any later overwrite",
+      "sampled_free_bytes": 5127602176,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 0,
+      "required_free_bytes": 368050176,
+      "sufficient": true,
+      "unretained_elfs": [],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    },
+    {
+      "command": "format",
+      "reason": "immediate post-command cache snapshot before any later overwrite",
+      "sampled_free_bytes": 5127577600,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 0,
+      "required_free_bytes": 368050176,
+      "sufficient": true,
+      "unretained_elfs": [],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    },
+    {
+      "command": "stable-default-all-targets",
+      "reason": "immediate post-command cache snapshot before any later overwrite",
+      "sampled_free_bytes": 4909203456,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 9572409,
+      "required_free_bytes": 377622585,
+      "sufficient": true,
+      "unretained_elfs": [
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+          "raw_bytes": 756016,
+          "gzip_upper_bound_bytes": 756315,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+          "raw_bytes": 756016,
+          "gzip_upper_bound_bytes": 756315,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build-script-build",
+          "raw_bytes": 478224,
+          "gzip_upper_bound_bytes": 478438,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+          "raw_bytes": 478224,
+          "gzip_upper_bound_bytes": 478438,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build-script-build",
+          "raw_bytes": 638632,
+          "gzip_upper_bound_bytes": 638891,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+          "raw_bytes": 638632,
+          "gzip_upper_bound_bytes": 638891,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+          "raw_bytes": 613824,
+          "gzip_upper_bound_bytes": 614078,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+          "raw_bytes": 613824,
+          "gzip_upper_bound_bytes": 614078,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build-script-build",
+          "raw_bytes": 556632,
+          "gzip_upper_bound_bytes": 556866,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+          "raw_bytes": 556632,
+          "gzip_upper_bound_bytes": 556866,
+          "full_permission_mode": 448
+        },
+        {
+          "path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+          "raw_bytes": 3482104,
+          "gzip_upper_bound_bytes": 3483233,
+          "full_permission_mode": 448
+        }
+      ],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    },
+    {
+      "command": "stable-default-strict-clippy",
+      "reason": "immediate post-command cache snapshot before any later overwrite",
+      "sampled_free_bytes": 4875051008,
+      "disk_reserve_bytes": 367001600,
+      "metadata_reserve_bytes": 1048576,
+      "new_gzip_upper_bound_bytes": 0,
+      "required_free_bytes": 368050176,
+      "sufficient": true,
+      "unretained_elfs": [],
+      "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+    }
+  ],
+  "execution_counts": {
+    "qualification_commands": 4,
+    "maintenance_commands": 0,
+    "actual_commands": 4
+  }
+}

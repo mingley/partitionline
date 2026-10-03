@@ -1285,7 +1285,7 @@
   "controller_test_source": "partitionline-broker/tests/raft_protocol.rs",
   "controller_test_source_sha256": "42a61312b6beef1411713f5ddc04c23267746344a956c5847a41797b70d7e720",
   "election_source": "partitionline-broker/src/raft/election.rs",
-  "election_source_sha256": "28489672e0d66c9252ec00e2dc6325bce210053d9401413b2f5c43ad6647f725",
+  "election_source_sha256": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a",
   "raft_module_source": "partitionline-broker/src/raft/mod.rs",
   "raft_module_source_sha256": "7db38466765566dc21bc61fd53dcd92bebd2e9eeb973e39965b87cbbbafa4dd4",
   "controller_fixture_root": "partitionline-broker/tests/fixtures/raft-protocol",

@@ -1,0 +1,2 @@
+PASS: all 69144 frozen blobs/modes and 12 frozen hashes unchanged at whole-4.3.1-before
+PASS: detached clean 12f4 Git execution worktree, all 69,144 canonical paths/bytes/modes and no REPO WORK source inode sharing

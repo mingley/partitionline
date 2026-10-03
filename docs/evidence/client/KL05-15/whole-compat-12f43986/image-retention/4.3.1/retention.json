@@ -1,0 +1,238 @@
+{
+  "schema_version": 1,
+  "captured_at": "2026-10-03T11:12:17.657070+00:00",
+  "image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+  "repo_digests": [
+    "apache/kafka@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837"
+  ],
+  "os": "linux",
+  "architecture": "amd64",
+  "logical_image_bytes": 441599684,
+  "archive_path": "/workspace/work/client-share-assessment/whole-compat-12f43986/image-retention/4.3.1/docker-save.tar.gz",
+  "archive_bytes": 244706636,
+  "archive_sha256": "f4e1d57f3677af52e5cbf1c458d4b1d105437f69fb26d3658d235c925bc2b939",
+  "exact_raw_docker_save_bytes": 443478528,
+  "exact_raw_docker_save_sha256": "718a00fd21d8a32da418840fd735ff4a2cff405cf75fcd9fdf141b80be9397ae",
+  "gzip_full_stream_crc_and_size_verified": true,
+  "original_gzip_roundtrip_comparison_passed_before_first_verifier_config_suffix_failure": true,
+  "original_gzip_roundtrip_proof": "Retained executed-retention-helper.py completed raw tarstream hash+size comparison before KeyError shown in retention-4.3.1-command.log. Corrected verifier independently reads the unchanged full archive and checks every image layer.",
+  "image_config_sha_equals_image_id": true,
+  "all_layer_tar_hashes_equal_rootfs_diff_ids": true,
+  "layer_count": 12,
+  "archive_members": {
+    "blobs/sha256/0be19fa8693995f0a0910765b53557979fe76b42b45e5437f1c1a5518dcf1136": {
+      "sha256": "0be19fa8693995f0a0910765b53557979fe76b42b45e5437f1c1a5518dcf1136",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/2229ba2894dc96debcf959404fc0b05d51119da8d2160707f3fed631e09905c6": {
+      "sha256": "2229ba2894dc96debcf959404fc0b05d51119da8d2160707f3fed631e09905c6",
+      "bytes": 2075,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/29df493baa13de438d6d2ece3a8333032e0b7b9b9d8cce4ee82194da255f61e1": {
+      "sha256": "29df493baa13de438d6d2ece3a8333032e0b7b9b9d8cce4ee82194da255f61e1",
+      "bytes": 8732160,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/3dcd67749324dfc131563530048f30c60dd58f56b90a2280a4ac298c051f0494": {
+      "sha256": "3dcd67749324dfc131563530048f30c60dd58f56b90a2280a4ac298c051f0494",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/3e570e4e59d1d1ad379a4b6132006085379b3590c333b516e1f496071f4eb0a3": {
+      "sha256": "3e570e4e59d1d1ad379a4b6132006085379b3590c333b516e1f496071f4eb0a3",
+      "bytes": 1390,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11": {
+      "sha256": "47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+      "bytes": 8838,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/486cf744c5374390170213d70f172396d6eb2d7b8820e335c4c8d1117d571a2f": {
+      "sha256": "486cf744c5374390170213d70f172396d6eb2d7b8820e335c4c8d1117d571a2f",
+      "bytes": 13312,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/4d88768ec38efa2708edcc95676789e75d7efe13336e17c1130f1caee43dfef4": {
+      "sha256": "4d88768ec38efa2708edcc95676789e75d7efe13336e17c1130f1caee43dfef4",
+      "bytes": 2048,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/5265264d380dd31ac07bc189084c2c56ce60b90a5d346daa4fc8af681797f57c": {
+      "sha256": "5265264d380dd31ac07bc189084c2c56ce60b90a5d346daa4fc8af681797f57c",
+      "bytes": 7168,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef": {
+      "sha256": "5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef",
+      "bytes": 1024,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/634a1f01f277c5396beadf0330e28f4893490eb59711be7ce2b4013b70ee85d3": {
+      "sha256": "634a1f01f277c5396beadf0330e28f4893490eb59711be7ce2b4013b70ee85d3",
+      "bytes": 401,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/6900c41d1ecfd6cb559f5ccd43e65e6f0aca4713d5255da181471ef66c8509b5": {
+      "sha256": "6900c41d1ecfd6cb559f5ccd43e65e6f0aca4713d5255da181471ef66c8509b5",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/6952729067b628903ce425204b113022c4c90ceeafc2a711f5328a534457f3df": {
+      "sha256": "6952729067b628903ce425204b113022c4c90ceeafc2a711f5328a534457f3df",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/777766edccc7e5951be781b18a5d48462e47140c1ef8d7a2e8d1210880998eec": {
+      "sha256": "777766edccc7e5951be781b18a5d48462e47140c1ef8d7a2e8d1210880998eec",
+      "bytes": 53737984,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/7b2f13275e9f55fc503887bfcfb27122c53aca8a4285e7d3fa204b4d2281e551": {
+      "sha256": "7b2f13275e9f55fc503887bfcfb27122c53aca8a4285e7d3fa204b4d2281e551",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/7ecc3f7086a09c2a9daaac24dac3316632613d95ebb8d51c3d62031f9da1a61c": {
+      "sha256": "7ecc3f7086a09c2a9daaac24dac3316632613d95ebb8d51c3d62031f9da1a61c",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/85ed86239b446242d6c2080a8d47c916fbfdeee1a4cb73010782dc35362defe5": {
+      "sha256": "85ed86239b446242d6c2080a8d47c916fbfdeee1a4cb73010782dc35362defe5",
+      "bytes": 154793984,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/96aeb72da3b35ba9b856829277d77763c2f3aae6ae59bd47d692d6f1f72c7628": {
+      "sha256": "96aeb72da3b35ba9b856829277d77763c2f3aae6ae59bd47d692d6f1f72c7628",
+      "bytes": 26016256,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/9ad256544b54a40720d513294fa906b787902a8753169c7e6366e9695fdc2b13": {
+      "sha256": "9ad256544b54a40720d513294fa906b787902a8753169c7e6366e9695fdc2b13",
+      "bytes": 164584448,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/a06d46942dc2593caadcbdbb7f17b41e773411fa0ca9774c85c0a4ca52890f1c": {
+      "sha256": "a06d46942dc2593caadcbdbb7f17b41e773411fa0ca9774c85c0a4ca52890f1c",
+      "bytes": 6656,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/a8d9e4dce80ddebe3d3e8c492670056eac96a8348f3a1f85d58d354756b1537b": {
+      "sha256": "a8d9e4dce80ddebe3d3e8c492670056eac96a8348f3a1f85d58d354756b1537b",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/ab2a850dbdd0f31007c1671c978a41de3fdd4fe9b3d8009313bcff413ab1508a": {
+      "sha256": "ab2a850dbdd0f31007c1671c978a41de3fdd4fe9b3d8009313bcff413ab1508a",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/ad8d44a5d4240552927e65875d14a8e731ae2e6bb4f24193388a90518e03ba8c": {
+      "sha256": "ad8d44a5d4240552927e65875d14a8e731ae2e6bb4f24193388a90518e03ba8c",
+      "bytes": 10240,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/b361aac023531810cae466697b9cbd88c865182fc0d3b6a937345498cfdd125f": {
+      "sha256": "b361aac023531810cae466697b9cbd88c865182fc0d3b6a937345498cfdd125f",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/e7374bdf5bac0c32a94b7aa2e88be41cf92c5c939db40ee1323b8cd750210170": {
+      "sha256": "e7374bdf5bac0c32a94b7aa2e88be41cf92c5c939db40ee1323b8cd750210170",
+      "bytes": 477,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "blobs/sha256/f04f9db94d3ebe8257b2026d7bd35bbb0aa82570c4c55192e00ddabb6056f905": {
+      "sha256": "f04f9db94d3ebe8257b2026d7bd35bbb0aa82570c4c55192e00ddabb6056f905",
+      "bytes": 35532288,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "index.json": {
+      "sha256": "8a05355d86678dfb031e82e6c31309db82ba5c7a5ed600ad384c68b3eefe10eb",
+      "bytes": 241,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "manifest.json": {
+      "sha256": "36a526ffbed0d82a127f2afe7d0089bde5665baeb3b4ec441d49d9b41498720b",
+      "bytes": 3812,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    },
+    "oci-layout": {
+      "sha256": "0cdedc0869d60bb59e3dde736f996025e70318180587e049cfa22f80d67aa8e5",
+      "bytes": 31,
+      "tar_mode": 420,
+      "tar_uid": 0,
+      "tar_gid": 0
+    }
+  },
+  "active_or_stopped_container_references": [],
+  "free_bytes_after_validation": 2217705472,
+  "restore_argv": [
+    "docker",
+    "image",
+    "load",
+    "--input",
+    "/workspace/work/client-share-assessment/whole-compat-12f43986/image-retention/4.3.1/docker-save.tar.gz"
+  ],
+  "restore_scope": "Load restores exact image configuration and every layer tar. Original RepoDigest identity is retained separately; archive load alone may not restore registry RepoDigest metadata. Any future genuine qualification must independently recheck registry identity.",
+  "deletion_performed": false
+}

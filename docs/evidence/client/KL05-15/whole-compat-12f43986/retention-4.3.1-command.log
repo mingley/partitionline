@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/workspace/work/client-share-assessment/retain-docker-image.py", line 75, in <module>
+    config = documents[config_name]
+             ~~~~~~~~~^^^^^^^^^^^^^
+KeyError: 'blobs/sha256/47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11'

@@ -1,0 +1,25 @@
+{
+  "owners_before": [],
+  "owners_after": [],
+  "retained_cache_elfs": [],
+  "clean_authorized": true,
+  "retention_forecast": {
+    "sampled_free_bytes": 5127634944,
+    "disk_reserve_bytes": 367001600,
+    "metadata_reserve_bytes": 1048576,
+    "new_gzip_upper_bound_bytes": 0,
+    "required_free_bytes": 368050176,
+    "sufficient": true,
+    "unretained_elfs": [],
+    "scope": "before cache-retention output writes; no destructive cleanup on refusal"
+  },
+  "cache_path": "/workspace/work/target-broker-segments",
+  "operation": "package-clean",
+  "process_guard_fields": [
+    "cwd",
+    "exe",
+    "fd",
+    "CARGO_TARGET_DIR_environment",
+    "maps"
+  ]
+}

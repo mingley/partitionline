@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "bash",
+    "scripts/ci-broker-compatibility.sh",
+    "4.3.1"
+  ],
+  "exit_code": 0,
+  "cpuset": "0,1",
+  "unchanged_original_script": true
+}

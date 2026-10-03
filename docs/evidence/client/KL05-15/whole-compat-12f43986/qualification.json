@@ -1,0 +1,264 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "captured_at": "2026-10-03T11:32:35.132290+00:00",
+  "status": "all_three_required_whole_client_compatibility_cells_passed",
+  "cells": {
+    "4.1.2": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+      "image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          1
+        ],
+        "79": [
+          1,
+          1
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          27,
+          27
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.1.2/report.json",
+      "report_sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8",
+      "cleanup_verified": true
+    },
+    "4.2.1": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+      "image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          2
+        ],
+        "79": [
+          1,
+          2
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          29,
+          29
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.2.1/report.json",
+      "report_sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3",
+      "cleanup_verified": true
+    },
+    "4.3.1": {
+      "status": "passed",
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "image_id": "sha256:47dccc76b32761bc57462b8753144cdbb73a16b123b1d13d3eedb92bb7952b11",
+      "cpuset": "0,1",
+      "original_runner_exit_code": 0,
+      "runtime_case": "live_compatibility_required",
+      "runtime_test_result": "1passed/0failed/0ignored/0filtered",
+      "scenario_count": 8,
+      "records_per_data_scenario": 16,
+      "share_accepted": 16,
+      "share_api_ranges": {
+        "78": [
+          1,
+          2
+        ],
+        "79": [
+          1,
+          2
+        ]
+      },
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          30,
+          30
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "report": "4.3.1/report.json",
+      "report_sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe",
+      "cleanup_verified": true
+    }
+  },
+  "independent_java_record_checks": "Every cell validates exact16 input and16 read_committed transaction-output IDs; Java confirms four required groups offsets8/partition and zero lag.",
+  "additional_required_verifiable_4_1_2": {
+    "report": "4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/report.json",
+    "producer_acknowledged": 25,
+    "consumer_delivered": 25,
+    "java_records": 25,
+    "java_committed_offset": 25,
+    "java_lag": 0
+  },
+  "original_scripts": {
+    "scripts/ci-broker-compatibility.sh": "5802854a8c31993bd69679d0cdd33dc4ef921a60c5a7e7c4be699744d9c2f2ac",
+    "scripts/report-broker-compatibility.py": "269f195da645248ddabe49a4648581601c9023fa2de72088ef1ed667bc1f72a5",
+    "scripts/ci-verifiable-scenario.sh": "93cbb07154db57415b00a62dda8f727053fc846a59d8b1765cefc0ae059bbe46",
+    "tests/conformance/current-broker-cells.json": "866061efe403b90bae22571d4e2c82fca913214995ad2f0a7c717f7adc4dc4c1"
+  },
+  "real_cargo": "The unchanged canonical CI scripts run the actual work-home stable Cargo proxy/toolchain; no Cargo shim, substituted runtime executable, or native broker fallback.",
+  "source_identity_guard_scope": {
+    "old_full_four_qa": "The separately frozen four-QA packet verifies every expected69,144Gitblob and logical Gitmode/executable class before/after36commands (72checks). It does not claim all72checks enforced full07777 modes or the exact extra-file pathset.",
+    "whole_4_3_initial": "Original before guard additionally verified exact69,144 codepathset excluding .git, clean detachedHEAD12f4 and zero REPO WORK inode sharing. Original after guard stopped on optional remote-main Git credential metadata exit128 before its receipt; raw helper/log retained.",
+    "whole_4_3_recovery": "Separate purelocal recovery verifies codebytes/logicalGitmodes/clean detachedHEAD/exactset. A further separate guard also verifies all Git tree/index entries and canonical full600/700 filesystem modes. No historical stronger check is invented.",
+    "whole_4_1_and_4_2": "Both before/after guards verify all69,144 Gitblobs+SHA256, Git tree/index, exact codepathset excluding .git, full canonical600/700 modes, twelve explicit frozen hashes, clean detachedHEAD12f4, zero REPO WORK inode sharing.",
+    "remote_metadata": "Known HTTPS credential expiry prevented optional remote-main metadata; no remote HEAD equality is claimed. Historical qualified code identity comes from complete local Git tree/index and blob/hash/mode guards."
+  },
+  "separate_full_client_and_current_share_packet": "docs/evidence/client/KL05-15/final-12f43986/qualification.json",
+  "full_qa_totals": {
+    "passed_tests": 7342,
+    "passed_doctests": 16,
+    "commands": 36,
+    "whole_source_before_after_checks": 72,
+    "failed": 0,
+    "distinct_live_cases_ignored_per_unit_lane": 5
+  },
+  "genuine_current_share_lifecycle": {
+    "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+    "runtime": {
+      "schema_version": 1,
+      "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+      "reference": "apache/kafka:4.3.1@sha256:77e3df9054047a88b520d0cc46e16696d3b22022e1d580aeccd2632df6532837",
+      "finalized_features": {
+        "eligible.leader.replicas.version": [
+          1,
+          1
+        ],
+        "group.version": [
+          1,
+          1
+        ],
+        "metadata.version": [
+          30,
+          30
+        ],
+        "share.version": [
+          1,
+          1
+        ],
+        "streams.version": [
+          1,
+          1
+        ],
+        "transaction.version": [
+          2,
+          2
+        ]
+      },
+      "runtime_version": 2,
+      "acquire_mode": "record_limit",
+      "lock_ms": 15000,
+      "accepted_offsets": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "release_delivery_count": 3,
+      "expiry_delivery_count": 2,
+      "renew": "successful",
+      "disposition": "supported"
+    },
+    "independent_java_records": 4,
+    "independent_persisted_batches": 1,
+    "source_before_after_checks": 2,
+    "cpu_affinity": "0,1",
+    "original_helper_sha256": "fb2f29c40e0743f0793c4928d36e3f497c2e21f5f7ed8e06ebc7c816a05d1a51",
+    "executed_helper_sha256": "edb27abbb161b8bec2308774649780b02cf6c69b913579691a21c57073598f73",
+    "helper_overlay_scope": "Exactly three CPU affinity substitutions only; the real Cargo command and all identity, runtime, Java, and persisted-batch assertions remain unchanged. No Cargo shim.",
+    "cleanup": "The owned container was removed and its absence was independently verified."
+  },
+  "four_qa_and_current_share_packet_unchanged": true,
+  "resolved_prior_pending_gate": "The earlier final-12f43986 receipt correctly recorded these three cells pending at publication; this later independent packet supplies their actual completed outcomes without rewriting it.",
+  "retained_first_outcomes": [
+    "4.3 original full CI passed; original wrapper postguard failed only on optional HTTPS Git credential metadata. Original helper/log preserved, local recoveries separately recorded.",
+    "First genuine4.1 image pull exceeded the350MiB floor because the initial logical-image forecast missed cumulative VFS tree storage. Own client was cancelled143, image not registered, partial temporary state automatically released by daemon; raw monitor includes the actual zero-space observation. No Rust/Kafka test passed in that attempt.",
+    "First4.3 image-save verifier correctly compared complete gzip tarstream bytes/hash, then failed detecting suffixless OCI config blob. Failed helper/log/archive retained; corrected existing-archive verification independently proves config-ID and every RootFS diffID before exact image deletion.",
+    "4.2 original dependency build was briefly SIGSTOP/SIGCONT paused at root resource coordination; runtime tests had not started. Exact pause/resume timing and cleanup receipt preserved."
+  ],
+  "image_lifecycle": "All three completed images preserved with real Docker save deterministic gzip, exact tarstream hash/size, image config-ID and all RootFS layer tar hashes. Only those exact inactive IDs removed after zero-container/process checks. Existing3.9 image unchanged. No broad prune; original failed pull state/logs not manually erased.",
+  "limits": [
+    "These complete scripts cover eight required client compatibility scenarios per release, plus the required25record verifiable4.1.2 scenario. They do not execute the complete upstream Java/ducktape suite or qualify every conformance-registry case.",
+    "Actual Apache delivery/Renew/expiry/release/accept uses one pinned current broker. Partial-ack/session/coordinator/leader/cancellation fault histories are separately controlled realTCP socket tests, not genuine multi-broker Apache fault runs.",
+    "No Share semantics claim is made for the ordinary single-node product broker.",
+    "Decoded/acquisition logical storage budget is not an RSS or decoder-scratch RSS bound.",
+    "The three-release Java SDK byte fixtures remain separately published wire evidence; forced4.1 out-of-range v2 serialization remains unsupported/quarantined.",
+    "Historical cell metadata qualifying_source_sha8bec... and verifiable audited_sourcece24... identify original earlier baselines; current report source_sha/candidate_source_sha12f4 and fresh execution identify this qualification."
+  ]
+}

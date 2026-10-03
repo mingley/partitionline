@@ -1,0 +1,17 @@
+fatal: could not read Username for 'https://github.com': No such device or address
+Traceback (most recent call last):
+  File "/workspace/work/client-share-assessment/verify-existing-source.py", line 24, in <module>
+    Path(output_path).write_text(json.dumps({'schema_version':1,'phase':phase,'source_sha':receipt['source_sha'],'source_path':str(source),'captured_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'verified_git_blobs_and_modes':len(receipt['files']),'git_modes':mode_counts,'archive_receipt_sha256':hashlib.sha256(receipt_file.read_bytes()).hexdigest(),'ten_source_sha256':base_expected,'additional_frozen_test_sha256':additional_expected,'all_frozen_source_sha256':expected,'worktree_git_snapshot':{'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'remote_main':subprocess.check_output(['git','ls-remote','origin','refs/heads/main'],cwd=repo,text=True).split()[0],'status_porcelain':subprocess.check_output(['git','status','--porcelain=v1'],cwd=repo,text=True).splitlines()}},indent=2)+'\n')
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 466, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', 'ls-remote', 'origin', 'refs/heads/main']' returned non-zero exit status 128.
+Traceback (most recent call last):
+  File "/workspace/work/client-share-assessment/verify-compat-worktree.py", line 11, in <module>
+    subprocess.run([
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3', '/workspace/work/client-share-assessment/verify-existing-source.py', '/workspace/work/client-share-assessment/final-12f43986/source-verification.json', '/workspace/work/client-share-compat-12f43986', '/workspace/work/client-share-assessment/whole-compat-12f43986/4.3.1/full-source-after.json', 'whole-4.3.1-after']' returned non-zero exit status 1.

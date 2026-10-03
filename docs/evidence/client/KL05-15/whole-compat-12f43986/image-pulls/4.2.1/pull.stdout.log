@@ -1,0 +1,57 @@
+docker.io/apache/kafka@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0: Pulling from apache/kafka
+6a0ac1617861: Pulling fs layer
+5ef4bf1bda35: Pulling fs layer
+6e338134b21e: Pulling fs layer
+42516208460b: Pulling fs layer
+2d1a277377d1: Pulling fs layer
+4f4fb700ef54: Pulling fs layer
+050416fedead: Pulling fs layer
+af72a3c08467: Pulling fs layer
+ebae26ff29c7: Pulling fs layer
+4f16cd9cc744: Pulling fs layer
+dccbb394defb: Pulling fs layer
+4a79631b3f48: Pulling fs layer
+2d1a277377d1: Waiting
+4f4fb700ef54: Waiting
+050416fedead: Waiting
+af72a3c08467: Waiting
+42516208460b: Waiting
+ebae26ff29c7: Waiting
+4f16cd9cc744: Waiting
+dccbb394defb: Waiting
+4a79631b3f48: Waiting
+6a0ac1617861: Verifying Checksum
+6a0ac1617861: Download complete
+6a0ac1617861: Pull complete
+42516208460b: Verifying Checksum
+42516208460b: Download complete
+5ef4bf1bda35: Verifying Checksum
+5ef4bf1bda35: Download complete
+2d1a277377d1: Verifying Checksum
+2d1a277377d1: Download complete
+4f4fb700ef54: Download complete
+af72a3c08467: Verifying Checksum
+6e338134b21e: Verifying Checksum
+6e338134b21e: Download complete
+5ef4bf1bda35: Pull complete
+4f16cd9cc744: Verifying Checksum
+4f16cd9cc744: Download complete
+ebae26ff29c7: Verifying Checksum
+ebae26ff29c7: Download complete
+dccbb394defb: Verifying Checksum
+4a79631b3f48: Verifying Checksum
+6e338134b21e: Pull complete
+42516208460b: Pull complete
+2d1a277377d1: Pull complete
+4f4fb700ef54: Pull complete
+050416fedead: Verifying Checksum
+050416fedead: Download complete
+050416fedead: Pull complete
+af72a3c08467: Pull complete
+ebae26ff29c7: Pull complete
+4f16cd9cc744: Pull complete
+dccbb394defb: Pull complete
+4a79631b3f48: Pull complete
+Digest: sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0
+Status: Downloaded newer image for apache/kafka@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0
+docker.io/apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0

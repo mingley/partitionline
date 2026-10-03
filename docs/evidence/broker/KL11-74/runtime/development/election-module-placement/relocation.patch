@@ -1,0 +1,953 @@
+diff --git a/partitionline-broker/src/raft/election.rs b/partitionline-broker/src/raft/election.rs
+index 3aa2440a..17b04d90 100644
+--- a/partitionline-broker/src/raft/election.rs
++++ b/partitionline-broker/src/raft/election.rs
+@@ -1045,483 +1045,222 @@ fn decode(bytes: &[u8], membership: &Membership) -> Result<PersistentState, Erro
+     Ok(state)
+ }
+ 
+-#[cfg(test)]
+-mod tests {
+-    use super::*;
++const DYNAMIC_INIT: &[u8; 8] = b"PLDINIT2";
++const DYNAMIC_STATE: &[u8; 8] = b"PLELECT2";
++const DYNAMIC_RECONCILE: &[u8; 8] = b"PLRECON2";
++const DYNAMIC_CONFIG: &[u8; 8] = b"PLELCFG2";
++const DYNAMIC_HEADER: usize = 96;
+ 
+-    #[derive(Clone, Copy)]
+-    enum Failure {
+-        BeforeWrite,
+-        CompleteUnconfirmed,
+-    }
+-    #[derive(Default)]
+-    struct MemoryStore {
+-        confirmed: PersistentState,
+-        complete: Option<PersistentState>,
+-        failure: Option<Failure>,
+-        synchronizations: usize,
+-    }
+-    impl Store for MemoryStore {
+-        fn persist(&mut self, state: PersistentState) -> Result<(), Error> {
+-            if let Some(failure) = self.failure.take() {
+-                if matches!(failure, Failure::CompleteUnconfirmed) {
+-                    self.complete = Some(state);
+-                }
+-                return Err(Error::Storage(journal::Error::Io(std::io::Error::other(
+-                    "injected election write/sync failure",
+-                ))));
++struct DynamicStore {
++    local: Key,
++    view: Voters,
++    source_operation: u64,
++    state: PersistentState,
++    vote: Option<Key>,
++}
++impl DynamicStore {
++    fn encode_state(
++        &self,
++        state: PersistentState,
++        reconciliation: Option<(LogPosition, u64)>,
++    ) -> Result<(Vec<u8>, Option<Key>), Error> {
++        let vote = match state.voted_for {
++            None => None,
++            Some(id)
++                if state.term == self.state.term && state.voted_for == self.state.voted_for =>
++            {
++                Some(
++                    self.vote
++                        .filter(|key| key.id == id)
++                        .ok_or(Error::CorruptState)?,
++                )
+             }
+-            self.synchronizations += 1;
+-            self.confirmed = state;
+-            Ok(())
++            Some(id) => Some(self.view.by_id(id).ok_or(Error::UnknownVoter)?.key()),
++        };
++        let magic = if reconciliation.is_some() {
++            DYNAMIC_RECONCILE
++        } else {
++            DYNAMIC_STATE
++        };
++        let mut bytes = encode_dynamic(
++            magic,
++            self.local,
++            state,
++            vote,
++            &self.view,
++            self.source_operation,
++        )?;
++        if let Some((expected, floor)) = reconciliation {
++            bytes
++                .try_reserve_exact(24)
++                .map_err(|_| Error::AllocationFailed)?;
++            bytes.extend_from_slice(&expected.term.to_be_bytes());
++            bytes.extend_from_slice(&expected.index.to_be_bytes());
++            bytes.extend_from_slice(&floor.to_be_bytes());
+         }
++        Ok((bytes, vote))
+     }
+-    fn node(store: MemoryStore, state: PersistentState) -> Result<Machine<MemoryStore>, Error> {
+-        Machine::new(
+-            store,
+-            Membership::new(1, vec![1, 2, 3])?,
+-            state,
+-            Timeouts::new(5, 5)?,
+-            7,
+-            0,
+-        )
++}
++fn encode_dynamic(
++    magic: &[u8; 8],
++    local: Key,
++    state: PersistentState,
++    vote: Option<Key>,
++    view: &Voters,
++    source_operation: u64,
++) -> Result<Vec<u8>, Error> {
++    let config = view.encode().map_err(|_| Error::CorruptState)?;
++    let mut bytes = Vec::new();
++    bytes
++        .try_reserve_exact(DYNAMIC_HEADER + config.len())
++        .map_err(|_| Error::AllocationFailed)?;
++    bytes.extend_from_slice(magic);
++    bytes.extend_from_slice(&local.id.to_be_bytes());
++    bytes.extend_from_slice(&local.directory);
++    bytes.extend_from_slice(&state.term.to_be_bytes());
++    bytes.extend_from_slice(&state.voted_for.unwrap_or(0).to_be_bytes());
++    bytes.push(u8::from(vote.is_some()));
++    bytes.extend_from_slice(&[0; 3]);
++    bytes.extend_from_slice(&vote.map_or([0; 16], |key| key.directory));
++    bytes.extend_from_slice(&state.log.term.to_be_bytes());
++    bytes.extend_from_slice(&state.log.index.to_be_bytes());
++    bytes.extend_from_slice(&source_operation.to_be_bytes());
++    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
++    bytes.extend_from_slice(&[0; 8]);
++    bytes.extend_from_slice(&config);
++    Ok(bytes)
++}
++fn dynamic_initial(local: Key, genesis: &Voters, group: &[u8]) -> Result<Vec<u8>, Error> {
++    if genesis.epoch() != 0
++        || genesis.position() != LogPosition::default()
++        || group.is_empty()
++        || group.len() > 512
++    {
++        return Err(Error::InvalidMembership);
+     }
+-    #[test]
+-    fn owner_reconciliation_preserves_term_vote_and_checks_floor_and_role() {
+-        let old = PersistentState {
+-            term: 3,
+-            voted_for: Some(2),
+-            log: LogPosition { term: 2, index: 4 },
+-        };
+-        let mut machine = node(MemoryStore::default(), old).unwrap();
+-        let replacement = LogPosition { term: 3, index: 4 };
+-        machine
+-            .reconcile_durable_log(old.log, replacement, 2)
+-            .unwrap();
+-        assert_eq!(machine.state().persistent.term, old.term);
+-        assert_eq!(machine.state().persistent.voted_for, old.voted_for);
+-        assert_eq!(machine.store.confirmed.log, replacement);
+-        assert_eq!(machine.store.synchronizations, 1);
+-        let mut machine = node(MemoryStore::default(), old).unwrap();
+-        assert!(machine
+-            .reconcile_durable_log(old.log, LogPosition { term: 2, index: 1 }, 2)
+-            .is_err());
+-        assert!(machine
+-            .reconcile_durable_log(LogPosition { term: 2, index: 5 }, replacement, 2)
+-            .is_err());
+-        machine.role = Role::Leader;
+-        assert!(machine
+-            .reconcile_durable_log(old.log, replacement, 2)
+-            .is_err());
+-        machine.role = Role::Follower;
+-        machine.store.failure = Some(Failure::CompleteUnconfirmed);
+-        assert!(machine
+-            .reconcile_durable_log(old.log, replacement, 2)
+-            .is_err());
+-        assert!(machine.state().poisoned);
+-        assert_eq!(machine.state().persistent, old);
+-        assert_eq!(machine.store.complete.unwrap().voted_for, old.voted_for);
++    Key::new(local.id, local.directory).map_err(|_| Error::InvalidMembership)?;
++    let config = genesis.encode().map_err(|_| Error::InvalidMembership)?;
++    let mut bytes = Vec::new();
++    bytes
++        .try_reserve_exact(44 + config.len() + group.len())
++        .map_err(|_| Error::AllocationFailed)?;
++    bytes.extend_from_slice(DYNAMIC_INIT);
++    bytes.extend_from_slice(&local.id.to_be_bytes());
++    bytes.extend_from_slice(&local.directory);
++    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
++    bytes.extend_from_slice(&[0; 8]);
++    bytes.extend_from_slice(&config);
++    bytes.extend_from_slice(&(group.len() as u32).to_be_bytes());
++    bytes.extend_from_slice(group);
++    Ok(bytes)
++}
++struct DynamicDecoded {
++    state: PersistentState,
++    vote: Option<Key>,
++    view: Voters,
++    source_operation: u64,
++    reconciliation: Option<(LogPosition, u64)>,
++    configuration_floor: Option<u64>,
++}
++fn decode_dynamic(bytes: &[u8], local: Key) -> Result<DynamicDecoded, Error> {
++    if bytes.len() < DYNAMIC_HEADER
++        || bytes.len() > DYNAMIC_HEADER + MAX_CONFIGURATION_BYTES + 24
++        || bytes[40] > 1
++        || bytes[41..44] != [0; 3]
++        || bytes[88..96] != [0; 8]
++    {
++        return Err(Error::CorruptState);
+     }
+-    #[test]
+-    fn synchronization_precedes_grant_and_ambiguous_failure_requires_recovery() {
+-        for failure in [Failure::BeforeWrite, Failure::CompleteUnconfirmed] {
+-            let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
+-            machine.store.failure = Some(failure);
+-            let request = VoteRequest {
+-                term: 1,
+-                candidate: 2,
+-                log: LogPosition::default(),
+-            };
+-            assert!(machine.request_vote(request, 0).is_err());
+-            assert!(machine.state().poisoned);
+-            assert_eq!(machine.state().role, Role::Follower);
+-            assert_eq!(machine.store.synchronizations, 0);
+-            assert_eq!(machine.state().persistent.term, 0);
+-            assert!(matches!(
+-                machine.request_vote(request, 0),
+-                Err(Error::Poisoned)
+-            ));
+-            assert!(matches!(machine.tick(5), Err(Error::Poisoned)));
+-            let recovered = machine.store.complete.unwrap_or(machine.store.confirmed);
+-            // Journal recovery synchronizes any complete unconfirmed bytes before
+-            // exposing them. This private store isolates the protocol consequence.
+-            let store = MemoryStore {
+-                confirmed: recovered,
+-                synchronizations: 1,
+-                ..MemoryStore::default()
+-            };
+-            let mut reopened = node(store, recovered).unwrap();
+-            let different = reopened
+-                .request_vote(
+-                    VoteRequest {
+-                        candidate: 3,
+-                        ..request
+-                    },
+-                    0,
+-                )
+-                .unwrap();
+-            assert_eq!(different.granted, matches!(failure, Failure::BeforeWrite));
+-            let same = reopened
+-                .request_vote(VoteRequest { term: 2, ..request }, 1)
+-                .unwrap();
+-            assert!(same.granted);
+-            assert_eq!(reopened.store.confirmed.term, same.term);
+-            assert_eq!(reopened.store.confirmed.voted_for, Some(2));
+-            assert!(reopened.store.synchronizations >= 2);
+-        }
++    let u32_at = |offset| -> Result<u32, Error> {
++        Ok(u32::from_be_bytes(
++            bytes[offset..offset + 4]
++                .try_into()
++                .map_err(|_| Error::CorruptState)?,
++        ))
++    };
++    let u64_at = |offset| -> Result<u64, Error> {
++        Ok(u64::from_be_bytes(
++            bytes[offset..offset + 8]
++                .try_into()
++                .map_err(|_| Error::CorruptState)?,
++        ))
++    };
++    if u32_at(8)? != local.id || bytes[12..28] != local.directory {
++        return Err(Error::MembershipChanged);
+     }
+-    #[test]
+-    fn higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed() {
+-        for action in 0..3 {
+-            let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
+-            machine.tick(5).unwrap();
+-            assert_eq!(
+-                machine
+-                    .receive_vote(
+-                        VoteResponse {
+-                            term: 1,
+-                            voter: 2,
+-                            candidate: 1,
+-                            granted: true,
+-                        },
+-                        5,
+-                    )
+-                    .unwrap(),
+-                Tally::Elected
+-            );
+-            let error = match action {
+-                0 => machine
+-                    .request_vote(
+-                        VoteRequest {
+-                            term: 2,
+-                            candidate: 3,
+-                            log: LogPosition::default(),
+-                        },
+-                        u64::MAX,
+-                    )
+-                    .unwrap_err(),
+-                1 => machine
+-                    .receive_vote(
+-                        VoteResponse {
+-                            term: 2,
+-                            voter: 3,
+-                            candidate: 1,
+-                            granted: false,
+-                        },
+-                        u64::MAX,
+-                    )
+-                    .unwrap_err(),
+-                _ => machine.observe_leader(3, 2, u64::MAX).unwrap_err(),
+-            };
+-            assert!(matches!(error, Error::DeadlineOverflow));
+-            assert_eq!(machine.state().role, Role::Follower);
+-            assert_eq!(machine.state().leader, None);
+-            assert_eq!(machine.state().granted_votes, 0);
+-            assert_eq!(machine.state().persistent.term, 1);
+-            assert_eq!(machine.state().persistent.voted_for, Some(1));
+-            assert!(!machine.state().poisoned);
+-            assert!(matches!(
+-                machine.tick(u64::MAX),
+-                Err(Error::DeadlineOverflow)
+-            ));
+-        }
++    let count = u32_at(84)? as usize;
++    let end = DYNAMIC_HEADER
++        .checked_add(count)
++        .ok_or(Error::CorruptState)?;
++    if count > MAX_CONFIGURATION_BYTES || end > bytes.len() {
++        return Err(Error::CorruptState);
+     }
+-    #[test]
+-    fn failed_higher_term_persistence_disables_old_leader_before_any_reply() {
+-        let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
+-        machine.tick(5).unwrap();
+-        assert_eq!(
+-            machine
+-                .receive_vote(
+-                    VoteResponse {
+-                        term: 1,
+-                        candidate: 1,
+-                        voter: 2,
+-                        granted: true
+-                    },
+-                    5
+-                )
+-                .unwrap(),
+-            Tally::Elected
+-        );
+-        machine.store.failure = Some(Failure::CompleteUnconfirmed);
+-        assert!(machine
+-            .receive_vote(
+-                VoteResponse {
+-                    term: 7,
+-                    candidate: 1,
+-                    voter: 3,
+-                    granted: false
+-                },
+-                6
++    let view = Voters::decode(&bytes[DYNAMIC_HEADER..end]).map_err(|_| Error::CorruptState)?;
++    let vote_id = u32_at(36)?;
++    let vote = if bytes[40] == 1 {
++        Some(
++            Key::new(
++                vote_id,
++                bytes[44..60].try_into().map_err(|_| Error::CorruptState)?,
+             )
+-            .is_err());
+-        assert!(machine.state().poisoned);
+-        assert_eq!(machine.state().role, Role::Follower);
+-        assert_eq!(machine.state().leader, None);
+-        assert!(matches!(
+-            machine.observe_leader(1, 1, 6),
+-            Err(Error::Poisoned)
+-        ));
+-        assert!(matches!(
+-            machine.receive_vote(
+-                VoteResponse {
+-                    term: 1,
+-                    candidate: 1,
+-                    voter: 3,
+-                    granted: true
+-                },
+-                6
+-            ),
+-            Err(Error::Poisoned)
+-        ));
+-        let recovered = machine.store.complete.unwrap();
+-        let reopened = node(MemoryStore::default(), recovered).unwrap();
+-        assert_eq!(reopened.state().persistent.term, 7);
+-        assert_eq!(reopened.state().persistent.voted_for, None);
+-        assert_eq!(reopened.state().role, Role::Follower);
+-    }
+-    #[test]
+-    fn strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch() {
+-        let members = Membership::new(1, vec![1, 2, 3]).unwrap();
+-        let state = PersistentState {
+-            term: 4,
+-            voted_for: Some(2),
+-            log: LogPosition { term: 3, index: 10 },
+-        };
+-        let bytes = encode(state, &members).unwrap();
+-        assert_eq!(decode(&bytes, &members).unwrap(), state);
+-        for index in [14, 29, 30, 31] {
+-            let mut changed = bytes.clone();
+-            changed[index] = 1;
+-            assert!(decode(&changed, &members).is_err());
++            .map_err(|_| Error::CorruptState)?,
++        )
++    } else {
++        if vote_id != 0 || bytes[44..60] != [0; 16] {
++            return Err(Error::CorruptState);
+         }
+-        let mut changed = bytes.clone();
+-        changed[24..28].copy_from_slice(&99u32.to_be_bytes());
+-        assert!(decode(&changed, &members).is_err());
+-        let mut changed = bytes.clone();
+-        changed[32..40].fill(0);
+-        assert!(decode(&changed, &members).is_err());
+-        assert!(decode(&bytes[..bytes.len() - 1], &members).is_err());
++        None
++    };
++    let state = PersistentState {
++        term: u64_at(28)?,
++        voted_for: vote.map(|key| key.id),
++        log: LogPosition::new(u64_at(60)?, u64_at(68)?)?,
++    };
++    let source_operation = u64_at(76)?;
++    let mut decoded = DynamicDecoded {
++        state,
++        vote,
++        view,
++        source_operation,
++        reconciliation: None,
++        configuration_floor: None,
++    };
++    match &bytes[..8] {
++        magic if magic == DYNAMIC_STATE && bytes.len() == end => {}
++        magic if magic == DYNAMIC_RECONCILE && bytes.len() == end + 24 => {
++            decoded.reconciliation = Some((
++                LogPosition::new(u64_at(end)?, u64_at(end + 8)?)?,
++                u64_at(end + 16)?,
++            ));
++        }
++        magic if magic == DYNAMIC_CONFIG && bytes.len() == end + 8 => {
++            decoded.configuration_floor = Some(u64_at(end)?);
++        }
++        _ => return Err(Error::CorruptState),
+     }
++    Ok(decoded)
+ }
+-
+-const DYNAMIC_INIT: &[u8; 8] = b"PLDINIT2";
+-const DYNAMIC_STATE: &[u8; 8] = b"PLELECT2";
+-const DYNAMIC_RECONCILE: &[u8; 8] = b"PLRECON2";
+-const DYNAMIC_CONFIG: &[u8; 8] = b"PLELCFG2";
+-const DYNAMIC_HEADER: usize = 96;
+-
+-struct DynamicStore {
+-    local: Key,
+-    view: Voters,
+-    source_operation: u64,
+-    state: PersistentState,
+-    vote: Option<Key>,
+-}
+-impl DynamicStore {
+-    fn encode_state(
+-        &self,
+-        state: PersistentState,
+-        reconciliation: Option<(LogPosition, u64)>,
+-    ) -> Result<(Vec<u8>, Option<Key>), Error> {
+-        let vote = match state.voted_for {
+-            None => None,
+-            Some(id)
+-                if state.term == self.state.term && state.voted_for == self.state.voted_for =>
+-            {
+-                Some(
+-                    self.vote
+-                        .filter(|key| key.id == id)
+-                        .ok_or(Error::CorruptState)?,
+-                )
++fn validate_dynamic_transition(
++    old: PersistentState,
++    next: PersistentState,
++    membership: &Membership,
++) -> Result<(), Error> {
++    let mut checked = membership.clone();
++    if next.term == old.term && next.voted_for == old.voted_for {
++        if let Some(id) = next.voted_for {
++            if checked.position(id).is_err() {
++                checked.voters.push(id);
++                checked.voters.sort_unstable();
+             }
+-            Some(id) => Some(self.view.by_id(id).ok_or(Error::UnknownVoter)?.key()),
+-        };
+-        let magic = if reconciliation.is_some() {
+-            DYNAMIC_RECONCILE
+-        } else {
+-            DYNAMIC_STATE
+-        };
+-        let mut bytes = encode_dynamic(
+-            magic,
+-            self.local,
+-            state,
+-            vote,
+-            &self.view,
+-            self.source_operation,
+-        )?;
+-        if let Some((expected, floor)) = reconciliation {
+-            bytes
+-                .try_reserve_exact(24)
+-                .map_err(|_| Error::AllocationFailed)?;
+-            bytes.extend_from_slice(&expected.term.to_be_bytes());
+-            bytes.extend_from_slice(&expected.index.to_be_bytes());
+-            bytes.extend_from_slice(&floor.to_be_bytes());
+         }
+-        Ok((bytes, vote))
+     }
++    validate_transition(old, next, &checked)
+ }
+-fn encode_dynamic(
+-    magic: &[u8; 8],
+-    local: Key,
+-    state: PersistentState,
+-    vote: Option<Key>,
+-    view: &Voters,
+-    source_operation: u64,
+-) -> Result<Vec<u8>, Error> {
+-    let config = view.encode().map_err(|_| Error::CorruptState)?;
+-    let mut bytes = Vec::new();
+-    bytes
+-        .try_reserve_exact(DYNAMIC_HEADER + config.len())
+-        .map_err(|_| Error::AllocationFailed)?;
+-    bytes.extend_from_slice(magic);
+-    bytes.extend_from_slice(&local.id.to_be_bytes());
+-    bytes.extend_from_slice(&local.directory);
+-    bytes.extend_from_slice(&state.term.to_be_bytes());
+-    bytes.extend_from_slice(&state.voted_for.unwrap_or(0).to_be_bytes());
+-    bytes.push(u8::from(vote.is_some()));
+-    bytes.extend_from_slice(&[0; 3]);
+-    bytes.extend_from_slice(&vote.map_or([0; 16], |key| key.directory));
+-    bytes.extend_from_slice(&state.log.term.to_be_bytes());
+-    bytes.extend_from_slice(&state.log.index.to_be_bytes());
+-    bytes.extend_from_slice(&source_operation.to_be_bytes());
+-    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
+-    bytes.extend_from_slice(&[0; 8]);
+-    bytes.extend_from_slice(&config);
+-    Ok(bytes)
+-}
+-fn dynamic_initial(local: Key, genesis: &Voters, group: &[u8]) -> Result<Vec<u8>, Error> {
+-    if genesis.epoch() != 0
+-        || genesis.position() != LogPosition::default()
+-        || group.is_empty()
+-        || group.len() > 512
+-    {
+-        return Err(Error::InvalidMembership);
+-    }
+-    Key::new(local.id, local.directory).map_err(|_| Error::InvalidMembership)?;
+-    let config = genesis.encode().map_err(|_| Error::InvalidMembership)?;
+-    let mut bytes = Vec::new();
+-    bytes
+-        .try_reserve_exact(44 + config.len() + group.len())
+-        .map_err(|_| Error::AllocationFailed)?;
+-    bytes.extend_from_slice(DYNAMIC_INIT);
+-    bytes.extend_from_slice(&local.id.to_be_bytes());
+-    bytes.extend_from_slice(&local.directory);
+-    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
+-    bytes.extend_from_slice(&[0; 8]);
+-    bytes.extend_from_slice(&config);
+-    bytes.extend_from_slice(&(group.len() as u32).to_be_bytes());
+-    bytes.extend_from_slice(group);
+-    Ok(bytes)
+-}
+-struct DynamicDecoded {
+-    state: PersistentState,
+-    vote: Option<Key>,
+-    view: Voters,
+-    source_operation: u64,
+-    reconciliation: Option<(LogPosition, u64)>,
+-    configuration_floor: Option<u64>,
+-}
+-fn decode_dynamic(bytes: &[u8], local: Key) -> Result<DynamicDecoded, Error> {
+-    if bytes.len() < DYNAMIC_HEADER
+-        || bytes.len() > DYNAMIC_HEADER + MAX_CONFIGURATION_BYTES + 24
+-        || bytes[40] > 1
+-        || bytes[41..44] != [0; 3]
+-        || bytes[88..96] != [0; 8]
+-    {
+-        return Err(Error::CorruptState);
+-    }
+-    let u32_at = |offset| -> Result<u32, Error> {
+-        Ok(u32::from_be_bytes(
+-            bytes[offset..offset + 4]
+-                .try_into()
+-                .map_err(|_| Error::CorruptState)?,
+-        ))
+-    };
+-    let u64_at = |offset| -> Result<u64, Error> {
+-        Ok(u64::from_be_bytes(
+-            bytes[offset..offset + 8]
+-                .try_into()
+-                .map_err(|_| Error::CorruptState)?,
+-        ))
+-    };
+-    if u32_at(8)? != local.id || bytes[12..28] != local.directory {
+-        return Err(Error::MembershipChanged);
+-    }
+-    let count = u32_at(84)? as usize;
+-    let end = DYNAMIC_HEADER
+-        .checked_add(count)
+-        .ok_or(Error::CorruptState)?;
+-    if count > MAX_CONFIGURATION_BYTES || end > bytes.len() {
+-        return Err(Error::CorruptState);
+-    }
+-    let view = Voters::decode(&bytes[DYNAMIC_HEADER..end]).map_err(|_| Error::CorruptState)?;
+-    let vote_id = u32_at(36)?;
+-    let vote = if bytes[40] == 1 {
+-        Some(
+-            Key::new(
+-                vote_id,
+-                bytes[44..60].try_into().map_err(|_| Error::CorruptState)?,
+-            )
+-            .map_err(|_| Error::CorruptState)?,
+-        )
+-    } else {
+-        if vote_id != 0 || bytes[44..60] != [0; 16] {
+-            return Err(Error::CorruptState);
+-        }
+-        None
+-    };
+-    let state = PersistentState {
+-        term: u64_at(28)?,
+-        voted_for: vote.map(|key| key.id),
+-        log: LogPosition::new(u64_at(60)?, u64_at(68)?)?,
+-    };
+-    let source_operation = u64_at(76)?;
+-    let mut decoded = DynamicDecoded {
+-        state,
+-        vote,
+-        view,
+-        source_operation,
+-        reconciliation: None,
+-        configuration_floor: None,
+-    };
+-    match &bytes[..8] {
+-        magic if magic == DYNAMIC_STATE && bytes.len() == end => {}
+-        magic if magic == DYNAMIC_RECONCILE && bytes.len() == end + 24 => {
+-            decoded.reconciliation = Some((
+-                LogPosition::new(u64_at(end)?, u64_at(end + 8)?)?,
+-                u64_at(end + 16)?,
+-            ));
+-        }
+-        magic if magic == DYNAMIC_CONFIG && bytes.len() == end + 8 => {
+-            decoded.configuration_floor = Some(u64_at(end)?);
+-        }
+-        _ => return Err(Error::CorruptState),
+-    }
+-    Ok(decoded)
+-}
+-fn validate_dynamic_transition(
+-    old: PersistentState,
+-    next: PersistentState,
+-    membership: &Membership,
+-) -> Result<(), Error> {
+-    let mut checked = membership.clone();
+-    if next.term == old.term && next.voted_for == old.voted_for {
+-        if let Some(id) = next.voted_for {
+-            if checked.position(id).is_err() {
+-                checked.voters.push(id);
+-                checked.voters.sort_unstable();
+-            }
+-        }
+-    }
+-    validate_transition(old, next, &checked)
+-}
+-fn validate_dynamic_vote(
+-    old: PersistentState,
+-    next: PersistentState,
+-    old_vote: Option<Key>,
+-    next_vote: Option<Key>,
++fn validate_dynamic_vote(
++    old: PersistentState,
++    next: PersistentState,
++    old_vote: Option<Key>,
++    next_vote: Option<Key>,
+     view: &Voters,
+ ) -> Result<(), Error> {
+     if next.voted_for != next_vote.map(|key| key.id)
+@@ -1839,3 +1578,264 @@ impl Election {
+         self.machine.receive_vote(response, now_ms)
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++
++    #[derive(Clone, Copy)]
++    enum Failure {
++        BeforeWrite,
++        CompleteUnconfirmed,
++    }
++    #[derive(Default)]
++    struct MemoryStore {
++        confirmed: PersistentState,
++        complete: Option<PersistentState>,
++        failure: Option<Failure>,
++        synchronizations: usize,
++    }
++    impl Store for MemoryStore {
++        fn persist(&mut self, state: PersistentState) -> Result<(), Error> {
++            if let Some(failure) = self.failure.take() {
++                if matches!(failure, Failure::CompleteUnconfirmed) {
++                    self.complete = Some(state);
++                }
++                return Err(Error::Storage(journal::Error::Io(std::io::Error::other(
++                    "injected election write/sync failure",
++                ))));
++            }
++            self.synchronizations += 1;
++            self.confirmed = state;
++            Ok(())
++        }
++    }
++    fn node(store: MemoryStore, state: PersistentState) -> Result<Machine<MemoryStore>, Error> {
++        Machine::new(
++            store,
++            Membership::new(1, vec![1, 2, 3])?,
++            state,
++            Timeouts::new(5, 5)?,
++            7,
++            0,
++        )
++    }
++    #[test]
++    fn owner_reconciliation_preserves_term_vote_and_checks_floor_and_role() {
++        let old = PersistentState {
++            term: 3,
++            voted_for: Some(2),
++            log: LogPosition { term: 2, index: 4 },
++        };
++        let mut machine = node(MemoryStore::default(), old).unwrap();
++        let replacement = LogPosition { term: 3, index: 4 };
++        machine
++            .reconcile_durable_log(old.log, replacement, 2)
++            .unwrap();
++        assert_eq!(machine.state().persistent.term, old.term);
++        assert_eq!(machine.state().persistent.voted_for, old.voted_for);
++        assert_eq!(machine.store.confirmed.log, replacement);
++        assert_eq!(machine.store.synchronizations, 1);
++        let mut machine = node(MemoryStore::default(), old).unwrap();
++        assert!(machine
++            .reconcile_durable_log(old.log, LogPosition { term: 2, index: 1 }, 2)
++            .is_err());
++        assert!(machine
++            .reconcile_durable_log(LogPosition { term: 2, index: 5 }, replacement, 2)
++            .is_err());
++        machine.role = Role::Leader;
++        assert!(machine
++            .reconcile_durable_log(old.log, replacement, 2)
++            .is_err());
++        machine.role = Role::Follower;
++        machine.store.failure = Some(Failure::CompleteUnconfirmed);
++        assert!(machine
++            .reconcile_durable_log(old.log, replacement, 2)
++            .is_err());
++        assert!(machine.state().poisoned);
++        assert_eq!(machine.state().persistent, old);
++        assert_eq!(machine.store.complete.unwrap().voted_for, old.voted_for);
++    }
++    #[test]
++    fn synchronization_precedes_grant_and_ambiguous_failure_requires_recovery() {
++        for failure in [Failure::BeforeWrite, Failure::CompleteUnconfirmed] {
++            let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
++            machine.store.failure = Some(failure);
++            let request = VoteRequest {
++                term: 1,
++                candidate: 2,
++                log: LogPosition::default(),
++            };
++            assert!(machine.request_vote(request, 0).is_err());
++            assert!(machine.state().poisoned);
++            assert_eq!(machine.state().role, Role::Follower);
++            assert_eq!(machine.store.synchronizations, 0);
++            assert_eq!(machine.state().persistent.term, 0);
++            assert!(matches!(
++                machine.request_vote(request, 0),
++                Err(Error::Poisoned)
++            ));
++            assert!(matches!(machine.tick(5), Err(Error::Poisoned)));
++            let recovered = machine.store.complete.unwrap_or(machine.store.confirmed);
++            // Journal recovery synchronizes any complete unconfirmed bytes before
++            // exposing them. This private store isolates the protocol consequence.
++            let store = MemoryStore {
++                confirmed: recovered,
++                synchronizations: 1,
++                ..MemoryStore::default()
++            };
++            let mut reopened = node(store, recovered).unwrap();
++            let different = reopened
++                .request_vote(
++                    VoteRequest {
++                        candidate: 3,
++                        ..request
++                    },
++                    0,
++                )
++                .unwrap();
++            assert_eq!(different.granted, matches!(failure, Failure::BeforeWrite));
++            let same = reopened
++                .request_vote(VoteRequest { term: 2, ..request }, 1)
++                .unwrap();
++            assert!(same.granted);
++            assert_eq!(reopened.store.confirmed.term, same.term);
++            assert_eq!(reopened.store.confirmed.voted_for, Some(2));
++            assert!(reopened.store.synchronizations >= 2);
++        }
++    }
++    #[test]
++    fn higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed() {
++        for action in 0..3 {
++            let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
++            machine.tick(5).unwrap();
++            assert_eq!(
++                machine
++                    .receive_vote(
++                        VoteResponse {
++                            term: 1,
++                            voter: 2,
++                            candidate: 1,
++                            granted: true,
++                        },
++                        5,
++                    )
++                    .unwrap(),
++                Tally::Elected
++            );
++            let error = match action {
++                0 => machine
++                    .request_vote(
++                        VoteRequest {
++                            term: 2,
++                            candidate: 3,
++                            log: LogPosition::default(),
++                        },
++                        u64::MAX,
++                    )
++                    .unwrap_err(),
++                1 => machine
++                    .receive_vote(
++                        VoteResponse {
++                            term: 2,
++                            voter: 3,
++                            candidate: 1,
++                            granted: false,
++                        },
++                        u64::MAX,
++                    )
++                    .unwrap_err(),
++                _ => machine.observe_leader(3, 2, u64::MAX).unwrap_err(),
++            };
++            assert!(matches!(error, Error::DeadlineOverflow));
++            assert_eq!(machine.state().role, Role::Follower);
++            assert_eq!(machine.state().leader, None);
++            assert_eq!(machine.state().granted_votes, 0);
++            assert_eq!(machine.state().persistent.term, 1);
++            assert_eq!(machine.state().persistent.voted_for, Some(1));
++            assert!(!machine.state().poisoned);
++            assert!(matches!(
++                machine.tick(u64::MAX),
++                Err(Error::DeadlineOverflow)
++            ));
++        }
++    }
++    #[test]
++    fn failed_higher_term_persistence_disables_old_leader_before_any_reply() {
++        let mut machine = node(MemoryStore::default(), PersistentState::default()).unwrap();
++        machine.tick(5).unwrap();
++        assert_eq!(
++            machine
++                .receive_vote(
++                    VoteResponse {
++                        term: 1,
++                        candidate: 1,
++                        voter: 2,
++                        granted: true
++                    },
++                    5
++                )
++                .unwrap(),
++            Tally::Elected
++        );
++        machine.store.failure = Some(Failure::CompleteUnconfirmed);
++        assert!(machine
++            .receive_vote(
++                VoteResponse {
++                    term: 7,
++                    candidate: 1,
++                    voter: 3,
++                    granted: false
++                },
++                6
++            )
++            .is_err());
++        assert!(machine.state().poisoned);
++        assert_eq!(machine.state().role, Role::Follower);
++        assert_eq!(machine.state().leader, None);
++        assert!(matches!(
++            machine.observe_leader(1, 1, 6),
++            Err(Error::Poisoned)
++        ));
++        assert!(matches!(
++            machine.receive_vote(
++                VoteResponse {
++                    term: 1,
++                    candidate: 1,
++                    voter: 3,
++                    granted: true
++                },
++                6
++            ),
++            Err(Error::Poisoned)
++        ));
++        let recovered = machine.store.complete.unwrap();
++        let reopened = node(MemoryStore::default(), recovered).unwrap();
++        assert_eq!(reopened.state().persistent.term, 7);
++        assert_eq!(reopened.state().persistent.voted_for, None);
++        assert_eq!(reopened.state().role, Role::Follower);
++    }
++    #[test]
++    fn strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch() {
++        let members = Membership::new(1, vec![1, 2, 3]).unwrap();
++        let state = PersistentState {
++            term: 4,
++            voted_for: Some(2),
++            log: LogPosition { term: 3, index: 10 },
++        };
++        let bytes = encode(state, &members).unwrap();
++        assert_eq!(decode(&bytes, &members).unwrap(), state);
++        for index in [14, 29, 30, 31] {
++            let mut changed = bytes.clone();
++            changed[index] = 1;
++            assert!(decode(&changed, &members).is_err());
++        }
++        let mut changed = bytes.clone();
++        changed[24..28].copy_from_slice(&99u32.to_be_bytes());
++        assert!(decode(&changed, &members).is_err());
++        let mut changed = bytes.clone();
++        changed[32..40].fill(0);
++        assert!(decode(&changed, &members).is_err());
++        assert!(decode(&bytes[..bytes.len() - 1], &members).is_err());
++    }
++}

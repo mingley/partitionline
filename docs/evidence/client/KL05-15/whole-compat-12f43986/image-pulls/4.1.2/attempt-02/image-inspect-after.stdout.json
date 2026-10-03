@@ -1,0 +1,75 @@
+[
+    {
+        "Id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+        "RepoTags": [],
+        "RepoDigests": [
+            "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+        ],
+        "Parent": "",
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-02-25T10:18:52.415400675Z",
+        "DockerVersion": "",
+        "Author": "",
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 434024877,
+        "GraphDriver": {
+            "Data": null,
+            "Name": "vfs"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:989e799e634906e94dc9a5ee2ee26fc92ad260522990f26e707861a5f52bf64e",
+                "sha256:9c3a5d3bc1d986297ccf3222aa60d30955e70ea5170e9b7a44b206a316dd18f0",
+                "sha256:fcf55ba1acd31da88b4f0e40192024dbac904cc053f591c7138a3dc35bd01521",
+                "sha256:967afb1d17e55b6045d16eb964e3bfed1bd9aec5d884810c9445692b65c65a84",
+                "sha256:941f874f7c102bce088fde230ea317a7b02be558a484956f414d5e721278f6b4",
+                "sha256:458b6a794f5d55ad7708fe59acdf1528c8fe22afdb05440a09de9fa68163891f",
+                "sha256:90087f11c4c11c429baaee92d0d33f8d5ee231a9e68c89073967ee29896692db",
+                "sha256:69f1d26dfc3a873ed56447c68548cbcfbd55e53a2b470ba50067bf72acaf35e7",
+                "sha256:1ef8d149472690431013a97f773aeba7eec7b37be85cc320928e96f263135779",
+                "sha256:0035ff8611c412d74e6956dd49659405b56f6a1a169eecd9fd9fface2b33548a",
+                "sha256:7d17cfb13321876ef52abd53996f1c9410f61c2aa1acdccefd044082ffc80acb"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "0001-01-01T00:00:00Z"
+        },
+        "Config": {
+            "ArgsEscaped": true,
+            "Cmd": [
+                "/etc/kafka/docker/run"
+            ],
+            "Entrypoint": [
+                "/__cacert_entrypoint.sh"
+            ],
+            "Env": [
+                "PATH=/opt/java/openjdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "JAVA_HOME=/opt/java/openjdk",
+                "LANG=en_US.UTF-8",
+                "LANGUAGE=en_US:en",
+                "LC_ALL=en_US.UTF-8",
+                "JAVA_VERSION=jdk-21.0.10+7"
+            ],
+            "ExposedPorts": {
+                "9092/tcp": {}
+            },
+            "Labels": {
+                "maintainer": "Apache Kafka",
+                "org.label-schema.build-date": "2026-02-25",
+                "org.label-schema.description": "Apache Kafka",
+                "org.label-schema.name": "kafka",
+                "org.label-schema.vcs-url": "https://github.com/apache/kafka"
+            },
+            "OnBuild": null,
+            "User": "appuser",
+            "Volumes": {
+                "/etc/kafka/secrets": {},
+                "/mnt/shared/config": {},
+                "/var/lib/kafka/data": {}
+            },
+            "WorkingDir": "/"
+        }
+    }
+]

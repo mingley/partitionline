@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "original_complete_runner_exit_code": 0,
+  "runtime_result": "passed",
+  "scenario_count": 8,
+  "share_records_accepted": 16,
+  "share_fetch_ack_api_ranges": {
+    "78": [
+      1,
+      1
+    ],
+    "79": [
+      1,
+      1
+    ]
+  },
+  "older_peer_fallback": "Genuine4.1.2 supports only wire1; negotiated Share delivery and16Accepted completed.",
+  "container_id": "ffa012f84d95a8b219ede760d019e09cbf91a43ab83c692aac94d90230359430",
+  "container_removed": true,
+  "verifiable_required_profile_report": "verifiable/3e338a6fb4cc4af3834e7af8a95da74f/report.json",
+  "verifiable_report_sha256": "a33bc884341fbd796524bfbc4ecd5a90d9f837e460d00ac26dba22b14a10b69a",
+  "source_guards": [
+    "full-source-before.json",
+    "full-source-after.json"
+  ],
+  "runtime_minimum_free_bytes": 1327968256,
+  "three_release_aggregate_status": "pending remaining4.2.1 genuine whole cell"
+}

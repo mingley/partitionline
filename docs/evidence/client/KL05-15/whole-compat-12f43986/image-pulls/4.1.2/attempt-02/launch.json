@@ -1,0 +1,23 @@
+{
+  "schema_version": 2,
+  "version": "4.1.2",
+  "attempt": "attempt-02",
+  "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "captured_at": "2026-10-03T11:13:58.595581+00:00",
+  "cpuset": "0,1",
+  "free_bytes_before": 5564682240,
+  "global_floor_bytes": 367001600,
+  "compile_reservation_bytes": 419430400,
+  "initial_pull_expansion_budget_bytes": 3670016000,
+  "cancellation_margin_bytes": 367001600,
+  "monitor_poll_seconds": 0.1,
+  "initial_budget_basis": "3500MiB VFS cumulative tree budget, based on the cached current image exact history cumulative estimate2,930,013,603B plus download/extraction margin. Actual physical and daemon layer deltas are measured; the failed first 900MiB budget is retained separately.",
+  "docker_host": "unix:///var/run/docker.sock",
+  "argv": [
+    "docker",
+    "pull",
+    "--platform",
+    "linux/amd64",
+    "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+  ]
+}

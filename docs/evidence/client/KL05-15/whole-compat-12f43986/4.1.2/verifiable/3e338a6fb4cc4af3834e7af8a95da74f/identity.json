@@ -1,0 +1,29 @@
+{
+  "candidate_source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "profile_sha256": "9e7ddf87aeafff5ffd6a4566b6859a636db9f61531593dd6615babb784b3df01",
+  "broker_reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+  "broker_version": "4.1.2",
+  "container": "pl-compat-4-1-2-1116261",
+  "container_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+  "bootstrap": "127.0.0.1:29183",
+  "inspected_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+  "repo_digests": [
+    "apache/kafka@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+  ],
+  "kafka_cli_version": "4.1.2",
+  "topic": "plverifiable-4-1-2-3e338a6fb4cc4af3834e7af8a95da74f",
+  "group": "plverifiable-4-1-2-3e338a6fb4cc4af3834e7af8a95da74f-group",
+  "started_ms": 1791026204920,
+  "exit_codes": {
+    "producer": 0,
+    "consumer": 0,
+    "java-records": 0,
+    "java-offsets": 0
+  },
+  "phase": "validate-complete-history",
+  "ended_ms": 1791026213216,
+  "prerequisite_exit_codes": {
+    "build": 0,
+    "create-topic": 0
+  }
+}

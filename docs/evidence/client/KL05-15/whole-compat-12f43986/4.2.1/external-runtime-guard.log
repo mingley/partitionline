@@ -1,0 +1,1 @@
+{"schema_version": 1, "argv": ["bash", "scripts/ci-broker-compatibility.sh", "4.2.1"], "exit_code": 0, "cpuset": "0,1", "unchanged_original_script": true, "monitor_poll_seconds": 0.1, "monitor_record_seconds": 1, "global_floor_bytes": 367001600, "cancellation_margin_bytes": 367001600, "minimum_observed_free_bytes": 822173696, "stopped_for_disk_guard": false}

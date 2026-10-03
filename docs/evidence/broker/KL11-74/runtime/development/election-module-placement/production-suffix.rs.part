@@ -1,0 +1,533 @@
+const DYNAMIC_INIT: &[u8; 8] = b"PLDINIT2";
+const DYNAMIC_STATE: &[u8; 8] = b"PLELECT2";
+const DYNAMIC_RECONCILE: &[u8; 8] = b"PLRECON2";
+const DYNAMIC_CONFIG: &[u8; 8] = b"PLELCFG2";
+const DYNAMIC_HEADER: usize = 96;
+
+struct DynamicStore {
+    local: Key,
+    view: Voters,
+    source_operation: u64,
+    state: PersistentState,
+    vote: Option<Key>,
+}
+impl DynamicStore {
+    fn encode_state(
+        &self,
+        state: PersistentState,
+        reconciliation: Option<(LogPosition, u64)>,
+    ) -> Result<(Vec<u8>, Option<Key>), Error> {
+        let vote = match state.voted_for {
+            None => None,
+            Some(id)
+                if state.term == self.state.term && state.voted_for == self.state.voted_for =>
+            {
+                Some(
+                    self.vote
+                        .filter(|key| key.id == id)
+                        .ok_or(Error::CorruptState)?,
+                )
+            }
+            Some(id) => Some(self.view.by_id(id).ok_or(Error::UnknownVoter)?.key()),
+        };
+        let magic = if reconciliation.is_some() {
+            DYNAMIC_RECONCILE
+        } else {
+            DYNAMIC_STATE
+        };
+        let mut bytes = encode_dynamic(
+            magic,
+            self.local,
+            state,
+            vote,
+            &self.view,
+            self.source_operation,
+        )?;
+        if let Some((expected, floor)) = reconciliation {
+            bytes
+                .try_reserve_exact(24)
+                .map_err(|_| Error::AllocationFailed)?;
+            bytes.extend_from_slice(&expected.term.to_be_bytes());
+            bytes.extend_from_slice(&expected.index.to_be_bytes());
+            bytes.extend_from_slice(&floor.to_be_bytes());
+        }
+        Ok((bytes, vote))
+    }
+}
+fn encode_dynamic(
+    magic: &[u8; 8],
+    local: Key,
+    state: PersistentState,
+    vote: Option<Key>,
+    view: &Voters,
+    source_operation: u64,
+) -> Result<Vec<u8>, Error> {
+    let config = view.encode().map_err(|_| Error::CorruptState)?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(DYNAMIC_HEADER + config.len())
+        .map_err(|_| Error::AllocationFailed)?;
+    bytes.extend_from_slice(magic);
+    bytes.extend_from_slice(&local.id.to_be_bytes());
+    bytes.extend_from_slice(&local.directory);
+    bytes.extend_from_slice(&state.term.to_be_bytes());
+    bytes.extend_from_slice(&state.voted_for.unwrap_or(0).to_be_bytes());
+    bytes.push(u8::from(vote.is_some()));
+    bytes.extend_from_slice(&[0; 3]);
+    bytes.extend_from_slice(&vote.map_or([0; 16], |key| key.directory));
+    bytes.extend_from_slice(&state.log.term.to_be_bytes());
+    bytes.extend_from_slice(&state.log.index.to_be_bytes());
+    bytes.extend_from_slice(&source_operation.to_be_bytes());
+    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
+    bytes.extend_from_slice(&[0; 8]);
+    bytes.extend_from_slice(&config);
+    Ok(bytes)
+}
+fn dynamic_initial(local: Key, genesis: &Voters, group: &[u8]) -> Result<Vec<u8>, Error> {
+    if genesis.epoch() != 0
+        || genesis.position() != LogPosition::default()
+        || group.is_empty()
+        || group.len() > 512
+    {
+        return Err(Error::InvalidMembership);
+    }
+    Key::new(local.id, local.directory).map_err(|_| Error::InvalidMembership)?;
+    let config = genesis.encode().map_err(|_| Error::InvalidMembership)?;
+    let mut bytes = Vec::new();
+    bytes
+        .try_reserve_exact(44 + config.len() + group.len())
+        .map_err(|_| Error::AllocationFailed)?;
+    bytes.extend_from_slice(DYNAMIC_INIT);
+    bytes.extend_from_slice(&local.id.to_be_bytes());
+    bytes.extend_from_slice(&local.directory);
+    bytes.extend_from_slice(&(config.len() as u32).to_be_bytes());
+    bytes.extend_from_slice(&[0; 8]);
+    bytes.extend_from_slice(&config);
+    bytes.extend_from_slice(&(group.len() as u32).to_be_bytes());
+    bytes.extend_from_slice(group);
+    Ok(bytes)
+}
+struct DynamicDecoded {
+    state: PersistentState,
+    vote: Option<Key>,
+    view: Voters,
+    source_operation: u64,
+    reconciliation: Option<(LogPosition, u64)>,
+    configuration_floor: Option<u64>,
+}
+fn decode_dynamic(bytes: &[u8], local: Key) -> Result<DynamicDecoded, Error> {
+    if bytes.len() < DYNAMIC_HEADER
+        || bytes.len() > DYNAMIC_HEADER + MAX_CONFIGURATION_BYTES + 24
+        || bytes[40] > 1
+        || bytes[41..44] != [0; 3]
+        || bytes[88..96] != [0; 8]
+    {
+        return Err(Error::CorruptState);
+    }
+    let u32_at = |offset| -> Result<u32, Error> {
+        Ok(u32::from_be_bytes(
+            bytes[offset..offset + 4]
+                .try_into()
+                .map_err(|_| Error::CorruptState)?,
+        ))
+    };
+    let u64_at = |offset| -> Result<u64, Error> {
+        Ok(u64::from_be_bytes(
+            bytes[offset..offset + 8]
+                .try_into()
+                .map_err(|_| Error::CorruptState)?,
+        ))
+    };
+    if u32_at(8)? != local.id || bytes[12..28] != local.directory {
+        return Err(Error::MembershipChanged);
+    }
+    let count = u32_at(84)? as usize;
+    let end = DYNAMIC_HEADER
+        .checked_add(count)
+        .ok_or(Error::CorruptState)?;
+    if count > MAX_CONFIGURATION_BYTES || end > bytes.len() {
+        return Err(Error::CorruptState);
+    }
+    let view = Voters::decode(&bytes[DYNAMIC_HEADER..end]).map_err(|_| Error::CorruptState)?;
+    let vote_id = u32_at(36)?;
+    let vote = if bytes[40] == 1 {
+        Some(
+            Key::new(
+                vote_id,
+                bytes[44..60].try_into().map_err(|_| Error::CorruptState)?,
+            )
+            .map_err(|_| Error::CorruptState)?,
+        )
+    } else {
+        if vote_id != 0 || bytes[44..60] != [0; 16] {
+            return Err(Error::CorruptState);
+        }
+        None
+    };
+    let state = PersistentState {
+        term: u64_at(28)?,
+        voted_for: vote.map(|key| key.id),
+        log: LogPosition::new(u64_at(60)?, u64_at(68)?)?,
+    };
+    let source_operation = u64_at(76)?;
+    let mut decoded = DynamicDecoded {
+        state,
+        vote,
+        view,
+        source_operation,
+        reconciliation: None,
+        configuration_floor: None,
+    };
+    match &bytes[..8] {
+        magic if magic == DYNAMIC_STATE && bytes.len() == end => {}
+        magic if magic == DYNAMIC_RECONCILE && bytes.len() == end + 24 => {
+            decoded.reconciliation = Some((
+                LogPosition::new(u64_at(end)?, u64_at(end + 8)?)?,
+                u64_at(end + 16)?,
+            ));
+        }
+        magic if magic == DYNAMIC_CONFIG && bytes.len() == end + 8 => {
+            decoded.configuration_floor = Some(u64_at(end)?);
+        }
+        _ => return Err(Error::CorruptState),
+    }
+    Ok(decoded)
+}
+fn validate_dynamic_transition(
+    old: PersistentState,
+    next: PersistentState,
+    membership: &Membership,
+) -> Result<(), Error> {
+    let mut checked = membership.clone();
+    if next.term == old.term && next.voted_for == old.voted_for {
+        if let Some(id) = next.voted_for {
+            if checked.position(id).is_err() {
+                checked.voters.push(id);
+                checked.voters.sort_unstable();
+            }
+        }
+    }
+    validate_transition(old, next, &checked)
+}
+fn validate_dynamic_vote(
+    old: PersistentState,
+    next: PersistentState,
+    old_vote: Option<Key>,
+    next_vote: Option<Key>,
+    view: &Voters,
+) -> Result<(), Error> {
+    if next.voted_for != next_vote.map(|key| key.id)
+        || (next.term == 0 && next_vote.is_some())
+        || (next.term == old.term && old_vote.is_some() && next_vote != old_vote)
+    {
+        return Err(Error::CorruptState);
+    }
+    if let Some(key) = next_vote {
+        if !(view.contains(key) || next.term == old.term && old_vote == Some(key)) {
+            return Err(Error::CorruptState);
+        }
+    }
+    Ok(())
+}
+
+pub(crate) struct DynamicConfig {
+    pub local: Key,
+    pub genesis: Voters,
+    pub group: Vec<u8>,
+    pub timeouts: Timeouts,
+    pub max_states: usize,
+    pub seed: u64,
+}
+pub(crate) struct MembershipUpdate<'a> {
+    pub expected: &'a Voters,
+    pub replacement: Voters,
+    pub source_operation: u64,
+    pub committed_configuration_index: u64,
+    pub keep_removed_leader: bool,
+}
+impl Election {
+    /// Replication-owner-only dynamic open with actual content-WAL validation.
+    pub(crate) fn open_dynamic(
+        path: impl AsRef<Path>,
+        options: DynamicConfig,
+        now_ms: u64,
+        mut validate_source: impl FnMut(u64, &Voters) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        let DynamicConfig {
+            local,
+            genesis,
+            group,
+            timeouts,
+            max_states,
+            seed,
+        } = options;
+        if !(1..=MAX_STATES).contains(&max_states) {
+            return Err(Error::InvalidStateBudget);
+        }
+        let initial = dynamic_initial(local, &genesis, &group)?;
+        let payload = DYNAMIC_HEADER + MAX_CONFIGURATION_BYTES + 24 + 512;
+        let bytes = (24 + (payload + 32) as u64 * max_states as u64).min(256 * 1024 * 1024);
+        let limits = journal::Limits::new(
+            payload,
+            bytes,
+            max_states,
+            payload + std::mem::size_of::<journal::Entry>(),
+        )?;
+        let (mut journal, recovery) = Journal::open(path, 0, limits)?;
+        if journal.entry_count() == 0 {
+            journal.append(1, &initial)?;
+        }
+        let mut dynamic = DynamicStore {
+            local,
+            view: genesis,
+            source_operation: 0,
+            state: PersistentState::default(),
+            vote: None,
+        };
+        validate_source(0, &dynamic.view)?;
+        for offset in 0..journal.next_offset() {
+            let entries =
+                journal.fetch(offset, 1, payload + std::mem::size_of::<journal::Entry>())?;
+            let entry = entries.first().ok_or(Error::CorruptState)?;
+            if entry.first_offset != offset || entry.record_count != 1 {
+                return Err(Error::CorruptState);
+            }
+            if offset == 0 {
+                if entry.payload != initial {
+                    return Err(Error::MembershipChanged);
+                }
+                continue;
+            }
+            let next = decode_dynamic(&entry.payload, local)?;
+            validate_source(next.source_operation, &next.view)?;
+            validate_dynamic_vote(
+                dynamic.state,
+                next.state,
+                dynamic.vote,
+                next.vote,
+                &next.view,
+            )?;
+            let membership = Membership::dynamic(local, &next.view)?;
+            if let Some(floor) = next.configuration_floor {
+                if next.state != dynamic.state
+                    || next.vote != dynamic.vote
+                    || next.source_operation < dynamic.source_operation
+                    || floor > next.state.log.index
+                    || next.view.position().index > next.state.log.index
+                    || next.view.position().index < floor
+                {
+                    return Err(Error::CorruptState);
+                }
+                if next.view.position().index < dynamic.view.position().index {
+                    if dynamic.view.position().index <= floor
+                        || next.view.epoch() >= dynamic.view.epoch()
+                    {
+                        return Err(Error::CorruptState);
+                    }
+                } else if next.view.position().index > dynamic.view.position().index {
+                    if next.view.epoch() <= dynamic.view.epoch()
+                        || next.view.position().term < dynamic.view.position().term
+                    {
+                        return Err(Error::CorruptState);
+                    }
+                } else if next.view != dynamic.view {
+                    return Err(Error::CorruptState);
+                }
+            } else {
+                if next.view != dynamic.view || next.source_operation != dynamic.source_operation {
+                    return Err(Error::CorruptState);
+                }
+                if let Some((expected, floor)) = next.reconciliation {
+                    let mut checked = membership;
+                    if let Some(id) = next.state.voted_for {
+                        if checked.position(id).is_err() {
+                            checked.voters.push(id);
+                            checked.voters.sort_unstable();
+                        }
+                    }
+                    validate_reconciliation(dynamic.state, next.state, expected, floor, &checked)?;
+                } else {
+                    validate_dynamic_transition(dynamic.state, next.state, &membership)?;
+                    if next.view.position().index > next.state.log.index {
+                        return Err(Error::CorruptState);
+                    }
+                }
+            }
+            dynamic.view = next.view;
+            dynamic.source_operation = next.source_operation;
+            dynamic.state = next.state;
+            dynamic.vote = next.vote;
+        }
+        let persistent = dynamic.state;
+        let membership = Membership::dynamic(local, &dynamic.view)?;
+        let store = DurableStore {
+            journal,
+            membership: membership.clone(),
+            dynamic: Some(dynamic),
+        };
+        let machine = Machine::new(store, membership, persistent, timeouts, seed, now_ms)?;
+        Ok(Self { machine, recovery })
+    }
+    /// Immutable confirmed configuration/source operation and directory-qualified vote.
+    pub(crate) fn membership_context(&self) -> Option<(&Voters, u64, Option<Key>)> {
+        self.machine
+            .store
+            .dynamic
+            .as_ref()
+            .map(|d| (&d.view, d.source_operation, d.vote))
+    }
+    /// Supply the owner-verified active configuration after a synced content change.
+    /// Local current term and the complete already-cast vote identity remain intact.
+    pub(crate) fn reconcile_membership(
+        &mut self,
+        update: MembershipUpdate<'_>,
+        now_ms: u64,
+    ) -> Result<(), Error> {
+        let MembershipUpdate {
+            expected,
+            replacement,
+            source_operation,
+            committed_configuration_index,
+            keep_removed_leader,
+        } = update;
+        self.machine.clock(now_ms)?;
+        let dynamic = self
+            .machine
+            .store
+            .dynamic
+            .as_ref()
+            .ok_or(Error::MembershipChanged)?;
+        if &dynamic.view != expected
+            || source_operation < dynamic.source_operation
+            || replacement.position().index > self.machine.persistent.log.index
+            || committed_configuration_index > self.machine.persistent.log.index
+            || replacement.position().index < committed_configuration_index
+        {
+            return Err(Error::CorruptState);
+        }
+        if replacement.position().index < expected.position().index {
+            if expected.position().index <= committed_configuration_index
+                || replacement.epoch() >= expected.epoch()
+            {
+                return Err(Error::CorruptState);
+            }
+        } else if replacement.position().index > expected.position().index {
+            if replacement.epoch() <= expected.epoch()
+                || replacement.position().term < expected.position().term
+            {
+                return Err(Error::CorruptState);
+            }
+        } else if &replacement != expected {
+            return Err(Error::CorruptState);
+        }
+        let local = dynamic.local;
+        let vote = dynamic.vote;
+        let membership = Membership::dynamic(local, &replacement)?;
+        let mut granted = Vec::new();
+        granted
+            .try_reserve_exact(membership.voters.len())
+            .map_err(|_| Error::AllocationFailed)?;
+        granted.resize(membership.voters.len(), false);
+        let old_leader = self.machine.leader;
+        let removed_leader = old_leader.filter(|id| membership.position(*id).is_err());
+        let deadline = self.machine.draw_deadline(now_ms)?;
+        if &replacement != expected {
+            let mut bytes = encode_dynamic(
+                DYNAMIC_CONFIG,
+                local,
+                self.machine.persistent,
+                vote,
+                &replacement,
+                source_operation,
+            )?;
+            bytes
+                .try_reserve_exact(8)
+                .map_err(|_| Error::AllocationFailed)?;
+            bytes.extend_from_slice(&committed_configuration_index.to_be_bytes());
+            if let Err(error) = self.machine.store.journal.append(1, &bytes) {
+                self.machine.poisoned = true;
+                self.machine.follower(self.machine.deadline_ms);
+                self.machine.retained_leader = None;
+                return Err(error.into());
+            }
+            let dynamic = self
+                .machine
+                .store
+                .dynamic
+                .as_mut()
+                .ok_or(Error::MembershipChanged)?;
+            dynamic.view = replacement;
+            dynamic.source_operation = source_operation;
+        }
+        if membership.can_vote
+            && self.machine.role == Role::Candidate
+            && self.machine.persistent.voted_for == Some(membership.local)
+        {
+            granted[membership.position(membership.local)?] = true;
+        }
+        self.machine.membership = membership;
+        self.machine.granted = granted;
+        self.machine.retained_leader = if keep_removed_leader {
+            removed_leader
+        } else {
+            None
+        };
+        if (self.machine.role == Role::Candidate && !self.machine.membership.can_vote)
+            || (removed_leader.is_some() && !keep_removed_leader)
+        {
+            self.machine.follower(deadline);
+        }
+        Ok(())
+    }
+    /// Admit a directory-fenced candidate without a second same-term vote after re-add.
+    pub(crate) fn request_vote_key(
+        &mut self,
+        candidate: Key,
+        request: VoteRequest,
+        now_ms: u64,
+    ) -> Result<VoteResponse, Error> {
+        let dynamic = self
+            .machine
+            .store
+            .dynamic
+            .as_ref()
+            .ok_or(Error::MembershipChanged)?;
+        if candidate.id != request.candidate || !dynamic.view.contains(candidate) {
+            return Err(Error::UnknownVoter);
+        }
+        if request.term == self.machine.persistent.term
+            && self.machine.persistent.voted_for == Some(candidate.id)
+            && dynamic.vote != Some(candidate)
+        {
+            self.machine.clock(now_ms)?;
+            return Ok(VoteResponse {
+                term: self.machine.persistent.term,
+                voter: self.machine.membership.local,
+                candidate: candidate.id,
+                granted: false,
+            });
+        }
+        self.machine.request_vote(request, now_ms)
+    }
+    /// Count only the current exact directory's correlated response.
+    pub(crate) fn receive_vote_key(
+        &mut self,
+        voter: Key,
+        response: VoteResponse,
+        now_ms: u64,
+    ) -> Result<Tally, Error> {
+        let dynamic = self
+            .machine
+            .store
+            .dynamic
+            .as_ref()
+            .ok_or(Error::MembershipChanged)?;
+        if response.voter != voter.id
+            || !dynamic.view.contains(voter)
+            || !dynamic.view.contains(dynamic.local)
+        {
+            return Err(Error::UnknownVoter);
+        }
+        self.machine.receive_vote(response, now_ms)
+    }
+}

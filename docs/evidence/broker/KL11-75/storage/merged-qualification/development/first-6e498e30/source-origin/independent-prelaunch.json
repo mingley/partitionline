@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "classification": "read-only prelaunch verification; zero Cargo, cleanup or source materialization",
+  "verified_utc": "2026-10-03T11:21:54.187412+00:00",
+  "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "source_tree": "/workspace/work/broker-merged-source-6e498e30",
+  "origin_receipt": {
+    "path": "/workspace/work/integration/broker-merged-source-6e498e30/receipt.json",
+    "sha256": "41ddaf9dc7beead5a8add1d21bed196113fdfb32e3e779ad2c4b96f80590e225"
+  },
+  "complete_manifest": {
+    "path": "/workspace/work/integration/broker-merged-source-6e498e30/complete-source.json.gz",
+    "compressed_sha256": "6f4bf6b8d8e2eae1841bd96c5eba4dc65384d50fdd9db1fa7524dc8e0ba0dc6e",
+    "uncompressed_sha256": "e64bd48e6e88bc18aae14c1d8adcb7762d7409859e4bf5a705a92327937792d1",
+    "uncompressed_bytes": 22589084,
+    "compression": "gzip",
+    "decompression_verified": true,
+    "restore_path": "complete-source.json",
+    "original_full_mode": 384,
+    "compressed_full_mode": 384
+  },
+  "file_count": 71435,
+  "logical_source_bytes": 647354690,
+  "all_git_blobs_sha256_and_full_modes_match": true,
+  "complete_file_set_match": true,
+  "no_inode_shared_with_repository_WORK": true,
+  "set_and_blob_sha256": "7437ce87a2a29ad8cb16398cd2bea93c0ceeaf8fa031004bbb0ba827d5aba9e2",
+  "elapsed_seconds": 6.724,
+  "runner_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "launch_status": "HOLD until ROOT GO after client image cleanup"
+}

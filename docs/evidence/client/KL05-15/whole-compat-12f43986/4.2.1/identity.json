@@ -1,0 +1,15 @@
+{
+  "requested": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+  "actual_reference": "apache/kafka:4.2.1@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0",
+  "container_image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+  "container_cpuset": "0,1",
+  "inspected_image_id": "sha256:55c1b9c10383fbe90c4cf5f68cf02e6813f645fddd553483dcc66e8c3d3c6f24",
+  "repo_digests": [
+    "apache/kafka@sha256:9916d60eca5d599550e2c320230808fda342124ba550bb4ac4ea8591803262a0"
+  ],
+  "kafka_cli_version": "4.2.1\n",
+  "host_os": "Linux",
+  "host_arch": "x86_64",
+  "rustc_host": "x86_64-unknown-linux-gnu",
+  "rustc_release": "1.99.0"
+}

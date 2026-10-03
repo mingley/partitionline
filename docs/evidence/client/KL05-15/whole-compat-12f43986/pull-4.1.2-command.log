@@ -1,0 +1,6 @@
+{"schema_version": 1, "version": "4.1.2", "reference": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e", "exit_code": 143, "stopped_for_reservation_guard": true, "minimum_observed_free_bytes": 0, "free_bytes_after": 0, "global_floor_bytes": 367001600, "docker_layers_bytes_before": 795304197, "docker_layers_bytes_after": 795304197, "docker_incremental_unique_layers_bytes": 0, "filesystem_free_space_delta_bytes": -2477842432, "filesystem_delta_scope": "Shared filesystem observation; concurrent authorized writers may contribute. Docker daemon LayersSize delta separately accounts for actual image layer storage.", "image_inspect_exit_code": 1, "new_image_logical_bytes": null, "rootfs_layer_count": 0, "rootfs_layers_shared_with_existing_images": [], "rootfs_layers_new_to_existing_images": [], "image_id": null, "repo_digests": null, "captured_at": "2026-10-03T11:02:21.930815+00:00", "partial_image_state_preserved_on_failure": true}
+Traceback (most recent call last):
+  File "/workspace/work/client-share-assessment/pull-compat-image.py", line 73, in <module>
+    assert not stopped and result == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

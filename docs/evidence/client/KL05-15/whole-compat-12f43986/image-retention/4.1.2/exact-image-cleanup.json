@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "authorized_scope": "Root explicitly authorized reversible completed4.3 and completed4.1 exactimage lifecycle after validated retention; no broad prune or3.9 removal.",
+  "argv": [
+    "docker",
+    "image",
+    "rm",
+    "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6"
+  ],
+  "exit_code": 0,
+  "removed_exact_image_id": "sha256:69972c3ac7ce245bd7135c7fbe394ccfc7d9226ffa4009412da848748c3c9df6",
+  "container_references_before": [],
+  "active_docker_run_exec_process_references": [],
+  "retained_archive_sha256": "5596c79d2f92d0ce3e8f44857c878d65c1f02e88591ba0a876066faedb1583fc",
+  "retained_archive_config_and_all_layers_verified": true,
+  "free_bytes_before": 2085298176,
+  "free_bytes_after": 5204226048,
+  "actual_shared_filesystem_free_delta_bytes": 3118927872,
+  "remaining_3_9_image_id": "sha256:44a48f9d78af26959fa4d61accb9be35f939a79bfdae05cad6df4baca8e22eeb",
+  "remaining_3_9_rootfs_unchanged": true,
+  "captured_at": "2026-10-03T11:19:06.281625+00:00"
+}

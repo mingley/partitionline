@@ -1,0 +1,82 @@
+    Checking libc v0.2.189
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking pin-project-lite v0.2.17
+    Checking bytes v1.12.1
+    Checking cfg-if v1.0.5
+    Checking getrandom v0.4.3
+    Checking tokio v1.53.1
+    Checking crc32c v0.6.8
+    Checking partitionline-broker v0.1.0 (/workspace/work/broker-merged-source-6e498e30/partitionline-broker)
+error: items after a test module
+    --> src/raft/election.rs:1049:1
+     |
+1049 |   mod tests {
+     |   ^^^^^^^^^
+...
+1309 |   const DYNAMIC_INIT: &[u8; 8] = b"PLDINIT2";
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1310 |   const DYNAMIC_STATE: &[u8; 8] = b"PLELECT2";
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1311 |   const DYNAMIC_RECONCILE: &[u8; 8] = b"PLRECON2";
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1312 |   const DYNAMIC_CONFIG: &[u8; 8] = b"PLELCFG2";
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1313 |   const DYNAMIC_HEADER: usize = 96;
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+1314 |
+1315 |   struct DynamicStore {
+     |   ^^^^^^^^^^^^^^^^^^^
+...
+1322 |   impl DynamicStore {
+     |   ^^^^^^^^^^^^^^^^^
+...
+1365 | / fn encode_dynamic(
+1366 | |     magic: &[u8; 8],
+1367 | |     local: Key,
+1368 | |     state: PersistentState,
+...    |
+1371 | |     source_operation: u64,
+1372 | | ) -> Result<Vec<u8>, Error> {
+     | |___________________________^
+...
+1394 |   fn dynamic_initial(local: Key, genesis: &Voters, group: &[u8]) -> Result<Vec<u8>, Error> {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1418 |   struct DynamicDecoded {
+     |   ^^^^^^^^^^^^^^^^^^^^^
+...
+1426 |   fn decode_dynamic(bytes: &[u8], local: Key) -> Result<DynamicDecoded, Error> {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1504 | / fn validate_dynamic_transition(
+1505 | |     old: PersistentState,
+1506 | |     next: PersistentState,
+1507 | |     membership: &Membership,
+1508 | | ) -> Result<(), Error> {
+     | |______________________^
+...
+1520 | / fn validate_dynamic_vote(
+1521 | |     old: PersistentState,
+1522 | |     next: PersistentState,
+1523 | |     old_vote: Option<Key>,
+1524 | |     next_vote: Option<Key>,
+1525 | |     view: &Voters,
+1526 | | ) -> Result<(), Error> {
+     | |______________________^
+...
+1541 |   pub(crate) struct DynamicConfig {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1549 |   pub(crate) struct MembershipUpdate<'a> {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+1556 |   impl Election {
+     |   ^^^^^^^^^^^^^
+     |
+     = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#items_after_test_module
+     = note: `-D clippy::items-after-test-module` implied by `-D warnings`
+     = help: to override `-D warnings` add `#[allow(clippy::items_after_test_module)]`
+     = help: move the items to before the test module was defined
+
+error: could not compile `partitionline-broker` (lib test) due to 1 previous error

@@ -1,0 +1,6 @@
+
+Consumer group 'plcompat-4-2-1-classic' has no active members.
+
+GROUP                  TOPIC                PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID
+plcompat-4-2-1-classic plcompat-4-2-1-input 0          8               8               0               -               -               -
+plcompat-4-2-1-classic plcompat-4-2-1-input 1          8               8               0               -               -               -

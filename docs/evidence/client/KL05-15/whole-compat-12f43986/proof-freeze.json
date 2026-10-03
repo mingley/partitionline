@@ -1,0 +1,1394 @@
+{
+  "schema_version": 1,
+  "source_sha": "12f4398662044947ae653f07923290127457f2ef",
+  "safe_to_stage": true,
+  "no_production_source_changes": true,
+  "files_before_freeze": {
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/broker-version.log": {
+      "sha256": "b3bb6f691586de9019e3cc79bc93f052fe628911cf38bff77319a05242cc7fec",
+      "bytes": 6,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/broker.log": {
+      "sha256": "c4c2e999ff18fec91d1e6ea1cb3ad8bfda3da84f800d583c25525dafd6da822f",
+      "bytes": 106251,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/build.log": {
+      "sha256": "68c573fc64a8523beddd942eddb01da6f77a5b3995cd7d8f6dbab8912467e09f",
+      "bytes": 2051,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/cache-cleanup.json": {
+      "sha256": "1c4d150b532df71a5001aabbe50aef7c6796862dfc2c60ea88e80ed2958af42f",
+      "bytes": 489,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/cache-preservation.log": {
+      "sha256": "10b2ac315cb2332b48733118dfff2fa4d986f6558014f7ffc01215e4e8c608b7",
+      "bytes": 113,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/cargo.log": {
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/cell-qualification.json": {
+      "sha256": "fae8cc3226f2f7b9a30a76c5864ffb6a82c0415f9070a1b723d2034a5916cdde",
+      "bytes": 960,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/cleanup.log": {
+      "sha256": "b85038c43535e23f4a8930aa57aacfd717fa5a67bc6a3622bca707dd5475f2fd",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/container-id.log": {
+      "sha256": "d9752c124572a23bf12064e7e51e052c9026d2b7fc9895353a9cba4982abd09f",
+      "bytes": 65,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/executed-command-disk-guard.py": {
+      "sha256": "36faf45ec46c8cd1cba74f238c8cfdfb9a9f166e4aa44f621dc14eabdf40ef1c",
+      "bytes": 2152,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/external-runtime-guard.log": {
+      "sha256": "d32cee9a556ef8ad524c99ce8a67c57020cb01e14a17baae98fc4e72dbbeb2ed",
+      "bytes": 362,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/features-before.log": {
+      "sha256": "f722a906a9ebfd77c5d91f6e1a547c54fe2dd15c31f22f5c5acbd6728d1ab2b6",
+      "bytes": 670,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/features-upgrade.log": {
+      "sha256": "e141022fde66c8abf284d87a0ea005a43a2851b2f0dac97891d587fbe0e336ee",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/features.log": {
+      "sha256": "2bd5a7c1b2fdebb63f20bf4b61bef4b21e38ecce81dbb04009a9113788ff41a8",
+      "bytes": 670,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/full-source-after.json": {
+      "sha256": "3d70a21acca7bddf72bea9449fe38f90b17a397d901c02342337b300e628572c",
+      "bytes": 2597,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/full-source-after.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/full-source-before.json": {
+      "sha256": "b14c2218c9c3f54542eb7e857b4a461c69127a2f142b8a33a507a1db768d98d1",
+      "bytes": 2598,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/full-source-before.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/identity.json": {
+      "sha256": "63f4771acd2a02e30914730869b99b67b962eeaf0c21ccfe208777de84bbc4cc",
+      "bytes": 725,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-input.log": {
+      "sha256": "bbb35e7006bcf561bd942c88a7d03e300bac2d9f7b84582f37255a19eabef664",
+      "bytes": 1080,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-input.stderr.log": {
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-offsets-classic.log": {
+      "sha256": "796aa4f165804afb9d7cf78ff00ce8e169e5fc2954d4bd1a0cb85922a66e1463",
+      "bytes": 484,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-offsets-cooperative.log": {
+      "sha256": "3112605325f705a92d3c2cabde0ebcb3b6e4fba4ccd86cc7dba7ede8574cad7c",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-offsets-kip848.log": {
+      "sha256": "4ffd5b4ee54796bfa4b7cfe4c27b08566ee6a39b6d9d5c5ad67134df95c04a9f",
+      "bytes": 480,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-offsets-transaction.log": {
+      "sha256": "9873bc1715dd3b71b30d278141772832869dc15339ad7922c4597a33af17bcb4",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-output.log": {
+      "sha256": "52d7c687fb0eacc3e1d3c5e2cc885e6b15be78642e8a36c695158675405c7f36",
+      "bytes": 1086,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/java-output.stderr.log": {
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/launch.json": {
+      "sha256": "ca17b507e2f7f59350a8ab88540a455089b898f4b18d531ce246af0af80c3f76",
+      "bytes": 1573,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/original-runner-command.json": {
+      "sha256": "2f8bffa74169c593ad71ebc6a5c9e91251309de95ef94c91616745b642bb4cb5",
+      "bytes": 402,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/original-runner.log": {
+      "sha256": "d4dfb1d1dbd4b553d04991d8bf4869ec3651221041c7942b723fccd4a9031a41",
+      "bytes": 387,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/readiness-1.log": {
+      "sha256": "4f926fb0060bd467c54fb5f9b40dcc3662d78d5433579b822f6c015190dd57ca",
+      "bytes": 1225,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/readiness-2.log": {
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "bytes": 3247,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/readiness.log": {
+      "sha256": "c9f7d7afe7a6c0bcdebab9af4598b50a69b2ac85b8b3d3ebe1b733648eb06676",
+      "bytes": 3247,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report-validation.log": {
+      "sha256": "89eff2efd975f9f49f738b3ffa15199f403d6058cc94498d0de821e3aaa92800",
+      "bytes": 140,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/report.json": {
+      "sha256": "122eaff53c651b4c141fef14f4c681595b77e45fdcf68d4992000a6ab0b216d8",
+      "bytes": 7809,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/retained-cache/cache-elf-preservation.json": {
+      "sha256": "6ff762efb2af4b57b8788b4c9b4dd6cf6f2523920d0100fee6291d8a3ce9b60b",
+      "bytes": 17993,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/run-whole-compat-cell.sh": {
+      "sha256": "8cc7aa23e5f9da5be089ce00ba0c7a4a02ca0eefbff23e31888e6bf5f3e6f799",
+      "bytes": 3857,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/runtime-disk-monitor.jsonl": {
+      "sha256": "400d9e9e2da84f39758c832a51cffbdaa6a9183b7187194370e1b1f1506880f7",
+      "bytes": 6624,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/runtime.log": {
+      "sha256": "af55f51a32a73342341f7c16bd3cfeba36aeeef0a0ece43641164ebf9d101760",
+      "bytes": 4768,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/rustc.log": {
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/start.log": {
+      "sha256": "b85038c43535e23f4a8930aa57aacfd717fa5a67bc6a3622bca707dd5475f2fd",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/build.log": {
+      "sha256": "2f1b80fb1fca33876facb3e0a2201f46f4dc8ab31d2bf16a592a8227c9178d16",
+      "bytes": 141,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/build.stdout.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/cargo.log": {
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/consumer.jsonl": {
+      "sha256": "35667231c11b9d392f8f0ca4c893a756b9ceabc442bd64d33ed75509f7b9863f",
+      "bytes": 4783,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/consumer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/create-topic.log": {
+      "sha256": "a92436769059c25ed91e00cc2b8584ce5b0bf28655716c67f0763c92326263b6",
+      "bytes": 67,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/create-topic.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/identity.json": {
+      "sha256": "f1313c086266826017a431cc05f6f1aca36958c11a99c1a7e44d6dedcbf0a61a",
+      "bytes": 1146,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/java-offsets.log": {
+      "sha256": "5dddcface592db441a97c0f730a6a3a920578d06a84251f9abf95d2ef1156bd7",
+      "bytes": 415,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/java-offsets.stderr.log": {
+      "sha256": "4f00e69d7827a942b9c4fde31ae8b25fdf1413de39471374d70eddb23c55c7b4",
+      "bytes": 99,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/java-records.log": {
+      "sha256": "ec74ff428015931e7571a497ebf99c284a04ae181fe96e60e8b9fc671804afd2",
+      "bytes": 730,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/java-records.stderr.log": {
+      "sha256": "bddb7ea0e285e0078b79ac392a1e694454bb3f375816425028544e03f0661706",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/producer.jsonl": {
+      "sha256": "01d1690f2326dbd6648a0f008d2fb75be26a370a85b86e29ee0aa857ab4ea7e9",
+      "bytes": 4491,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/producer.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/report-validation.log": {
+      "sha256": "42c4e42bef1ff26e3410c8683081fe51e3d1dfbdbeb2ab5efb4afc1fcb5943ab",
+      "bytes": 96,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/report.json": {
+      "sha256": "a33bc884341fbd796524bfbc4ecd5a90d9f837e460d00ac26dba22b14a10b69a",
+      "bytes": 8839,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable/3e338a6fb4cc4af3834e7af8a95da74f/rustc.log": {
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verifiable-validation.log": {
+      "sha256": "7c8dd0782647c6c4fe9f67f1d186ebbea2e6f46106e49054b04478670d51d066",
+      "bytes": 247,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2/verify-compat-worktree.py": {
+      "sha256": "f2ab97b471ab92959fcce2f40a3a5f16726799512fafdde8b91bc5c5dc83f16c",
+      "bytes": 5711,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.1.2-wrapper-command.log": {
+      "sha256": "4b29ad5321ccf5658c990bf37b212f922c00317f694e7a74ff90fd284fac98c5",
+      "bytes": 57,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/broker-version.log": {
+      "sha256": "e5d77a995a7d89c4b24498cb8947c3b40e53f4d2c0ba2380796cdb059d237848",
+      "bytes": 6,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/broker.log": {
+      "sha256": "ec59c4af6acb57d84a336718229ec90801cbb3f6e88cbfae1f25ec74beed511b",
+      "bytes": 99449,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/build.log": {
+      "sha256": "6c77779eae9ab8b56d128e6a670238f4c37c8ef29de3f245b69c86c3c347e2fa",
+      "bytes": 2051,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/cache-cleanup.json": {
+      "sha256": "e0d3d0d58ba2ff71946058e2e4db874db5d7b00d404464aaa740ad0338cd926d",
+      "bytes": 489,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/cache-preservation.log": {
+      "sha256": "82902544d649c73bf08e11ecb7c9bc78704208077e87679d473a37aa3e93267b",
+      "bytes": 112,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/cargo.log": {
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/cell-qualification.json": {
+      "sha256": "fce53f6f459d89e3685903736c78379c934aa597c94fc57d32f9a5eac63c5dd6",
+      "bytes": 717,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/cleanup.log": {
+      "sha256": "36dad4a636e2f2f4c330ec0d937d1d2b03e34c24b81d28ba91ec2c86929e30a7",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/container-id.log": {
+      "sha256": "e3ee55d67a2e7d24ca81f80d545b9763d3193b1072da5ab8933ffa44e9b9bdde",
+      "bytes": 65,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/coordination-build-pause.json": {
+      "sha256": "76c5cf551b42756b45ec58e62031b99ef82a3e81c53a499a5460b82f43866a44",
+      "bytes": 670,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/executed-command-disk-guard.py": {
+      "sha256": "36faf45ec46c8cd1cba74f238c8cfdfb9a9f166e4aa44f621dc14eabdf40ef1c",
+      "bytes": 2152,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/external-runtime-guard.log": {
+      "sha256": "7e391add36d16a44de9edcb9250a3a9c01b0369566ddda104fd1b3ed7474390c",
+      "bytes": 361,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/features-before.log": {
+      "sha256": "7152bf70e6e0f2acfb31e4b296980bf33d50ae0337aa3647095f2693e4539034",
+      "bytes": 776,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/features.log": {
+      "sha256": "8159891f89ce8c041c32fada64e2a03ac0d786ac8be2f3623655681043465175",
+      "bytes": 776,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/full-source-after.json": {
+      "sha256": "0d2c7c806bed4fcf78c61dc21516cc7905aa4c65156775a7d332eb26f0430437",
+      "bytes": 2597,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/full-source-after.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/full-source-before.json": {
+      "sha256": "1539473e51a7bf9b7ec880b771e257fd1454d9058da67ba4c89099a4fd74388b",
+      "bytes": 2598,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/full-source-before.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/identity.json": {
+      "sha256": "0ad39d2cf0f9a41c225e0559342c038068befdda67d8c1fe9af310fbf5d34446",
+      "bytes": 725,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-input.log": {
+      "sha256": "dee24f3d3bdb95395ca5dba34a640eb3483d111ba0d4b50433a505556d5869bc",
+      "bytes": 1080,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-input.stderr.log": {
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-offsets-classic.log": {
+      "sha256": "a0a927bc53213eeaa58ec17ecd0751b078597f746578ac03dc629a010b278216",
+      "bytes": 484,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-offsets-cooperative.log": {
+      "sha256": "43ac4ed6060c4eb72374d9295d3a96f58089b088c1ce10478729e6ef32c67278",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-offsets-kip848.log": {
+      "sha256": "93562fe4a3d330403d36904df18490b798951a61dab4a72fd476123bad1a9dbd",
+      "bytes": 480,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-offsets-transaction.log": {
+      "sha256": "3921d1a52d31c44a6e96f48b465d1f943df126bba95bec3a8232fd36f6095e58",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-output.log": {
+      "sha256": "081508a984435994ad3d324f79f39c3f3d210586e431eac37b691814deeb9088",
+      "bytes": 1086,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/java-output.stderr.log": {
+      "sha256": "86d017ec1429dc7b992fc69de12b6411c855232c5f8c77cb3cc2bb7cc79a0611",
+      "bytes": 33,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/launch.json": {
+      "sha256": "603109d7e749f2c09d4d617093b0d6a6347d287492d6f869f5e573d03c7855bc",
+      "bytes": 1573,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/original-runner-command.json": {
+      "sha256": "445d9bc5fbaea0cf8f07d6ea3f45536bc9bd7ebda9b729fbb6df1ee018a00b45",
+      "bytes": 401,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/original-runner.log": {
+      "sha256": "04b7e85af2025d167d95f1592ecff3a38bfd7f70701123ca6b9b81c4f7373080",
+      "bytes": 140,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/readiness-1.log": {
+      "sha256": "377eaa07ae11d3361235812fe3e3dfc5986a0dcdcdc835b888f1331350063ce1",
+      "bytes": 1225,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/readiness-2.log": {
+      "sha256": "17b2037242288456e81deed86a59e78723eef178594ac391be841399edb55d8e",
+      "bytes": 3290,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/readiness.log": {
+      "sha256": "17b2037242288456e81deed86a59e78723eef178594ac391be841399edb55d8e",
+      "bytes": 3290,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report-validation.log": {
+      "sha256": "04b7e85af2025d167d95f1592ecff3a38bfd7f70701123ca6b9b81c4f7373080",
+      "bytes": 140,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/report.json": {
+      "sha256": "1527068455f0c925eec7bf36232da359c76fc3ff13672e07d29e9ba97020fdc3",
+      "bytes": 8116,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/retained-cache/cache-elf-preservation.json": {
+      "sha256": "3cccfb03844180d1bb5511084045eb48a21fa7ad9c44c90c650cd0cd4938fcd4",
+      "bytes": 16846,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/run-whole-compat-cell.sh": {
+      "sha256": "8cc7aa23e5f9da5be089ce00ba0c7a4a02ca0eefbff23e31888e6bf5f3e6f799",
+      "bytes": 3857,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/runtime-disk-monitor.jsonl": {
+      "sha256": "5bec5cfa8650f1769aba7d09a14c9419ddd19b7dda0ff97d458c025450cff5e5",
+      "bytes": 11047,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/runtime.log": {
+      "sha256": "075c9e1d45286ba391465dcd647dc0a4472a824d2289a7c4ed2b6c6e2ef3611b",
+      "bytes": 5061,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/rustc.log": {
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/start.log": {
+      "sha256": "36dad4a636e2f2f4c330ec0d937d1d2b03e34c24b81d28ba91ec2c86929e30a7",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1/verify-compat-worktree.py": {
+      "sha256": "f2ab97b471ab92959fcce2f40a3a5f16726799512fafdde8b91bc5c5dc83f16c",
+      "bytes": 5711,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.2.1-wrapper-command.log": {
+      "sha256": "2f5cde0768a9b203e45916e1417f03ed1f0e10932a8763dbdbbc3d6be0e98705",
+      "bytes": 57,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/broker-version.log": {
+      "sha256": "8722a3e4c8ef0feb2e7a669f5f854c72d5d6390b25598f9745dc95e5ffe51dce",
+      "bytes": 6,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/broker.log": {
+      "sha256": "353a147e2a3636468258571feb810c86f483a28c3cc5b0ce5943f50938061a4d",
+      "bytes": 107065,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/build.log": {
+      "sha256": "e66f82f1e6b88be5e659551180d3853cf82c50081e6af508a86ee34588e62c79",
+      "bytes": 2051,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/cache-cleanup.json": {
+      "sha256": "de6ad6aeac7a2617aaa2b301c8809d5bfc89a1c908da2ce028c752aa97763ccd",
+      "bytes": 489,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/cache-preservation.log": {
+      "sha256": "e757424c4435ff33f641cd9533440b9be3e8454a9de7395c43ded77b7809d769",
+      "bytes": 112,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/cargo.log": {
+      "sha256": "1f88eaf7fe1aaec83184752cf4c944cd22f00184136ff36a3e4c318cc60ef566",
+      "bytes": 36,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/cell-qualification.json": {
+      "sha256": "ec2322799aa06e6919ad38a9c135884118a84ed270ab2fb436e8e477a4a29887",
+      "bytes": 961,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/cleanup.log": {
+      "sha256": "8f714e43c1838cd99e58298f9deb85751edb60806a3d4ff52e8519ae54b3334e",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/container-id.log": {
+      "sha256": "cfcdf36f7079833fd36ea68b3cfc99ff5d0574d27bf6b995bd97e0ea01778288",
+      "bytes": 65,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/features-before.log": {
+      "sha256": "ff6c6ec9edd808613fa8fcfa16163460d45fb2e8ff4dfa8bb8acc3267add1916",
+      "bytes": 1239,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/features.log": {
+      "sha256": "8b14ae1eaa28b99559f056f2f8dd5a46a10eaecd86009b5c1bb8b62aab044da9",
+      "bytes": 1239,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-after-index-guard.json": {
+      "sha256": "66746dfde3f4f8fb09d77af51833ebe00aa82bac5ae29b6e3f8b7973ca955615",
+      "bytes": 2609,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-after-index-guard.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-after-local-recovery.json": {
+      "sha256": "44c59090ad4889cf0eefce88d09f819d36acc017fcb1cf6297db8f613bf48de9",
+      "bytes": 2508,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-after-local-recovery.log": {
+      "sha256": "d4ea61c49891fb7467d6f2f67dbec1b91783473eb2e5e2cb1f60fa21ce86c425",
+      "bytes": 127,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-after.log": {
+      "sha256": "0a29e0eac1af570bdf8a201b7da4d78a7fcf9e8ee0e16a7ec4bd976dd393d9d7",
+      "bytes": 3113,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-before.json": {
+      "sha256": "502bd495bc107ef898139071c14a6ab3baba78540ae190dfc6f3fc10de92d067",
+      "bytes": 6592,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/full-source-before.log": {
+      "sha256": "bf1f2a721038eaf27a463d35339fdce70fe8f73da2a12cf38b8297a1f19d2274",
+      "bytes": 215,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/identity.json": {
+      "sha256": "7e703242fa7bd79260027305c6e7b253a25ee6d9871b9c8220990c148c8fe09e",
+      "bytes": 725,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-input.log": {
+      "sha256": "784393f036571cc8f6be44aed5cbe10aafde7657577851174ee1c9dee4ed7a43",
+      "bytes": 1080,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-input.stderr.log": {
+      "sha256": "f3edc003f205e0249dd721108fa2c087d376ad354c89212209949431bdff72db",
+      "bytes": 211,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-offsets-classic.log": {
+      "sha256": "e4ac59c87a7885ae6b4a7181807e288e91631f25df9ae75c6cfa45ff4e8d63cc",
+      "bytes": 484,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-offsets-cooperative.log": {
+      "sha256": "c32fa53eb037e24913893a16092b549020450e306d3a26d08f8e3e3798d75e09",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-offsets-kip848.log": {
+      "sha256": "8cfd485ca1bce4a749fd6e95ce9fff8b3743393f6e26cc128eba5ccb0ff0fe7e",
+      "bytes": 480,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-offsets-transaction.log": {
+      "sha256": "a6e848d6db9a724c767c5d8a933721cc1a38adb719e5af03467c3490131141d4",
+      "bytes": 500,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-output.log": {
+      "sha256": "bba1b333dc21b6a46d19acc796ca1349fec5b9ef2a2734ce72ccf9b03dbbfc6d",
+      "bytes": 1086,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/java-output.stderr.log": {
+      "sha256": "f3edc003f205e0249dd721108fa2c087d376ad354c89212209949431bdff72db",
+      "bytes": 211,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/launch.json": {
+      "sha256": "da9b6114576c154a170f319c78a2940ace8259a2ecbffa9d4909a5ac64dca535",
+      "bytes": 1573,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/original-runner-command.json": {
+      "sha256": "ab382b8c7a41e8aec9e91a605ed526a2c504e147c2890297e5dd64ca5b5a78c9",
+      "bytes": 160,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/original-runner.log": {
+      "sha256": "7c397338dee22f96b2a3f016b55d9f395eaa6f83c9c31846da1dc48aa48e1739",
+      "bytes": 140,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/readiness-1.log": {
+      "sha256": "825134388408678c03a3b7b53512c45847925d2bd3dc435ce0e928dc699222ee",
+      "bytes": 1225,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/readiness-2.log": {
+      "sha256": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+      "bytes": 3290,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/readiness.log": {
+      "sha256": "12f44df66f3485397aa344616484d1d1cd0c7b2d8ae91814fbe3660574505bd4",
+      "bytes": 3290,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report-validation.log": {
+      "sha256": "7c397338dee22f96b2a3f016b55d9f395eaa6f83c9c31846da1dc48aa48e1739",
+      "bytes": 140,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/report.json": {
+      "sha256": "e6d828f3bc789c73dd997d1fd7e40a44b2b46e5db545bb6b3145466c608ca5fe",
+      "bytes": 8116,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/retained-cache/cache-elf-preservation.json": {
+      "sha256": "490b1df0f67c5758ec6e6ad25e57358ffa80eec65cefe61cbfd8a68f912fb91c",
+      "bytes": 16854,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/run-whole-compat-cell.sh": {
+      "sha256": "503d0c76d9e1d47b0490ff1e8c083cf013174f48530237bd5f4400c6bc47b23c",
+      "bytes": 4180,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/runtime.log": {
+      "sha256": "402dd3255cde306c8e864fe2ad4ab1e26290f413dd4334baa3e20e541587e419",
+      "bytes": 5061,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/rustc.log": {
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+      "bytes": 196,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/start.log": {
+      "sha256": "8f714e43c1838cd99e58298f9deb85751edb60806a3d4ff52e8519ae54b3334e",
+      "bytes": 24,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/verify-compat-worktree-index-guard.py": {
+      "sha256": "f2ab97b471ab92959fcce2f40a3a5f16726799512fafdde8b91bc5c5dc83f16c",
+      "bytes": 5711,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/verify-compat-worktree-local-recovery.py": {
+      "sha256": "a1b197cad43286bcea8069ab77a900a4784c7bdca8edde9e51a38ae117dae3b7",
+      "bytes": 5149,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/4.3.1/verify-compat-worktree.py": {
+      "sha256": "fdf0f4ecda0b9dded8bb9e3a46b21c446b8681eca7f9f1497067cab6e296f2dc",
+      "bytes": 2671,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/README.md": {
+      "sha256": "685c2fb84c400c62e3154739eeee9e836f5bf5288e0160effe9030a19516d5a6",
+      "bytes": 1004,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/cached-images-initial.json": {
+      "sha256": "40d0d5dde1b2a33e4412ae6828e106918c5427edd648abb08a26c1ec3963052f",
+      "bytes": 2645,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/cleanup-4.1.2-command.log": {
+      "sha256": "b7acfecd550c17b0e41a7f2000763d19a205226093a72ea2907f60ff0dc0376b",
+      "bytes": 968,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/cleanup-4.2.1-command.log": {
+      "sha256": "5633abbdc1202f49299d7aa29b902358fb254ee23fe5fa4133d2222888060212",
+      "bytes": 959,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/current-image-history-exact.json": {
+      "sha256": "f831f0e2b0667975e1a488c1510f240e0e03abda1c8b2f93050fef77b1dbe6f1",
+      "bytes": 7347,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/current-image-history.jsonl": {
+      "sha256": "e6421ecd2dfcb05a23e6ce7645b63a3c5a152501d3b439c897ad1bee06a327a5",
+      "bytes": 8486,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/docker-df-before-missing-pulls.json": {
+      "sha256": "e9f9e149cb2d606a33a23288fc54caa85f824b3991d68185d73c4c299ba28cf3",
+      "bytes": 11596,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.1.2.stderr.log": {
+      "sha256": "01c914e00c991e8fbda9088d47d129ab232e4a091aacbed2de2ba3e7ed380afd",
+      "bytes": 134,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.1.2.stdout.log": {
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.2.1.stderr.log": {
+      "sha256": "ef82cb06defc0a5a0f88d7a11484642345548e5380a73a24ba9a46cc7246d35e",
+      "bytes": 134,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.2.1.stdout.log": {
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.3.1.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-preflight-4.3.1.stdout.log": {
+      "sha256": "f91f1338ef92a1447beaf98da17aadcc1417412fc53db534458168c9d207d9f3",
+      "bytes": 237,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/disk-monitor.jsonl": {
+      "sha256": "47f4c5cedaf722fd874879c167e8edc2f06d5e4efcfd50aac675706b4fcba390",
+      "bytes": 5922,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/docker-df-after.json": {
+      "sha256": "b492c5e605eedc81a797cdcb2b11656fec3043f309688af34c4e4d4a439953e9",
+      "bytes": 11574,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/docker-df-before.json": {
+      "sha256": "19ad0eaf5cc9e399f79f60af3979d5b36a041427487f91340884425e38eea5e2",
+      "bytes": 11071,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/executed-pull-helper.py": {
+      "sha256": "c8c0a0a5bfbfb74a402f92d967dfc6b2e95561de4c8817af1a7f69820f447528",
+      "bytes": 5813,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/image-inspect-after.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/image-inspect-after.stdout.json": {
+      "sha256": "4139fe3f7962d6f81722b6dc7860e0edf1eb04484ed16fdb8884e7bb072be4aa",
+      "bytes": 3028,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/images-before.json": {
+      "sha256": "352426a4f776718169a9c014e060809290f1782af55ea0afefd59c96b97279cd",
+      "bytes": 2530,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/launch.json": {
+      "sha256": "be36185a39ba6aded929762209fcac7f863fc52c7a81a33107a538835f7da01b",
+      "bytes": 1008,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/pull.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/pull.stdout.log": {
+      "sha256": "59290fa9840ac59bd49eab12c23ce783bfffe0efdacd8e9ca2d895d03d2f1a5f",
+      "bytes": 1864,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/attempt-02/receipt.json": {
+      "sha256": "8d1303055b6f0c083a367750592618fd69d1065af467005cbdc47f719d227836",
+      "bytes": 2092,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/disk-monitor.jsonl": {
+      "sha256": "fa26458250107e06d62b082c0ce247a11a2b06da28aaf25fdb69ebfc5aa7b6c5",
+      "bytes": 273,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/docker-df-after.json": {
+      "sha256": "9593340b3c26d290529e5384157b2993858f355f7b8d4298f25300835ccd5db6",
+      "bytes": 11596,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/docker-df-before.json": {
+      "sha256": "df682a06d1a2d832e60eb5f4eacd5e7a9fd89509ea3d204e89fc6b487b52bc05",
+      "bytes": 11596,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/executed-pull-helper.py": {
+      "sha256": "48ae446f935d044d3028d665df18e8f6099ebd1b7c5700cd7b61d676e8402d05",
+      "bytes": 5450,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/failure-diagnostics.json": {
+      "sha256": "f52cb58ba1ae57f2eb59445df95c00402ff25e4d172e0031f34458382e6144ab",
+      "bytes": 1253,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/image-inspect-after.stderr.log": {
+      "sha256": "01c914e00c991e8fbda9088d47d129ab232e4a091aacbed2de2ba3e7ed380afd",
+      "bytes": 134,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/image-inspect-after.stdout.json": {
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "bytes": 3,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/images-before.json": {
+      "sha256": "26022a540c3ef90086ac12ea84030ea3b3898bcb2ac1173812c22a044b8b5150",
+      "bytes": 5215,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/launch.json": {
+      "sha256": "c90900cd7e1fd076fdfa808595d46126cfeef22f84ea91ef8ac88a7d37d4acad",
+      "bytes": 811,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/manifest-verbose.json": {
+      "sha256": "4b2e74bf8323df5dbea7cf137fc414ff87a861ff8e6b140e3921555b13dd56cb",
+      "bytes": 15401,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/manifest-verbose.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/pull.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/pull.stdout.log": {
+      "sha256": "2a32b8d5721c6d61e27ab816703da58e0ea72e6642b66b602f949cbe0bc97efc",
+      "bytes": 1634,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.1.2/receipt.json": {
+      "sha256": "4544688624aa7e205b805410c265c028bb7879c42511a05279dad3f5cf424fea",
+      "bytes": 1029,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/disk-monitor.jsonl": {
+      "sha256": "da5294f1ac87fbb01d62eaf35f7eb804a50fbb95b0590160cfd4c38f35b00601",
+      "bytes": 7144,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/docker-df-after.json": {
+      "sha256": "3c050108606fea11d159f65eed2f660b09615401c04746aecdb7d16225c750a8",
+      "bytes": 12643,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/docker-df-before.json": {
+      "sha256": "7181075e4a8db2715507f9ae3b4570a636b8433a8f98366981b99c6b4de465ad",
+      "bytes": 12118,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/executed-pull-helper.py": {
+      "sha256": "c8c0a0a5bfbfb74a402f92d967dfc6b2e95561de4c8817af1a7f69820f447528",
+      "bytes": 5813,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/image-inspect-after.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/image-inspect-after.stdout.json": {
+      "sha256": "286897797c6a7391b3a29a53398e29089344c9ec268138264d21daa0ca2f58fd",
+      "bytes": 3142,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/images-before.json": {
+      "sha256": "352426a4f776718169a9c014e060809290f1782af55ea0afefd59c96b97279cd",
+      "bytes": 2530,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/launch.json": {
+      "sha256": "d26822c41a2c98be5d7ae713708034b371276dcb5f2c9201302a919a9ceecfb7",
+      "bytes": 1003,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/pull.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/pull.stdout.log": {
+      "sha256": "0c4eb1ea8f0f6dedc38e8a4c3ea22170df9b31c34ec64f1283078284d193f79b",
+      "bytes": 1980,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-pulls/4.2.1/receipt.json": {
+      "sha256": "858d60448bac31fbf99e72a48a86e6cb31f836abb57db6fcc279e4ff41e42b86",
+      "bytes": 2171,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/docker-save.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/exact-image-cleanup.json": {
+      "sha256": "b5eacd28e870ea4153c865df5b72acc9414b14322c927e6e7190b5608cddf788",
+      "bytes": 1020,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/exact-image-remove.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/exact-image-remove.stdout.log": {
+      "sha256": "94672c01ddccc78993932c0ed7b2c10925716332e957f35f388f716b82981f73",
+      "bytes": 1067,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/executed-image-cleanup-helper.py": {
+      "sha256": "44ca16afe993a941bbb4c369d53a5b171d06840f866a666373e59ff1cce9ccbf",
+      "bytes": 3183,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/executed-retention-helper.py": {
+      "sha256": "8c8a8950e8a2a6ad288107bcd60c5b2266ea0c36ffa2d919f0faffd06de2d6fd",
+      "bytes": 4780,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/original-image-identity.json": {
+      "sha256": "a4cd65a8d10401ab82abf75615ff8c172f9cf92be41df7fa569a982b6b990c26",
+      "bytes": 2432,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.1.2/retention.json": {
+      "sha256": "b3e95e4011a4f36d5b0ce29130aacc0dd024ee7be830960b24021df2767b0219",
+      "bytes": 8541,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/docker-save.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/exact-image-cleanup.json": {
+      "sha256": "69bbb6b6408f48efb3963047c5149a14bbd77220e3d052756590a3bc353ae946",
+      "bytes": 1011,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/exact-image-remove.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/exact-image-remove.stdout.log": {
+      "sha256": "9c7bdac115555f6dd37af5bb67735b2ddb1229c75307a36d6806d09f73dc321a",
+      "bytes": 1148,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/executed-image-cleanup-helper.py": {
+      "sha256": "914a62ad6b8fb06649af6ca61ac3ef21c1274a0a08c2eef8ac5ae4ee00b258e2",
+      "bytes": 3174,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/executed-retention-helper.py": {
+      "sha256": "8c8a8950e8a2a6ad288107bcd60c5b2266ea0c36ffa2d919f0faffd06de2d6fd",
+      "bytes": 4780,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/original-image-identity.json": {
+      "sha256": "bb7d7e30433086d191844d7155bd0c878bb2228f7ec6dd41c902177a9f19a57e",
+      "bytes": 2536,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.2.1/retention.json": {
+      "sha256": "aef52107755596b1a3c006173ea3c777f2732caffd87b2866f1286f075b762c8",
+      "bytes": 9062,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/docker-save.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/exact-image-cleanup.json": {
+      "sha256": "dc3bc4b81ca22b8fffa222741bd3f7b8fc6fe9b95991adc0c5d9241b13e23fb1",
+      "bytes": 986,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/exact-image-remove.stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/exact-image-remove.stdout.log": {
+      "sha256": "b349ef37eaf7e78139fe40a31bcb467944272a68975d6a037cb1fa09e00f236c",
+      "bytes": 1148,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/executed-corrected-verification-helper.py": {
+      "sha256": "fc1e712fe9a7c51ed69a85c4f80a0d192b0b3aed19f5b4300dfe6bab82dd205c",
+      "bytes": 4213,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/executed-retention-helper.py": {
+      "sha256": "1be06f0d4d9b3f1adb5b95b046f8ef8d38d6da9e285dcb9897952595d4af49b3",
+      "bytes": 4816,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/original-image-identity.json": {
+      "sha256": "47d32843b5aadf5db73f1a6e8506bce257bb3fac0b447efc1f762980aea2b7ba",
+      "bytes": 2536,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/image-retention/4.3.1/retention.json": {
+      "sha256": "2c91c654223bd1400a09fd98b38bec8fb78865bdd12b858e6016485c9aa42105",
+      "bytes": 9292,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/publication-restore-map.json": {
+      "sha256": "e37fd33501e12cd6ea5d29d0f943f86ddbc8bd8a82ffb5c47c68fa1bbf987274",
+      "bytes": 45228,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/pull-4.1.2-attempt-02-command.log": {
+      "sha256": "1450251656dce2acee3948a7601a44d5ba7e22c9b3fa561d8ee151d0004380bf",
+      "bytes": 1990,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/pull-4.1.2-command.log": {
+      "sha256": "317f587840770cdd3decd97761e247539013200edc5ad51739897d3c64386373",
+      "bytes": 1203,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/pull-4.2.1-command.log": {
+      "sha256": "4969fed13d0aee74aee07997a4ffa584669f7a4d70aab67ebb472756a9bb377b",
+      "bytes": 2065,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/qualification.json": {
+      "sha256": "36bbd99f75026505e37ce184c066f5d112e7afd9d87068a48bffecac0a82d31d",
+      "bytes": 11538,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/retention-4.1.2-command.log": {
+      "sha256": "f7e54e63cbd1385b4e33a799efdcf78e5a55914610cd9be9c227c3870905d640",
+      "bytes": 1573,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/retention-4.2.1-command.log": {
+      "sha256": "204430bcc481982df0ef93e3c7bb9b56062b3865e32202b448bd8d8c8bef301b",
+      "bytes": 1573,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/retention-4.3.1-command.log": {
+      "sha256": "ccca1b655f093324145b8da7949715d620de7ca7ad0d4f2a42825b70c39d12c1",
+      "bytes": 291,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/retention-4.3.1-corrected-validation.log": {
+      "sha256": "1db48074bfcc04ee13f50f2334231d2e2bd564fbf708cb6075b48bfb07fcb769",
+      "bytes": 1801,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/worktree-initial.json": {
+      "sha256": "07f497bf810b165a23cb938ee36927ea6393357679a4d1a5fe60355f7b0e6352",
+      "bytes": 6550,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    },
+    "docs/evidence/client/KL05-15/whole-compat-12f43986/worktree-initial.log": {
+      "sha256": "c07e6c115041941afa433a3d2573d0ab3211c057c5c68ad1c2e195bf5d4dcc43",
+      "bytes": 221,
+      "full_filesystem_mode": 384,
+      "git_mode": "100644"
+    }
+  }
+}

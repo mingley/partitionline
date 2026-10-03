@@ -1,0 +1,344 @@
+{
+  "schema": 1,
+  "source_commit": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "driver_sha256": "3be705a6dd52bb5707a471fdcd27772886dbc8aa039b0a38c38b994836c047b8",
+  "cpu_affinity": {
+    "requested": "2,4",
+    "taskset_argument": "2,4",
+    "actual_cpu_ids": [
+      2,
+      4
+    ]
+  },
+  "environment": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_TARGET_DIR": "/workspace/work/target-broker-segments",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_NET_OFFLINE": "true"
+  },
+  "toolchain_versions_observed": {
+    "stable": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n",
+    "1.85.0": "rustc 1.85.0 (4d91de4e4 2025-02-17)\nbinary: rustc\ncommit-hash: 4d91de4e48198da2e33413efdcd9cd2cc0c46688\ncommit-date: 2025-02-17\nhost: x86_64-unknown-linux-gnu\nrelease: 1.85.0\nLLVM version: 19.1.7\n"
+  },
+  "actual_compilers_qualified_in_this_prefix": [
+    "stable/default all-targets only"
+  ],
+  "execution_counts": {
+    "qualification_commands": 4,
+    "maintenance_commands": 0,
+    "actual_commands": 4
+  },
+  "original_planned_matrix": {
+    "toolchains": [
+      "stable",
+      "1.85.0"
+    ],
+    "profiles": [
+      {
+        "name": "default",
+        "cargo_flags": []
+      },
+      {
+        "name": "tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "tls"
+        ]
+      },
+      {
+        "name": "sasl",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl"
+        ]
+      },
+      {
+        "name": "sasl+tls",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "sasl,tls"
+        ]
+      },
+      {
+        "name": "oidc",
+        "cargo_flags": [
+          "--no-default-features",
+          "--features",
+          "oidc"
+        ]
+      },
+      {
+        "name": "all-features",
+        "cargo_flags": [
+          "--all-features"
+        ]
+      }
+    ],
+    "test_cells": 12,
+    "gates_per_cell": [
+      "all-targets",
+      "strict-clippy",
+      "strict-doc",
+      "strict-doctest"
+    ],
+    "behavior_lint_doc_gates": 48,
+    "format_gates": 1,
+    "package_clean_commands": 2,
+    "expected_command_count": 51,
+    "dependency_flags": [
+      "--offline",
+      "--locked"
+    ],
+    "maintenance_command_count": 10,
+    "expected_actual_command_count": 61,
+    "format_network_policy": "cargo fmt --check with CARGO_NET_OFFLINE=true; dependency flags apply to built-in Cargo commands",
+    "peer_profiles": [
+      "default",
+      "all-features"
+    ],
+    "maintenance_operations": [
+      {
+        "name": "stable-maintenance-after-default",
+        "after_profile": "default",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-tls",
+        "after_profile": "tls",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-sasl",
+        "after_profile": "sasl",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-sasl+tls",
+        "after_profile": "sasl+tls",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "stable-maintenance-after-oidc",
+        "after_profile": "oidc",
+        "toolchain": "stable",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+stable",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-default",
+        "after_profile": "default",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-tls",
+        "after_profile": "tls",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-sasl",
+        "after_profile": "sasl",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-sasl+tls",
+        "after_profile": "sasl+tls",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      },
+      {
+        "name": "1.85.0-maintenance-after-oidc",
+        "after_profile": "oidc",
+        "toolchain": "1.85.0",
+        "argv": [
+          "taskset",
+          "-c",
+          "2,4",
+          "cargo",
+          "+1.85.0",
+          "clean",
+          "--offline",
+          "--locked",
+          "--manifest-path",
+          "partitionline-broker/Cargo.toml",
+          "--target-dir",
+          "/workspace/work/target-broker-segments"
+        ],
+        "operation": "full-generated-cache-clean"
+      }
+    ]
+  },
+  "all_51_qualification_commands_passed": false,
+  "all_10_maintenance_commands_executed": false,
+  "stable_default_tests": {
+    "passed": 304,
+    "failed": 0,
+    "ignored": 0,
+    "filtered_out": 0
+  },
+  "failure": {
+    "command": "stable-default-strict-clippy",
+    "exit_code": 101,
+    "lint": "clippy::items_after_test_module",
+    "source": "partitionline-broker/src/raft/election.rs",
+    "test_module_line": 1049,
+    "following_production_line": 1309
+  },
+  "external_test_tools": [
+    {
+      "original_path": "/usr/bin/openssl",
+      "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+      "original_mode": 493,
+      "bytes": 1103304,
+      "retained_object": "bin/elf-objects/f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1.gz",
+      "reason": "external TLS test prerequisite before any tests",
+      "command": "openssl-prerequisite",
+      "pre_clean_bytes_and_gzip_verified": false,
+      "resolved_path": "/usr/bin/openssl",
+      "version_command": [
+        "/usr/bin/openssl",
+        "version",
+        "-a"
+      ],
+      "version": "OpenSSL 3.5.7 9 Jun 2026 (Library: OpenSSL 3.5.7 9 Jun 2026)\nbuilt on: Sun Aug 23 15:26:22 2026 UTC\nplatform: debian-amd64\noptions:  bn(64,64)\ncompiler: gcc -fPIC -pthread -m64 -Wa,--noexecstack -Wall -fzero-call-used-regs=used-gpr -Wa,--noexecstack -g -O2 -Werror=implicit-function-declaration -ffile-prefix-map=/build/reproducible-path/openssl-3.5.7=. -fstack-protector-strong -fstack-clash-protection -Wformat -Werror=format-security -fcf-protection -DOPENSSL_USE_NODELETE -DL_ENDIAN -DOPENSSL_PIC -DOPENSSL_BUILDING_OPENSSL -DZLIB -DZSTD -DNDEBUG -Wdate-time -D_FORTIFY_SOURCE=2\nOPENSSLDIR: \"/usr/lib/ssl\"\nENGINESDIR: \"/usr/lib/x86_64-linux-gnu/engines-3\"\nMODULESDIR: \"/usr/lib/x86_64-linux-gnu/ossl-modules\"\nSeeding source: os-specific\nCPUINFO: OPENSSL_ia32cap=0xfffa3203078bffff:0x00405fc6f1bf07ab:0x0000002020000010:0x0000000000000000:0x0000000000000000\n"
+    }
+  ]
+}

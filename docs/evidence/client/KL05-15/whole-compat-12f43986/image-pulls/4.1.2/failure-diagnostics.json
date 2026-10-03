@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "classification": "Environmental capacity failure during first genuine digest-pinned image pull; no Kafka runtime or Rust test executed by this attempt.",
+  "docker_storage_driver": "vfs",
+  "monitor_poll_seconds": 3,
+  "observed_free_floor_breached": true,
+  "own_pull_terminated_by_reservation_guard": true,
+  "later_free_bytes": 2477408256,
+  "image_not_registered": true,
+  "no_manual_prune_or_deletion": true,
+  "daemon_released_temporary_state_after_cancellation": true,
+  "manifest_amd64_digest": "sha256:d50ab7b5df612b3c303f9d8afe8fee59626a5de798addfd626fe1924e3205965",
+  "compressed_layer_count": 11,
+  "compressed_layer_size_sum": 234722169,
+  "current_cached_image_logical_bytes": 441599684,
+  "current_cached_image_additive_cumulative_vfs_estimate": 2930013603,
+  "estimate_scope": "Read-only exact current-image history, additive cumulative logical size estimate for VFS; whiteouts and allocated blocks may differ. Logical image size and Docker LayersSize do not account for physical cumulative tree copies.",
+  "next_attempt_requirement": "Use measured VFS budget and faster polling with a cancellation margin; retain all original logs and failed helper.",
+  "captured_at": "2026-10-03T11:06:58.424760+00:00"
+}
