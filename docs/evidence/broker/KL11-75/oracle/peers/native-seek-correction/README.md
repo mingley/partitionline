@@ -1,0 +1,5 @@
+The first corrected native/helper cohort at fcac9d1d failed its ninth job on the public seek3 call, after nine exact seek0 records and EOF/position/watermark9. Its original181files, rawlogs and byte/mode inventory are retained losslessly. No compaction operator ran, and no complete160job result is claimed.
+
+Pinned librdkafka2.15.0 documents assignment for initial offsets and seeking only partitions already assigned/consumed. The helper now assigns once per topic at0 and polls that assignment; later rounds seek the consumed partition without reassigning it. Returned errorobjects are destroyed and numericglobal/perpartition error details are emitted on rejection. The prior failing call’s exact codes remain unobserved.
+
+All record fields, ordered headers, retained cardinality, EOFs, publicwatermarks and actualSDKconsumedpositions retain their reviewed assertions. This packet qualifies source-only preservation and the narrow lifecyclechange; new compilation and genuine live acceptance await a newly pushed helperpin. Broker/publicRust remain source403be1e3. Historical403/fcac sourcefreezes and failedattempts remain separate.

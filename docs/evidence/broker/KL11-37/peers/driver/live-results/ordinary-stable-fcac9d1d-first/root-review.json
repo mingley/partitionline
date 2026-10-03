@@ -1,0 +1,14 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "first_ordinary_actual_steps": 45,
+  "all_owners_joined_without_force": true,
+  "private_modes_only_checked": 29,
+  "phase_synchronized_no_dispatch_claimed": false,
+  "raw_public_receipts": {
+    "validation.json": "b1648aa61b8bc8ecbd1b80c5401486ef91f1fb97af84240875fb9b4e1e6c1ebd",
+    "outer-ownership.json": "e068cd3e2301aef64195d5b10db70a3c8089c4a3f9ece819390208578d512478",
+    "private-mode-inventory.json": "03a1c9f1177c31c9bd000e663e27661c3e8fcf7334b1c7af4c821ea5098e4fcc"
+  },
+  "remaining_cohorts_authorized_sequentially": 31
+}

@@ -1,0 +1,5 @@
+The first actual e90 stable Cargo --no-run command failed with exit 101 before any behavioral test, baseline experiment, JVM or MSRV compile. This packet preserves the raw diagnostics, disk samples, source guards, exact plan and helper correction. Neither API card is qualified by this attempt.
+
+The correction binds JoinSet::spawn's AbortHandle and narrows seven private test-module declarations to pub(crate). The JoinSet retains worker ownership and cancellation. Stable and 1.85.0 rustfmt checks pass; the corrected helper remains uncompiled until the next ROOT source pin and lease. Product source files and immutable e90 were unchanged.
+
+The restoration map binds all 51 generated cache ELF paths to lossless compressed WORK objects and original full modes. ELF payloads are excluded from Git. The owned Cargo process group is closed. A broader target-reference snapshot is explicitly unverified because /proc denies two live protected supervisors and zombie entries; no generated-cache cleanup was attempted.

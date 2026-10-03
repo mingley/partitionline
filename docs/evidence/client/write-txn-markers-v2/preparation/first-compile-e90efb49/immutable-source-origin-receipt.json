@@ -1,0 +1,63 @@
+{
+  "source_commit": "e90efb494401fbf6c52998501e2d4b5a42471a73",
+  "source_directory": "/workspace/work/client-capabilities-source-e90efb49",
+  "verified_files": 73304,
+  "verified_bytes": 679303265,
+  "source_origin": "exact Git tree; explicit origin/Git/fullmode-verified immutable baseline links plus owned new blobs",
+  "baseline_source": "ea9ff29393526b57e1203612bb12c9c99deccc61",
+  "baseline_origin_receipt": "/workspace/work/integration/broker-merged-source-ea9ff293/receipt.json",
+  "baseline_origin_receipt_sha256": "dfff18c792e4bba13a998b53b6696113476c9127b0d4c46e110c094738d73632",
+  "baseline_root": "/workspace/work/broker-merged-source-ea9ff293",
+  "baseline_manifest_sha256": "5c72bc19fccec2fe4afe2377e06b5991ec3723053a5a18d2f72d2efbc4ac8418",
+  "unchanged_files_hardlinked": 73163,
+  "changed_new_blob_bytes": 6118823,
+  "complete_path_set_and_git_blobs_verified": true,
+  "all_full_modes_verified": true,
+  "no_inode_shared_with_repository_worktree": true,
+  "baseline_before_after_verified": true,
+  "baseline_before": {
+    "files": 73171,
+    "git_path_set_and_every_git_blob_verified": true,
+    "all_origin_full_permission_modes_verified": true,
+    "tracked_and_untracked_worktree_inode_disjoint": true,
+    "origin_and_manifest_bytes_and_modes_unchanged": true
+  },
+  "baseline_after": {
+    "files": 73171,
+    "git_path_set_and_every_git_blob_verified": true,
+    "all_origin_full_permission_modes_verified": true,
+    "tracked_and_untracked_worktree_inode_disjoint": true,
+    "origin_and_manifest_bytes_and_modes_unchanged": true
+  },
+  "source_manifest": {
+    "path": "/workspace/work/integration/client-capabilities-source-e90efb49/complete-source.json.gz",
+    "compressed_sha256": "64e34bfac4f0c4c3b8eeea76f53456805e36e230c3cfeecc1a143da7fbe64db2",
+    "uncompressed_sha256": "b10587e834f41b3b042ba5e6d029d7a3356ead88d1c417e65a0d57d93428ca44",
+    "uncompressed_bytes": 23188153,
+    "compression": "gzip",
+    "decompression_verified": true,
+    "restore_path": "complete-source.json",
+    "original_full_mode": 384,
+    "compressed_full_mode": 384,
+    "uncompressed_retained_path": "/workspace/work/integration/client-capabilities-source-e90efb49/complete-source.json"
+  },
+  "write_forecast": {
+    "new_blob_bytes": 6118823,
+    "new_allocated_file_upper_bound_bytes": 6463488,
+    "hardlink_and_directory_entry_reserve_bytes": 342130688,
+    "raw_audit_upper_bound_bytes": 81655544,
+    "gzip_upper_bound_bytes": 81680533,
+    "metadata_and_verification_reserve_bytes": 246040197,
+    "forecast_output_bytes": 594634373,
+    "required_free_bytes": 961635973,
+    "sampled_free_bytes": 1335730176,
+    "minimum_remaining_free_bytes": 367001600
+  },
+  "disk_guard": {
+    "floor_bytes": 367001600,
+    "guard_samples": 220200,
+    "minimum_sampled_free_bytes": 1262161920,
+    "action": "refuse the next write at reserve; retain partial outputs, never clean sources"
+  },
+  "driver_sha256": "c9a31c31d6a145c2309536c711bb268341753d77da9a7dc84cea41acb7cf3a0d"
+}

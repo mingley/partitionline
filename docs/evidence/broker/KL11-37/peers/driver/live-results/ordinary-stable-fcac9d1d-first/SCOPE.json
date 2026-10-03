@@ -1,0 +1,18 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "steps": 45,
+  "elapsed_seconds": 43.08204601598845,
+  "SDK_lanes": "OfficialJava4.1.2/4.2.1/4.3.1 + publicRustclient genuineHTTPS acquisition/write/fullfieldhistory/restart; native2.15 callback+boundedlibcurl metadata only, no builtinOIDCclaim.",
+  "ordinary_records": 4,
+  "processes_joined_unforced": 14,
+  "logical_broker_and_issuer_joined": true,
+  "source_file_count": 73196,
+  "no_timeout_forced_cleanup_or_survivors": true,
+  "private_mode_only_paths": 29,
+  "no_private_contents_or_hashes_read": true,
+  "phase_dispatch_denial_proved": false,
+  "firstfailed657": "retained unchanged; no inferred originaldaemonexit. UUID2 realproductionprobe correction was source-pushed and normallybuilt before this live run.",
+  "scope_limits": "Ordinarysinglepartition/RF1/localfsync/manualreader APIs0/1/2/3/17/18/19/20/36; no groups/transactions/idempotence/ACL/replication/fullKafka/reauthclaim.",
+  "raw_source_audit_mode": "Originalrawcomplete-source-identity JSONserializedinmemory/directgzip; rawmode600 metadata is designatedrestorepolicy, not measuredoldfilemode. Actualsourcerowfull07777measured."
+}

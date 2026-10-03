@@ -1,0 +1,3624 @@
+[
+  {
+    "driver_sequence": 0,
+    "actor": "broker",
+    "api_keys": [
+      0,
+      1,
+      2,
+      3,
+      17,
+      18,
+      19,
+      20,
+      36
+    ],
+    "broker": "localhost:46723",
+    "event": "ready",
+    "maximum_runtime_secs": 240,
+    "profile": "read-write",
+    "recovered_entries": 1,
+    "session_lifetime_ms": 0,
+    "topic": "oidc-probe"
+  },
+  {
+    "driver_sequence": 1,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:46305/issuer",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 2,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 8,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 0,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 3,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 8,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 1,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 4,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 8,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 2,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 5,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 3,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 6,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 4,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 7,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 5,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 8,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 10,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 6,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 9,
+    "actor": "java-4-1-2",
+    "event": "query",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 10,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 12,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 7,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 11,
+    "actor": "broker",
+    "api": 0,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 14,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 8,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 12,
+    "actor": "java-4-1-2",
+    "event": "produce",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition": 0,
+    "offset": 0,
+    "timestamp": 1700000000123,
+    "key_hex": "6f617574682d342e312e322d696e697469616c",
+    "value_hex": "7075626c69632d6a6176612d342e312e32",
+    "public_operation": "Producer.send",
+    "producer_metrics": {
+      "producer-metrics:connection-close-total": 0.0,
+      "producer-metrics:connection-creation-total": 2.0,
+      "producer-metrics:failed-authentication-total": 0.0,
+      "producer-metrics:request-total": 4.0,
+      "producer-metrics:response-total": 4.0,
+      "producer-metrics:successful-authentication-total": 2.0,
+      "producer-node-metrics:request-total": 2.0,
+      "producer-node-metrics:response-total": 2.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 13,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 9,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 14,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 10,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 15,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 11,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 16,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 9,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 12,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 17,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 10,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 13,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 18,
+    "actor": "java-4-1-2",
+    "event": "fetch",
+    "phase": "initial",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 1,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 10.0,
+      "consumer-metrics:response-total": 9.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 7.0,
+      "consumer-node-metrics:response-total": 6.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 19,
+    "actor": "java-4-1-2",
+    "operator_commands": 4,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 20,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 11,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 14,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 21,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 22,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 23,
+    "actor": "java-4-2-1",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:46305/issuer",
+    "release": "4.2.1",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 24,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 15,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 25,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 16,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 26,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 24,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 17,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 27,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 18,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 28,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 19,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 29,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 20,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 30,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 27,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 21,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 31,
+    "actor": "java-4-2-1",
+    "event": "query",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 3.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 32,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 29,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 22,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 33,
+    "actor": "broker",
+    "api": 0,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 30,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 23,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 34,
+    "actor": "java-4-2-1",
+    "event": "produce",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition": 0,
+    "offset": 1,
+    "timestamp": 1700000000123,
+    "key_hex": "6f617574682d342e322e312d696e697469616c",
+    "value_hex": "7075626c69632d6a6176612d342e322e31",
+    "public_operation": "Producer.send",
+    "producer_metrics": {
+      "producer-metrics:connection-close-total": 0.0,
+      "producer-metrics:connection-creation-total": 2.0,
+      "producer-metrics:failed-authentication-total": 0.0,
+      "producer-metrics:request-total": 4.0,
+      "producer-metrics:response-total": 4.0,
+      "producer-metrics:successful-authentication-total": 2.0,
+      "producer-node-metrics:request-total": 2.0,
+      "producer-node-metrics:response-total": 2.0
+    },
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 35,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 24,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 36,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 25,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 37,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 26,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 38,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 9,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 27,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 39,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 10,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 28,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 40,
+    "actor": "java-4-2-1",
+    "event": "fetch",
+    "phase": "initial",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 2,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 10.0,
+      "consumer-metrics:response-total": 9.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 7.0,
+      "consumer-node-metrics:response-total": 6.0
+    },
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 41,
+    "actor": "java-4-2-1",
+    "operator_commands": 4,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 42,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 11,
+    "event": "application-dispatch",
+    "generation": 25,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 29,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 43,
+    "actor": "java-4-2-1",
+    "event": "shutdown",
+    "release": "4.2.1",
+    "callback": {
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 44,
+    "actor": "java-4-2-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 45,
+    "actor": "java-4-3-1",
+    "release": "4.3.1",
+    "issuer": "https://localhost:46305/issuer",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 46,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 40,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 30,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 47,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 0,
+    "event": "application-dispatch",
+    "generation": 40,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 31,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 48,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 40,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 32,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 49,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 33,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 50,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 34,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 51,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 35,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 52,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 36,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 53,
+    "actor": "java-4-3-1",
+    "event": "query",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition_count": 1,
+    "consumer_topic_count": 1,
+    "admin_topic_count": 1,
+    "public_operations": [
+      "Consumer.partitionsFor",
+      "Consumer.listTopics",
+      "Admin.listTopics",
+      "Admin.describeTopics"
+    ],
+    "admin_metrics": {
+      "admin-client-metrics:connection-close-total": 0.0,
+      "admin-client-metrics:connection-creation-total": 2.0,
+      "admin-client-metrics:failed-authentication-total": 0.0,
+      "admin-client-metrics:request-total": 6.0,
+      "admin-client-metrics:response-total": 6.0,
+      "admin-client-metrics:successful-authentication-total": 2.0,
+      "admin-client-node-metrics:request-total": 4.0,
+      "admin-client-node-metrics:response-total": 4.0
+    },
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 5.0,
+      "consumer-metrics:response-total": 5.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 2.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 54,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 45,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 37,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 55,
+    "actor": "broker",
+    "api": 0,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 46,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 38,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 56,
+    "actor": "java-4-3-1",
+    "event": "produce",
+    "phase": "initial",
+    "passed": true,
+    "topic": "oidc-probe",
+    "partition": 0,
+    "offset": 2,
+    "timestamp": 1700000000123,
+    "key_hex": "6f617574682d342e332e312d696e697469616c",
+    "value_hex": "7075626c69632d6a6176612d342e332e31",
+    "public_operation": "Producer.send",
+    "producer_metrics": {
+      "producer-metrics:connection-close-total": 0.0,
+      "producer-metrics:connection-creation-total": 2.0,
+      "producer-metrics:failed-authentication-total": 0.0,
+      "producer-metrics:request-total": 4.0,
+      "producer-metrics:response-total": 4.0,
+      "producer-metrics:successful-authentication-total": 2.0,
+      "producer-node-metrics:request-total": 2.0,
+      "producer-node-metrics:response-total": 2.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 57,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 39,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 58,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 40,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 59,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 41,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 60,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 9,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 42,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 61,
+    "actor": "java-4-3-1",
+    "event": "fetch",
+    "phase": "initial",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 3,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 10.0,
+      "consumer-metrics:response-total": 9.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 7.0,
+      "consumer-node-metrics:response-total": 3.0
+    },
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 62,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 10,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 43,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 63,
+    "actor": "java-4-3-1",
+    "event": "complete",
+    "deadline_reached": false,
+    "operator_commands": 4,
+    "callback": {
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 64,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 11,
+    "event": "application-dispatch",
+    "generation": 42,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 44,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 65,
+    "actor": "java-4-3-1",
+    "release": "4.3.1",
+    "event": "shutdown",
+    "callback": {
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0
+    }
+  },
+  {
+    "driver_sequence": 66,
+    "actor": "java-4-3-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 67,
+    "actor": "rust-public",
+    "event": "ready",
+    "provider": "OidcConfig/Sasl::oidc",
+    "sdk": "partitionline"
+  },
+  {
+    "driver_sequence": 68,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 51,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 45,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 69,
+    "actor": "rust-public",
+    "api_versions": [
+      {
+        "api": 20,
+        "max": 6,
+        "min": 1
+      },
+      {
+        "api": 1,
+        "max": 6,
+        "min": 4
+      },
+      {
+        "api": 0,
+        "max": 13,
+        "min": 3
+      },
+      {
+        "api": 3,
+        "max": 13,
+        "min": 0
+      },
+      {
+        "api": 19,
+        "max": 4,
+        "min": 2
+      },
+      {
+        "api": 17,
+        "max": 1,
+        "min": 0
+      },
+      {
+        "api": 18,
+        "max": 4,
+        "min": 0
+      },
+      {
+        "api": 2,
+        "max": 3,
+        "min": 1
+      },
+      {
+        "api": 36,
+        "max": 2,
+        "min": 0
+      }
+    ],
+    "event": "query",
+    "ordinal": 0,
+    "partition_count": 1,
+    "passed": true,
+    "phase": "initial",
+    "public_operation": "Admin.describe_topics",
+    "topic": "oidc-probe"
+  },
+  {
+    "driver_sequence": 70,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 52,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 46,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 71,
+    "actor": "broker",
+    "api": 0,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 52,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 47,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 72,
+    "actor": "rust-public",
+    "event": "produce",
+    "key_hex": "6f617574682d727573742d696e697469616c",
+    "offset": 3,
+    "ordinal": 1,
+    "partition": 0,
+    "passed": true,
+    "phase": "initial",
+    "public_operation": "Producer.send",
+    "timestamp": 1700000000123,
+    "topic": "oidc-probe",
+    "value_hex": "7075626c69632d727573742d6f696463"
+  },
+  {
+    "driver_sequence": 73,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 53,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 48,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 74,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 54,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 49,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 75,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 54,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 50,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 76,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 53,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 51,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 77,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 54,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 52,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 78,
+    "actor": "rust-public",
+    "event": "fetch",
+    "log_end": 4,
+    "log_start": 0,
+    "ordinal": 2,
+    "passed": true,
+    "phase": "cross_sdk",
+    "public_operations": [
+      "Consumer.list_offsets",
+      "Consumer.assign_many",
+      "Consumer.fetch_timeout"
+    ],
+    "records": [
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e312e32"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e322e31"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e332e31"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d727573742d6f696463"
+      }
+    ]
+  },
+  {
+    "driver_sequence": 79,
+    "actor": "rust-public",
+    "admin_ok": true,
+    "consumer_ok": true,
+    "event": "closed",
+    "phase": "shutdown",
+    "producer_ok": true
+  },
+  {
+    "driver_sequence": 80,
+    "actor": "rust-public",
+    "commands_ok": true,
+    "event": "shutdown",
+    "owners_ok": true
+  },
+  {
+    "driver_sequence": 81,
+    "actor": "rust-public",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 82,
+    "actor": "java-4-1-2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.1.2",
+    "issuer": "https://localhost:46305/issuer",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "callback": {
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 83,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 62,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 53,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 84,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 62,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 54,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 85,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 63,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 55,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 86,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 63,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 56,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 87,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 63,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 57,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 88,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 63,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 58,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 89,
+    "actor": "java-4-1-2",
+    "event": "fetch",
+    "phase": "complete_cross_sdk",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 4.0
+    },
+    "callback": {
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 90,
+    "actor": "java-4-1-2",
+    "event": "complete",
+    "deadline_reached": false,
+    "operator_commands": 2,
+    "callback": {
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 91,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 63,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 59,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 92,
+    "actor": "java-4-1-2",
+    "release": "4.1.2",
+    "event": "shutdown",
+    "callback": {
+      "configured": 1,
+      "failures": 0,
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1,
+      "token_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 93,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 94,
+    "actor": "java-4-2-1",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "issuer": "https://localhost:46305/issuer",
+    "release": "4.2.1",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 95,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 74,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 60,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 96,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 74,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 61,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 97,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 75,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 62,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 98,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 75,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 63,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 99,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 75,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 64,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 100,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 75,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 65,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 101,
+    "actor": "java-4-2-1",
+    "event": "fetch",
+    "phase": "complete_cross_sdk",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 4.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 102,
+    "actor": "java-4-2-1",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 103,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 75,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 66,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 104,
+    "actor": "java-4-2-1",
+    "event": "shutdown",
+    "release": "4.2.1",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 105,
+    "actor": "java-4-2-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 106,
+    "actor": "java-4-3-1",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "event": "ready",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "release": "4.3.1",
+    "issuer": "https://localhost:46305/issuer",
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 107,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 86,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 67,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 108,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 86,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 68,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 109,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 88,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 69,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 110,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 88,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 70,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 111,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 88,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 71,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 112,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 88,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 72,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 113,
+    "actor": "java-4-3-1",
+    "event": "fetch",
+    "phase": "complete_cross_sdk",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 2.0
+    },
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 114,
+    "actor": "java-4-3-1",
+    "operator_commands": 2,
+    "event": "complete",
+    "deadline_reached": false,
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 0,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 115,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 88,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 73,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 116,
+    "actor": "java-4-3-1",
+    "event": "shutdown",
+    "release": "4.3.1",
+    "callback": {
+      "token_calls": 1,
+      "configured": 1,
+      "failures": 0,
+      "closed": 1,
+      "extension_calls": 1,
+      "token_success": 1
+    }
+  },
+  {
+    "driver_sequence": 117,
+    "actor": "java-4-3-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 118,
+    "actor": "broker",
+    "event": "shutdown-attempts",
+    "listener_attempted": true,
+    "listener_ok": true,
+    "router_attempted": true,
+    "router_ok": true,
+    "service_attempted": true,
+    "service_ok": true,
+    "stage": "served"
+  },
+  {
+    "driver_sequence": 119,
+    "actor": "broker",
+    "absolute_lifetime_reached": false,
+    "accepted": 32,
+    "application_dispatches": 74,
+    "event": "joined",
+    "handler_errors": 0,
+    "joined": 32,
+    "read_deadlines": 0,
+    "stop_file": true,
+    "tls_handshake_errors": 0,
+    "worker_failures": 0
+  },
+  {
+    "driver_sequence": 120,
+    "actor": "broker",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 121,
+    "actor": "broker",
+    "api_keys": [
+      0,
+      1,
+      2,
+      3,
+      17,
+      18,
+      19,
+      20,
+      36
+    ],
+    "broker": "localhost:46723",
+    "event": "ready",
+    "maximum_runtime_secs": 240,
+    "profile": "read-write",
+    "recovered_entries": 1,
+    "session_lifetime_ms": 0,
+    "topic": "oidc-probe"
+  },
+  {
+    "driver_sequence": 122,
+    "actor": "java-4-1-2",
+    "issuer": "https://localhost:46305/issuer",
+    "release": "4.1.2",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 123,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 0,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 124,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 7,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 1,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 125,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 2,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 126,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 3,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 127,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 4,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 128,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 5,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 129,
+    "actor": "java-4-1-2",
+    "event": "fetch",
+    "phase": "complete_restart",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 4.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 130,
+    "actor": "java-4-1-2",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 131,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 9,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 6,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 132,
+    "actor": "java-4-1-2",
+    "event": "shutdown",
+    "release": "4.1.2",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 133,
+    "actor": "java-4-1-2",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 134,
+    "actor": "java-4-2-1",
+    "issuer": "https://localhost:46305/issuer",
+    "release": "4.2.1",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 135,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 20,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 7,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 136,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 20,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 8,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 137,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 21,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 9,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 138,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 21,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 10,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 139,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 21,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 11,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 140,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 21,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 12,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 141,
+    "actor": "java-4-2-1",
+    "event": "fetch",
+    "phase": "complete_restart",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 4.0
+    },
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 142,
+    "actor": "java-4-2-1",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "event": "complete",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 0
+    }
+  },
+  {
+    "driver_sequence": 143,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 21,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 13,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 144,
+    "actor": "java-4-2-1",
+    "event": "shutdown",
+    "release": "4.2.1",
+    "callback": {
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1,
+      "closed": 1
+    }
+  },
+  {
+    "driver_sequence": 145,
+    "actor": "java-4-2-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 146,
+    "actor": "java-4-3-1",
+    "issuer": "https://localhost:46305/issuer",
+    "release": "4.3.1",
+    "retriever": "ClientCredentialsJwtRetriever",
+    "event": "ready",
+    "standard_handler": "org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginCallbackHandler",
+    "callback": {
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 147,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 32,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 14,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 148,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 1,
+    "event": "application-dispatch",
+    "generation": 32,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 15,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 149,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 34,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 16,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 150,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 34,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 17,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 151,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 34,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 18,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 152,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 7,
+    "event": "application-dispatch",
+    "generation": 34,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 19,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 153,
+    "actor": "java-4-3-1",
+    "event": "fetch",
+    "phase": "complete_restart",
+    "passed": true,
+    "log_start": 0,
+    "log_end": 4,
+    "records": [
+      {
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e312e32",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e322e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "value_hex": "7075626c69632d6a6176612d342e332e31",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      },
+      {
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "value_hex": "7075626c69632d727573742d6f696463",
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ]
+      }
+    ],
+    "public_operations": [
+      "Consumer.assign",
+      "Consumer.seek",
+      "Consumer.poll",
+      "Consumer.beginningOffsets",
+      "Consumer.endOffsets"
+    ],
+    "consumer_metrics": {
+      "consumer-metrics:connection-close-total": 0.0,
+      "consumer-metrics:connection-creation-total": 2.0,
+      "consumer-metrics:failed-authentication-total": 0.0,
+      "consumer-metrics:request-total": 7.0,
+      "consumer-metrics:response-total": 6.0,
+      "consumer-metrics:successful-authentication-total": 2.0,
+      "consumer-node-metrics:request-total": 5.0,
+      "consumer-node-metrics:response-total": 2.0
+    },
+    "callback": {
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 154,
+    "actor": "java-4-3-1",
+    "event": "complete",
+    "operator_commands": 2,
+    "deadline_reached": false,
+    "callback": {
+      "closed": 0,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 155,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 8,
+    "event": "application-dispatch",
+    "generation": 34,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 20,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 156,
+    "actor": "java-4-3-1",
+    "event": "shutdown",
+    "release": "4.3.1",
+    "callback": {
+      "closed": 1,
+      "failures": 0,
+      "configured": 1,
+      "token_calls": 1,
+      "token_success": 1,
+      "extension_calls": 1
+    }
+  },
+  {
+    "driver_sequence": 157,
+    "actor": "java-4-3-1",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 158,
+    "actor": "rust-public",
+    "event": "ready",
+    "provider": "OidcConfig/Sasl::oidc",
+    "sdk": "partitionline"
+  },
+  {
+    "driver_sequence": 159,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 2,
+    "event": "application-dispatch",
+    "generation": 38,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 21,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 160,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 39,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 22,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 161,
+    "actor": "broker",
+    "api": 2,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 39,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 23,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 162,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 3,
+    "event": "application-dispatch",
+    "generation": 38,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 24,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 163,
+    "actor": "broker",
+    "api": 1,
+    "correlation": 6,
+    "event": "application-dispatch",
+    "generation": 39,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 25,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 164,
+    "actor": "rust-public",
+    "event": "fetch",
+    "log_end": 4,
+    "log_start": 0,
+    "ordinal": 0,
+    "passed": true,
+    "phase": "restart",
+    "public_operations": [
+      "Consumer.list_offsets",
+      "Consumer.assign_many",
+      "Consumer.fetch_timeout"
+    ],
+    "records": [
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e312e32"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e312e322d696e697469616c",
+        "offset": 0,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e312e32"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e322e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e322e312d696e697469616c",
+        "offset": 1,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e322e31"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "342e332e31"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d342e332e312d696e697469616c",
+        "offset": 2,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d6a6176612d342e332e31"
+      },
+      {
+        "headers": [
+          {
+            "name": "peer",
+            "value_hex": "72757374"
+          },
+          {
+            "name": "d",
+            "value_hex": null
+          },
+          {
+            "name": "d",
+            "value_hex": ""
+          }
+        ],
+        "key_hex": "6f617574682d727573742d696e697469616c",
+        "offset": 3,
+        "timestamp": 1700000000123,
+        "timestamp_type": "CREATE_TIME",
+        "value_hex": "7075626c69632d727573742d6f696463"
+      }
+    ]
+  },
+  {
+    "driver_sequence": 165,
+    "actor": "rust-public",
+    "admin_ok": null,
+    "consumer_ok": true,
+    "event": "closed",
+    "phase": "shutdown",
+    "producer_ok": null
+  },
+  {
+    "driver_sequence": 166,
+    "actor": "rust-public",
+    "commands_ok": true,
+    "event": "shutdown",
+    "owners_ok": true
+  },
+  {
+    "driver_sequence": 167,
+    "actor": "rust-public",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 168,
+    "actor": "native-2-15",
+    "event": "ready",
+    "provider": "bounded-libcurl-callback",
+    "built_in_oidc": false
+  },
+  {
+    "driver_sequence": 169,
+    "actor": "native-2-15",
+    "event": "token-callback",
+    "ordinal": 0,
+    "accepted": true
+  },
+  {
+    "driver_sequence": 170,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 41,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 26,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 171,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 41,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 27,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 172,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 28,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 173,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 29,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 174,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 4,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 30,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 175,
+    "actor": "broker",
+    "api": 3,
+    "correlation": 5,
+    "event": "application-dispatch",
+    "generation": 43,
+    "issuer": "https://localhost:46305/issuer",
+    "ordinal": 31,
+    "subject": "issuer-probe",
+    "tls": true
+  },
+  {
+    "driver_sequence": 176,
+    "actor": "native-2-15",
+    "event": "metadata",
+    "ordinal": 1,
+    "accepted": true,
+    "expected": true,
+    "code": 0
+  },
+  {
+    "driver_sequence": 177,
+    "actor": "native-2-15",
+    "event": "joined",
+    "queries": 1,
+    "callbacks": 1,
+    "provider_failures": 0,
+    "sdk_errors": 0
+  },
+  {
+    "driver_sequence": 178,
+    "actor": "native-2-15",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 179,
+    "actor": "broker",
+    "event": "shutdown-attempts",
+    "listener_attempted": true,
+    "listener_ok": true,
+    "router_attempted": true,
+    "router_ok": true,
+    "service_attempted": true,
+    "service_ok": true,
+    "stage": "served"
+  },
+  {
+    "driver_sequence": 180,
+    "actor": "broker",
+    "absolute_lifetime_reached": false,
+    "accepted": 14,
+    "application_dispatches": 32,
+    "event": "joined",
+    "handler_errors": 0,
+    "joined": 14,
+    "read_deadlines": 0,
+    "stop_file": true,
+    "tls_handshake_errors": 0,
+    "worker_failures": 0
+  },
+  {
+    "driver_sequence": 181,
+    "actor": "broker",
+    "event": "process-joined",
+    "exit_code": 0,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false
+  },
+  {
+    "driver_sequence": 182,
+    "actor": "broker",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 77,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 183,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 6,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 184,
+    "actor": "java-4-2-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 6,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 185,
+    "actor": "java-4-3-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 6,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 186,
+    "actor": "rust-public",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 6,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 187,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 188,
+    "actor": "java-4-2-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 189,
+    "actor": "java-4-3-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 190,
+    "actor": "broker",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 35,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 191,
+    "actor": "java-4-1-2",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 192,
+    "actor": "java-4-2-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 193,
+    "actor": "java-4-3-1",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 210,
+    "stderr_sha256": "9ddf3781b5e43a87b1d67caac2bc4b251f9ce8d77c509c8369129f4b0359fd55",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 194,
+    "actor": "rust-public",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 195,
+    "actor": "native-2-15",
+    "event": "process-cleanup-status",
+    "exit_code": 0,
+    "stdout_events": 4,
+    "stdout_receipt_rejected": false,
+    "stderr_bytes": 0,
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderr_retained": false,
+    "forced_close": false
+  },
+  {
+    "driver_sequence": 196,
+    "actor": "driver",
+    "event": "complete-source-identity",
+    "file_count": 73196,
+    "before_after_identical": true,
+    "raw_sha256": "59b81e12386dc3f08c9b3d2b34df73f5974bd93f502c66b89d51269e1f3cc9d4"
+  }
+]

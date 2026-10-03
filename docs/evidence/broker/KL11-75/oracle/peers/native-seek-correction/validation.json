@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "scope": "Source-only freeze/lossless failure preservation. A corrected native build and live retry remain pending a futurepushed helperpin and coordinatorGO.",
+  "actual_new_compiler_commands": 0,
+  "actual_new_native_jobs": 0,
+  "actual_new_server_jobs": 0,
+  "qualification_pass_claimed": false,
+  "preserved_actual_failed_jobs": 9,
+  "preserved_actual_operator_calls": 0,
+  "actual181failure_files_verified": true,
+  "source_only_exact_replacement_recovers_original_bytes": true,
+  "all_remaining_record_eof_watermark_position_assertion_bytes_unchanged": true,
+  "original_fcac_source_and_binary_not_modified": true,
+  "previous_403_failure_not_modified": true,
+  "packet": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/native-seek-correction/failure-source-packet.json.gz",
+    "sha256": "3da69ad9b2abd93e75063a7abbeaaf8286f6cf2d0949ee7ef494e97c06135dc6",
+    "bytes": 56845,
+    "full_mode": "0o600",
+    "uncompressed_bytes": 391122,
+    "uncompressed_sha256": "ec78d0d6f14fe2a84c1fbb07030c2fc9576aacecbc8f49d7a4b29ae517817d5a",
+    "entries": 189,
+    "lossless_roundtrip_and_original_full_modes_verified": true
+  },
+  "source_preparation": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/native-seek-correction/source-preparation.json",
+    "sha256": "35ede042d6cf40a1d7f614d87e9bf03e1118c87b2ea778727a6e73c0a07aea00",
+    "bytes": 6961,
+    "full_mode": "0o600"
+  },
+  "new_native_source": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c",
+    "sha256": "893c88f9a2fae6a890db690cfbcd9a21e8b18867c471743a5bf0b05b258e58d5",
+    "bytes": 17071,
+    "full_mode": "0o600"
+  }
+}

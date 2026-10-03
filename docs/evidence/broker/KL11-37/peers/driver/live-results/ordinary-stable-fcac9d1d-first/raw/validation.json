@@ -1,0 +1,404 @@
+{
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "passed": true,
+  "complete_source_unchanged": true,
+  "unresolved_negative_recovery_peers": [],
+  "failed_step": null,
+  "failure_stage": null,
+  "phase_dispatch_denial_proved": false,
+  "audit_limit": "Independent stdout readers do not create a synchronized phase barrier. Retained complete joined audit totals are distinct from precise denial proven by source-pinned core socket tests.",
+  "steps": [
+    {
+      "ordinal": 0,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 1,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 2,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 3,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 4,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 5,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 6,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 7,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 8,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 9,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 10,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 11,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 12,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 13,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 14,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 15,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 16,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 17,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 18,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 19,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 20,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 21,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 22,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 23,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 24,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 25,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 26,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 27,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 28,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 29,
+      "operation": "restart-broker",
+      "passed": true
+    },
+    {
+      "ordinal": 30,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 31,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 32,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 33,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 34,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 35,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 36,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 37,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 38,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 39,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 40,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 41,
+      "operation": "stop-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 42,
+      "operation": "start-peer",
+      "passed": true
+    },
+    {
+      "ordinal": 43,
+      "operation": "send",
+      "passed": true
+    },
+    {
+      "ordinal": 44,
+      "operation": "stop-peer",
+      "passed": true
+    }
+  ],
+  "cleanup": [
+    {
+      "owner": "broker",
+      "joined": true
+    },
+    {
+      "owner": "broker-process-0",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-1",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-2-1-process-2",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-3-1-process-3",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "rust-public-process-4",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-5",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-2-1-process-6",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-3-1-process-7",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "broker-process-8",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-1-2-process-9",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-2-1-process-10",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "java-4-3-1-process-11",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "rust-public-process-12",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "native-2-15-process-13",
+      "joined": true,
+      "forced_close": false
+    },
+    {
+      "owner": "issuer",
+      "joined": true
+    }
+  ],
+  "ordinary_expected_history": [
+    {
+      "offset": 0,
+      "timestamp": 1700000000123,
+      "timestamp_type": "CREATE_TIME",
+      "key_hex": "6f617574682d342e312e322d696e697469616c",
+      "value_hex": "7075626c69632d6a6176612d342e312e32",
+      "headers": [
+        {
+          "name": "peer",
+          "value_hex": "342e312e32"
+        },
+        {
+          "name": "d",
+          "value_hex": null
+        },
+        {
+          "name": "d",
+          "value_hex": ""
+        }
+      ]
+    },
+    {
+      "offset": 1,
+      "timestamp": 1700000000123,
+      "timestamp_type": "CREATE_TIME",
+      "key_hex": "6f617574682d342e322e312d696e697469616c",
+      "value_hex": "7075626c69632d6a6176612d342e322e31",
+      "headers": [
+        {
+          "name": "peer",
+          "value_hex": "342e322e31"
+        },
+        {
+          "name": "d",
+          "value_hex": null
+        },
+        {
+          "name": "d",
+          "value_hex": ""
+        }
+      ]
+    },
+    {
+      "offset": 2,
+      "timestamp": 1700000000123,
+      "timestamp_type": "CREATE_TIME",
+      "key_hex": "6f617574682d342e332e312d696e697469616c",
+      "value_hex": "7075626c69632d6a6176612d342e332e31",
+      "headers": [
+        {
+          "name": "peer",
+          "value_hex": "342e332e31"
+        },
+        {
+          "name": "d",
+          "value_hex": null
+        },
+        {
+          "name": "d",
+          "value_hex": ""
+        }
+      ]
+    },
+    {
+      "offset": 3,
+      "timestamp": 1700000000123,
+      "timestamp_type": "CREATE_TIME",
+      "key_hex": "6f617574682d727573742d696e697469616c",
+      "value_hex": "7075626c69632d727573742d6f696463",
+      "headers": [
+        {
+          "name": "peer",
+          "value_hex": "72757374"
+        },
+        {
+          "name": "d",
+          "value_hex": null
+        },
+        {
+          "name": "d",
+          "value_hex": ""
+        }
+      ]
+    }
+  ],
+  "scope": "real token acquisition/socket metadata and explicitly selected ordinary RF1 records; reconnect lifetime0"
+}

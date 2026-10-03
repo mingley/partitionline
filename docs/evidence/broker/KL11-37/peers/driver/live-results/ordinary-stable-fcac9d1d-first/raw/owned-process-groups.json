@@ -1,0 +1,94 @@
+{
+  "driver": {
+    "pid": 1192173,
+    "pgid": 1192173,
+    "starttime_ticks": 8594932
+  },
+  "owned_groups": [
+    {
+      "actor": "broker",
+      "pid": 1192990,
+      "pgid": 1192990,
+      "starttime_ticks": 8595641
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1193023,
+      "pgid": 1193023,
+      "starttime_ticks": 8595665
+    },
+    {
+      "actor": "java-4-2-1",
+      "pid": 1193307,
+      "pgid": 1193307,
+      "starttime_ticks": 8596048
+    },
+    {
+      "actor": "java-4-3-1",
+      "pid": 1193451,
+      "pgid": 1193451,
+      "starttime_ticks": 8596397
+    },
+    {
+      "actor": "rust-public",
+      "pid": 1193619,
+      "pgid": 1193619,
+      "starttime_ticks": 8596729
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1193674,
+      "pgid": 1193674,
+      "starttime_ticks": 8596862
+    },
+    {
+      "actor": "java-4-2-1",
+      "pid": 1193769,
+      "pgid": 1193769,
+      "starttime_ticks": 8597124
+    },
+    {
+      "actor": "java-4-3-1",
+      "pid": 1193852,
+      "pgid": 1193852,
+      "starttime_ticks": 8597381
+    },
+    {
+      "actor": "broker",
+      "pid": 1193932,
+      "pgid": 1193932,
+      "starttime_ticks": 8597628
+    },
+    {
+      "actor": "java-4-1-2",
+      "pid": 1193941,
+      "pgid": 1193941,
+      "starttime_ticks": 8597649
+    },
+    {
+      "actor": "java-4-2-1",
+      "pid": 1194027,
+      "pgid": 1194027,
+      "starttime_ticks": 8597928
+    },
+    {
+      "actor": "java-4-3-1",
+      "pid": 1194126,
+      "pgid": 1194126,
+      "starttime_ticks": 8598195
+    },
+    {
+      "actor": "rust-public",
+      "pid": 1194228,
+      "pgid": 1194228,
+      "starttime_ticks": 8598441
+    },
+    {
+      "actor": "native-2-15",
+      "pid": 1194250,
+      "pgid": 1194250,
+      "starttime_ticks": 8598500
+    }
+  ],
+  "scope": "PID/starttime bound process groups; no secret argv or token data"
+}

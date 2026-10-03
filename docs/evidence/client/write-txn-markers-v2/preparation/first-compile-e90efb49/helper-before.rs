@@ -27,10 +27,10 @@ use tokio::net::TcpListener;
 use tokio::sync::Notify;
 use tokio::task::{JoinHandle, JoinSet};
 
-pub(crate) const BUDGET: Duration = Duration::from_secs(2);
+pub const BUDGET: Duration = Duration::from_secs(2);
 
 #[derive(Clone, Debug)]
-pub(crate) struct Observed {
+pub struct Observed {
     pub node: i32,
     pub key: i16,
     pub version: i16,
@@ -42,7 +42,7 @@ pub(crate) struct Observed {
 }
 
 #[derive(Default)]
-pub(crate) struct State {
+pub struct State {
     pub observed: Vec<Observed>,
     pub marker_responses: VecDeque<Vec<u8>>,
     pub share_responses: VecDeque<Vec<u8>>,
@@ -50,7 +50,7 @@ pub(crate) struct State {
     pub hold_share: bool,
 }
 
-pub(crate) struct Peer {
+pub struct Peer {
     pub bootstrap: String,
     pub state: Arc<Mutex<State>>,
     pub seen: Arc<Notify>,
@@ -59,7 +59,7 @@ pub(crate) struct Peer {
 }
 
 impl Peer {
-    pub(crate) async fn start(marker: Option<(i16, i16)>, share: Option<(i16, i16)>) -> Self {
+    pub async fn start(marker: Option<(i16, i16)>, share: Option<(i16, i16)>) -> Self {
         let first = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let second = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let addresses = [first.local_addr().unwrap(), second.local_addr().unwrap()];
@@ -130,7 +130,7 @@ impl Peer {
                         let release = release.clone();
                         let brokers = brokers.clone();
                         let ranges = ranges.clone();
-                        let _worker = workers.spawn(async move {
+                        workers.spawn(async move {
                             let mut frames = 0;
                             while let Ok(length) = stream.read_i32().await {
                                 assert!((8..=65_536).contains(&length));
@@ -299,7 +299,7 @@ impl Peer {
         }
     }
 
-    pub(crate) async fn admin(&self) -> Admin {
+    pub async fn admin(&self) -> Admin {
         Admin::new(
             AdminConfig::bootstrap([self.bootstrap.clone()])
                 .connect_timeout(BUDGET)
@@ -311,7 +311,7 @@ impl Peer {
         .unwrap()
     }
 
-    pub(crate) fn requests(&self, key: i16) -> Vec<Observed> {
+    pub fn requests(&self, key: i16) -> Vec<Observed> {
         self.state
             .lock()
             .unwrap()

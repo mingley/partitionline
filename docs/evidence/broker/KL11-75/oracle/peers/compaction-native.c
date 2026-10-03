@@ -154,8 +154,19 @@ static void consume(const char *stage) {
             int start=starts[round],next=start; while(next<end && !retained(s,next,stage)) next++;
             rd_kafka_topic_partition_list_t *assignment=rd_kafka_topic_partition_list_new(1); check(assignment!=NULL,"manual assignment");
             rd_kafka_topic_partition_list_add(assignment,name,0)->offset=start;
-            check(rd_kafka_assign(handle,assignment)==RD_KAFKA_RESP_ERR_NO_ERROR,"public manual assignment/seek");
-            check(rd_kafka_seek_partitions(handle,assignment,5000)==RD_KAFKA_RESP_ERR_NO_ERROR && assignment->elems[0].err==RD_KAFKA_RESP_ERR_NO_ERROR,"actual public seek");
+            if(round==0) {
+                /* Initial offsets belong to assign; polling starts this assignment. */
+                check(rd_kafka_assign(handle,assignment)==RD_KAFKA_RESP_ERR_NO_ERROR,"public manual assignment/seek");
+            } else {
+                /* Seek only the already consumed assignment, without restarting it. */
+                rd_kafka_error_t *seek_error=rd_kafka_seek_partitions(handle,assignment,5000);
+                int global_error=seek_error?(int)rd_kafka_error_code(seek_error):0;
+                int partition_error=(int)assignment->elems[0].err;
+                int seek_failed=seek_error!=NULL || partition_error!=(int)RD_KAFKA_RESP_ERR_NO_ERROR;
+                if(seek_failed) fprintf(stderr,"{\"label\":\"native-public-seek-error\",\"topic\":\"%s\",\"partition\":0,\"seek\":%d,\"global_error_object\":%s,\"global_error_code\":%d,\"partition_error_code\":%d}\n",name,start,seek_error?"true":"false",global_error,partition_error);
+                if(seek_error) rd_kafka_error_destroy(seek_error);
+                check(!seek_failed,"actual public seek");
+            }
             rd_kafka_topic_partition_list_destroy(assignment); int64_t deadline=now_ms()+10000;
             int eof_seen=0; int64_t eof_offset=RD_KAFKA_OFFSET_INVALID; unsigned received=0;
             int64_t last_delivered_offset=RD_KAFKA_OFFSET_INVALID;

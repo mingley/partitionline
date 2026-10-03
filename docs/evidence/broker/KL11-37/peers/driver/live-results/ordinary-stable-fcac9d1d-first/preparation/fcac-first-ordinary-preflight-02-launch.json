@@ -1,0 +1,37 @@
+{
+  "scope": "public artifact/mode/config preflight only; no broker/SDK/live process launched",
+  "passed": true,
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "config_sha256": "1df065769d6ee4a10c23d053666d8bf38aa444b149b81aa6778c2662681d354f",
+  "manifest_sha256": "0639fc4f66058a657d14f45db113347e451efc62a60f0e1d47953d75d8e45515",
+  "runtime_input_rehashes": 245,
+  "unique_runtime_paths": 117,
+  "normal_executable_sha256": "99394810a872ed0c326d0643a568ac2afa75a644225b45801c707a391019691b",
+  "normal_executable_mode": "0o700",
+  "normal_test_profile": false,
+  "loader_JVM_override_names": [
+    "LD_PRELOAD",
+    "LD_LIBRARY_PATH",
+    "JAVA_TOOL_OPTIONS",
+    "_JAVA_OPTIONS",
+    "JDK_JAVA_OPTIONS"
+  ],
+  "all_overrides_empty": true,
+  "fresh_output_private_paths": true,
+  "old657proof_and_private_unchanged": true,
+  "generated_cache_absent": true,
+  "free_bytes": 1623269376,
+  "future_command": [
+    "taskset",
+    "-c",
+    "0,1",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/broker-merged-source-fcac9d1d/docs/evidence/broker/KL11-37/peers/driver/own-live.py",
+    "--config",
+    "/workspace/work/broker-oidc/live-configs-fcac9d1d-predeclared-01/ordinary-stable.json",
+    "--output",
+    "/workspace/work/broker-oidc/live-runs-fcac9d1d-predeclared-01/ordinary-stable",
+    "--private-scratch",
+    "/workspace/work/broker-oidc/private-live-fcac9d1d/ordinary-stable"
+  ]
+}

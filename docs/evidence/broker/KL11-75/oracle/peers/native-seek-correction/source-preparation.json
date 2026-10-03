@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "scope": "Source-only public native peer lifecycle repair; no new compiled/runtime success claim.",
+  "runtime_source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "previous_peer_source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "new_peer_source_sha": null,
+  "librdkafka_commit": "9a94e11452cdeb0a844db44ee5dd01ccbe17d3ab",
+  "librdkafka_version": "2.15.0",
+  "source": {
+    "path": "/workspace/partitionline/docs/evidence/broker/KL11-75/oracle/peers/compaction-native.c",
+    "sha256": "893c88f9a2fae6a890db690cfbcd9a21e8b18867c471743a5bf0b05b258e58d5",
+    "bytes": 17071,
+    "full_mode": "0o600"
+  },
+  "source_git_blob_sha1": "611497d38eb801385ef62ccf5f9de0989c874994",
+  "old_native_source_sha256": "99e75ca64e02807aa007379fbb8dfc9a0c017f9c3fe935f243a2dbba487eea03",
+  "actual_failure": {
+    "jobs": 9,
+    "operator_calls": 0,
+    "server_exit_code": 0,
+    "predicate": "actual public seek",
+    "first_completed_seek": {
+      "seek": 0,
+      "actual_record_events": 9,
+      "actual_eof_offset": 9,
+      "actual_position": 9,
+      "actual_watermark_low": 0,
+      "actual_watermark_high": 9
+    },
+    "failed_seek": 3,
+    "global_error_code": null,
+    "partition_error_code": null,
+    "unknown_error_annotation": "Frozen failing predicate discarded exact error detail; neither code is inferred or retrospectively assigned.",
+    "preservation": {
+      "path": "/workspace/work/compaction-public-403be1e3/mixed-fcac9d1d/stable-default-attempt-1-preservation.json",
+      "sha256": "97759694955abbec8d40a3deabe6e300253ef0998af545039a95203744ddf8fc",
+      "bytes": 45181,
+      "full_mode": "0o600"
+    }
+  },
+  "change": "Assign once per topic at initialoffset0; poll starts/consumes this assignment. Subsequent explicit synchronousseek3-or1/end calls target the consumed assignment without reassignment.",
+  "error_ownership": "NULLmeansglobal success; independently check partitionerr. Retain numericglobal/partition codes and booleanerror-object presence on failure, destroy returned error object, fail unchangedactualpublicseek predicate.",
+  "record_eof_watermark_position_assertions_unchanged": true,
+  "driver_and_independent_read_policy_changed": false,
+  "source_excerpts": [
+    {
+      "source": {
+        "path": "/workspace/work/c-peer/source/src/rdkafka.h",
+        "sha256": "33cca14d9fc87117100ce90bd84f2006b8ba521c788055db6af614d0f2f7ca2f",
+        "bytes": 431784,
+        "full_mode": "0o600"
+      },
+      "start_line": 4045,
+      "end_line": 4079,
+      "exact_utf8_excerpt": " * @brief Seek consumer for partitions in \\p partitions to the per-partition\n *        offset in the \\c .offset field of \\p partitions.\n *\n * The offset may be either absolute (>= 0) or a logical offset.\n *\n * If \\p timeout_ms is specified (not 0) the seek call will wait this long\n * for the consumer to update its fetcher state for the given partition with\n * the new offset. This guarantees that no previously fetched messages for the\n * old offset (or fetch position) will be passed to the application.\n *\n * If the timeout is reached the internal state will be unknown to the caller\n * and this function returns `RD_KAFKA_RESP_ERR__TIMED_OUT`.\n *\n * If \\p timeout_ms is 0 it will initiate the seek but return\n * immediately without any error reporting (e.g., async).\n *\n * This call will purge all pre-fetched messages for the given partition, which\n * may be up to \\c queued.max.message.kbytes in size. Repeated use of seek\n * may thus lead to increased network usage as messages are re-fetched from\n * the broker.\n *\n * Individual partition errors are reported in the per-partition \\c .err field\n * of \\p partitions.\n *\n * @remark Seek must only be performed for already assigned/consumed partitions,\n *         use rd_kafka_assign() (et.al) to set the initial starting offset\n *         for a new assignmenmt.\n *\n * @returns NULL on success or an error object on failure.\n */\nRD_EXPORT rd_kafka_error_t *\nrd_kafka_seek_partitions(rd_kafka_t *rk,\n                         rd_kafka_topic_partition_list_t *partitions,\n                         int timeout_ms);\n\n"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/c-peer/source/src/rdkafka_partition.c",
+        "sha256": "f719ca7640c689cfd4db71480f340c622eb3110d22f42e81ab0ac761310c500b",
+        "bytes": 189963,
+        "full_mode": "0o600"
+      },
+      "start_line": 1953,
+      "end_line": 1975,
+      "exact_utf8_excerpt": "                     RD_KAFKAP_STR_PR(rktp->rktp_rkt->rkt_topic),\n                     rktp->rktp_partition, rd_kafka_fetch_pos2str(pos),\n                     rd_kafka_fetch_states[rktp->rktp_fetch_state], version);\n\n\n        if (rktp->rktp_fetch_state == RD_KAFKA_TOPPAR_FETCH_STOPPING) {\n                err = RD_KAFKA_RESP_ERR__PREV_IN_PROGRESS;\n                goto err_reply;\n        } else if (!RD_KAFKA_TOPPAR_FETCH_IS_STARTED(rktp->rktp_fetch_state)) {\n                err = RD_KAFKA_RESP_ERR__STATE;\n                goto err_reply;\n        } else if (pos.offset == RD_KAFKA_OFFSET_STORED) {\n                err = RD_KAFKA_RESP_ERR__INVALID_ARG;\n                goto err_reply;\n        }\n\n        rd_kafka_toppar_op_version_bump(rktp, version);\n\n        /* Reset app offsets since seek()ing is analogue to a (re)assign(),\n         * and we want to avoid using the current app offset on resume()\n         * following a seek (#3567). */\n        rktp->rktp_app_pos.offset       = RD_KAFKA_OFFSET_INVALID;\n        rktp->rktp_app_pos.leader_epoch = -1;\n"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/c-peer/source/src/rdkafka_assignment.c",
+        "sha256": "8dc645a188e3a4ca7f7ac0e4d69e5bc51f2e01e6c39fe4af8c41140e9aa69cfa",
+        "bytes": 55895,
+        "full_mode": "0o600"
+      },
+      "start_line": 36,
+      "end_line": 56,
+      "exact_utf8_excerpt": " *\n ******************************************************************************\n * rd_kafka_assignment_serve()\n * ---------------------------\n *\n * It is important to call rd_kafka_assignment_serve() after each change\n * to the assignment through assignment_add, assignment_subtract or\n * assignment_clear as those functions only modify the assignment but does\n * not take any action to transition partitions to or from the assignment\n * states.\n *\n * The reason assignment_serve() is not automatically called from these\n * functions is for the caller to be able to set the current state before\n * the side-effects of serve() kick in, such as the call to\n * rd_kafka_cgrp_assignment_done() that in turn will set the cgrp state.\n *\n *\n *\n ******************************************************************************\n * Querying for committed offsets (.queried list)\n * ----------------------------------------------\n"
+    }
+  ],
+  "actual_compile_or_new_native_or_server_jobs": 0,
+  "qualification_pass_claimed": false
+}

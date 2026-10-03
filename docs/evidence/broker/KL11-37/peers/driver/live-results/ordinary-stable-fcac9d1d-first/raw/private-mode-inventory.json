@@ -1,0 +1,212 @@
+{
+  "passed": true,
+  "scope": "post-joined private filesystem mode inventory only; no credential/key/token bytes or hashes inspected",
+  "path_count": 29,
+  "directory_count": 4,
+  "file_count": 25,
+  "paths": [
+    {
+      "path": ".",
+      "kind": "directory",
+      "full_mode": "0o700",
+      "expected_full_mode": "0o700",
+      "passed": true
+    },
+    {
+      "path": "broker-state",
+      "kind": "directory",
+      "full_mode": "0o700",
+      "expected_full_mode": "0o700",
+      "passed": true
+    },
+    {
+      "path": "broker-state/catalog.journal",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "broker-state/partitions",
+      "kind": "directory",
+      "full_mode": "0o700",
+      "expected_full_mode": "0o700",
+      "passed": true
+    },
+    {
+      "path": "broker-state/partitions/00000000000000000000000000000002-0.journal",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "broker.json",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer",
+      "kind": "directory",
+      "full_mode": "0o700",
+      "expected_full_mode": "0o700",
+      "passed": true
+    },
+    {
+      "path": "issuer/ca.der",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/ca.key",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/ca.pem",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/client-secret",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/control-secret",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf-extensions",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf.csr",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf.der",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf.key",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf.key.der",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/leaf.pem",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/public-jwks.json",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/signing-0.key",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/signing-0.public.pem",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/signing-1.key",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "issuer/signing-1.public.pem",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "java-4-1-2.properties",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "java-4-2-1.properties",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "java-4-3-1.properties",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "native-2-15.json",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "rust-public.json",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    },
+    {
+      "path": "stop",
+      "kind": "regular",
+      "full_mode": "0o600",
+      "expected_full_mode": "0o600",
+      "passed": true
+    }
+  ]
+}

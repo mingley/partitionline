@@ -1,0 +1,11 @@
+{
+  "scope": "immediate operational launch forecast, no broker/SDK execution yet",
+  "source_sha": "fcac9d1d783b63890b3316601de72a4075973e10",
+  "free_before": 1623273472,
+  "public_private_reserve_bytes": 50331648,
+  "minimum_projected_free": 1572941824,
+  "floor": 367001600,
+  "only_authorized_cohort": "ordinary-stable",
+  "remaining31": "held",
+  "preflight_producer_sha256": "36206df48e40fe51864aa42fa4507afb75e801bd4e65350d9c558d6858b5c97e"
+}
