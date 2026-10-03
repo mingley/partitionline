@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_baseline": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "client_package": "partitionline",
+  "cargo_scope": "Invokedfromrootclientpackage; --all-targets without --workspace. partitionline-broker is a separatecrate explicitly excluded inrootworkspace.exclude. Clientfeaturegraphs containdefault/zlib-rs and optionaltracing; there is no brokerfeature inrootCargo.toml.",
+  "corrects_prior_terminology": "Priorfinal005ignored-live-test-scope wording brokerfeature excluded was imprecise shorthand; actualbrokercode exclusion is separatepackage/workspaceexclude, notfeaturegate. Priorrawreceipt preserved.",
+  "unit_socket_lanes": "Allclientlibrary+integrationtests andall24exampletestharnesses; onlytwoverifiableexamples standaloneELFs built.",
+  "live_scope": "Fiveexplicitignored livecases compile butdo not executeinall-targets. FreshcurrentpinnedShareDocker androotthree-releasewholecompat remainseparategates aftercanonicalfourlanes."
+}

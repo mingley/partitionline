@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "source_sha256": {
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4"
+  },
+  "unchanged_production_and_held_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "root_clippy_toml_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+  "exclusive_source_change": "tests/full_surface.rs only: inheritedtestedKIPpredicate plussame bounded2s wait foractualclientinterval4s anddeadline>=now+3s in share_broker_heartbeat_interval_scheduling beforeunchanged exactinterval/deadline/no-thirdassertions. Production unchanged.",
+  "supersedes_whole_file_test_freeze": "Previous0d439875 KIP-only wholefilefreeze preserved ashistoricalproof; KIPfunction remains identical. Currentcombinedfile expected651ad950 supersedesoldwholefilehash.",
+  "why_proactive": "Read-only examination foundsame counter-before-response-application ordering pattern as actually failedKIPtest. Actual005Sharecase passed; nofailedSharecaseclaim.",
+  "first_format_failure": "FormatFIRST flagged longerSharelabel/closure multiline layout; exactcandidate source+failedbefore/after+diff retained, correctedwhitespaceonly beforestrict checks.",
+  "focused_preparation": {
+    "stable-default": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "heartbeat-scheduling": {
+          "phase": "heartbeat-scheduling",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "share_broker_heartbeat_interval_scheduling",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_share_test_passed": 1
+    },
+    "stable-all": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "heartbeat-scheduling": {
+          "phase": "heartbeat-scheduling",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+stable",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--all-features",
+            "share_broker_heartbeat_interval_scheduling",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_share_test_passed": 1
+    },
+    "msrv-default": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "heartbeat-scheduling": {
+          "phase": "heartbeat-scheduling",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "share_broker_heartbeat_interval_scheduling",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_share_test_passed": 1
+    },
+    "msrv-all": {
+      "commands": {
+        "format": {
+          "phase": "format",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "fmt",
+            "--all",
+            "--",
+            "--check"
+          ],
+          "cpuset": "0,1"
+        },
+        "strict-owned-test": {
+          "phase": "strict-owned-test",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "clippy",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--all-features",
+            "--",
+            "-D",
+            "warnings"
+          ],
+          "cpuset": "0,1"
+        },
+        "heartbeat-scheduling": {
+          "phase": "heartbeat-scheduling",
+          "exit_code": 0,
+          "argv": [
+            "cargo",
+            "+1.85.0",
+            "test",
+            "--offline",
+            "--locked",
+            "--test",
+            "full_surface",
+            "--all-features",
+            "share_broker_heartbeat_interval_scheduling",
+            "--",
+            "--exact",
+            "--nocapture"
+          ],
+          "cpuset": "0,1"
+        }
+      },
+      "full_candidate_source_before_after_checks": 6,
+      "exact_share_test_passed": 1
+    }
+  },
+  "preparation_scope": "Onlyaffected Share case strict/fmt/exact test4variants:12commands/24wholecandidatechecks. InheritedKIPproof remainsseparate. No finalQA/liveclaim.",
+  "next_required_gates": "Actualpushedcombinedsource thenfreshfullfourclientQA andfreshgenuinepinned4.3.1Docker lifecycle plusrootthree-releasewholecompat.",
+  "frozen_at": "2026-10-03T07:49:28.197583+00:00",
+  "future_full_qa_runner": {
+    "scope": "Prepared but NOT executed finalQA onthisuncommittedcandidate. AwaitactualpushedcanonicalSHA. CPU0,1/jobs1/debug0/incremental0.",
+    "sha256": {
+      "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+      "verify-existing-source.py": "0de49faf33770a0cfa7f4ad394991d866d4af01edf788f6b1b260e0e531ab69d"
+    },
+    "guard": "Everycommand fullcanonicalGitblob/mode beforeafter plus10unchangedproduct/held andlatestcombinedtests/full_surface hash, 11explicit. OrderedlatestSharecorrectionfreeze supersedesolderKIPonly wholefilefreeze; priorreceipts preserved."
+  }
+}

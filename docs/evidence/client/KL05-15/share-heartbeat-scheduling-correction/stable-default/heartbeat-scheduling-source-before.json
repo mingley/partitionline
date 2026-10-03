@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "phase": "stable-default-heartbeat-scheduling-before",
+  "base_source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "verified_source_files_and_modes": 59379,
+  "candidate_source_sha256": {
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4"
+  },
+  "unchanged_ten_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c",
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "root_clippy_toml_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+  "captured_at": "2026-10-03T07:43:08.464534+00:00"
+}

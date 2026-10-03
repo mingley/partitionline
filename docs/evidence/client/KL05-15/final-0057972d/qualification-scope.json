@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "stable_default": "Qualified constituent:1835all-target tests+4docs, fiveignored livecases; actualinitialENOSPC was retained then failedgate retried unchangedsource.",
+  "stable_all": "Unqualified actual test assertionfailure: heartbeat scheduling observer sawserverreceiptbeforeclient appliedresponse; formatting/strictClippy/two standaloneCLI pass retained.",
+  "msrv_default": "Notlaunched on005 after newtestcorrection became necessary. Prior1.85 focusedproduct/socket prep is explicitly limited separate proof.",
+  "msrv_all": "Notlaunched on005.",
+  "current_docker": "Notlaunched on005; prior962 proof retained separately as superseded-source constituent only.",
+  "required_final_gates": "Fresh allfourclientQA+officialgenuine4.3.1+rootthree-releasewholecompat await pushed heartbeat-test correction source. No closure.",
+  "source_preparation_failure": "Initial archive extraction exceededARG_MAX safely beforequalification. Fullretry uses32KiB literalpathspecbatches;59,379canonicalblobs/modes verified.",
+  "binary_retention_scope": "Accepted stabledefault4directELFs andall105cacheELF paths were independently preserved. Failedstableall full_surface ELF later overwritten by authorizedcandidate focused recompilation; raw source/log/failedsourcechecks retained. Mixedcache archives nevercount as originalfailedELF proof. Cachearchives andactualELFs remainoutsideGit; receipts only."
+}

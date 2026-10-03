@@ -1,0 +1,13 @@
+{
+  "phase": "format",
+  "exit_code": 1,
+  "argv": [
+    "cargo",
+    "+stable",
+    "fmt",
+    "--all",
+    "--",
+    "--check"
+  ],
+  "cpuset": "0,1"
+}

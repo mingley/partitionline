@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d-plus-two-heartbeat-tests-651ad950",
+  "cache_path": "/workspace/work/client-share-target",
+  "removed_generated_file_bytes": 407959448,
+  "removed_generated_files": 1003,
+  "retained_elf_archive_sha256": "205045cbdbaed29963f926062069081b0001ca1acfc8fd14429307e21e3361fc",
+  "retained_elf_archive_verified": true,
+  "active_references": [],
+  "source_rawlogs_fixture_and_retained_binaries_untouched": true,
+  "free_bytes_after": 1331187712
+}

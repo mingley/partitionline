@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d-plus-heartbeat-test-0d439875",
+  "cache_path": "/workspace/work/client-share-target",
+  "removed_generated_file_bytes": 947112174,
+  "removed_generated_files": 1609,
+  "retained_elf_archive_sha256": "b54a20e5f84b6ac2ec8fd10e31967bbf5b9277eb2fae915484530e537b01bb06",
+  "retained_elf_archive_verified": true,
+  "active_references": [],
+  "source_rawlogs_fixture_and_retained_binaries_untouched": true,
+  "free_bytes_after": 1833848832
+}

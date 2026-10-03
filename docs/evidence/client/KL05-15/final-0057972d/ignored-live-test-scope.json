@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "all_target_ignored_cases": [
+    {
+      "source_path": "tests/broker_compatibility.rs",
+      "source_line": 542,
+      "test_name": "live_compatibility_required",
+      "reason": "requires explicit fresh digest-pinned Kafka cell; runner selects this exact test",
+      "source_sha256": "5e289d3af378a44c162e3142468cbf58afe03955f6204a67825b0776f424cad0"
+    },
+    {
+      "source_path": "tests/consumer_fetch_semantics.rs",
+      "source_line": 3876,
+      "test_name": "live_fetch_session_recovery_required",
+      "reason": "requires the owned digest-pinned KL05-07 broker and explicit observer ports",
+      "source_sha256": "01664988d5f31db1a09a06f79e0eecafd05b99a01163c11d22cbafab65d47c90"
+    },
+    {
+      "source_path": "tests/kip848_live.rs",
+      "source_line": 9,
+      "test_name": "kip848_join_against_local_broker",
+      "reason": "needs a live Kafka 4.x broker with ConsumerGroupHeartbeat",
+      "source_sha256": "74bd0eacd35bceca14a71e2d5459e9823d207fc88a68f79907e4d691cd1dce50"
+    },
+    {
+      "source_path": "tests/protocol_oracles.rs",
+      "source_line": 1034,
+      "test_name": "live_broker_decoded_semantics",
+      "reason": "live broker; scripts/ci-protocol-oracles.sh REQUIRE_BROKER=1",
+      "source_sha256": "783b4b5f3d877fade6086aa1869531806a00c0411dbbaedd8d56414160ecac54"
+    },
+    {
+      "source_path": "tests/share_semantics.rs",
+      "source_line": 770,
+      "test_name": "live_current_v2_share_delivery_renew_release_expiry_accept",
+      "reason": "requires an explicitly selected fresh digest-pinned Apache Kafka 4.3.1 Docker cell",
+      "source_sha256": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2"
+    }
+  ],
+  "execution_scope": "These five scenarios compile but remain ignored during unit/socket all-target lanes. Current-pin official4.3.1 Share delivery and root three-release whole compatibility are separate required live gates, currently pending. Prior962 current-Docker pass is explicitly a scoped superseded-source constituent only. Other live cards retain independent owners/gates.",
+  "cfg_test_scope": "source-test-cfg-ignore.log records source cfg(test) module locations and Cargo required-feature target gates. Client default/all feature graphs exclude broker feature; broker-required targets are not counted as exercised client targets. Standalone verifiable CLI binaries built explicitly. No cfg or ignore status counts as live-broker pass."
+}

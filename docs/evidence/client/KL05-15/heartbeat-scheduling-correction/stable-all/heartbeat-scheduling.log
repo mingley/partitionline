@@ -1,0 +1,9 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-heartbeat-sync-0057972d)
+    Finished `test` profile [unoptimized] target(s) in 12.95s
+     Running tests/full_surface.rs (/workspace/work/client-share-target/debug/deps/full_surface-a842862d758a4f41)
+
+running 1 test
+test kip848_broker_heartbeat_interval_scheduling ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 329 filtered out; finished in 0.80s
+

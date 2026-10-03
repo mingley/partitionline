@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "inherited_kip_test_candidate_sha256": "0d439875fd53889a02107f4970a1560cda3a7cfabbf504034e48333bb378e658",
+  "base_full_surface_sha256": "940e9483a7d189f7ee3a938246dfb097a6820379adfd5f685a21dc21ffa227b7",
+  "candidate_source_sha256": {
+    "tests/full_surface.rs": "651ad950a87ce87940e165b4e0ab42f2dc15d4c340df7bf92efa60141effbbe4"
+  },
+  "scope": "Inherited testedKIPpredicate plus same bounded actualinterval/deadline wait inexisting share_broker_heartbeat_interval_scheduling; all assertions retained. No productionchange.",
+  "why_proactive": "Read-only examination foundsame counter-before-response-application ordering pattern as actually failedKIPtest. Actual005Sharecase passed; nofailedSharecaseclaim.",
+  "first_format_candidate_sha256": "d0158994b389738bb760296caa4a6ad5196a9599f6bd3d38a65a98e959a683d7",
+  "first_format_failure": "FormatFIRST flagged longerSharelabel/closure multiline layout; exactcandidate source+failedbefore/after+diff retained, correctedwhitespaceonly beforestrict checks."
+}

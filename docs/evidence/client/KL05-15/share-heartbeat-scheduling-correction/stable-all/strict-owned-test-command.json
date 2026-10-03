@@ -1,0 +1,18 @@
+{
+  "phase": "strict-owned-test",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--test",
+    "full_surface",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cpuset": "0,1"
+}

@@ -1,0 +1,5 @@
+    Checking once_cell v1.21.4
+    Checking rustls v0.23.45
+    Checking tokio-rustls v0.26.5
+    Checking partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-heartbeat-sync-0057972d)
+    Finished `dev` profile [unoptimized] target(s) in 12.02s

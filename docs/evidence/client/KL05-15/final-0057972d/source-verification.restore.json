@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "publication": "source-verification.json.gz",
+  "publication_sha256": "4a9c0286a49296b058920ff3c7538d9bff929f5079f943941efdb15f44f7314f",
+  "publication_bytes": 2182026,
+  "encoding": "gzip, compresslevel9, emptyfilename, mtime0",
+  "two_independent_encodings_identical": true,
+  "full_roundtrip_bytes_and_mode_verified": true,
+  "restore_relative_path": "source-verification.json",
+  "restored_sha256": "4f2eaf3e090399cfc2b0a2422e8da2bed5f89e237003bc63982b60d6ed48c22a",
+  "restored_bytes": 19288664,
+  "restored_full_mode": 384,
+  "raw_manifest": "raw-source-audit-manifest.json",
+  "scope": "Onlylosslesspublication packaging for GitHubMCP encodedrequest16MiBlimit; no source/runtimecommands/test outcomes changes. Originalrawarchive-receiptSHA referencedby eachactual sourcecheck remainsvalid afterrestore. Thisaudit serves historical005QA, notfuturecurrentcandidatequalification.",
+  "restoration": "Verify compressedSHA256; gzip.decompress; verify rawSHA256andlength; write restore_relative_path; chmod restored_full_mode. Restoredrawfile isderivedaudit outsidecurrentcanonicalGitfilelist.",
+  "restoration_write_and_chmod_verified": true
+}

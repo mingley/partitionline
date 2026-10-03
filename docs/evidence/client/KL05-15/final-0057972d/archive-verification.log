@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/workspace/work/client-share-assessment/archive-verify.py", line 39, in <module>
+    archive = subprocess.Popen(archive_command, cwd=repo, stdout=subprocess.PIPE)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1026, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py", line 1955, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+OSError: [Errno 7] Argument list too long: 'git'

@@ -5688,15 +5688,12 @@ async fn share_broker_heartbeat_interval_scheduling() {
 
     // Mock receipt precedes client response application. Observe both client
     // updates before asserting the new schedule.
-    common::wait_pred(
-        "updated share heartbeat interval and deadline applied",
-        || {
-            g2.heartbeat_interval() == Duration::from_millis(4000)
-                && g2.next_heartbeat_deadline().is_some_and(|deadline| {
-                    deadline >= Instant::now() + Duration::from_millis(3000)
-                })
-        },
-    )
+    common::wait_pred("updated share heartbeat interval and deadline applied", || {
+        g2.heartbeat_interval() == Duration::from_millis(4000)
+            && g2
+                .next_heartbeat_deadline()
+                .is_some_and(|deadline| deadline >= Instant::now() + Duration::from_millis(3000))
+    })
     .await;
 
     // The client must have received the 4000ms interval and applied it.

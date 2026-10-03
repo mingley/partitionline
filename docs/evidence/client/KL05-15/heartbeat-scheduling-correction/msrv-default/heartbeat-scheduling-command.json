@@ -1,0 +1,18 @@
+{
+  "phase": "heartbeat-scheduling",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "test",
+    "--offline",
+    "--locked",
+    "--test",
+    "full_surface",
+    "kip848_broker_heartbeat_interval_scheduling",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "cpuset": "0,1"
+}

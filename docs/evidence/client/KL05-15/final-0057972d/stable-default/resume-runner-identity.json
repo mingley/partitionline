@@ -1,0 +1,5 @@
+{
+  "sha256": "afcf289406618fcecc34d8842abc851a361ad7f2fe8914ebbf510b1e92761510",
+  "copied_runner": "/workspace/work/client-share-assessment/final-0057972d/stable-default/resume-qa-lane-enospc.sh",
+  "scope": "Only failed all-target test build and previously unexecuted doctests. Initial seven passing commands retained from identical59,379-file frozen source; failed raw attempt kept separately."
+}

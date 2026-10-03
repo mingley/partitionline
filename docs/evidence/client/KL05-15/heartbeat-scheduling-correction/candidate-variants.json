@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "base_source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "base_full_surface_sha256": "940e9483a7d189f7ee3a938246dfb097a6820379adfd5f685a21dc21ffa227b7",
+  "candidate_source_sha256": {
+    "tests/full_surface.rs": "0d439875fd53889a02107f4970a1560cda3a7cfabbf504034e48333bb378e658"
+  },
+  "production_scope": "No production changes; only existing heartbeat scheduling test synchronizes response-application observer. Existing interval/deadline/no-third-heartbeat assertions retained."
+}

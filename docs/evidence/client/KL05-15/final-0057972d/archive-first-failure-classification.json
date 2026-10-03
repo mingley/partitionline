@@ -1,0 +1,9 @@
+{
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "phase": "hardlinked archive preparation",
+  "classification": "Git archive argv limit; no QA/compiler/runtime result",
+  "failure": "OSError Errno7 Argumentlisttoolong whilelaunchingGitarchive changedpaths; partialcandidate isunqualified",
+  "correction": "Preservepartialcandidate andrawlog; batchchangedliteralpathspecs into boundedargv Gitarchive calls, thenverifyentireGitblob/mode manifest",
+  "changed_paths": 15295,
+  "path_argument_bytes": 2171678
+}

@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "verified_source_files": 59379,
+  "toolchain": "stable",
+  "features": "default",
+  "all_target_counts": {
+    "passed": 1835,
+    "failed": 0,
+    "ignored": 5
+  },
+  "doctest_counts": {
+    "passed": 4,
+    "failed": 0,
+    "ignored": 0
+  },
+  "command_receipts": 9,
+  "source_before_after_receipts": 18,
+  "limits": "Five live tests intentionally ignored by all-target unit/socket lanes; pinned live proof and three-release cells are separate. Only two required standalone examples built; all example harnesses compiled by all-targets.",
+  "qualification_attempts": {
+    "first_attempt": "../stable-default-first-enospc",
+    "first_attempt_outcome": "unqualified ENOSPC during all-target testbuild, exit101; actual fmt/strictCLI/standaloneexamples passed",
+    "completion_attempt": "Same immutable source; reran only failed all-targets gate and previously unexecuted docs, preserving all59,379 source blobs before/after both commands",
+    "classification_receipt": "../stable-default-enospc-retry-classification.json",
+    "resume_runner_sha256": "afcf289406618fcecc34d8842abc851a361ad7f2fe8914ebbf510b1e92761510"
+  }
+}

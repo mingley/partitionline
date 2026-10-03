@@ -1,0 +1,8 @@
+{
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "cpuset": "0,1",
+  "runner_sha256": {
+    "run-qa-lane-checked.sh": "62847163c0542d03d730bd3b2380ea3c262ea923953195106f78fc565b854a18",
+    "verify-existing-source.py": "93869320d3d22ff619032763a8f850de05f9677aecbe91193d72c086ccb3b1bd"
+  }
+}

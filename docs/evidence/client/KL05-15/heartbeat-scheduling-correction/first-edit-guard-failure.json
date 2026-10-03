@@ -1,0 +1,6 @@
+{
+  "failure": "Initial unscoped exacttext replacement guard found2 matching snippets and raisedAssertionError before write. Existing second function uses identical comment/assertion. Corrected replacement is restricted to authorized function; no initial source mutation.",
+  "base_sha256": "940e9483a7d189f7ee3a938246dfb097a6820379adfd5f685a21dc21ffa227b7",
+  "observed_no_initial_source_change": true,
+  "recorded_at": "2026-10-03T07:21:09.839553+00:00"
+}

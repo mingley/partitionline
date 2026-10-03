@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_sha": "0057972d153e3630578e8e7dcb67773189301b2d",
+  "failed_attempt": "../stable-all",
+  "raw_log_sha256": "83ea6e35ef911cb673756f9029d6fc1487a6df7a1ae71ef2f55a5b46fe31e34b",
+  "failed_test": "kip848_broker_heartbeat_interval_scheduling",
+  "assertion": "client heartbeat_interval60ms instead of4s after waiting onlymock receiptcounter",
+  "classification": "Unqualified actual test assertion failure; apparent test response-application race, pending isolated assessment; no production or test changes."
+}
