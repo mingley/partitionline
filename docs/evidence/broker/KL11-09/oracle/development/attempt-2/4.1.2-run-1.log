@@ -1,0 +1,16 @@
+$ taskset -c 0-2,4 java -cp /workspace/work/segments-assessment/apache-development-2/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-2/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-2/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-2/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-2/4.1.2/metrics-core-2.2.0.jar SegmentIndexProbe /workspace/work/segments-assessment/apache-development-2/4.1.2/segments-1 docs/evidence/broker/KL11-09/oracle/development/attempt-2/4.1.2-run-1.json
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+Exception in thread "main" org.apache.kafka.common.config.ConfigException: Invalid value 512 for configuration segment.bytes: Value must be at least 1048576
+	at org.apache.kafka.common.config.ConfigDef$Range.ensureValid(ConfigDef.java:989)
+	at org.apache.kafka.common.config.ConfigDef.parseValue(ConfigDef.java:540)
+	at org.apache.kafka.common.config.ConfigDef.parse(ConfigDef.java:524)
+	at org.apache.kafka.common.config.AbstractConfig.<init>(AbstractConfig.java:114)
+	at org.apache.kafka.common.config.AbstractConfig.<init>(AbstractConfig.java:145)
+	at org.apache.kafka.storage.internals.log.LogConfig.<init>(LogConfig.java:299)
+	at org.apache.kafka.storage.internals.log.LogConfig.<init>(LogConfig.java:294)
+	at SegmentIndexProbe.open(SegmentIndexProbe.java:51)
+	at SegmentIndexProbe.main(SegmentIndexProbe.java:124)
+
+exit_code=1

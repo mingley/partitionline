@@ -1,0 +1,3 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar -d /workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/classes /workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/SegmentIndexProbe.java
+
+exit_code=0

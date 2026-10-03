@@ -1,0 +1,54 @@
+$ taskset -c 0-2,4 java --add-modules jdk.compiler com.sun.tools.javac.Main -Xlint:all -Werror -cp /workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-1/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-1/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-1/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-1/4.1.2/metrics-core-2.2.0.jar -d /workspace/work/segments-assessment/apache-development-1/4.1.2/classes /workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:90: error: cannot find symbol
+                require(hint.offset() <= offset && hint.position() >= 0 && hint.position() < segment.size(), "bounded offset-index predecessor");
+                            ^
+  symbol:   method offset()
+  location: variable hint of type OffsetPosition
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:90: error: cannot find symbol
+                require(hint.offset() <= offset && hint.position() >= 0 && hint.position() < segment.size(), "bounded offset-index predecessor");
+                                                       ^
+  symbol:   method position()
+  location: variable hint of type OffsetPosition
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:90: error: cannot find symbol
+                require(hint.offset() <= offset && hint.position() >= 0 && hint.position() < segment.size(), "bounded offset-index predecessor");
+                                                                               ^
+  symbol:   method position()
+  location: variable hint of type OffsetPosition
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:91: error: cannot find symbol
+                indexes.add("{\"segment_base\":" + base + ",\"query_offset\":" + offset + ",\"hint_offset\":" + hint.offset() + ",\"hint_position\":" + hint.position() + "}");
+                                                                                                                    ^
+  symbol:   method offset()
+  location: variable hint of type OffsetPosition
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:91: error: cannot find symbol
+                indexes.add("{\"segment_base\":" + base + ",\"query_offset\":" + offset + ",\"hint_offset\":" + hint.offset() + ",\"hint_position\":" + hint.position() + "}");
+                                                                                                                                                            ^
+  symbol:   method position()
+  location: variable hint of type OffsetPosition
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:97: error: cannot find symbol
+                require(hint.timestamp() <= target && hint.offset() >= base && hint.offset() < base + 4, "bounded prefix maximum time hint");
+                            ^
+  symbol:   method timestamp()
+  location: variable hint of type TimestampOffset
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:97: error: cannot find symbol
+                require(hint.timestamp() <= target && hint.offset() >= base && hint.offset() < base + 4, "bounded prefix maximum time hint");
+                                                          ^
+  symbol:   method offset()
+  location: variable hint of type TimestampOffset
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:97: error: cannot find symbol
+                require(hint.timestamp() <= target && hint.offset() >= base && hint.offset() < base + 4, "bounded prefix maximum time hint");
+                                                                                   ^
+  symbol:   method offset()
+  location: variable hint of type TimestampOffset
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:98: error: cannot find symbol
+                indexes.add("{\"segment_base\":" + base + ",\"query_timestamp\":" + target + ",\"hint_timestamp\":" + hint.timestamp() + ",\"hint_offset\":" + hint.offset() + "}");
+                                                                                                                          ^
+  symbol:   method timestamp()
+  location: variable hint of type TimestampOffset
+/workspace/work/segments-assessment/apache-development-1/4.1.2/SegmentIndexProbe.java:98: error: cannot find symbol
+                indexes.add("{\"segment_base\":" + base + ",\"query_timestamp\":" + target + ",\"hint_timestamp\":" + hint.timestamp() + ",\"hint_offset\":" + hint.offset() + "}");
+                                                                                                                                                                   ^
+  symbol:   method offset()
+  location: variable hint of type TimestampOffset
+10 errors
+
+exit_code=1

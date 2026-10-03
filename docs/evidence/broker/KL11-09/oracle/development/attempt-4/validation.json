@@ -1,0 +1,410 @@
+{
+  "source_sha256": "a0b0e54ac1a2752a87ccd07dc77d93c4d853daf3a592fa5fb8e5022c249d960a",
+  "driver_sha256": "eadafbc2f44797afde95dc1ab896aa7c8f3bf5aa45e8bf6542a820dbb532376e",
+  "pins_sha256": "998fa3c302c8e01f1aa2982f6840376a39192ad51b813fe0667cb030497c8ed0",
+  "scope": "Apache components only; manual segment boundaries; no Rust or wire broker/performance claim.",
+  "releases": [
+    {
+      "version": "4.1.2",
+      "record_namespace": "org.apache.kafka.common.record",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.1.2.jar",
+          "sha256": "33b4d9f24ba793ce0ed06607aa92b61d764015d8a0ef72d2558dbb81def4b3ed"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.1.2.jar",
+          "sha256": "0b6e818863408e778a5b243fa30d34c5c8363f3cdc1e8784f1cd16c91628bed8"
+        },
+        {
+          "name": "kafka-storage-api-4.1.2.jar",
+          "sha256": "dabfc8288872176c19913f3195697c4a26bb1f4610ece624b0bade998a630059"
+        },
+        {
+          "name": "kafka-server-common-4.1.2.jar",
+          "sha256": "98a36786a7d23fd868f0462df374be32518cae61e7a9aa720055d5560e46f4f1"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "adapted_source_sha256": "ffa79545ee3a5c2eb9c4bf039fcf50f151b65e9dd2f8c96419ab8beb2bbdd105",
+      "class_sha256": "58b44ed58c7c6af4ddd9d2a52e8a696cd48b187ca52aeae65ef27f4d1d6c90aa",
+      "compile": {
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/segments-assessment/apache-development-4/4.1.2/classes",
+          "/workspace/work/segments-assessment/apache-development-4/4.1.2/SegmentIndexProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "4.1.2-compile.log",
+        "log_sha256": "8e5f32e519a9aa65167c41ea4025f4acee3d94d9c7e338c9172239b687d33d4a"
+      },
+      "executions": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/segments-1",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.1.2-run-1.json"
+          ],
+          "exit_code": 0,
+          "log": "4.1.2-run-1.log",
+          "log_sha256": "ba05c04b1e8e4dd619c06596ed95112ed0ddc5a23e73541fb4cddfabc9c6720d"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/segments-2",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.1.2-run-2.json"
+          ],
+          "exit_code": 0,
+          "log": "4.1.2-run-2.log",
+          "log_sha256": "fa9e4d62fbad818146e0815ddc734a46fe639ece8e72c05d6b45dcfc3054235b"
+        }
+      ],
+      "result_sha256": "a792fd632681ab4620c0b623b96819769caf02c71952817f206261d0cd375458",
+      "controlled_counterexample": {
+        "compile": {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/metrics-core-2.2.0.jar",
+            "-d",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/mutant/classes",
+            "/workspace/work/segments-assessment/apache-development-4/4.1.2/mutant/SegmentIndexProbe.java"
+          ],
+          "exit_code": 0,
+          "log": "4.1.2-counterexample-compile.log",
+          "log_sha256": "6a611421afe25951a7fa53e3346c5a7557cb89cde3c890f8b5d85a364ecd2fff"
+        },
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/segments-assessment/apache-development-4/4.1.2/mutant/classes:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-storage-api-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/kafka-server-common-4.1.2.jar:/workspace/work/segments-assessment/apache-development-4/4.1.2/metrics-core-2.2.0.jar",
+          "SegmentIndexProbe",
+          "/workspace/work/segments-assessment/apache-development-4/4.1.2/mutant/segments",
+          "/workspace/work/segments-assessment/apache-development-4/4.1.2/mutant/result.json"
+        ],
+        "exit_code": 1,
+        "expected_assertion_detected": true,
+        "log": "4.1.2-counterexample-runtime.log",
+        "log_sha256": "f41f49ca3182341a2aaf502dc98574327d39bf3503c5ae1327a13cb94f8f9875",
+        "source_sha256": "8db5689a9c1add8ebd7f24182c707b73db681efcb2ea25c101c246a3cdbe87e3",
+        "class_sha256": "43fc1a26acd8e06c68a82457bceb74b90b378e31ab43a4730bfeca9c622020a1"
+      },
+      "assertions_per_execution": 821,
+      "read_cases_per_phase": 21,
+      "timestamp_cases_per_phase": 160,
+      "index_hint_cases_per_phase": 63
+    },
+    {
+      "version": "4.2.1",
+      "record_namespace": "org.apache.kafka.common.record",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.2.1.jar",
+          "sha256": "9eb0bcd658da6623b62c01a551f584d0dbed7222d930ec977e51160f55385159"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.2.1.jar",
+          "sha256": "fa7d6dfafb686d91470f97126aae33edca050cf01620a07b97bb77a306588767"
+        },
+        {
+          "name": "kafka-storage-api-4.2.1.jar",
+          "sha256": "39caf3d0a4ac413eb2290325ea9bf48c854aa70a9234dd7ebff5bc9c6c01cb4d"
+        },
+        {
+          "name": "kafka-server-common-4.2.1.jar",
+          "sha256": "1d7e1649ea211ca0cd8f067ec7ef0ac174f2a058f9fb76b325ebcbe086c3828f"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "adapted_source_sha256": "91ecb3b7e9c211c550a2bb450487194a8259efa90c48ca9ceea36b695edda59a",
+      "class_sha256": "d25f7daa27f9ec74a5852e9beb56cf22db1fbdd477aea3832c56708e553db7f6",
+      "compile": {
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/segments-assessment/apache-development-4/4.2.1/classes",
+          "/workspace/work/segments-assessment/apache-development-4/4.2.1/SegmentIndexProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "4.2.1-compile.log",
+        "log_sha256": "b43d4a41b119647f89af618fcb9c21922a60c832a0bb3f06136a25be12826946"
+      },
+      "executions": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/segments-1",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.2.1-run-1.json"
+          ],
+          "exit_code": 0,
+          "log": "4.2.1-run-1.log",
+          "log_sha256": "415214998037e511f423a95f5b612c6ca5b65aa2541486d12ba6d693959a14c5"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/segments-2",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.2.1-run-2.json"
+          ],
+          "exit_code": 0,
+          "log": "4.2.1-run-2.log",
+          "log_sha256": "91ca1b7511903c7429f56276f543b8d1709a2a193af263857de465f528076bb7"
+        }
+      ],
+      "result_sha256": "a792fd632681ab4620c0b623b96819769caf02c71952817f206261d0cd375458",
+      "controlled_counterexample": {
+        "compile": {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/metrics-core-2.2.0.jar",
+            "-d",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/mutant/classes",
+            "/workspace/work/segments-assessment/apache-development-4/4.2.1/mutant/SegmentIndexProbe.java"
+          ],
+          "exit_code": 0,
+          "log": "4.2.1-counterexample-compile.log",
+          "log_sha256": "f3aad86d704f01b873dfb7a708049ff82f4fb6db6f3498305476b2864fe1687c"
+        },
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/segments-assessment/apache-development-4/4.2.1/mutant/classes:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-storage-api-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/kafka-server-common-4.2.1.jar:/workspace/work/segments-assessment/apache-development-4/4.2.1/metrics-core-2.2.0.jar",
+          "SegmentIndexProbe",
+          "/workspace/work/segments-assessment/apache-development-4/4.2.1/mutant/segments",
+          "/workspace/work/segments-assessment/apache-development-4/4.2.1/mutant/result.json"
+        ],
+        "exit_code": 1,
+        "expected_assertion_detected": true,
+        "log": "4.2.1-counterexample-runtime.log",
+        "log_sha256": "456b2fe18cd58c4af3fbb4fcd74622a4de3bdd763cd20e5aa4cc69e1cd64fd85",
+        "source_sha256": "7b8cb04082334eb4298fea33d97ac06623ff21e5865ebe5907a2b0b5a5bcc906",
+        "class_sha256": "4950322b16b1f3815b59db8d3a32a1763b69b29209b6897ea3fec85597550486"
+      },
+      "assertions_per_execution": 821,
+      "read_cases_per_phase": 21,
+      "timestamp_cases_per_phase": 160,
+      "index_hint_cases_per_phase": 63
+    },
+    {
+      "version": "4.3.1",
+      "record_namespace": "org.apache.kafka.common.record.internal",
+      "classpath": [
+        {
+          "name": "kafka-clients-4.3.1.jar",
+          "sha256": "dc3d65e3ac811a446184ea1dca0fe9cf957c2d8984dcb4668d01f4b77fc8f50e"
+        },
+        {
+          "name": "slf4j-api-1.7.36.jar",
+          "sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0"
+        },
+        {
+          "name": "kafka-storage-4.3.1.jar",
+          "sha256": "9c64393854251b11633382472d6df8ea5985bd423a41397d93bdbc64a128f3a7"
+        },
+        {
+          "name": "kafka-storage-api-4.3.1.jar",
+          "sha256": "74fb0434cc9d9e6ed61d7351431bea36fbc8af5f9323f65f4c5da0ac5cb0e5b9"
+        },
+        {
+          "name": "kafka-server-common-4.3.1.jar",
+          "sha256": "a6091f8dff9cd45720e5686ac1658f35e02d5826e4fc14eb19c2bc51ac0ad654"
+        },
+        {
+          "name": "metrics-core-2.2.0.jar",
+          "sha256": "6b7a14a6f34c10f8683f7b5e2f39df0f07b58c7dff0e468ebbc713905c46979c"
+        }
+      ],
+      "adapted_source_sha256": "a0b0e54ac1a2752a87ccd07dc77d93c4d853daf3a592fa5fb8e5022c249d960a",
+      "class_sha256": "b1d23ad9d61d1e314e83e3c4bf4c29215b5664f01bc381a8313d07a1252c5e9d",
+      "compile": {
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "--add-modules",
+          "jdk.compiler",
+          "com.sun.tools.javac.Main",
+          "-Xlint:all",
+          "-Werror",
+          "-cp",
+          "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar",
+          "-d",
+          "/workspace/work/segments-assessment/apache-development-4/4.3.1/classes",
+          "/workspace/work/segments-assessment/apache-development-4/4.3.1/SegmentIndexProbe.java"
+        ],
+        "exit_code": 0,
+        "log": "4.3.1-compile.log",
+        "log_sha256": "29030aa1204467fba4937fa7c946af713571897e9ccc7149913a379bd6083c2d"
+      },
+      "executions": [
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/segments-1",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.3.1-run-1.json"
+          ],
+          "exit_code": 0,
+          "log": "4.3.1-run-1.log",
+          "log_sha256": "fa5251d4e8e66f63421ed2a6845e2a609d71fd696ea2f84d58baca528c9e5b2f"
+        },
+        {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "-cp",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar",
+            "SegmentIndexProbe",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/segments-2",
+            "docs/evidence/broker/KL11-09/oracle/development/attempt-4/4.3.1-run-2.json"
+          ],
+          "exit_code": 0,
+          "log": "4.3.1-run-2.log",
+          "log_sha256": "120c972d2ea3a210206aa4192bc08c5d9db663af1dd2a37a324f8a823a58c2e8"
+        }
+      ],
+      "result_sha256": "a792fd632681ab4620c0b623b96819769caf02c71952817f206261d0cd375458",
+      "controlled_counterexample": {
+        "compile": {
+          "argv": [
+            "taskset",
+            "-c",
+            "0-2,4",
+            "java",
+            "--add-modules",
+            "jdk.compiler",
+            "com.sun.tools.javac.Main",
+            "-Xlint:all",
+            "-Werror",
+            "-cp",
+            "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar",
+            "-d",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/classes",
+            "/workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/SegmentIndexProbe.java"
+          ],
+          "exit_code": 0,
+          "log": "4.3.1-counterexample-compile.log",
+          "log_sha256": "93baf79075697b2c86c519f2c87297fe25ae9fa84994ae793c0e01c34fb2d07b"
+        },
+        "argv": [
+          "taskset",
+          "-c",
+          "0-2,4",
+          "java",
+          "-cp",
+          "/workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-development-4/4.3.1/metrics-core-2.2.0.jar",
+          "SegmentIndexProbe",
+          "/workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/segments",
+          "/workspace/work/segments-assessment/apache-development-4/4.3.1/mutant/result.json"
+        ],
+        "exit_code": 1,
+        "expected_assertion_detected": true,
+        "log": "4.3.1-counterexample-runtime.log",
+        "log_sha256": "81dd24ff7fbad388eed2519a176fea6e14a410889f110a3bc2de13f4fb4fa6ac",
+        "source_sha256": "c18068f15b339a597b86970ddad47113a1c725a386ab6168c0a07cdafa5c1760",
+        "class_sha256": "41877a5401ac9c0e78e0b3867b822192c89906395652cbd2ce1743f262a29adb"
+      },
+      "assertions_per_execution": 821,
+      "read_cases_per_phase": 21,
+      "timestamp_cases_per_phase": 160,
+      "index_hint_cases_per_phase": 63
+    }
+  ],
+  "cross_release_identical": true,
+  "executions": 6,
+  "controlled_expected_offset_failures": 3,
+  "assertions": 4926,
+  "actual_read_cases": 252,
+  "actual_timestamp_cases": 1920
+}

@@ -1,0 +1,32 @@
+{
+  "development_only": true,
+  "failures": [
+    {
+      "attempt": 1,
+      "phase": "strict Apache4.1.2 compile",
+      "exit_code": 1,
+      "reason": "OffsetPosition/TimestampOffset are public-field carriers in4.1.2; adapt access syntax only after inspecting pinned sources.",
+      "log": "development/attempt-1/4.1.2-compile.log"
+    },
+    {
+      "attempt": 2,
+      "phase": "Apache4.1.2 runtime setup",
+      "exit_code": 1,
+      "reason": "LogConfig rejects segment.bytes512; use official validated1MiB minimum and retain manual small boundaries, no automatic roll claim.",
+      "log": "development/attempt-2/4.1.2-run-1.log"
+    }
+  ],
+  "development_passes": [
+    {
+      "attempt": 3,
+      "executions": 6,
+      "assertions": 4926
+    },
+    {
+      "attempt": 4,
+      "executions": 6,
+      "assertions": 4926,
+      "controlled_expected_offset_failures": 3
+    }
+  ]
+}
