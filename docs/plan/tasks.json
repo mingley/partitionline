@@ -1437,13 +1437,37 @@
     {
       "id": "KL03-16",
       "title": "Prove share lock expiry and partial acknowledgments",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL03-13"],
-      "files": ["src/share.rs", "tests/full_surface.rs", "tests/common/mod.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-client-share-20261003",
+      "depends_on": [
+        "KL03-13"
+      ],
+      "files": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs"
+      ],
       "deliverable": "Focused share-group acquisition/accept/release/reject histories with clock and fault controls.",
-      "acceptance": ["Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.", "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.", "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."],
-      "validation": ["cargo test --locked --test full_surface share", "Compare the case dispositions with pinned Apache share-consumer tests."],
-      "evidence": []
+      "acceptance": [
+        "Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.",
+        "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.",
+        "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface share",
+        "Compare the case dispositions with pinned Apache share-consumer tests."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/common/mod.rs",
+        "tests/share_semantics.rs",
+        "docs/evidence/client/KL03-16/",
+        "docs/plan/evidence/KL03-16.json"
+      ]
     },
     {
       "id": "KL03-17",
@@ -6991,49 +7015,102 @@
     {
       "id": "KL05-14",
       "title": "Implement share Fetch/Acknowledge v2 wire deltas",
-      "priority": "P1", "kind": "implementation", "status": "done", "owner": "mingley",
-      "depends_on": ["KL05-01", "KL01-03"],
-      "files": ["src/protocol/share.rs", "tests/fixtures/protocol_oracles/", "tests/protocol_oracles.rs"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-client-share-20261003",
+      "depends_on": [
+        "KL05-01",
+        "KL01-03"
+      ],
+      "files": [
+        "src/protocol/share.rs",
+        "tests/fixtures/protocol_oracles/",
+        "tests/protocol_oracles.rs"
+      ],
       "deliverable": "Independent fixtures and codecs for the current selected share-protocol versions.",
-      "acceptance": ["Pin and enumerate Apache request/response deltas, defaults and error cases.", "Preserve supported v0/v1 helpers and reject unsupported combinations explicitly.", "Do not advertise high-level v2 operation before the runtime follow-up is complete."],
-      "validation": ["cargo test --locked --lib protocol::share", "cargo test --locked --test protocol_oracles"],
-      "evidence": [
+      "acceptance": [
+        "Pin and enumerate Apache request/response deltas, defaults and error cases.",
+        "Preserve supported v0/v1 helpers and reject unsupported combinations explicitly.",
+        "Do not advertise high-level v2 operation before the runtime follow-up is complete.",
+        "Generate exact ShareFetch2 and ShareAcknowledge2 bodies from pinned official three-release SDKs and classify any unsupported older release accurately.",
+        "Implement acquisition mode/defaults, renew-ack flags and acknowledgement type4 only at supported versions, preserving existing public helpers/layout through compatible overloads when needed."
+      ],
+      "validation": [
+        "cargo test --locked --lib protocol::share",
+        "cargo test --locked --test protocol_oracles"
+      ],
+      "superseded_evidence": [
         {
-                "source_sha": "232c0acaeb9af0a60d71116abe9663ae064b6c5d",
-                "commands": [
-                        "cargo test --offline --locked --lib protocol::share (53 passed, exit 0)",
-                        "cargo test --offline --locked --test protocol_oracles (20 passed, 1 pre-existing live_broker ignore, exit 0)",
-                        "rustfmt --edition 2021 --check src/protocol/share.rs src/share.rs (exit 0)",
-                        "cargo clippy --offline --locked --lib --all-features -- -D warnings (exit 0)",
-                        "cargo clippy --offline --locked --test protocol_oracles --all-features -- -D warnings (exit 0)"
-                ],
-                "results": "ShareFetch/ShareAcknowledge v0/v1 wire deltas pinned with 7 independent fixture families (21 binary fixtures + share_v2_pin.json): v0 null-records/partition-max-bytes/forgotten-topics, v1 batch-size/error-response/null-rejected, ack v0/v1 same-fields. v2 explicitly rejected in both directions; runtime still negotiates at most v1 via named crate-max constants (behavior-preserving). 53 lib tests and 20 oracle tests pass.",
-                "artifacts": [
-                        "src/protocol/share.rs",
-                        "src/share.rs",
-                        "tests/protocol_oracles.rs",
-                        "tests/fixtures/protocol_oracles/share_v2_pin.json",
-                        "docs/plan/evidence/KL05-14.json"
-                ],
-                "limits": [
-                        "No Java/kafka-clients 4.3.1 in this offline environment, so v2 is pinned by release range and rejection, not Apache-generated bytes; v0/v1 fixtures hand-assembled per documented Apache JSON layouts by a scratch constructor that never runs partitionline encoders.",
-                        "clippy --all-targets fails on pre-existing lints in untouched test files under clippy 1.98; lib and protocol_oracles targets are warning-free.",
-                        "rustfmt reports pre-existing drift in tests/protocol_oracles.rs (52 hunks, none on added lines); touched src files are clean.",
-                        "full_surface share tests cannot run in the sandbox (mock-harness TCP bind denied); no live-broker run performed. matrix.json untouched."
-                ]
+          "source_sha": "232c0acaeb9af0a60d71116abe9663ae064b6c5d",
+          "commands": [
+            "cargo test --offline --locked --lib protocol::share (53 passed, exit 0)",
+            "cargo test --offline --locked --test protocol_oracles (20 passed, 1 pre-existing live_broker ignore, exit 0)",
+            "rustfmt --edition 2021 --check src/protocol/share.rs src/share.rs (exit 0)",
+            "cargo clippy --offline --locked --lib --all-features -- -D warnings (exit 0)",
+            "cargo clippy --offline --locked --test protocol_oracles --all-features -- -D warnings (exit 0)"
+          ],
+          "results": "ShareFetch/ShareAcknowledge v0/v1 wire deltas pinned with 7 independent fixture families (21 binary fixtures + share_v2_pin.json): v0 null-records/partition-max-bytes/forgotten-topics, v1 batch-size/error-response/null-rejected, ack v0/v1 same-fields. v2 explicitly rejected in both directions; runtime still negotiates at most v1 via named crate-max constants (behavior-preserving). 53 lib tests and 20 oracle tests pass.",
+          "artifacts": [
+            "src/protocol/share.rs",
+            "src/share.rs",
+            "tests/protocol_oracles.rs",
+            "tests/fixtures/protocol_oracles/share_v2_pin.json",
+            "docs/plan/evidence/KL05-14.json"
+          ],
+          "limits": [
+            "No Java/kafka-clients 4.3.1 in this offline environment, so v2 is pinned by release range and rejection, not Apache-generated bytes; v0/v1 fixtures hand-assembled per documented Apache JSON layouts by a scratch constructor that never runs partitionline encoders.",
+            "clippy --all-targets fails on pre-existing lints in untouched test files under clippy 1.98; lib and protocol_oracles targets are warning-free.",
+            "rustfmt reports pre-existing drift in tests/protocol_oracles.rs (52 hunks, none on added lines); touched src files are clean.",
+            "full_surface share tests cannot run in the sandbox (mock-harness TCP bind denied); no live-broker run performed. matrix.json untouched."
+          ]
         }
-      ]
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/protocol/share.rs",
+        "tests/protocol_oracles.rs",
+        "tests/fixtures/protocol_oracles/share_v2/",
+        "docs/evidence/client/KL05-14/",
+        "docs/plan/evidence/KL05-14.json"
+      ],
+      "reopened_reason": "Independent current Apache4.3.1 schema inspection finds both ShareFetch and ShareAcknowledge versions1-2; previous evidence rejected Fetch2 and incorrectly stated Ack2 absent. Retain that scoped/stale proof as superseded, implement and independently qualify real current version2 codecs before high-level advertisement."
     },
     {
       "id": "KL05-15",
       "title": "Wire current share protocol into the high-level client",
-      "priority": "P1", "kind": "implementation", "status": "pending", "owner": null,
-      "depends_on": ["KL05-14", "KL03-16"],
-      "files": ["src/share.rs", "tests/full_surface.rs", "tests/conformance/cases.json"],
+      "priority": "P1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "owner": "codex-client-share-20261003",
+      "depends_on": [
+        "KL05-14",
+        "KL03-16"
+      ],
+      "files": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/conformance/cases.json"
+      ],
       "deliverable": "Negotiated runtime behavior for the new share fields and response outcomes.",
-      "acceptance": ["Apply new fields only where supported and retain explicit older-peer fallbacks.", "Repeat lock expiry, partial ack, session reset and coordinator movement cases on the new version.", "Record broker feature levels; a successful heartbeat is not proof of share delivery semantics."],
-      "validation": ["cargo test --locked --test full_surface share", "Run a current-broker share cell and validate its case report."],
-      "evidence": []
+      "acceptance": [
+        "Apply new fields only where supported and retain explicit older-peer fallbacks.",
+        "Repeat lock expiry, partial ack, session reset and coordinator movement cases on the new version.",
+        "Record broker feature levels; a successful heartbeat is not proof of share delivery semantics."
+      ],
+      "validation": [
+        "cargo test --locked --test full_surface share",
+        "Run a current-broker share cell and validate its case report."
+      ],
+      "evidence": [],
+      "write_set": [
+        "src/share.rs",
+        "tests/full_surface.rs",
+        "tests/share_semantics.rs",
+        "docs/evidence/client/KL05-15/",
+        "docs/plan/evidence/KL05-15.json"
+      ],
+      "integration_coordinator": "Shared runtime files owned by the same share worker under03-16; root owns conformance registry/case changes and release gates. Native current-broker proof is supplemental until required pinned Docker delivery cell passes; no unsupported or heartbeat-only closure."
     },
     {
       "id": "KL05-16",
