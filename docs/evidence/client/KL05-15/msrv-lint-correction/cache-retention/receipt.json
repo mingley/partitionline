@@ -1,0 +1,10 @@
+{
+  "phase": "post-preparation safe cache cleanup",
+  "scope": "uncommitted equivalentlint candidate based on962; no final qualification",
+  "archive_stays_outsideGit": true,
+  "files": {
+    "cache-cleanup.json": "dc7866e7959fa22ca3d3e871c47d095a801ed5c4f9e4e1d3727828ce25726930",
+    "cache-elf-preservation.json": "d0ca9b71a48d40cd4a9b71758d416694d2b1f169ba089e4a26747dd9b8a1039d",
+    "cache-preservation.log": "f2e12208c7456971f48554be3b86732d9cab05cf521268ff8df6b8ae88ab654a"
+  }
+}

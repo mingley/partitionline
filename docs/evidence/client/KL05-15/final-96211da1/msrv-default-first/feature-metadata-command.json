@@ -1,0 +1,15 @@
+{
+  "phase": "feature-metadata",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "metadata",
+    "--offline",
+    "--locked",
+    "--format-version=1",
+    "--filter-platform",
+    "x86_64-unknown-linux-gnu"
+  ],
+  "cpuset": "0-2,4"
+}

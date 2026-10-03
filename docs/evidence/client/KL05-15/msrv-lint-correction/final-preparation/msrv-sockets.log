@@ -1,0 +1,77 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling typenum v1.20.1
+   Compiling hybrid-array v0.4.14
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling ctutils v0.4.2
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling ring v0.17.14
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling rustls-webpki v0.103.15
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.2
+   Compiling once_cell v1.21.4
+   Compiling subtle v2.6.1
+   Compiling smallvec v1.15.2
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling tokio v1.53.1
+   Compiling parking_lot_core v0.9.12
+   Compiling rustls v0.23.45
+   Compiling crc32fast v1.5.1
+   Compiling hmac v0.13.0
+   Compiling twox-hash v2.1.2
+   Compiling cpufeatures v0.3.1
+   Compiling zlib-rs v0.6.8
+   Compiling flate2 v1.1.10
+   Compiling sha2 v0.11.0
+   Compiling lz4_flex v0.14.0
+   Compiling pbkdf2 v0.13.0
+   Compiling crc32c v0.6.8
+   Compiling tokio-rustls v0.26.5
+   Compiling snap v1.1.2
+   Compiling parking_lot v0.12.5
+   Compiling getrandom v0.4.3
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-msrv-lint-96211da1)
+    Finished `test` profile [unoptimized] target(s) in 34.68s
+     Running tests/share_semantics.rs (/workspace/work/client-share-target/debug/deps/share_semantics-f61578f1bcb2f6a0)
+
+running 20 tests
+test decoded_budget_and_overlapping_acquisitions_fail_before_delivery ... ok
+test acknowledge_session_error_clears_old_acquisition_without_replaying_accept ... ok
+test acknowledge_top_level_retry_advances_epoch_without_duplicate_accept ... ok
+test each_partition_leader_negotiates_its_own_share_version_and_v2_gate ... ok
+test java_v2_batch_emits_only_acquired_offsets_and_buffers_poll_limit ... ok
+test fetch_top_level_error_advances_epoch_and_preserves_prior_acquisition ... ok
+test live_current_v2_share_delivery_renew_release_expiry_accept ... ignored, requires an explicitly selected fresh digest-pinned Apache Kafka 4.3.1 Docker cell
+test older_bootstrap_does_not_cap_current_partition_leader_fields ... ok
+test leader_change_ack_is_terminal_and_record_is_reacquired_on_new_leader ... ok
+test partial_retriable_ack_retries_only_failed_partition ... ok
+test outstanding_acquisitions_consume_budget_across_successive_polls ... ok
+test partial_terminal_ack_preserves_success_and_unacknowledged_same_partition_record ... ok
+test delayed_share_replies_after_outer_timeout_cannot_satisfy_new_requests ... ok
+test share_join_repeated_coordinator_failure_obeys_original_deadline_and_backoff ... ok
+test share_join_retries_only_typed_coordinator_startup_errors ... ok
+test share_lock_expiry_reacquisition_stale_ack_release_reject_and_group_isolation ... ok
+test session_reset_restarts_initial_epoch_and_repeated_failure_is_bounded ... ok
+test coordinator_move_preserves_delivery_and_partition_leader_session ... ok
+test renew_v2_extends_only_selected_record_and_preserves_delivery_count ... ok
+test unsubscribe_releases_lock_and_resubscribe_restarts_delivery_heartbeats ... ok
+
+test result: ok. 19 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.33s
+

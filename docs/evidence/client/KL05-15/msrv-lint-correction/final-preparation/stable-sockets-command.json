@@ -1,0 +1,13 @@
+{
+  "phase": "stable-sockets",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--test",
+    "share_semantics"
+  ]
+}

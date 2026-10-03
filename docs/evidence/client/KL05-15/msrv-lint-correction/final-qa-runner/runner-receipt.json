@@ -1,0 +1,9 @@
+{
+  "scope": "Prepared updatedfinalQA runner fornewpushedsource; notyetexecuted; historical962runnercopies remainuntouched",
+  "changes": "Featuremetadata identity reads actualnewarchive/sourceSHA and finalsourceverifier reads correctedmsrvfreeze(b74/a905) ratherthanolderretentionfreeze(cbc/952)",
+  "scripts_sha256": {
+    "run-qa-lane-checked.sh": "f180848992df7e8e2e7c687e79e61142ac7550a6c41c3d34fac2aa41f7a36338",
+    "seal-qa-lane.py": "224c7eead3f35ed764538c614daa47ad9f86bfb39dc9256931b5b52fc096672f",
+    "verify-existing-source.py": "93869320d3d22ff619032763a8f850de05f9677aecbe91193d72c086ccb3b1bd"
+  }
+}

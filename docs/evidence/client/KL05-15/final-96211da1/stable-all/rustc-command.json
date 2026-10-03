@@ -1,0 +1,10 @@
+{
+  "phase": "rustc",
+  "exit_code": 0,
+  "argv": [
+    "rustc",
+    "+stable",
+    "-Vv"
+  ],
+  "cpuset": "0-2,4"
+}

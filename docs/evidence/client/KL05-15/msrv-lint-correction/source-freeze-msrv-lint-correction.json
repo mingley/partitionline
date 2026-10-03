@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "phase": "equivalent MSRV lint corrections frozen for root review/push; final qualification pending",
+  "previous_pushed_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "only_changed_source_paths": [
+    "src/share.rs",
+    "tests/common/mod.rs"
+  ],
+  "source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "src/protocol/share.rs": "9a13d156e15af7a0dc755660db270e8090ee1e352ae8e31754337586b0db18bd",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90",
+    "tests/share_semantics.rs": "34313b8f1837bbfc775f21bca91166d81115df1eff8b1c4ce7f6b425ce83cee2",
+    "src/consumer.rs": "636c83a9a0bbaa28fed33394d8f106d8b077d4a97254c0cdcdc5346e52a3f21d",
+    "src/lib.rs": "7bd989c841cbbd33d9e21c9b4815da57040b76db8e3060c9d1ef255ed15f2e8c"
+  },
+  "unchanged_held_source_sha256": {
+    "src/group.rs": "5147dc09d6c27fe1c1361df58249a8e0077909b2cb2a4d393f069ce1feb2d1e3",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "src/protocol/records.rs": "2f415486f1df8251b30f502dfc66b085efcde80808ee85a61f9763b15b6049b8",
+    "src/protocol/buf.rs": "ceb274267855a783e985cab906929298ce35393c4001809626fce452f3adcebe"
+  },
+  "unchanged_clippy_toml_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6",
+  "changes": [
+    "node_share_version uses VacantEntry instead of contains_key+insert; all same connection/negotiate/auth awaits happen before insertion; on error or cancellation vacant guard drops without insertion; share_addresses insertion order unchanged",
+    "Missing or mismatched acquired delivery uses is_none_or(count!=recordcount), exactly equivalent to negated is_some_and(count==recordcount)",
+    "Existing testpeer missing/mismatched lock owner uses is_none_or(owner!=member), same truth table"
+  ],
+  "public_api_wire_layout_and_retry_policy": "unchanged; no annotations or lint waivers",
+  "format_first": "passed",
+  "focused_strict_clippy": "all4cells passed with --lib --testshare_semantics: stable/MSRV \u00d7default/all",
+  "existing_regressions": {
+    "stable-sockets": {
+      "passed": 19,
+      "failed": 0,
+      "ignored": 1
+    },
+    "stable-share-codecs": {
+      "passed": 52,
+      "failed": 0,
+      "ignored": 0
+    },
+    "msrv-sockets": {
+      "passed": 19,
+      "failed": 0,
+      "ignored": 1
+    },
+    "msrv-share-codecs": {
+      "passed": 52,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "isolated_source_proof": "Each of8commands verified44,092baseGitfiles/modes before and after withonly2declaredvariants; exactrootclippy.toml unchanged",
+  "preserved_failures": [
+    "../final-96211da1/msrv-default-first/",
+    "runtime-msrv-lint-correction-msrv-default-clippy.log",
+    "candidate-first-common.rs",
+    "runtime-msrv-lint-correction-first-prep-setup.json"
+  ],
+  "final_gates": "Root push actualnewSHA thenfreshimmutablefull4clientlanes, officialpinned4.3.1currentlive and separate3releasewholecompat onnewsource; previous962stable/currentDockerpasses retained onlyscopedconstituents."
+}

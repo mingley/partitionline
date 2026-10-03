@@ -1,0 +1,17 @@
+{
+  "phase": "msrv-default-clippy",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--lib",
+    "--test",
+    "share_semantics",
+    "--",
+    "-D",
+    "warnings"
+  ]
+}

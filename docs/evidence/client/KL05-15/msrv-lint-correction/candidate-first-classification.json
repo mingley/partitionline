@@ -1,0 +1,6 @@
+{
+  "phase": "MSRVdefaultfocusedClippy",
+  "result": "productiontwo-lintcorrection typechecks; oneexistingownedtest-helperboolean lint nowvisible",
+  "source_scope": "Only src/share.rs changed; tests/common remains original952516a7",
+  "next_required_change": "tests/common/mod.rs:4329 equivalent inverse-owner guard is_none_or; root scope authorization pending; no waiver"
+}

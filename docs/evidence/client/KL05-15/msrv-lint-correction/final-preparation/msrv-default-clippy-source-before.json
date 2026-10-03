@@ -1,0 +1,11 @@
+{
+  "phase": "msrv-default-clippy-before",
+  "base_source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "candidate_source": "isolated preparation only; not a pushed source and not final qualification",
+  "verified_git_files_with_two_declared_variants": 44092,
+  "only_changed_source_sha256": {
+    "src/share.rs": "b74d64879b107e209643b73c552c5ba106e17d3c69a91e284f57d69f3d482f5b",
+    "tests/common/mod.rs": "a905d517c981b844e4b57a7a3a41ac38992506dfcb82c8c379486108879a1e90"
+  },
+  "clippy_toml_sha256": "7ad5c55d408b8e15adb48a7054705ef3828ce59ff464a4a62a9842c88788fba6"
+}

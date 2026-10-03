@@ -1,0 +1,6 @@
+{
+  "phase": "isolatedcandidatecreation",
+  "classification": "tool setup prerequisite failure; not Cargo/lint/code failure",
+  "error": "exec_command rejected because requested workdir preparation-msrv-lint-96211da1 did not yet exist; shell/Python/Cargo neverstarted",
+  "correction": "create isolated candidate first from existing workspace, then runCargo in its directory"
+}

@@ -1,0 +1,13 @@
+{
+  "phase": "msrv-share-codecs",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+1.85.0",
+    "test",
+    "--offline",
+    "--locked",
+    "--lib",
+    "protocol::share"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "phase": "stable-all-clippy",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "clippy",
+    "--offline",
+    "--locked",
+    "--lib",
+    "--test",
+    "share_semantics",
+    "--all-features",
+    "--",
+    "-D",
+    "warnings"
+  ]
+}

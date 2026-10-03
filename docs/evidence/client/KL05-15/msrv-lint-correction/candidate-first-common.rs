@@ -4326,10 +4326,10 @@ fn apply_share_acks(
                 if !matches!(ty, ACK_ACCEPT | ACK_RELEASE | ACK_REJECT | ACK_RENEW) {
                     return error::INVALID_REQUEST;
                 }
-                if st
+                if !st
                     .share_acquired
                     .get(&key)
-                    .is_none_or(|lock| lock.owner != member_id)
+                    .is_some_and(|lock| lock.owner == member_id)
                 {
                     return error::INVALID_RECORD_STATE;
                 }

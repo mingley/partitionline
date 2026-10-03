@@ -1,0 +1,13 @@
+{
+  "phase": "stable-share-codecs",
+  "exit_code": 0,
+  "argv": [
+    "cargo",
+    "+stable",
+    "test",
+    "--offline",
+    "--locked",
+    "--lib",
+    "protocol::share"
+  ]
+}

@@ -1247,7 +1247,7 @@ impl ShareGroup {
             // Cancelled or failed roundtrips instead invalidate ambiguous locks.
             let _ = self.share_conns.remove(&node);
         }
-        if let std::collections::hash_map::Entry::Vacant(entry) = self.share_conns.entry(node) {
+        if !self.share_conns.contains_key(&node) {
             let addr = self
                 .assigned
                 .iter()
@@ -1304,11 +1304,14 @@ impl ShareGroup {
             )
             .await?;
             let _ = self.share_addresses.insert(node, addr);
-            let _ = entry.insert(ShareNodeConnection {
-                conn,
-                fetch_version,
-                acknowledge_version,
-            });
+            let _ = self.share_conns.insert(
+                node,
+                ShareNodeConnection {
+                    conn,
+                    fetch_version,
+                    acknowledge_version,
+                },
+            );
         }
         let peer = self
             .share_conns
@@ -1805,7 +1808,7 @@ impl ShareGroup {
             let acquired =
                 self.acquisitions
                     .get(&(record.topic.clone(), record.partition, record.offset));
-            if acquired.is_none_or(|a| a.delivery_count != record.delivery_count) {
+            if !acquired.is_some_and(|a| a.delivery_count == record.delivery_count) {
                 return Err(Error::broker(
                     error::INVALID_RECORD_STATE,
                     format!(

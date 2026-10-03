@@ -1,0 +1,60 @@
+   Compiling partitionline v0.1.0 (/workspace/work/client-share-assessment/preparation-msrv-lint-96211da1)
+    Finished `test` profile [unoptimized] target(s) in 24.24s
+     Running unittests src/lib.rs (/workspace/work/client-share-target/debug/deps/partitionline-e6dc13345ae67a7b)
+
+running 52 tests
+test protocol::share::tests::share_acknowledge_close_session_has_no_topics ... ok
+test protocol::share::tests::share_acknowledge_request_error_response_matches_java ... ok
+test protocol::share::tests::share_acknowledge_encodes_several_partitions ... ok
+test protocol::share::tests::share_acknowledge_partition_response_leftover_empty ... ok
+test protocol::share::tests::share_acknowledge_response_current_leader_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_error_counts_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_error_message_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_node_endpoints_matches_java ... ok
+test protocol::share::tests::share_acknowledge_request_for_consumer_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_throttle_time_ms_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_of_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_to_message_matches_java ... ok
+test protocol::share::tests::share_acknowledge_response_top_level_error_message_matches_java ... ok
+test protocol::share::tests::share_acknowledge_v0_matches_v1_and_rejects_v3 ... ok
+test protocol::share::tests::share_fetch_error_roundtrip ... ok
+test protocol::share::tests::share_fetch_and_acknowledge_support_current_versions_and_reject_unknown ... ok
+test protocol::share::tests::share_fetch_error_throttle_time_ms_matches_java ... ok
+test protocol::share::tests::share_fetch_and_acknowledge_roundtrip ... ok
+test protocol::share::tests::share_fetch_partition_response_leftover_empty ... ok
+test protocol::share::tests::share_fetch_request_batch_size_matches_java ... ok
+test protocol::share::tests::share_fetch_request_forgotten_matches_java ... ok
+test protocol::share::tests::share_fetch_request_error_response_matches_java ... ok
+test protocol::share::tests::share_fetch_request_forgotten_topics_matches_java ... ok
+test protocol::share::tests::share_fetch_request_for_consumer_matches_java ... ok
+test protocol::share::tests::share_fetch_request_max_bytes_matches_java ... ok
+test protocol::share::tests::share_fetch_request_max_wait_ms_matches_java ... ok
+test protocol::share::tests::share_fetch_request_min_bytes_matches_java ... ok
+test protocol::share::tests::share_fetch_request_share_fetch_data_matches_java ... ok
+test protocol::share::tests::share_fetch_response_acknowledge_error_code_matches_java ... ok
+test protocol::share::tests::share_fetch_response_acknowledge_error_message_matches_java ... ok
+test protocol::share::tests::share_fetch_request_update_forgotten_data_matches_java ... ok
+test protocol::share::tests::share_fetch_response_acquisition_lock_timeout_ms_matches_java ... ok
+test protocol::share::tests::share_fetch_response_current_leader_matches_java ... ok
+test protocol::share::tests::share_fetch_response_error_code_matches_java ... ok
+test protocol::share::tests::share_fetch_response_error_counts_matches_java ... ok
+test protocol::share::tests::share_fetch_response_error_message_matches_java ... ok
+test protocol::share::tests::share_fetch_response_node_endpoints_matches_java ... ok
+test protocol::share::tests::share_fetch_response_records_nullable_versions_matches_java ... ok
+test protocol::share::tests::share_fetch_response_records_size_matches_java ... ok
+test protocol::share::tests::share_fetch_response_of_matches_java ... ok
+test protocol::share::tests::share_fetch_response_response_data_matches_java ... ok
+test protocol::share::tests::share_fetch_response_size_of_matches_java ... ok
+test protocol::share::tests::share_fetch_response_throttle_time_ms_matches_java ... ok
+test protocol::share::tests::share_fetch_response_top_level_error_message_matches_java ... ok
+test protocol::share::tests::share_fetch_response_to_message_matches_java ... ok
+test protocol::share::tests::share_fetch_v0_omits_v1_fields_and_rejects_v3 ... ok
+test protocol::share::tests::share_group_heartbeat_join_leave_roundtrip ... ok
+test protocol::share::tests::share_group_heartbeat_request_error_response_matches_java ... ok
+test protocol::share::tests::share_group_heartbeat_response_error_counts_matches_java ... ok
+test protocol::share::tests::share_group_heartbeat_request_rack_id_matches_java ... ok
+test protocol::share::tests::share_group_heartbeat_response_throttle_time_ms_matches_java ... ok
+test protocol::share::tests::share_group_heartbeat_v0_matches_v1_and_does_not_speak_v2 ... ok
+
+test result: ok. 52 passed; 0 failed; 0 ignored; 0 measured; 1047 filtered out; finished in 0.00s
+

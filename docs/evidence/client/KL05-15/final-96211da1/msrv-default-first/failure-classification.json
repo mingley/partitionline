@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_sha": "96211da1cc63a5ef7c289e0135b74c00562403d6",
+  "phase": "strict-clippy",
+  "toolchain": "1.85.0",
+  "features": "default",
+  "exit_code": 101,
+  "classification": "two MSRV-specific strictClippy source diagnostics; no runtime failure demonstrated",
+  "diagnostics": [
+    "src/share.rs:1250 map_entry",
+    "src/share.rs:1811 nonminimal_bool"
+  ],
+  "frozen_source_after_failed_command": "strict-clippy-source-after.json verifies44,092Gitblobs/modes andtenhashes unchanged",
+  "remaining_work": "Equivalent narrow source correction, push/fresh immutableQA beforequalification; no source edit yet"
+}

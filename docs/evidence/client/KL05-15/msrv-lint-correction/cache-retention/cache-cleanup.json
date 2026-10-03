@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "source_sha": "uncommitted-equivalent-lint-candidate-based-on-96211da1",
+  "cache_path": "/workspace/work/client-share-target",
+  "removed_generated_file_bytes": 645733468,
+  "removed_generated_files": 1922,
+  "retained_elf_archive_sha256": "4e88bf7ae01511267c0906ed2e7aa457610145896b357c1d8defc29397097e5d",
+  "retained_elf_archive_verified": true,
+  "active_references": [],
+  "source_rawlogs_fixture_and_retained_binaries_untouched": true,
+  "free_bytes_after": 1466875904
+}

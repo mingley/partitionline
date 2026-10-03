@@ -1,0 +1,4 @@
+{
+  "phase": "strict-clippy",
+  "exit_code": 101
+}
