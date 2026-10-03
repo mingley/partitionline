@@ -1,4 +1,4 @@
-//! Bounded asynchronous length-prefixed transport, without Kafka API handlers.
+//! Bounded asynchronous length-prefixed transport with optional TLS/SASL profiles.
 //!
 //! Each connection reads one signed big-endian length and request, awaits one
 //! handler, and writes its optional response before reading the next request. Pipelined
@@ -17,9 +17,12 @@
 //! Limits bound transport-owned request buffers, response wire sizes and work
 //! admission, not arbitrary handler allocation, OS socket buffers or process
 //! RSS. Optional TLS/mTLS uses the same admission cap and joined shutdown,
-//! without plaintext fallback. This module provides no Kafka API validation,
-//! application authorization,
-//! storage, broker readiness or production qualification.
+//! without plaintext fallback. An explicitly selected SASL profile validates
+//! versioned Kafka authentication/credential APIs, owns per-socket authentication
+//! and checks its credential administrator allowlist. Application handlers run
+//! only after proof; ordinary constructors keep their existing unauthenticated
+//! behavior. Application authorization, application storage, broker readiness and
+//! broader production qualification have separate contracts.
 
 use std::{future::Future, io, net::SocketAddr, sync::Arc, time::Duration};
 use tokio::{
@@ -34,6 +37,8 @@ use tokio::{
 #[derive(Debug, Clone)]
 pub struct Peer {
     address: SocketAddr,
+    #[cfg(feature = "sasl")]
+    identity: Option<Arc<crate::security::sasl::Identity>>,
     #[cfg(feature = "tls")]
     tls: Option<crate::security::tls::VerifiedPeer>,
 }
@@ -42,6 +47,13 @@ impl Peer {
     /// Remote TCP address; not an authenticated principal.
     pub fn address(&self) -> SocketAddr {
         self.address
+    }
+
+    /// Verified SASL identity, absent until successful proof. Address and TLS
+    /// metadata alone never imply a SASL principal or administrator authority.
+    #[cfg(feature = "sasl")]
+    pub fn identity(&self) -> Option<&crate::security::sasl::Identity> {
+        self.identity.as_deref()
     }
 
     /// Verified TLS handshake metadata, absent for the explicit plaintext listener.
@@ -53,12 +65,27 @@ impl Peer {
 
 enum Security {
     Plaintext,
+    #[cfg(feature = "sasl")]
+    SaslPlaintext(crate::security::session::Profile),
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    SaslTls(
+        crate::security::tls::Acceptor,
+        crate::security::session::Profile,
+    ),
     #[cfg(feature = "tls")]
     Tls(crate::security::tls::Acceptor),
 }
 
 enum Session {
     Plaintext,
+    #[cfg(feature = "sasl")]
+    SaslPlaintext(Box<crate::security::session::Session>),
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    SaslTls {
+        snapshot: Arc<crate::security::tls::Snapshot>,
+        deadline: Instant,
+        auth: Box<crate::security::session::Session>,
+    },
     #[cfg(feature = "tls")]
     Tls {
         snapshot: Arc<crate::security::tls::Snapshot>,
@@ -70,6 +97,19 @@ impl Security {
     fn admit(&self) -> Session {
         match self {
             Self::Plaintext => Session::Plaintext,
+            #[cfg(feature = "sasl")]
+            Self::SaslPlaintext(profile) => Session::SaslPlaintext(Box::new(profile.admit())),
+            #[cfg(all(feature = "sasl", feature = "tls"))]
+            Self::SaslTls(acceptor, profile) => {
+                let snapshot = acceptor.snapshot();
+                let auth = Box::new(profile.admit());
+                Session::SaslTls {
+                    deadline: (Instant::now() + snapshot.limits.handshake_timeout)
+                        .min(auth.preauth_deadline().unwrap_or(Instant::now())),
+                    snapshot,
+                    auth,
+                }
+            }
             #[cfg(feature = "tls")]
             Self::Tls(acceptor) => {
                 let snapshot = acceptor.snapshot();
@@ -379,6 +419,36 @@ impl Transport {
         Self::bind_with(addr, config, handler, Security::Tls(acceptor)).await
     }
 
+    /// Bind an explicitly selected SCRAM-only plaintext Kafka listener.
+    /// The profile owns socket authentication/admin policy; Handler stays unchanged.
+    #[cfg(feature = "sasl")]
+    pub async fn bind_sasl<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        profile: crate::security::session::Profile,
+    ) -> Result<Self, Error> {
+        if profile.requires_tls() {
+            return Err(Error::InvalidConfig("SASL plaintext profile"));
+        }
+        Self::bind_with(addr, config, handler, Security::SaslPlaintext(profile)).await
+    }
+    /// Bind a TLS-only Kafka SASL listener. PLAIN is permitted only after TLS
+    /// succeeds; the absolute preauth deadline starts at socket admission.
+    #[cfg(all(feature = "sasl", feature = "tls"))]
+    pub async fn bind_tls_sasl<H: Handler + 'static>(
+        addr: SocketAddr,
+        config: Config,
+        handler: Arc<H>,
+        acceptor: crate::security::tls::Acceptor,
+        profile: crate::security::session::Profile,
+    ) -> Result<Self, Error> {
+        if !profile.requires_tls() {
+            return Err(Error::InvalidConfig("SASL TLS profile"));
+        }
+        Self::bind_with(addr, config, handler, Security::SaslTls(acceptor, profile)).await
+    }
+
     async fn bind_with<H: Handler + 'static>(
         addr: SocketAddr,
         config: Config,
@@ -460,7 +530,7 @@ async fn run<H: Handler + 'static>(
                     continue;
                 }
                 report.accepted_connections = report.accepted_connections.saturating_add(1);
-                let peer = Peer { address, #[cfg(feature = "tls")] tls: None };
+                let peer = Peer { address, #[cfg(feature = "tls")] tls: None, #[cfg(feature = "sasl")] identity: None };
                 workers.spawn(connection(socket, config, handler.clone(), handlers.clone(), stop.subscribe(), peer, security.admit()));
                 report.peak_connections = report.peak_connections.max(workers.len());
             }
@@ -509,7 +579,48 @@ async fn establish<H: Handler>(
     session: Session,
 ) -> Exit {
     match session {
-        Session::Plaintext => exchange(socket, config, handler, handlers, peer).await,
+        Session::Plaintext => {
+            exchange(
+                socket,
+                config,
+                handler,
+                handlers,
+                peer,
+                #[cfg(feature = "sasl")]
+                None,
+            )
+            .await
+        }
+        #[cfg(feature = "sasl")]
+        Session::SaslPlaintext(auth) => {
+            exchange(socket, config, handler, handlers, peer, Some(auth)).await
+        }
+        #[cfg(all(feature = "sasl", feature = "tls"))]
+        Session::SaslTls {
+            snapshot,
+            deadline,
+            auth,
+        } => {
+            let stream = match timeout_at(
+                deadline,
+                tokio_rustls::TlsAcceptor::from(snapshot.server.clone()).accept(socket),
+            )
+            .await
+            {
+                Ok(Ok(stream)) => stream,
+                Ok(Err(_)) => return Exit::TlsError,
+                Err(_) => return Exit::TlsDeadline,
+            };
+            let mut peer = peer;
+            peer.tls = match crate::security::tls::VerifiedPeer::new(
+                &snapshot,
+                stream.get_ref().1.peer_certificates(),
+            ) {
+                Ok(verified) => Some(verified),
+                Err(_) => return Exit::TlsError,
+            };
+            exchange(stream, config, handler, handlers, peer, Some(auth)).await
+        }
         #[cfg(feature = "tls")]
         Session::Tls { snapshot, deadline } => {
             let stream = match timeout_at(
@@ -530,7 +641,16 @@ async fn establish<H: Handler>(
                 Ok(verified) => Some(verified),
                 Err(_) => return Exit::TlsError,
             };
-            exchange(stream, config, handler, handlers, peer).await
+            exchange(
+                stream,
+                config,
+                handler,
+                handlers,
+                peer,
+                #[cfg(feature = "sasl")]
+                None,
+            )
+            .await
         }
     }
 }
@@ -543,7 +663,51 @@ fn read_error(error: io::Error) -> Exit {
     }
 }
 
-async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Result<Vec<u8>, Exit> {
+#[cfg(feature = "sasl")]
+struct Frame(zeroize::Zeroizing<Vec<u8>>);
+#[cfg(feature = "sasl")]
+impl std::fmt::Debug for Frame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Frame { [REDACTED] }")
+    }
+}
+#[cfg(feature = "sasl")]
+impl std::ops::Deref for Frame {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+#[cfg(feature = "sasl")]
+impl std::ops::DerefMut for Frame {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+#[cfg(not(feature = "sasl"))]
+type Frame = Vec<u8>;
+fn new_frame() -> Frame {
+    #[cfg(feature = "sasl")]
+    {
+        Frame(zeroize::Zeroizing::new(Vec::new()))
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        Vec::new()
+    }
+}
+fn dispatch_frame(mut frame: Frame) -> Vec<u8> {
+    #[cfg(feature = "sasl")]
+    {
+        std::mem::take(&mut *frame)
+    }
+    #[cfg(not(feature = "sasl"))]
+    {
+        std::mem::take(&mut frame)
+    }
+}
+
+async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Result<Frame, Exit> {
     let deadline = Instant::now() + config.read_timeout;
     timeout_at(deadline, async {
         let mut prefix = [0; 4];
@@ -554,7 +718,7 @@ async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Res
             return Err(Exit::InvalidLength);
         }
         // No allocation based on the peer's length occurs before this check.
-        let mut payload = Vec::new();
+        let mut payload = new_frame();
         payload.try_reserve_exact(length).map_err(|_| Exit::Io)?;
         payload.resize(length, 0);
         let _ = socket.read_exact(&mut payload).await.map_err(read_error)?;
@@ -564,23 +728,67 @@ async fn read_frame<S: AsyncRead + Unpin>(socket: &mut S, config: Config) -> Res
     .map_err(|_| Exit::ReadDeadline)?
 }
 
+fn operation_deadline(absolute: Option<Instant>, timeout: Duration) -> Instant {
+    let relative = Instant::now() + timeout;
+    absolute.map_or(relative, |deadline| deadline.min(relative))
+}
+
 async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
     mut socket: S,
     config: Config,
     handler: Arc<H>,
     handlers: Arc<Semaphore>,
-    peer: Peer,
+    #[allow(unused_mut)] mut peer: Peer,
+    #[cfg(feature = "sasl")] mut auth: Option<Box<crate::security::session::Session>>,
 ) -> Exit {
     loop {
-        let request = match read_frame(&mut socket, config).await {
-            Ok(request) => request,
-            Err(exit) => return exit,
+        #[allow(unused_mut)]
+        let mut frame_config = config;
+        #[cfg(feature = "sasl")]
+        let preauth_deadline = auth.as_ref().and_then(|auth| auth.preauth_deadline());
+        #[cfg(not(feature = "sasl"))]
+        let preauth_deadline: Option<Instant> = None;
+        #[cfg(feature = "sasl")]
+        if let Some(auth) = &auth {
+            frame_config.max_request_bytes = auth.frame_limit(config.max_request_bytes);
+        }
+        let read_deadline = operation_deadline(preauth_deadline, config.read_timeout);
+        let request = match timeout_at(read_deadline, read_frame(&mut socket, frame_config)).await {
+            Ok(Ok(request)) => request,
+            Ok(Err(exit)) => return exit,
+            Err(_) => return Exit::ReadDeadline,
         };
-        let deadline = Instant::now() + config.handler_timeout;
+        let deadline = preauth_deadline
+            .map_or(Instant::now() + config.handler_timeout, |deadline| {
+                deadline.min(Instant::now() + config.handler_timeout)
+            });
+        #[allow(unused_mut)]
+        let mut close = false;
         let response = match timeout_at(deadline, async {
             let permit = handlers.acquire().await.map_err(|_| Exit::Shutdown)?;
+            #[cfg(feature = "sasl")]
+            if let Some(auth) = &mut auth {
+                match auth
+                    .handle(&request)
+                    .await
+                    .map_err(|_| Exit::HandlerError)?
+                {
+                    crate::security::session::Decision::Reply {
+                        bytes,
+                        close: terminal,
+                    } => {
+                        close = terminal;
+                        peer.identity = auth.identity();
+                        drop(permit);
+                        return Ok(Some(bytes));
+                    }
+                    crate::security::session::Decision::Dispatch => {
+                        peer.identity = auth.identity();
+                    }
+                }
+            }
             let response = handler
-                .handle_with_peer(&peer, request)
+                .handle_with_peer(&peer, dispatch_frame(request))
                 .await
                 .map_err(|_| Exit::HandlerError);
             drop(permit);
@@ -600,7 +808,7 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             Ok(length) => length,
             Err(_) => return Exit::OversizedResponse,
         };
-        let deadline = Instant::now() + config.write_timeout;
+        let deadline = operation_deadline(preauth_deadline, config.write_timeout);
         match timeout_at(deadline, async {
             socket.write_all(&length.to_be_bytes()).await?;
             socket.write_all(&response).await
@@ -611,5 +819,20 @@ async fn exchange<H: Handler, S: AsyncRead + AsyncWrite + Unpin>(
             Ok(Err(_)) => return Exit::Io,
             Err(_) => return Exit::WriteDeadline,
         }
+        if close {
+            return Exit::HandlerError;
+        }
+    }
+}
+
+#[cfg(all(test, feature = "sasl"))]
+mod sasl_frame_tests {
+    #[test]
+    fn owned_authentication_frame_debug_is_redacted() {
+        let mut frame = super::new_frame();
+        frame.extend_from_slice(b"\0synthetic-principal\0synthetic-password");
+        let text = format!("{frame:?}");
+        assert!(!text.contains("synthetic-principal"));
+        assert!(!text.contains("synthetic-password"));
     }
 }
