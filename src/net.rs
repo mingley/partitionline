@@ -616,7 +616,7 @@ pub struct BrokerConn {
     /// This crate picks 3–12 from ApiVersions.
     pub(crate) produce_version: i16,
     /// Fetch version negotiated on data sockets (`-1` unset).
-    /// This crate picks 4–17 from ApiVersions (KL03-22).
+    /// This crate picks 4–18 from ApiVersions (KL05-12).
     pub(crate) fetch_version: i16,
     /// OffsetCommit version negotiated on coordinator sockets (`0` unset).
     /// Classic consumer groups pick 2–9 from ApiVersions. Kafka 4.0

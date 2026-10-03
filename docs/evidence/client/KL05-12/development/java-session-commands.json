@@ -1,0 +1,58 @@
+[
+  {
+    "version": "4.1.0",
+    "phase": "generate",
+    "exit_code": 0,
+    "stdout": "Apache 4.1.0 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.1.0",
+    "phase": "verify",
+    "exit_code": 0,
+    "stdout": "Apache 4.1.0 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.1.2",
+    "phase": "generate",
+    "exit_code": 0,
+    "stdout": "Apache 4.1.2 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.1.2",
+    "phase": "verify",
+    "exit_code": 0,
+    "stdout": "Apache 4.1.2 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.2.1",
+    "phase": "generate",
+    "exit_code": 0,
+    "stdout": "Apache 4.2.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.2.1",
+    "phase": "verify",
+    "exit_code": 0,
+    "stdout": "Apache 4.2.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.3.1",
+    "phase": "generate",
+    "exit_code": 0,
+    "stdout": "Apache 4.3.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.3.1",
+    "phase": "verify",
+    "exit_code": 0,
+    "stdout": "Apache 4.3.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  }
+]

@@ -39,12 +39,14 @@ use partitionline::protocol::api_keys::{
 };
 use partitionline::protocol::epoch::EpochEndOffset;
 use partitionline::protocol::fetch::{
-    decode_fetch_request, decode_fetch_response, encode_fetch_request,
-    encode_fetch_request_with_cluster_id, encode_fetch_request_with_replica_id,
-    encode_fetch_request_with_replica_state, encode_fetch_request_with_session,
-    encode_fetch_response, encode_fetch_response_with_endpoints,
+    decode_fetch_request, decode_fetch_request_with_high_watermarks, decode_fetch_response,
+    encode_fetch_request, encode_fetch_request_with_cluster_id,
+    encode_fetch_request_with_forgotten, encode_fetch_request_with_replica_high_watermarks,
+    encode_fetch_request_with_replica_id, encode_fetch_request_with_replica_state,
+    encode_fetch_request_with_session, encode_fetch_response, encode_fetch_response_with_endpoints,
     encode_fetch_response_with_throttle, FetchMetadata, FetchPartition, FetchTopic,
-    FetchedPartition, FetchedTopic, CONSUMER_REPLICA_ID, INVALID_LOG_START_OFFSET,
+    FetchedPartition, FetchedTopic, CONSUMER_REPLICA_ID, FETCH_CRATE_MAX_VERSION,
+    INVALID_LOG_START_OFFSET, REPLICA_HIGH_WATERMARK_NOT_SUPPORTED,
 };
 use partitionline::protocol::offsets::{
     decode_list_offsets_topics_request, decode_list_offsets_topics_response,
@@ -71,10 +73,367 @@ const APIS: [&str; 4] = ["Produce", "Fetch", "Metadata", "ListOffsets"];
 const PINS: [&str; 2] = ["3.9.1", "4.1.0"];
 const THROTTLE_MS: i32 = 42;
 
+#[expect(
+    clippy::disallowed_methods,
+    reason = "bounded immutable fixture read in synchronous test helper"
+)]
+fn fetch18_fixture(cell: &str, direction: &str) -> Vec<u8> {
+    std::fs::read(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/protocol_oracles/fetch_v18")
+            .join(format!("fetch_v18_{cell}_{direction}.bin")),
+    )
+    .unwrap()
+}
+
+/// Apache4.1.0 plus all three maintained current SDKs independently emit the
+/// same bodies. These assertions exercise the actual HighWatermark codec,
+/// omission/defaults, both partition tags, session/UUID fields and responses.
+#[test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "bounded immutable fixture reads in synchronous test"
+)]
+fn fetch_v18_apache_high_watermarks_and_lower_version_fallbacks() {
+    for cell in [
+        "empty",
+        "consumer",
+        "default",
+        "unknown",
+        "zero",
+        "known",
+        "both_tags",
+        "signed_min",
+        "unknown_tags",
+        "session",
+    ] {
+        let bytes = fetch18_fixture(cell, "request");
+        let mut cur = bytes.as_slice();
+        let (request, watermarks) =
+            decode_fetch_request_with_high_watermarks(&mut cur, 18).unwrap();
+        leftover_empty(cur, cell);
+        let (isolation, max, topics, rack, session, forgotten, wait, min, replica, epoch, cluster) =
+            request;
+        assert_eq!((isolation, max, wait, min), (1, 8192, 1234, 2));
+        assert_eq!(rack, "rack-v18");
+        assert_eq!(topics.len(), if cell == "empty" { 0 } else { 2 });
+        let consumer = matches!(cell, "empty" | "consumer" | "session");
+        assert_eq!((replica, epoch), if consumer { (-1, -1) } else { (7, 9) });
+        assert_eq!(
+            cluster.as_deref(),
+            if consumer { None } else { Some("cluster-v18") }
+        );
+        assert_eq!(
+            session,
+            if cell == "session" {
+                FetchMetadata::new(91, 4)
+            } else {
+                FetchMetadata::LEGACY
+            }
+        );
+        assert_eq!(forgotten.len(), usize::from(cell == "session"));
+        for (i, topic) in topics.iter().enumerate() {
+            let index_i32 = i32::try_from(i).unwrap();
+            let index_i64 = i64::from(index_i32);
+            let index_u64 = u64::try_from(i).unwrap();
+            let mut id = [0; 16];
+            id[..8].copy_from_slice(&(index_u64 + 1).to_be_bytes());
+            id[8..].copy_from_slice(&(index_u64 + 17).to_be_bytes());
+            assert_eq!(topic.topic_id, id);
+            assert!(topic.topic.is_empty());
+            let p = &topic.partitions[0];
+            assert_eq!(
+                (
+                    p.partition,
+                    p.fetch_offset,
+                    p.current_leader_epoch,
+                    p.last_fetched_epoch,
+                    p.log_start_offset
+                ),
+                (
+                    index_i32 * 3,
+                    index_i64 + 50,
+                    index_i32 + 11,
+                    index_i32 + 10,
+                    index_i64 + 3
+                )
+            );
+            let expected = match cell {
+                "unknown" => -1,
+                "zero" => 0,
+                "known" | "both_tags" | "unknown_tags" => 41 + index_i64,
+                "signed_min" => i64::MIN,
+                _ => REPLICA_HIGH_WATERMARK_NOT_SUPPORTED,
+            };
+            assert_eq!(watermarks[i], [expected]);
+            assert_eq!(
+                p.replica_directory_id == [0; 16],
+                !matches!(cell, "both_tags" | "unknown_tags")
+            );
+        }
+        let mut old_view = bytes.as_slice();
+        let old = decode_fetch_request(&mut old_view, 18).unwrap();
+        assert_eq!(old.2.len(), topics.len());
+        leftover_empty(old_view, "existing signature consumes HighWatermark");
+        let response = fetch18_fixture(cell, "response");
+        let mut cur = response.as_slice();
+        let (responses, endpoints, error, response_session, throttle) =
+            decode_fetch_response(&mut cur, 18).unwrap();
+        leftover_empty(cur, "Apache Fetch18 response");
+        assert!(endpoints.is_empty());
+        assert_eq!(
+            (error, response_session, throttle),
+            if cell == "session" {
+                (0, 91, 0)
+            } else {
+                (0, 0, 37)
+            }
+        );
+        for (i, topic) in responses.iter().enumerate() {
+            let index_i32 = i32::try_from(i).unwrap();
+            let index_i64 = i64::from(index_i32);
+            let p = &topic.partitions[0];
+            assert_eq!(topic.topic_id, topics[i].topic_id);
+            assert_eq!(
+                (
+                    p.partition,
+                    p.high_watermark,
+                    p.last_stable_offset,
+                    p.log_start_offset
+                ),
+                (
+                    index_i32 * 3,
+                    100 + index_i64,
+                    90 + index_i64,
+                    3 + index_i64
+                )
+            );
+            assert!(p.records.is_empty());
+        }
+        assert_eq!(responses.len(), topics.len());
+    }
+    for cell in ["consumer", "default", "known", "both_tags", "session"] {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/fixtures/protocol_oracles/fetch_v18");
+        let expected =
+            std::fs::read(root.join(format!("fetch_v17_delta_{cell}_request.bin"))).unwrap();
+        let request = fetch18_fixture(cell, "request");
+        let ((_, _, topics, rack, session, forgotten, _, _, replica, epoch, cluster), watermarks) =
+            decode_fetch_request_with_high_watermarks(&mut request.as_slice(), 18).unwrap();
+        let mut encoded = BytesMut::new();
+        if cell == "session" {
+            encode_fetch_request_with_forgotten(
+                &mut encoded,
+                17,
+                1234,
+                2,
+                8192,
+                1,
+                &topics,
+                Some(&rack),
+                session,
+                &forgotten,
+            )
+            .unwrap();
+        } else {
+            encode_fetch_request_with_replica_high_watermarks(
+                &mut encoded,
+                17,
+                1234,
+                2,
+                8192,
+                1,
+                &topics,
+                Some(&rack),
+                replica,
+                epoch,
+                cluster.as_deref(),
+                &watermarks,
+            )
+            .unwrap();
+        }
+        assert_eq!(
+            encoded.as_ref(),
+            expected,
+            "Apache lower-version omission: {cell}"
+        );
+        let mut cur = expected.as_slice();
+        let (_, lower_watermarks) =
+            decode_fetch_request_with_high_watermarks(&mut cur, 17).unwrap();
+        assert!(lower_watermarks.iter().flatten().all(|w| *w == i64::MAX));
+        leftover_empty(cur, "Fetch17 fallback");
+        if matches!(cell, "consumer" | "default" | "session") {
+            assert_eq!(
+                expected, request,
+                "default tag omission preserves Fetch17 bytes"
+            );
+        }
+        assert_eq!(
+            std::fs::read(root.join(format!("fetch_v17_delta_{cell}_response.bin"))).unwrap(),
+            fetch18_fixture(cell, "response")
+        );
+    }
+}
+
+#[test]
+#[expect(
+    clippy::disallowed_methods,
+    reason = "optional bounded body writes in synchronous independent-oracle test"
+)]
+fn fetch_v18_rust_bodies_match_apache_and_can_be_parsed_independently() {
+    for cell in ["consumer", "known", "both_tags", "session"] {
+        let request_bytes = fetch18_fixture(cell, "request");
+        let ((_, _, topics, rack, session, forgotten, _, _, replica, epoch, cluster), watermarks) =
+            decode_fetch_request_with_high_watermarks(&mut request_bytes.as_slice(), 18).unwrap();
+        let mut request = BytesMut::new();
+        if cell == "session" {
+            encode_fetch_request_with_forgotten(
+                &mut request,
+                18,
+                1234,
+                2,
+                8192,
+                1,
+                &topics,
+                Some(&rack),
+                session,
+                &forgotten,
+            )
+            .unwrap();
+        } else {
+            encode_fetch_request_with_replica_high_watermarks(
+                &mut request,
+                18,
+                1234,
+                2,
+                8192,
+                1,
+                &topics,
+                Some(&rack),
+                replica,
+                epoch,
+                cluster.as_deref(),
+                &watermarks,
+            )
+            .unwrap();
+        }
+        assert_eq!(request.as_ref(), request_bytes);
+        let response_bytes = fetch18_fixture(cell, "response");
+        let (topics, endpoints, error, session_id, throttle) =
+            decode_fetch_response(&mut response_bytes.as_slice(), 18).unwrap();
+        let mut response = BytesMut::new();
+        if cell == "session" {
+            encode_fetch_response_with_endpoints(
+                &mut response,
+                18,
+                &topics,
+                error,
+                session_id,
+                &endpoints,
+            )
+            .unwrap();
+        } else {
+            encode_fetch_response_with_throttle(&mut response, 18, &topics, throttle).unwrap();
+        }
+        let mut cur = response.as_ref();
+        let (actual, _, actual_error, actual_session, actual_throttle) =
+            decode_fetch_response(&mut cur, 18).unwrap();
+        leftover_empty(cur, "Rust nullable empty records response");
+        assert_eq!(
+            (actual_error, actual_session, actual_throttle),
+            (error, session_id, throttle)
+        );
+        assert_eq!(actual.len(), topics.len());
+        for (a, expected) in actual.iter().zip(&topics) {
+            assert_eq!(a.topic_id, expected.topic_id);
+            assert_eq!(
+                a.partitions[0].high_watermark,
+                expected.partitions[0].high_watermark
+            );
+            assert!(a.partitions[0].records.is_empty());
+        }
+        if let Some(output) = std::env::var_os("PARTITIONLINE_FETCH18_RUST_DIR") {
+            let output = std::path::PathBuf::from(output);
+            std::fs::create_dir_all(&output).unwrap();
+            std::fs::write(
+                output.join(format!("fetch_v18_{cell}_request.bin")),
+                &request,
+            )
+            .unwrap();
+            std::fs::write(
+                output.join(format!("fetch_v18_{cell}_response.bin")),
+                &response,
+            )
+            .unwrap();
+        }
+    }
+}
+
+#[test]
+fn fetch_v18_known_tag_mutations_and_sidecar_shapes_fail_closed() {
+    let bytes = fetch18_fixture("known", "request");
+    let (_, watermarks) =
+        decode_fetch_request_with_high_watermarks(&mut bytes.as_slice(), 18).unwrap();
+    assert_eq!(watermarks, [vec![41], vec![42]]);
+    let needle = [1, 8, 0, 0, 0, 0, 0, 0, 0, 41];
+    let at = bytes
+        .windows(needle.len())
+        .position(|b| b == needle)
+        .unwrap();
+    for size in [0, 7, 9] {
+        let mut malformed = bytes.clone();
+        malformed[at + 1] = size;
+        assert!(
+            decode_fetch_request(&mut malformed.as_slice(), 18).is_err(),
+            "known tag must have exactly8bytes"
+        );
+        assert!(decode_fetch_request_with_high_watermarks(&mut malformed.as_slice(), 18).is_err());
+    }
+    let mut duplicate = bytes.clone();
+    duplicate[at - 1] = 2;
+    drop(duplicate.splice(at + needle.len()..at + needle.len(), needle));
+    assert!(
+        decode_fetch_request(&mut duplicate.as_slice(), 18).is_err(),
+        "duplicate partition tag1"
+    );
+    let both = fetch18_fixture("both_tags", "request");
+    let at = both
+        .windows(needle.len())
+        .position(|b| b == needle)
+        .unwrap();
+    let mut unordered = both.clone();
+    unordered[at] = 0;
+    assert!(
+        decode_fetch_request(&mut unordered.as_slice(), 18).is_err(),
+        "tags must be strictly increasing"
+    );
+    for cut in 0..bytes.len() {
+        assert!(
+            decode_fetch_request(&mut &bytes[..cut], 18).is_err(),
+            "truncated body at {cut}"
+        );
+    }
+    let ((_, _, topics, ..), _) =
+        decode_fetch_request_with_high_watermarks(&mut bytes.as_slice(), 18).unwrap();
+    for shape in [
+        vec![],
+        vec![vec![41]],
+        vec![vec![], vec![42]],
+        vec![vec![41, 42], vec![42]],
+    ] {
+        let mut buf = BytesMut::from(&b"prefix"[..]);
+        assert!(encode_fetch_request_with_replica_high_watermarks(
+            &mut buf, 18, 1, 1, 1, 0, &topics, None, 7, 9, None, &shape
+        )
+        .is_err());
+        assert_eq!(&buf[..], b"prefix", "shape rejection must be before writes");
+    }
+}
+
 fn crate_spoken(api: &str) -> Vec<i16> {
     match api {
         "Produce" => (3..=13).collect(),
-        "Fetch" => (4..=17).collect(),
+        "Fetch" => (4..=FETCH_CRATE_MAX_VERSION).collect(),
         "Metadata" => (1..=13).collect(),
         "ListOffsets" => (1..=10).collect(),
         other => panic!("unknown API {other}"),
@@ -86,12 +445,12 @@ fn expected_pin_supported(api: &str, pin: &str) -> Vec<i16> {
     match (api, pin) {
         // 3.9.1 ProduceRequest.json validVersions 0-11.
         ("Produce", "3.9.1") => (3..=11).collect(),
-        // 4.1.0 ProduceRequest.json validVersions 3-13; crate speaks 3-12.
+        // 4.1.0 ProduceRequest.json validVersions 3-13.
         ("Produce", "4.1.0") => (3..=13).collect(),
         // 3.9.1 FetchRequest.json validVersions 0-17 (v17 is KIP-853).
         ("Fetch", "3.9.1") => (4..=17).collect(),
-        // 4.1.0 FetchRequest.json validVersions 4-18; crate speaks 4-17.
-        ("Fetch", "4.1.0") => (4..=17).collect(),
+        // 4.1.0 FetchRequest.json validVersions 4-18 (KIP-1166).
+        ("Fetch", "4.1.0") => (4..=FETCH_CRATE_MAX_VERSION).collect(),
         // 3.9.1 MetadataRequest.json validVersions 0-12.
         ("Metadata", "3.9.1") => (1..=12).collect(),
         // 4.1.0 MetadataRequest.json validVersions 0-13.

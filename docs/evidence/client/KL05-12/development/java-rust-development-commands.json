@@ -1,0 +1,54 @@
+[
+  {
+    "version": "4.1.0",
+    "command": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-cp",
+      "/workspace/work/fetch-v18/java-4.1.0-nullable-final-verify:/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "FetchV18Fixtures",
+      "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+      "/workspace/work/fetch-v18/rust-development-bodies-seventh",
+      "--decode-rust"
+    ],
+    "exit_code": 0
+  },
+  {
+    "version": "4.1.2",
+    "command": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-cp",
+      "/workspace/work/fetch-v18/java-4.1.2-nullable-final-verify:/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "FetchV18Fixtures",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "/workspace/work/fetch-v18/rust-development-bodies-seventh",
+      "--decode-rust"
+    ],
+    "exit_code": 0
+  },
+  {
+    "version": "4.2.1",
+    "command": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-cp",
+      "/workspace/work/fetch-v18/java-4.2.1-nullable-final-verify:/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "FetchV18Fixtures",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "/workspace/work/fetch-v18/rust-development-bodies-seventh",
+      "--decode-rust"
+    ],
+    "exit_code": 0
+  },
+  {
+    "version": "4.3.1",
+    "command": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-cp",
+      "/workspace/work/fetch-v18/java-4.3.1-nullable-final-verify:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "FetchV18Fixtures",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "/workspace/work/fetch-v18/rust-development-bodies-seventh",
+      "--decode-rust"
+    ],
+    "exit_code": 0
+  }
+]

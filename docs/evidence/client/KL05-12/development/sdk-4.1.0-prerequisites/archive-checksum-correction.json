@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "archive_sha512": "2f611fa1117747a3567ab5d8e59c24a3dc5cd3c0d50a67cf718ab5203bd5ca69d9a1e2c705ee07b8363d71de48964bfd65fac31100a91b458fbd6a2eb3c8ede5",
+  "official_checksum_layout": "Apache grouped uppercase eight-hex tokens after filename",
+  "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+  "jar_bytes": 9762382,
+  "original_attempt": "archive-receipt.json"
+}

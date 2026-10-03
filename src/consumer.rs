@@ -28,7 +28,7 @@ use crate::protocol::epoch::{
 };
 use crate::protocol::fetch::{
     decode_fetch_response_raw, encode_fetch_request_with_forgotten, FetchMetadata, FetchPartition,
-    FetchTopic, FetchedTopic, ForgottenTopic, INVALID_LOG_START_OFFSET,
+    FetchTopic, FetchedTopic, ForgottenTopic, FETCH_CRATE_MAX_VERSION, INVALID_LOG_START_OFFSET,
 };
 use crate::protocol::group::Topic;
 use crate::protocol::offsets::{decode_list_offsets_topics_response, encode_list_offsets_request};
@@ -1801,10 +1801,10 @@ impl Consumer {
         .await?;
         // Best-effort: each leader connection negotiates its own Fetch
         // version in `open_node_conn`; the fetch path fails per-peer when a
-        // leader cannot speak Fetch v4-17 (KL03-22, mirrors KL03-11).
+        // leader cannot speak Fetch v4-18 (KL03-22, mirrors KL03-11).
         if let Some(fv) = versions
             .get(&FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 17))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
         {
             conn.set_fetch_version(fv);
         }
@@ -2413,7 +2413,7 @@ impl Consumer {
                 .await?;
         if let Some(fv) = versions_resp
             .api_version(FETCH)
-            .and_then(|v| pick_version(v.min_version, v.max_version, 4, 17))
+            .and_then(|v| pick_version(v.min_version, v.max_version, 4, FETCH_CRATE_MAX_VERSION))
         {
             conn.set_fetch_version(fv);
         }

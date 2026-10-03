@@ -406,38 +406,48 @@ async fn fixture_broker_drop_aborts_tasks() {
 /// exactly once without duplicates.
 #[tokio::test]
 async fn mixed_partition_retry_must_preserve_successful_records() {
-    let mut broker =
-        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::PartialRetry).await;
-    let mut consumer = Consumer::new(broker.config())
-        .await
-        .expect("consumer starts successfully");
+    for version in [12, 18] {
+        let mut broker = fetch_fixture::FixtureBroker::start_with_version(
+            fetch_fixture::Scenario::PartialRetry,
+            version,
+        )
+        .await;
+        let mut consumer = Consumer::new(broker.config())
+            .await
+            .expect("consumer starts successfully");
 
-    consumer
-        .assign_many([(("t", 0), 0), (("t", 1), 0)])
-        .await
-        .expect("assign partitions 0 and 1 at offset 0");
+        consumer
+            .assign_many([(("t", 0), 0), (("t", 1), 0)])
+            .await
+            .expect("assign partitions 0 and 1 at offset 0");
 
-    let records = consumer.fetch().await.expect("fetch succeeds");
-    assert_eq!(
-        records
-            .iter()
-            .map(|record| (record.partition, record.offset))
-            .collect::<Vec<_>>(),
-        vec![(0, 0), (1, 0)],
-        "both partition records must be returned exactly once"
-    );
+        let records = consumer.fetch().await.expect("fetch succeeds");
+        assert_eq!(
+            records
+                .iter()
+                .map(|record| (record.partition, record.offset))
+                .collect::<Vec<_>>(),
+            vec![(0, 0), (1, 0)],
+            "both partition records must be returned exactly once"
+        );
 
-    assert_eq!(
-        consumer.positions(),
-        vec![
-            (TopicPartition::new("t", 0), 1),
-            (TopicPartition::new("t", 1), 1),
-        ],
-        "positions must advance to the next fetch offset after delivery"
-    );
+        assert_eq!(
+            consumer.positions(),
+            vec![
+                (TopicPartition::new("t", 0), 1),
+                (TopicPartition::new("t", 1), 1),
+            ],
+            "positions must advance to the next fetch offset after delivery"
+        );
 
-    consumer.close().await.expect("consumer closes cleanly");
-    broker.shutdown().await;
+        assert_eq!(
+            broker.last_fetch_version(),
+            Some(version),
+            "maintained audit case must actually negotiate its target version"
+        );
+        consumer.close().await.expect("consumer closes cleanly");
+        broker.shutdown().await;
+    }
 }
 
 struct TwoNodeCluster {
@@ -905,38 +915,48 @@ fn custom_marker(
 /// and must never return control records or aborted records.
 #[tokio::test]
 async fn committed_transaction_after_abort_for_same_pid_must_be_visible() {
-    let mut broker =
-        fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::AbortThenCommit).await;
-    let mut cfg = broker.config();
-    cfg.isolation_level = IsolationLevel::ReadCommitted;
-    let mut consumer = Consumer::new(cfg)
-        .await
-        .expect("consumer starts successfully");
+    for version in [12, 18] {
+        let mut broker = fetch_fixture::FixtureBroker::start_with_version(
+            fetch_fixture::Scenario::AbortThenCommit,
+            version,
+        )
+        .await;
+        let mut cfg = broker.config();
+        cfg.isolation_level = IsolationLevel::ReadCommitted;
+        let mut consumer = Consumer::new(cfg)
+            .await
+            .expect("consumer starts successfully");
 
-    consumer
-        .assign("t", 0, 0)
-        .await
-        .expect("assign topic t partition 0 at offset 0");
-    let records = consumer.fetch().await.expect("fetch succeeds");
+        consumer
+            .assign("t", 0, 0)
+            .await
+            .expect("assign topic t partition 0 at offset 0");
+        let records = consumer.fetch().await.expect("fetch succeeds");
 
-    assert_eq!(
-        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![2],
-        "read_committed must deliver the later committed record (offset 2) after an abort under PID 7"
-    );
-    assert_eq!(
-        records[0].value.as_deref(),
-        Some(&b"committed"[..]),
-        "delivered record value must match the committed batch"
-    );
-    assert_eq!(
-        consumer.positions(),
-        vec![(TopicPartition::new("t", 0), 4)],
-        "fetch cursor must advance past the COMMIT marker (offset 4)"
-    );
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![2],
+            "read_committed must deliver the later committed record (offset 2) after an abort under PID 7"
+        );
+        assert_eq!(
+            records[0].value.as_deref(),
+            Some(&b"committed"[..]),
+            "delivered record value must match the committed batch"
+        );
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 4)],
+            "fetch cursor must advance past the COMMIT marker (offset 4)"
+        );
 
-    consumer.close().await.expect("consumer closes cleanly");
-    broker.shutdown().await;
+        assert_eq!(
+            broker.last_fetch_version(),
+            Some(version),
+            "maintained audit case must actually negotiate its target version"
+        );
+        consumer.close().await.expect("consumer closes cleanly");
+        broker.shutdown().await;
+    }
 }
 
 /// Verify handling of multiple aborted intervals under the same PID as well as across
@@ -1283,65 +1303,76 @@ async fn read_committed_stops_at_last_stable_offset_boundary() {
 /// The consumer must return only offset 2 and advance its position to 3.
 #[tokio::test]
 async fn seek_inside_batch_must_not_return_earlier_records() {
-    let mut broker = fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::WholeBatch).await;
-    let mut consumer = Consumer::new(broker.config())
-        .await
-        .expect("consumer starts successfully");
+    for version in [12, 18] {
+        let mut broker = fetch_fixture::FixtureBroker::start_with_version(
+            fetch_fixture::Scenario::WholeBatch,
+            version,
+        )
+        .await;
+        let mut consumer = Consumer::new(broker.config())
+            .await
+            .expect("consumer starts successfully");
 
-    // Case 1: Initial assign at offset 2
-    consumer
-        .assign("t", 0, 2)
-        .await
-        .expect("assign topic t partition 0 at offset 2");
-    let records = consumer.fetch().await.expect("fetch succeeds");
+        // Case 1: Initial assign at offset 2
+        consumer
+            .assign("t", 0, 2)
+            .await
+            .expect("assign topic t partition 0 at offset 2");
+        let records = consumer.fetch().await.expect("fetch succeeds");
 
-    assert_eq!(
-        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![2],
-        "must return only offset 2 when assigned at offset 2 inside a [0, 1, 2] batch"
-    );
-    assert_eq!(records[0].value.as_deref(), Some(&b"c"[..]));
-    assert_eq!(
-        consumer.positions(),
-        vec![(TopicPartition::new("t", 0), 3)],
-        "cursor must advance to offset 3"
-    );
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![2],
+            "must return only offset 2 when assigned at offset 2 inside a [0, 1, 2] batch"
+        );
+        assert_eq!(records[0].value.as_deref(), Some(&b"c"[..]));
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 3)],
+            "cursor must advance to offset 3"
+        );
 
-    // Case 2: Seek to offset 1 inside the same batch
-    consumer.seek("t", 0, 1).expect("seek to offset 1");
-    let records = consumer.fetch().await.expect("fetch succeeds after seek");
-    assert_eq!(
-        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![1, 2],
-        "must return offsets [1, 2] when seeking to offset 1 inside a [0, 1, 2] batch"
-    );
-    assert_eq!(records[0].value.as_deref(), Some(&b"b"[..]));
-    assert_eq!(records[1].value.as_deref(), Some(&b"c"[..]));
-    assert_eq!(
-        consumer.positions(),
-        vec![(TopicPartition::new("t", 0), 3)],
-        "cursor must advance to offset 3"
-    );
+        // Case 2: Seek to offset 1 inside the same batch
+        consumer.seek("t", 0, 1).expect("seek to offset 1");
+        let records = consumer.fetch().await.expect("fetch succeeds after seek");
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![1, 2],
+            "must return offsets [1, 2] when seeking to offset 1 inside a [0, 1, 2] batch"
+        );
+        assert_eq!(records[0].value.as_deref(), Some(&b"b"[..]));
+        assert_eq!(records[1].value.as_deref(), Some(&b"c"[..]));
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 3)],
+            "cursor must advance to offset 3"
+        );
 
-    // Case 3: Seek to offset 0 (start of batch)
-    consumer.seek("t", 0, 0).expect("seek to offset 0");
-    let records = consumer
-        .fetch()
-        .await
-        .expect("fetch succeeds after seek to 0");
-    assert_eq!(
-        records.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![0, 1, 2],
-        "must return all offsets [0, 1, 2] when seeking to offset 0"
-    );
-    assert_eq!(
-        consumer.positions(),
-        vec![(TopicPartition::new("t", 0), 3)],
-        "cursor must advance to offset 3"
-    );
+        // Case 3: Seek to offset 0 (start of batch)
+        consumer.seek("t", 0, 0).expect("seek to offset 0");
+        let records = consumer
+            .fetch()
+            .await
+            .expect("fetch succeeds after seek to 0");
+        assert_eq!(
+            records.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![0, 1, 2],
+            "must return all offsets [0, 1, 2] when seeking to offset 0"
+        );
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 3)],
+            "cursor must advance to offset 3"
+        );
 
-    consumer.close().await.expect("consumer closes cleanly");
-    broker.shutdown().await;
+        assert_eq!(
+            broker.last_fetch_version(),
+            Some(version),
+            "maintained audit case must actually negotiate its target version"
+        );
+        consumer.close().await.expect("consumer closes cleanly");
+        broker.shutdown().await;
+    }
 }
 
 /// Verify that the lower-bound fetch offset filter operates correctly on
@@ -1771,30 +1802,41 @@ async fn fetch_offset_filter_must_not_regress_position_or_lose_later_records() {
 /// without silently advancing or changing the consumer position.
 #[tokio::test]
 async fn out_of_range_with_reset_none_must_fail_without_advancing() {
-    let mut broker = fetch_fixture::FixtureBroker::start(fetch_fixture::Scenario::OutOfRange).await;
-    let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::None))
-        .await
-        .expect("consumer starts successfully");
+    for version in [12, 18] {
+        let mut broker = fetch_fixture::FixtureBroker::start_with_version(
+            fetch_fixture::Scenario::OutOfRange,
+            version,
+        )
+        .await;
+        let mut consumer = Consumer::new(broker.config().auto_offset_reset(AutoOffsetReset::None))
+            .await
+            .expect("consumer starts successfully");
 
-    consumer
-        .assign("t", 0, 0)
-        .await
-        .expect("assign partition 0 at offset 0");
+        consumer
+            .assign("t", 0, 0)
+            .await
+            .expect("assign partition 0 at offset 0");
 
-    let result = consumer.fetch().await;
-    assert!(
-        result.is_err(),
-        "fetch must fail with explicit error when auto.offset.reset is None; positions={:?}",
-        consumer.positions()
-    );
-    assert_eq!(
-        consumer.positions(),
-        vec![(TopicPartition::new("t", 0), 0)],
-        "positions must remain unchanged after out-of-range error with reset None"
-    );
+        let result = consumer.fetch().await;
+        assert!(
+            result.is_err(),
+            "fetch must fail with explicit error when auto.offset.reset is None; positions={:?}",
+            consumer.positions()
+        );
+        assert_eq!(
+            consumer.positions(),
+            vec![(TopicPartition::new("t", 0), 0)],
+            "positions must remain unchanged after out-of-range error with reset None"
+        );
 
-    consumer.close().await.expect("consumer closes cleanly");
-    broker.shutdown().await;
+        assert_eq!(
+            broker.last_fetch_version(),
+            Some(version),
+            "maintained audit case must actually negotiate its target version"
+        );
+        consumer.close().await.expect("consumer closes cleanly");
+        broker.shutdown().await;
+    }
 }
 
 /// Verify that with auto.offset.reset=Earliest, OFFSET_OUT_OF_RANGE resolves the leader
@@ -2279,215 +2321,223 @@ async fn control_only_batch_advances_delivered_position_and_fetch_cursor() {
 /// must not cap a newer leader below v17.
 #[tokio::test]
 async fn fetch_mixed_version_both_bootstrap_leader_orders() {
-    let mock = common::Mock::start_two_node().await;
-    mock.set_node_api_max(1, FETCH, 17);
-    mock.set_node_api_max(2, FETCH, 11);
-    mock.set_topic_partitions("t", 1);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+    for current_version in [17, 18] {
+        let mock = common::Mock::start_two_node().await;
+        mock.set_node_api_max(1, FETCH, current_version);
+        mock.set_node_api_max(2, FETCH, 11);
+        mock.set_topic_partitions("t", 1);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let _ = producer
+            .send(ProduceRecord::to("t").value(&b"a"[..]))
             .await
             .unwrap();
-    let _ = producer
-        .send(ProduceRecord::to("t").value(&b"a"[..]))
-        .await
-        .unwrap();
-    let _ = producer
-        .send(ProduceRecord::to("t").value(&b"b"[..]))
-        .await
-        .unwrap();
-    producer.close().await.unwrap();
+        let _ = producer
+            .send(ProduceRecord::to("t").value(&b"b"[..]))
+            .await
+            .unwrap();
+        producer.close().await.unwrap();
 
-    // Order 1: newer bootstrap (node 1), older leader (node 2).
-    mock.set_partition_leader("t", 0, 2);
-    let mut c1 = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
-        .await
-        .unwrap();
-    c1.assign("t", 0, 0).await.unwrap();
-    let recs = c1.fetch().await.unwrap();
-    assert_eq!(
-        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![0, 1],
-        "fetch from older leader must decode both records"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(2),
-        Some(11),
-        "newer bootstrap must not force an unsupported Fetch schema on older leader 2"
-    );
-    c1.close().await.unwrap();
+        // Order 1: newer bootstrap (node 1), older leader (node 2).
+        mock.set_partition_leader("t", 0, 2);
+        let mut c1 = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+            .await
+            .unwrap();
+        c1.assign("t", 0, 0).await.unwrap();
+        let recs = c1.fetch().await.unwrap();
+        assert_eq!(
+            recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![0, 1],
+            "fetch from older leader must decode both records"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(2),
+            Some(11),
+            "newer bootstrap must not force an unsupported Fetch schema on older leader 2"
+        );
+        c1.close().await.unwrap();
 
-    // Order 2: older bootstrap (node 2), newer leader (node 1).
-    mock.set_partition_leader("t", 0, 1);
-    let node2_addr = mock.broker_addr(2).expect("node 2 address");
-    let mut c2 = Consumer::new(ConsumerConfig::bootstrap([node2_addr]).max_wait_ms(10))
-        .await
-        .unwrap();
-    c2.assign("t", 0, 0).await.unwrap();
-    let recs = c2.fetch().await.unwrap();
-    assert_eq!(
-        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![0, 1],
-        "fetch from newer leader must decode both records"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(1),
-        Some(17),
-        "older bootstrap must not cap newer leader 1 below its supported Fetch version"
-    );
-    c2.close().await.unwrap();
+        // Order 2: older bootstrap (node 2), newer leader (node 1).
+        mock.set_partition_leader("t", 0, 1);
+        let node2_addr = mock.broker_addr(2).expect("node 2 address");
+        let mut c2 = Consumer::new(ConsumerConfig::bootstrap([node2_addr]).max_wait_ms(10))
+            .await
+            .unwrap();
+        c2.assign("t", 0, 0).await.unwrap();
+        let recs = c2.fetch().await.unwrap();
+        assert_eq!(
+            recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![0, 1],
+            "fetch from newer leader must decode both records"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(1),
+            Some(current_version),
+            "older bootstrap must not cap newer leader 1 below its supported Fetch version"
+        );
+        c2.close().await.unwrap();
+    }
 }
 
 /// KL03-22: leader movement and reconnection refresh the peer's Fetch
 /// version; topic, epoch and offset fields survive the version change.
 #[tokio::test]
 async fn fetch_mixed_version_leader_movement_and_reconnect() {
-    let mock = common::Mock::start_two_node().await;
-    mock.set_node_api_max(1, FETCH, 17);
-    mock.set_node_api_max(2, FETCH, 11);
-    mock.set_topic_partitions("t", 1);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
-            .await
-            .unwrap();
-    for v in [&b"a"[..], &b"b"[..], &b"c"[..]] {
-        let _ = producer
-            .send(ProduceRecord::to("t").value(v))
-            .await
-            .unwrap();
+    for current_version in [17, 18] {
+        let mock = common::Mock::start_two_node().await;
+        mock.set_node_api_max(1, FETCH, current_version);
+        mock.set_node_api_max(2, FETCH, 11);
+        mock.set_topic_partitions("t", 1);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        for v in [&b"a"[..], &b"b"[..], &b"c"[..]] {
+            let _ = producer
+                .send(ProduceRecord::to("t").value(v))
+                .await
+                .unwrap();
+        }
+        producer.close().await.unwrap();
+
+        mock.set_partition_leader("t", 0, 1);
+        let mut consumer =
+            Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+                .await
+                .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        let recs = consumer.fetch().await.unwrap();
+        assert_eq!(recs.len(), 3);
+        assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
+
+        // Leader movement to the older node: the next fetch renegotiates down.
+        mock.set_partition_leader("t", 0, 2);
+        consumer.seek("t", 0, 0).unwrap();
+        let recs = consumer.fetch().await.unwrap();
+        assert_eq!(
+            recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![0, 1, 2],
+            "records must survive the move to the older leader"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(2),
+            Some(11),
+            "movement to the older leader must renegotiate Fetch down to v11"
+        );
+
+        // Reconnection refreshes capabilities: node 2 upgrades to Fetch v12.
+        mock.drop_node_connections(2);
+        mock.set_node_api_max(2, FETCH, 12);
+        consumer.seek("t", 0, 0).unwrap();
+        let recs = consumer.fetch().await.unwrap();
+        assert_eq!(recs.len(), 3);
+        assert_eq!(
+            mock.last_fetch_version_for_node(2),
+            Some(12),
+            "reconnect must refresh the peer Fetch version to v12"
+        );
+        consumer.close().await.unwrap();
     }
-    producer.close().await.unwrap();
-
-    mock.set_partition_leader("t", 0, 1);
-    let mut consumer =
-        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
-            .await
-            .unwrap();
-    consumer.assign("t", 0, 0).await.unwrap();
-    let recs = consumer.fetch().await.unwrap();
-    assert_eq!(recs.len(), 3);
-    assert_eq!(mock.last_fetch_version_for_node(1), Some(17));
-
-    // Leader movement to the older node: the next fetch renegotiates down.
-    mock.set_partition_leader("t", 0, 2);
-    consumer.seek("t", 0, 0).unwrap();
-    let recs = consumer.fetch().await.unwrap();
-    assert_eq!(
-        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![0, 1, 2],
-        "records must survive the move to the older leader"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(2),
-        Some(11),
-        "movement to the older leader must renegotiate Fetch down to v11"
-    );
-
-    // Reconnection refreshes capabilities: node 2 upgrades to Fetch v12.
-    mock.drop_node_connections(2);
-    mock.set_node_api_max(2, FETCH, 12);
-    consumer.seek("t", 0, 0).unwrap();
-    let recs = consumer.fetch().await.unwrap();
-    assert_eq!(recs.len(), 3);
-    assert_eq!(
-        mock.last_fetch_version_for_node(2),
-        Some(12),
-        "reconnect must refresh the peer Fetch version to v12"
-    );
-    consumer.close().await.unwrap();
 }
 
 /// KL03-22: one fetch across two leaders speaks each leader's version on the
 /// multi-node path and decodes both responses.
 #[tokio::test]
 async fn fetch_mixed_version_multi_partition_distinct_leaders() {
-    let mock = common::Mock::start_two_node().await;
-    mock.set_node_api_max(1, FETCH, 17);
-    mock.set_node_api_max(2, FETCH, 11);
-    mock.set_topic_partitions("t", 2);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+    for current_version in [17, 18] {
+        let mock = common::Mock::start_two_node().await;
+        mock.set_node_api_max(1, FETCH, current_version);
+        mock.set_node_api_max(2, FETCH, 11);
+        mock.set_topic_partitions("t", 2);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let _ = producer
+            .send(ProduceRecord::to("t").partition(0).value(&b"p0"[..]))
             .await
             .unwrap();
-    let _ = producer
-        .send(ProduceRecord::to("t").partition(0).value(&b"p0"[..]))
-        .await
-        .unwrap();
-    let _ = producer
-        .send(ProduceRecord::to("t").partition(1).value(&b"p1"[..]))
-        .await
-        .unwrap();
-    producer.close().await.unwrap();
+        let _ = producer
+            .send(ProduceRecord::to("t").partition(1).value(&b"p1"[..]))
+            .await
+            .unwrap();
+        producer.close().await.unwrap();
 
-    mock.set_partition_leader("t", 0, 1);
-    mock.set_partition_leader("t", 1, 2);
-    let mut consumer =
-        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
-            .await
-            .unwrap();
-    consumer.assign("t", 0, 0).await.unwrap();
-    consumer.assign("t", 1, 0).await.unwrap();
-    let recs = consumer.fetch().await.unwrap();
-    let mut got: Vec<(i32, i64)> = recs.iter().map(|r| (r.partition, r.offset)).collect();
-    got.sort();
-    assert_eq!(got, vec![(0, 0), (1, 0)]);
-    assert_eq!(
-        mock.last_fetch_version_for_node(1),
-        Some(17),
-        "newer leader must be fetched at v17"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(2),
-        Some(11),
-        "older leader must be fetched at v11 in the same call"
-    );
-    consumer.close().await.unwrap();
+        mock.set_partition_leader("t", 0, 1);
+        mock.set_partition_leader("t", 1, 2);
+        let mut consumer =
+            Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_wait_ms(10))
+                .await
+                .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        consumer.assign("t", 1, 0).await.unwrap();
+        let recs = consumer.fetch().await.unwrap();
+        let mut got: Vec<(i32, i64)> = recs.iter().map(|r| (r.partition, r.offset)).collect();
+        got.sort();
+        assert_eq!(got, vec![(0, 0), (1, 0)]);
+        assert_eq!(
+            mock.last_fetch_version_for_node(1),
+            Some(current_version),
+            "newer leader must be fetched at its supported current version"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(2),
+            Some(11),
+            "older leader must be fetched at v11 in the same call"
+        );
+        consumer.close().await.unwrap();
+    }
 }
 
 /// KL03-22: a preferred (follower) replica negotiates its own Fetch version
 /// too: the redirect fetch must not reuse the leader's newer schema.
 #[tokio::test]
 async fn fetch_mixed_version_preferred_replica_uses_replica_version() {
-    let mock = common::Mock::start_two_node().await;
-    mock.set_node_api_max(1, FETCH, 17);
-    mock.set_node_api_max(2, FETCH, 11);
-    mock.set_topic_partitions("t", 1);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+    for current_version in [17, 18] {
+        let mock = common::Mock::start_two_node().await;
+        mock.set_node_api_max(1, FETCH, current_version);
+        mock.set_node_api_max(2, FETCH, 11);
+        mock.set_topic_partitions("t", 1);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let _ = producer
+            .send(ProduceRecord::to("t").value(&b"v"[..]))
             .await
             .unwrap();
-    let _ = producer
-        .send(ProduceRecord::to("t").value(&b"v"[..]))
+        producer.close().await.unwrap();
+
+        // Node 1 (rack r1) leads; the r2 consumer is redirected to node 2.
+        mock.set_partition_leader("t", 0, 1);
+        let mut consumer = Consumer::new(
+            ConsumerConfig::bootstrap([mock.addr.clone()])
+                .max_wait_ms(10)
+                .rack("r2"),
+        )
         .await
         .unwrap();
-    producer.close().await.unwrap();
-
-    // Node 1 (rack r1) leads; the r2 consumer is redirected to node 2.
-    mock.set_partition_leader("t", 0, 1);
-    let mut consumer = Consumer::new(
-        ConsumerConfig::bootstrap([mock.addr.clone()])
-            .max_wait_ms(10)
-            .rack("r2"),
-    )
-    .await
-    .unwrap();
-    consumer.assign("t", 0, 0).await.unwrap();
-    let recs = consumer.fetch().await.unwrap();
-    assert_eq!(
-        recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
-        vec![0],
-        "redirected fetch must return the record"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(1),
-        Some(17),
-        "leader leg must speak v17"
-    );
-    assert_eq!(
-        mock.last_fetch_version_for_node(2),
-        Some(11),
-        "preferred-replica leg must negotiate the replica's v11, not the leader's v17"
-    );
-    consumer.close().await.unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        let recs = consumer.fetch().await.unwrap();
+        assert_eq!(
+            recs.iter().map(|r| r.offset).collect::<Vec<_>>(),
+            vec![0],
+            "redirected fetch must return the record"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(1),
+            Some(current_version),
+            "leader leg must speak its current version"
+        );
+        assert_eq!(
+            mock.last_fetch_version_for_node(2),
+            Some(11),
+            "preferred-replica leg must negotiate the replica's v11, not the leader's current version"
+        );
+        consumer.close().await.unwrap();
+    }
 }
 
 /// A successful response's quota applies to the next request, not delivery of
@@ -2611,7 +2661,7 @@ async fn fetch_throttle_other_broker_progress_and_legacy_version() {
 
 #[tokio::test]
 async fn fetch_throttle_version_boundary_zero_and_invalid_values() {
-    for version in [4, 7, 8, 11, 12, 13, 17] {
+    for version in [4, 7, 8, 11, 12, 13, 17, 18] {
         let mock = common::Mock::start().await;
         mock.set_node_api_max(1, FETCH, version);
         let producer =
@@ -3004,7 +3054,7 @@ async fn fetch_throttle_interval_starts_at_each_response_completion() {
 
 #[tokio::test]
 async fn incremental_fetch_sessions_reduce_unchanged_request_bytes_across_versions() {
-    for version in [4, 6, 7, 8, 11, 12, 13, 17] {
+    for version in [4, 6, 7, 8, 11, 12, 13, 17, 18] {
         let mock = common::Mock::start().await;
         mock.set_topic_partitions("t", 128);
         mock.set_api_max(FETCH, version);
@@ -3116,7 +3166,7 @@ async fn incremental_fetch_sessions_deliver_new_records_and_only_send_changed_of
 
 #[tokio::test]
 async fn incremental_fetch_sessions_forget_paused_partitions_and_add_resumed_partitions() {
-    for version in [7, 12, 13, 17] {
+    for version in [7, 12, 13, 17, 18] {
         let mock = common::Mock::start().await;
         mock.set_topic_partitions("t", 4);
         mock.set_api_max(FETCH, version);
@@ -3200,12 +3250,75 @@ fn session_fault_body(code: i16, session: i32, topics: &[FetchedTopic]) -> Vec<u
 
 #[tokio::test]
 async fn fetch_session_recovery_top_level_errors_retry_without_applying_poison_data() {
-    for code in [
-        partitionline::error::FETCH_SESSION_ID_NOT_FOUND,
-        partitionline::error::INVALID_FETCH_SESSION_EPOCH,
-        partitionline::error::FETCH_SESSION_TOPIC_ID_ERROR,
-    ] {
+    for current_version in [17, 18] {
+        for code in [
+            partitionline::error::FETCH_SESSION_ID_NOT_FOUND,
+            partitionline::error::INVALID_FETCH_SESSION_EPOCH,
+            partitionline::error::FETCH_SESSION_TOPIC_ID_ERROR,
+        ] {
+            let mock = common::Mock::start().await;
+            mock.set_node_api_max(1, FETCH, current_version);
+            mock.enable_fetch_sessions([1]);
+            let mut consumer = Consumer::new(
+                ConsumerConfig::bootstrap([mock.addr.clone()])
+                    .retry_backoff(Duration::from_millis(1)),
+            )
+            .await
+            .unwrap();
+            consumer.assign("t", 0, 0).await.unwrap();
+            assert!(consumer.fetch().await.unwrap().is_empty());
+            let session = mock.fetch_session_id(1).unwrap();
+            let producer = Producer::new(
+                ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO),
+            )
+            .await
+            .unwrap();
+            assert_eq!(
+                producer
+                    .send(ProduceRecord::to("t").partition(0).value("real"))
+                    .await
+                    .unwrap()
+                    .offset,
+                0
+            );
+            let batch = custom_batch(0, &[b"poison"], -1, -1, None, false);
+            let mut partition = FetchedPartition::partition_response(0, 0);
+            partition.high_watermark = 1;
+            partition.last_stable_offset = 1;
+            partition.log_start_offset = 0;
+            partition.records = vec![batch];
+            let topics = [FetchedTopic {
+                topic: "t".into(),
+                topic_id: mock.topic_id("t"),
+                partitions: vec![partition],
+            }];
+            mock.set_fetch_session_raw_responses(1, [session_fault_body(code, 0, &topics)]);
+            let records = consumer.fetch().await.unwrap();
+            assert_eq!(records.len(), 1);
+            assert_eq!(records[0].offset, 0);
+            assert_eq!(records[0].value.as_deref(), Some(b"real".as_slice()));
+            assert_eq!(consumer.position("t", 0).unwrap(), 1);
+            let requests = mock.fetch_session_requests();
+            assert_eq!(requests.len(), 3);
+            assert_eq!(
+                requests[1].3,
+                partitionline::protocol::fetch::FetchMetadata::new(session, 1)
+            );
+            assert!(requests[2].3.is_full());
+            assert_eq!(requests[2].4[0].partitions[0].fetch_offset, 0);
+            assert_eq!(consumer.metrics().fetch_errors, 0);
+            assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
+            consumer.close().await.unwrap();
+            producer.close().await.unwrap();
+        }
+    }
+}
+
+#[tokio::test]
+async fn fetch_session_recovery_broker_restart_recreates_session_without_losing_offsets() {
+    for current_version in [17, 18] {
         let mock = common::Mock::start().await;
+        mock.set_node_api_max(1, FETCH, current_version);
         mock.enable_fetch_sessions([1]);
         let mut consumer = Consumer::new(
             ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
@@ -3214,141 +3327,92 @@ async fn fetch_session_recovery_top_level_errors_retry_without_applying_poison_d
         .unwrap();
         consumer.assign("t", 0, 0).await.unwrap();
         assert!(consumer.fetch().await.unwrap().is_empty());
-        let session = mock.fetch_session_id(1).unwrap();
+        let old = mock.fetch_session_id(1).unwrap();
+        mock.reset_fetch_sessions(1);
         let producer =
             Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
                 .await
                 .unwrap();
         assert_eq!(
             producer
-                .send(ProduceRecord::to("t").partition(0).value("real"))
+                .send(ProduceRecord::to("t").partition(0).value("after-restart"))
                 .await
                 .unwrap()
                 .offset,
             0
         );
-        let batch = custom_batch(0, &[b"poison"], -1, -1, None, false);
-        let mut partition = FetchedPartition::partition_response(0, 0);
-        partition.high_watermark = 1;
-        partition.last_stable_offset = 1;
-        partition.log_start_offset = 0;
-        partition.records = vec![batch];
-        let topics = [FetchedTopic {
-            topic: "t".into(),
-            topic_id: mock.topic_id("t"),
-            partitions: vec![partition],
-        }];
-        mock.set_fetch_session_raw_responses(1, [session_fault_body(code, 0, &topics)]);
-        let records = consumer.fetch().await.unwrap();
-        assert_eq!(records.len(), 1);
-        assert_eq!(records[0].offset, 0);
-        assert_eq!(records[0].value.as_deref(), Some(b"real".as_slice()));
-        assert_eq!(consumer.position("t", 0).unwrap(), 1);
+        let rows = consumer.fetch().await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].offset, 0);
+        assert_eq!(rows[0].value.as_deref(), Some(b"after-restart".as_slice()));
+        assert_ne!(mock.fetch_session_id(1).unwrap(), old);
         let requests = mock.fetch_session_requests();
         assert_eq!(requests.len(), 3);
         assert_eq!(
-            requests[1].3,
-            partitionline::protocol::fetch::FetchMetadata::new(session, 1)
+            requests[2].3,
+            partitionline::protocol::fetch::FetchMetadata::INITIAL
         );
-        assert!(requests[2].3.is_full());
-        assert_eq!(requests[2].4[0].partitions[0].fetch_offset, 0);
-        assert_eq!(consumer.metrics().fetch_errors, 0);
+        assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
         consumer.close().await.unwrap();
+        assert_eq!(mock.remembered_fetch_partitions(1), 0);
+        assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
         producer.close().await.unwrap();
     }
 }
 
 #[tokio::test]
-async fn fetch_session_recovery_broker_restart_recreates_session_without_losing_offsets() {
-    let mock = common::Mock::start().await;
-    mock.enable_fetch_sessions([1]);
-    let mut consumer = Consumer::new(
-        ConsumerConfig::bootstrap([mock.addr.clone()]).retry_backoff(Duration::from_millis(1)),
-    )
-    .await
-    .unwrap();
-    consumer.assign("t", 0, 0).await.unwrap();
-    assert!(consumer.fetch().await.unwrap().is_empty());
-    let old = mock.fetch_session_id(1).unwrap();
-    mock.reset_fetch_sessions(1);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
-            .await
-            .unwrap();
-    assert_eq!(
-        producer
-            .send(ProduceRecord::to("t").partition(0).value("after-restart"))
-            .await
-            .unwrap()
-            .offset,
-        0
-    );
-    let rows = consumer.fetch().await.unwrap();
-    assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].offset, 0);
-    assert_eq!(rows[0].value.as_deref(), Some(b"after-restart".as_slice()));
-    assert_ne!(mock.fetch_session_id(1).unwrap(), old);
-    let requests = mock.fetch_session_requests();
-    assert_eq!(requests.len(), 3);
-    assert_eq!(
-        requests[2].3,
-        partitionline::protocol::fetch::FetchMetadata::INITIAL
-    );
-    consumer.close().await.unwrap();
-    assert_eq!(mock.remembered_fetch_partitions(1), 0);
-    assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
-    producer.close().await.unwrap();
-}
-
-#[tokio::test]
 async fn fetch_session_recovery_recreated_topic_reassignment_discards_previous_id_buffer() {
-    let mock = common::Mock::start().await;
-    mock.enable_fetch_sessions([1]);
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
-            .await
-            .unwrap();
-    for (offset, value) in ["old-0", "old-1"].into_iter().enumerate() {
-        assert_eq!(
-            producer
-                .send(ProduceRecord::to("t").partition(0).value(value))
+    for current_version in [17, 18] {
+        let mock = common::Mock::start().await;
+        mock.set_node_api_max(1, FETCH, current_version);
+        mock.enable_fetch_sessions([1]);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
                 .await
-                .unwrap()
-                .offset,
-            offset as i64
-        );
-    }
-    let mut consumer =
-        Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_poll_records(1))
-            .await
-            .unwrap();
-    consumer.assign("t", 0, 0).await.unwrap();
-    let first = consumer.fetch().await.unwrap();
-    assert_eq!(first[0].value.as_deref(), Some(b"old-0".as_slice()));
-    mock.recreate_topic_id("t", [7; 16]);
-    let new_producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
-            .await
-            .unwrap();
-    for (offset, value) in ["new-0", "new-1", "new-2"].into_iter().enumerate() {
-        assert_eq!(
-            new_producer
-                .send(ProduceRecord::to("t").partition(0).value(value))
+                .unwrap();
+        for (offset, value) in ["old-0", "old-1"].into_iter().enumerate() {
+            assert_eq!(
+                producer
+                    .send(ProduceRecord::to("t").partition(0).value(value))
+                    .await
+                    .unwrap()
+                    .offset,
+                offset as i64
+            );
+        }
+        let mut consumer =
+            Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]).max_poll_records(1))
                 .await
-                .unwrap()
-                .offset,
-            offset as i64
-        );
+                .unwrap();
+        consumer.assign("t", 0, 0).await.unwrap();
+        let first = consumer.fetch().await.unwrap();
+        assert_eq!(first[0].value.as_deref(), Some(b"old-0".as_slice()));
+        mock.recreate_topic_id("t", [7; 16]);
+        let new_producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        for (offset, value) in ["new-0", "new-1", "new-2"].into_iter().enumerate() {
+            assert_eq!(
+                new_producer
+                    .send(ProduceRecord::to("t").partition(0).value(value))
+                    .await
+                    .unwrap()
+                    .offset,
+                offset as i64
+            );
+        }
+        consumer.assign_many([(("t", 0), 2)]).await.unwrap();
+        let rows = consumer.fetch().await.unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].offset, 2);
+        assert_eq!(rows[0].value.as_deref(), Some(b"new-2".as_slice()));
+        assert_eq!(consumer.position("t", 0).unwrap(), 3);
+        assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
+        consumer.close().await.unwrap();
+        producer.close().await.unwrap();
+        new_producer.close().await.unwrap();
     }
-    consumer.assign_many([(("t", 0), 2)]).await.unwrap();
-    let rows = consumer.fetch().await.unwrap();
-    assert_eq!(rows.len(), 1);
-    assert_eq!(rows[0].offset, 2);
-    assert_eq!(rows[0].value.as_deref(), Some(b"new-2".as_slice()));
-    assert_eq!(consumer.position("t", 0).unwrap(), 3);
-    consumer.close().await.unwrap();
-    producer.close().await.unwrap();
-    new_producer.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -3550,39 +3614,43 @@ async fn fetch_session_recovery_pause_all_unassign_and_leader_move_retire_server
 
 #[tokio::test]
 async fn fetch_session_recovery_cancelled_round_and_wakeup_recreate_without_position_advance() {
-    for wakeup in [false, true] {
-        let mock = common::Mock::start().await;
-        mock.enable_fetch_sessions([1]);
-        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
-            .await
-            .unwrap();
-        consumer.assign("t", 0, 0).await.unwrap();
-        assert!(consumer.fetch().await.unwrap().is_empty());
-        mock.set_fetch_delay_once(1, Duration::from_millis(500));
-        if wakeup {
-            let handle = consumer.wakeup_handle();
-            let wake = tokio::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(20)).await;
-                handle.wakeup();
-            });
-            assert!(matches!(
-                consumer.fetch().await,
-                Err(partitionline::Error::Wakeup)
-            ));
-            wake.await.unwrap();
-        } else {
-            assert!(
-                tokio::time::timeout(Duration::from_millis(20), consumer.fetch())
-                    .await
-                    .is_err()
-            );
+    for current_version in [17, 18] {
+        for wakeup in [false, true] {
+            let mock = common::Mock::start().await;
+            mock.set_node_api_max(1, FETCH, current_version);
+            mock.enable_fetch_sessions([1]);
+            let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+                .await
+                .unwrap();
+            consumer.assign("t", 0, 0).await.unwrap();
+            assert!(consumer.fetch().await.unwrap().is_empty());
+            mock.set_fetch_delay_once(1, Duration::from_millis(500));
+            if wakeup {
+                let handle = consumer.wakeup_handle();
+                let wake = tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                    handle.wakeup();
+                });
+                assert!(matches!(
+                    consumer.fetch().await,
+                    Err(partitionline::Error::Wakeup)
+                ));
+                wake.await.unwrap();
+            } else {
+                assert!(
+                    tokio::time::timeout(Duration::from_millis(20), consumer.fetch())
+                        .await
+                        .is_err()
+                );
+            }
+            assert_eq!(consumer.position("t", 0).unwrap(), 0);
+            assert!(consumer.fetch().await.unwrap().is_empty());
+            let requests = mock.fetch_session_requests();
+            assert!(requests.last().unwrap().3.is_full());
+            assert_eq!(requests.last().unwrap().4[0].partitions[0].fetch_offset, 0);
+            assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
+            consumer.close().await.unwrap();
         }
-        assert_eq!(consumer.position("t", 0).unwrap(), 0);
-        assert!(consumer.fetch().await.unwrap().is_empty());
-        let requests = mock.fetch_session_requests();
-        assert!(requests.last().unwrap().3.is_full());
-        assert_eq!(requests.last().unwrap().4[0].partitions[0].fetch_offset, 0);
-        consumer.close().await.unwrap();
     }
 }
 
@@ -3980,29 +4048,33 @@ async fn live_fetch_session_recovery_required() {
 
 #[tokio::test]
 async fn fetch_session_recovery_terminal_retirement_obeys_broker_quota_and_close_budget() {
-    for budget in [Duration::from_millis(50), Duration::from_millis(400)] {
-        let mock = common::Mock::start().await;
-        mock.enable_fetch_sessions([1]);
-        mock.set_fetch_throttles(1, [150]);
-        let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
-            .await
-            .unwrap();
-        consumer.assign("t", 0, 0).await.unwrap();
-        assert!(consumer.fetch().await.unwrap().is_empty());
-        assert_eq!(mock.remembered_fetch_partitions(1), 1);
-        let start = std::time::Instant::now();
-        consumer.close_timeout(budget).await.unwrap();
-        if budget < Duration::from_millis(150) {
-            assert_eq!(
-                mock.fetch_session_requests().len(),
-                1,
-                "terminal request must not bypass an active broker mute"
-            );
-            assert!(start.elapsed() < Duration::from_millis(100));
-        } else {
-            assert!(start.elapsed() >= Duration::from_millis(100));
-            assert_eq!(mock.remembered_fetch_partitions(1), 0);
-            assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
+    for current_version in [17, 18] {
+        for budget in [Duration::from_millis(50), Duration::from_millis(400)] {
+            let mock = common::Mock::start().await;
+            mock.set_node_api_max(1, FETCH, current_version);
+            mock.enable_fetch_sessions([1]);
+            mock.set_fetch_throttles(1, [150]);
+            let mut consumer = Consumer::new(ConsumerConfig::bootstrap([mock.addr.clone()]))
+                .await
+                .unwrap();
+            consumer.assign("t", 0, 0).await.unwrap();
+            assert!(consumer.fetch().await.unwrap().is_empty());
+            assert_eq!(mock.last_fetch_version_for_node(1), Some(current_version));
+            assert_eq!(mock.remembered_fetch_partitions(1), 1);
+            let start = std::time::Instant::now();
+            consumer.close_timeout(budget).await.unwrap();
+            if budget < Duration::from_millis(150) {
+                assert_eq!(
+                    mock.fetch_session_requests().len(),
+                    1,
+                    "terminal request must not bypass an active broker mute"
+                );
+                assert!(start.elapsed() < Duration::from_millis(100));
+            } else {
+                assert!(start.elapsed() >= Duration::from_millis(100));
+                assert_eq!(mock.remembered_fetch_partitions(1), 0);
+                assert_eq!(mock.fetch_session_requests().last().unwrap().3.epoch(), -1);
+            }
         }
     }
 }

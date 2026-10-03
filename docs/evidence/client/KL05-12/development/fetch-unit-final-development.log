@@ -1,0 +1,64 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 22.87s
+     Running unittests src/lib.rs (/workspace/work/target-fetch-v18/debug/deps/partitionline-af37b16a5d920fc8)
+
+running 56 tests
+test protocol::fetch::tests::fetch_error_code_session_id_matches_java ... ok
+test protocol::fetch::tests::decode_fetch_response_keeps_log_start_on_offset_out_of_range ... ok
+test protocol::fetch::tests::decode_fetch_response_from_bytes_shares_record_value ... ok
+test protocol::fetch::tests::decode_fetch_response_uses_record_batch_decoder_on_partition_bytes ... ok
+test protocol::fetch::tests::fetch_metadata_matches_java ... ok
+test protocol::fetch::tests::fetch_partition_data_matches_java ... ok
+test protocol::fetch::tests::fetch_json_version_gates_match_java ... ok
+test protocol::fetch::tests::fetch_request_builder_matches_java ... ok
+test protocol::fetch::tests::fetch_request_cluster_id_matches_java ... ok
+test protocol::fetch::tests::fetch_request_encode_error_response_matches_java ... ok
+test protocol::fetch::tests::fetch_request_error_response_matches_java ... ok
+test protocol::fetch::tests::fetch_request_for_consumer_matches_java ... ok
+test protocol::fetch::tests::fetch_request_fetch_data_matches_java ... ok
+test protocol::fetch::tests::fetch_request_for_replica_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_topics_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_from_removed_matches_java ... ok
+test protocol::fetch::tests::fetch_request_log_start_offset_matches_java ... ok
+test protocol::fetch::tests::fetch_request_min_bytes_matches_java ... ok
+test protocol::fetch::tests::fetch_request_rack_id_is_empty_string_not_null ... ok
+test protocol::fetch::tests::fetch_request_max_wait_ms_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_for_build_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_id_sentinels_match_java ... ok
+test protocol::fetch::tests::fetch_request_replica_directory_id_matches_java ... ok
+test protocol::fetch::tests::fetch_request_sends_current_leader_epoch ... ok
+test protocol::fetch::tests::fetch_request_sends_rack_id ... ok
+test protocol::fetch::tests::fetch_request_replica_state_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_id_matches_java ... ok
+test protocol::fetch::tests::fetch_request_session_matches_java ... ok
+test protocol::fetch::tests::fetch_response_error_counts_matches_java ... ok
+test protocol::fetch::tests::fetch_request_simple_builder_build_matches_java ... ok
+test protocol::fetch::tests::fetch_request_topics_from_fetch_data_matches_java ... ok
+test protocol::fetch::tests::fetch_response_of_matches_java ... ok
+test protocol::fetch::tests::fetch_response_preserves_aborted_transactions ... ok
+test protocol::fetch::tests::fetch_response_of_with_endpoints_matches_java ... ok
+test protocol::fetch::tests::fetch_response_records_size_matches_java ... ok
+test protocol::fetch::tests::fetch_response_response_data_matches_java ... ok
+test protocol::fetch::tests::fetch_response_snapshot_id_matches_java ... ok
+test protocol::fetch::tests::fetch_response_throttle_time_ms_matches_java ... ok
+test protocol::fetch::tests::fetch_response_topic_ids_matches_java ... ok
+test protocol::fetch::tests::fetch_response_size_of_matches_java ... ok
+test protocol::fetch::tests::fetch_response_to_message_matches_java ... ok
+test protocol::fetch::tests::fetch_v12_request_matches_compact_layout ... ok
+test protocol::fetch::tests::fetch_v11_roundtrip ... ok
+test protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v14_forgotten_topic_id_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v14_request_matches_topic_id_layout ... ok
+test protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v15_request_omits_untagged_replica_id ... ok
+test protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v16_current_leader_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v16_diverging_epoch_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v16_node_endpoints_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty ... ok
+test protocol::fetch::tests::fetched_partition_invalid_sentinels_match_java ... ok
+test protocol::fetch::tests::fetch_v17_roundtrip_matches_v16 ... ok
+
+test result: ok. 56 passed; 0 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 0.00s
+

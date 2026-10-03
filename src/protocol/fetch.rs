@@ -1,4 +1,4 @@
-//! Fetch (api key 1). v4–v11 classic; v12–v17 flexible.
+//! Fetch (api key 1). v4–v11 classic; v12–v18 flexible.
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
@@ -29,6 +29,19 @@ pub const INVALID_LOG_START_OFFSET: i64 = -1;
 /// Java `FetchRequest.Builder.build` uses this when the Fetch version is
 /// below 3 (this crate speaks v4+).
 pub const DEFAULT_RESPONSE_MAX_BYTES: i32 = i32::MAX;
+
+/// Highest Fetch version implemented by the client codecs and consumer.
+pub const FETCH_CRATE_MAX_VERSION: i16 = 18;
+/// KIP-1166 request HighWatermark default: replica notification is unsupported.
+/// Ordinary consumers omit the tag and therefore send this value.
+pub const REPLICA_HIGH_WATERMARK_NOT_SUPPORTED: i64 = i64::MAX;
+/// KIP-1166 request HighWatermark when the replica does not know its watermark.
+pub const UNKNOWN_REPLICA_HIGH_WATERMARK: i64 = -1;
+
+/// Request high-watermarks in topic/partition wire order, separate from the
+/// existing [`FetchPartition`] layout. Missing tags decode to
+/// [`REPLICA_HIGH_WATERMARK_NOT_SUPPORTED`], including versions below 18.
+pub type FetchReplicaHighWatermarks = Vec<Vec<i64>>;
 
 /// Java `FetchRequest.isValidBrokerId`.
 #[must_use]
@@ -253,7 +266,7 @@ impl FetchPartition {
     /// decode fills [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]; below v12
     /// omits LastFetchedEpoch; decode fills
     /// [`RecordBatch::NO_PARTITION_LEADER_EPOCH`]). This crate speaks
-    /// 4–17. This is not [`FetchRequest::fetch_data`] /
+    /// 4–18. This is not [`FetchRequest::fetch_data`] /
     /// [`FetchRequest::topics_from_fetch_data`] / ReplicaDirectoryId /
     /// replicaId encode.
     #[must_use]
@@ -495,13 +508,13 @@ impl FetchRequest {
     ///
     /// Responses from [`Self::error_response`]. ThrottleTimeMs is written
     /// on every spoken version from `throttle_time_ms` (JSON `1+`; this
-    /// crate speaks 4–17). ErrorCode and SessionId are written on v7+
+    /// crate speaks 4–18). ErrorCode and SessionId are written on v7+
     /// from `error_code` / `session_id`; below v7 they are omitted even
     /// when non-zero and decode fills `0` /
     /// [`FetchMetadata::INVALID_SESSION_ID`]. NodeEndpoints stay empty.
     /// Convenience encode still writes throttle `0`, ErrorCode `0`, and
     /// SessionId [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks
-    /// 4–17. This is not [`Self::error_response`] leftover /
+    /// 4–18. This is not [`Self::error_response`] leftover /
     /// [`encode_fetch_response_with_throttle`] leftover /
     /// [`encode_fetch_response_with_endpoints`] leftover / SimpleBuilder
     /// leftover.
@@ -536,7 +549,7 @@ impl FetchRequest {
     /// [`CONSUMER_REPLICA_ID`], ReplicaEpoch `-1`. [`Self::for_replica`]
     /// is this helper with min=max=`allowed_version`. Encode still writes
     /// ReplicaId independently of this Builder range. This crate speaks
-    /// 4–17. This is not [`Self::forgotten_from_removed`] /
+    /// 4–18. This is not [`Self::forgotten_from_removed`] /
     /// [`Self::topics_from_fetch_data`] / replicaId encode /
     /// [`Self::simple_build`] / [`Self::replica_for_build`].
     #[must_use]
@@ -562,7 +575,7 @@ impl FetchRequest {
     /// (v15+ tagged field 1); consumers omit that field. This helper still
     /// returns the Java constructor value so callers can keep it next to
     /// replica id. Encode still writes ReplicaId independently of this
-    /// Builder range. This crate speaks 4–17. This is not
+    /// Builder range. This crate speaks 4–18. This is not
     /// [`Self::forgotten_from_removed`] / [`Self::topics_from_fetch_data`] /
     /// replicaId encode / ShareFetch `forConsumer`.
     #[must_use]
@@ -581,7 +594,7 @@ impl FetchRequest {
     /// MinBytes, and Topics are the caller's values. Replica epoch lives
     /// on Java `ReplicaState` (v15+ tagged field 1); this crate does not
     /// write that field. Encode still writes untagged ReplicaId on v4–v14
-    /// and omits it on v15+. This crate speaks 4–17. This is not
+    /// and omits it on v15+. This crate speaks 4–18. This is not
     /// [`Self::for_consumer`] / [`Self::forgotten_from_removed`] /
     /// [`Self::topics_from_fetch_data`] / replicaId encode / ListOffsets
     /// `forReplica`.
@@ -603,7 +616,7 @@ impl FetchRequest {
     /// [`CONSUMER_REPLICA_ID`] (`new ReplicaState()`). v15+ leaves both as
     /// the caller passed them. [`encode_fetch_request_with_replica_id`]
     /// still writes untagged ReplicaId on v4–v14 and omits ReplicaState on
-    /// v15+. This crate speaks 4–17. This is not [`replica_id`] /
+    /// v15+. This crate speaks 4–18. This is not [`replica_id`] /
     /// [`replica_id_from_data`] / [`Self::builder`] / [`Self::for_consumer`] /
     /// [`Self::for_replica`].
     pub fn simple_build(
@@ -635,7 +648,7 @@ impl FetchRequest {
     /// [`Self::topics_from_fetch_data`].
     /// [`encode_fetch_request_with_replica_id`] still writes untagged
     /// ReplicaId on v4–v14 and omits ReplicaState on v15+. This crate
-    /// speaks 4–17. This is not [`replica_id`] / [`replica_id_from_data`]
+    /// speaks 4–18. This is not [`replica_id`] / [`replica_id_from_data`]
     /// / [`Self::simple_build`] / [`Self::builder`] / [`Self::for_consumer`] /
     /// [`Self::for_replica`].
     #[must_use]
@@ -950,7 +963,7 @@ impl FetchResponse {
     /// INT32 size prefix). Throttle / ErrorCode / SessionId stay
     /// convenience-encode values (`0` / [`FetchMetadata::INVALID_SESSION_ID`]);
     /// those fields have fixed width so the values do not change the
-    /// size. Empty NodeEndpoints. This crate speaks 4–17. This is not
+    /// size. Empty NodeEndpoints. This crate speaks 4–18. This is not
     /// [`Self::to_message`] / [`FetchedPartition::records_size`] /
     /// [`FetchRequest::encode_error_response`].
     pub fn size_of(
@@ -976,7 +989,7 @@ impl FetchResponse {
     /// empty ([`Self::of_with_endpoints`] is the five-argument Java `of`
     /// with `nodeEndpoints`). Convenience encode still writes throttle
     /// `0`, ErrorCode `0`, SessionId
-    /// [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks 4–17.
+    /// [`FetchMetadata::INVALID_SESSION_ID`]. This crate speaks 4–18.
     /// This is not [`Self::to_message`] / [`Self::size_of`] /
     /// [`encode_fetch_response_with_throttle`] /
     /// [`encode_fetch_response_with_endpoints`] /
@@ -1010,7 +1023,7 @@ impl FetchResponse {
     /// empty. [`Self::of`] is this helper with empty NodeEndpoints.
     /// Convenience encode still writes throttle `0`, ErrorCode `0`,
     /// SessionId [`FetchMetadata::INVALID_SESSION_ID`], empty
-    /// NodeEndpoints. This crate speaks 4–17. This is not [`Self::of`] /
+    /// NodeEndpoints. This crate speaks 4–18. This is not [`Self::of`] /
     /// [`Self::to_message`] / [`Self::size_of`] /
     /// [`encode_fetch_response_with_throttle`] /
     /// [`encode_fetch_response_with_endpoints`] /
@@ -1048,7 +1061,7 @@ pub struct FetchedTopic {
     pub partitions: Vec<FetchedPartition>,
 }
 
-/// Fetch v4–v11 (classic) or v12–v17 (flexible). LastFetchedEpoch is v12+.
+/// Fetch v4–v11 (classic) or v12–v18 (flexible). LastFetchedEpoch is v12+.
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. LogStartOffset
 /// is JSON `5+` (encode writes [`FetchPartition::log_start_offset`]).
 /// CurrentLeaderEpoch is v9+. RackId is v11+. Session is
@@ -1082,7 +1095,7 @@ pub fn encode_fetch_request(
     )
 }
 
-/// Encode Fetch v4–v17 with [`FetchMetadata`].
+/// Encode Fetch v4–v18 with [`FetchMetadata`].
 ///
 /// SessionId / SessionEpoch are v7+. Below v7 they are omitted even when
 /// `session` is not [`FetchMetadata::LEGACY`]. Decode fills
@@ -1117,7 +1130,7 @@ pub fn encode_fetch_request_with_session(
     )
 }
 
-/// Encode Fetch v4–v17 with [`FetchMetadata`] and ForgottenTopicsData.
+/// Encode Fetch v4–v18 with [`FetchMetadata`] and ForgottenTopicsData.
 ///
 /// SessionId / SessionEpoch / ForgottenTopicsData are v7+. Below v7 they
 /// are omitted even when `session` is not [`FetchMetadata::LEGACY`] or
@@ -1155,10 +1168,11 @@ pub fn encode_fetch_request_with_forgotten(
         CONSUMER_REPLICA_ID,
         -1,
         None,
+        None,
     )
 }
 
-/// Encode Fetch v4–v17 with ReplicaId.
+/// Encode Fetch v4–v18 with ReplicaId.
 ///
 /// ReplicaId is JSON `0-14` (untagged INT32; default `-1`). Official Java
 /// `FetchRequestData.replicaId` / `FetchRequest.replicaId()`. v15+ omits
@@ -1197,10 +1211,11 @@ pub fn encode_fetch_request_with_replica_id(
         CONSUMER_REPLICA_ID,
         -1,
         None,
+        None,
     )
 }
 
-/// Encode Fetch v4–v17 with ReplicaId / ReplicaState.
+/// Encode Fetch v4–v18 with ReplicaId / ReplicaState.
 ///
 /// Below v15 this is untagged ReplicaId (JSON `0-14`). v15+ omits the
 /// untagged field and writes ReplicaState tagged field 1 when ReplicaId
@@ -1243,10 +1258,11 @@ pub fn encode_fetch_request_with_replica_state(
         state_id,
         state_epoch,
         None,
+        None,
     )
 }
 
-/// Encode Fetch v4–v17 with ClusterId and ReplicaId / ReplicaState.
+/// Encode Fetch v4–v18 with ClusterId and ReplicaId / ReplicaState.
 ///
 /// Kafka 4.0.0 FetchRequest.json ClusterId is versions `12+` tagged
 /// field 0 (nullable compact STRING, default `null`, ignorable). Official
@@ -1255,7 +1271,7 @@ pub fn encode_fetch_request_with_replica_state(
 /// [`encode_fetch_request_with_replica_id`] /
 /// [`encode_fetch_request_with_replica_state`] still omit ClusterId.
 /// ReplicaId / ReplicaState match [`encode_fetch_request_with_replica_state`].
-/// This crate speaks 4–17. This is not partition ReplicaDirectoryId.
+/// This crate speaks 4–18. This is not partition ReplicaDirectoryId.
 #[expect(
     clippy::too_many_arguments,
     reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, replica id, replica epoch, and cluster id together"
@@ -1290,12 +1306,60 @@ pub fn encode_fetch_request_with_cluster_id(
         state_id,
         state_epoch,
         cluster_id,
+        None,
+    )
+}
+
+/// Encode a replica request with KIP-1166 high-watermarks in topic/partition
+/// wire order. The sidecar must match every topic and partition, including
+/// empty lists; mismatched shapes fail before writing anything to `buf`.
+///
+/// Version 18 omits the default [`REPLICA_HIGH_WATERMARK_NOT_SUPPORTED`] and
+/// writes other values as partition tag 1. Earlier versions omit this ignorable
+/// field. Existing consumer encoders continue to omit it. This codec does not
+/// implement replica acknowledgment or quorum-commit behavior.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "replica request fields plus explicit aligned HighWatermark sidecar"
+)]
+pub fn encode_fetch_request_with_replica_high_watermarks(
+    buf: &mut BytesMut,
+    version: i16,
+    max_wait_ms: i32,
+    min_bytes: i32,
+    max_bytes: i32,
+    isolation_level: i8,
+    topics: &[FetchTopic],
+    rack_id: Option<&str>,
+    replica_id: i32,
+    replica_epoch: i64,
+    cluster_id: Option<&str>,
+    high_watermarks: &[Vec<i64>],
+) -> Result<()> {
+    let (untagged, state_id, state_epoch) =
+        FetchRequest::replica_for_build(version, replica_id, replica_epoch);
+    encode_fetch_request_body(
+        buf,
+        version,
+        max_wait_ms,
+        min_bytes,
+        max_bytes,
+        isolation_level,
+        topics,
+        rack_id,
+        FetchMetadata::LEGACY,
+        &[],
+        untagged,
+        state_id,
+        state_epoch,
+        cluster_id,
+        Some(high_watermarks),
     )
 }
 
 #[expect(
     clippy::too_many_arguments,
-    reason = "Fetch request body needs version, wait/min/max bytes, isolation, topics, rack, session, forgotten, replica id, replica epoch, and cluster id together"
+    reason = "shared complete Fetch request fields and optional replica sidecar"
 )]
 fn encode_fetch_request_body(
     buf: &mut BytesMut,
@@ -1312,8 +1376,21 @@ fn encode_fetch_request_body(
     replica_state_replica_id: i32,
     replica_state_replica_epoch: i64,
     cluster_id: Option<&str>,
+    high_watermarks: Option<&[Vec<i64>]>,
 ) -> crate::error::Result<()> {
     let flexible = fetch_flexible(version)?;
+    if let Some(values) = high_watermarks {
+        if values.len() != topics.len()
+            || values
+                .iter()
+                .zip(topics)
+                .any(|(values, topic)| values.len() != topic.partitions.len())
+        {
+            return Err(Error::protocol(
+                "Fetch HighWatermark sidecar shape does not match topics",
+            ));
+        }
+    }
     // ReplicaId is untagged only through v14. v15+ uses ReplicaState tagged
     // field 1 (KIP-903). Consumers omit it (ReplicaId / ReplicaEpoch default
     // -1 / -1).
@@ -1329,10 +1406,10 @@ fn encode_fetch_request_body(
         buf.put_i32(session.epoch());
     }
     buf::put_array_len(buf, flexible, Some(topics.len()))?;
-    for t in topics {
+    for (topic_index, t) in topics.iter().enumerate() {
         put_fetch_topic_identity(buf, version, flexible, &t.topic, &t.topic_id)?;
         buf::put_array_len(buf, flexible, Some(t.partitions.len()))?;
-        for p in &t.partitions {
+        for (partition_index, p) in t.partitions.iter().enumerate() {
             buf.put_i32(p.partition);
             if version >= 9 {
                 buf.put_i32(p.current_leader_epoch);
@@ -1346,16 +1423,17 @@ fn encode_fetch_request_body(
             }
             buf.put_i32(p.partition_max_bytes);
             if flexible {
-                // v17+ ReplicaDirectoryId is partition tagged field 0
-                // (KIP-853). Consumers omit it (JSON default zeros).
-                if version >= 17 && p.replica_directory_id != [0; 16] {
-                    buf::put_tagged_fields(
-                        buf,
-                        &[(0, Bytes::copy_from_slice(&p.replica_directory_id))],
-                    )?;
-                } else {
-                    buf::put_empty_tagged_fields(buf);
-                }
+                let high_watermark = high_watermarks
+                    .and_then(|values| values.get(topic_index))
+                    .and_then(|values| values.get(partition_index))
+                    .copied()
+                    .unwrap_or(REPLICA_HIGH_WATERMARK_NOT_SUPPORTED);
+                put_fetch_request_partition_tags(
+                    buf,
+                    version,
+                    p.replica_directory_id,
+                    high_watermark,
+                )?;
             }
         }
         if flexible {
@@ -1452,18 +1530,56 @@ fn decode_replica_directory_id(value: &Bytes) -> Result<[u8; 16]> {
     Ok(directory_id)
 }
 
-fn decode_fetch_request_partition_tags<B: Buf>(buf: &mut B, version: i16) -> Result<[u8; 16]> {
+fn put_fetch_request_partition_tags(
+    buf: &mut BytesMut,
+    version: i16,
+    directory_id: [u8; 16],
+    high_watermark: i64,
+) -> Result<()> {
+    let directory = version >= 17 && directory_id != [0; 16];
+    let watermark = version >= 18 && high_watermark != REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;
+    match (directory, watermark) {
+        (false, false) => buf::put_empty_tagged_fields(buf),
+        (true, false) => {
+            buf::put_tagged_fields(buf, &[(0, Bytes::copy_from_slice(&directory_id))])?
+        }
+        (false, true) => buf::put_tagged_fields(
+            buf,
+            &[(1, Bytes::copy_from_slice(&high_watermark.to_be_bytes()))],
+        )?,
+        (true, true) => buf::put_tagged_fields(
+            buf,
+            &[
+                (0, Bytes::copy_from_slice(&directory_id)),
+                (1, Bytes::copy_from_slice(&high_watermark.to_be_bytes())),
+            ],
+        )?,
+    }
+    Ok(())
+}
+
+fn decode_fetch_request_partition_tags<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<([u8; 16], i64)> {
     let tags = buf::get_tagged_fields(buf)?;
     let mut directory_id = [0u8; 16];
+    let mut high_watermark = REPLICA_HIGH_WATERMARK_NOT_SUPPORTED;
     for (tag, value) in tags {
         match tag {
             0 if version >= 17 => {
                 directory_id = decode_replica_directory_id(&value)?;
             }
+            1 if version >= 18 => {
+                let bytes: [u8; 8] = value.as_ref().try_into().map_err(|_| {
+                    Error::protocol("Fetch HighWatermark tag must contain exactly eight bytes")
+                })?;
+                high_watermark = i64::from_be_bytes(bytes);
+            }
             _ => {}
         }
     }
-    Ok(directory_id)
+    Ok((directory_id, high_watermark))
 }
 
 fn decode_fetch_request_tags<B: Buf>(
@@ -1499,7 +1615,7 @@ fn decode_fetch_request_tags<B: Buf>(
 /// it). ClusterId tagged field 0 is decoded at v12+ (consumers omit it;
 /// [`encode_fetch_request_with_cluster_id`] writes it). v16 is the same request as v15 (KIP-951). v17 is
 /// the same consumer request as v16 when ReplicaDirectoryId is zeros
-/// (partition tagged field 0, KIP-853; a non-zero directory id is written). This crate speaks 4–17. Partition
+/// (partition tagged field 0, KIP-853; a non-zero directory id is written). This crate speaks 4–18. Partition
 /// CurrentLeader tagged field 1, DivergingEpoch tagged field 0, and
 /// SnapshotId tagged field 2 (`EndOffset` INT64 then `Epoch` INT32) are
 /// decoded (v12+). Below v12 SnapshotId is omitted even when the body is
@@ -1507,11 +1623,12 @@ fn decode_fetch_request_tags<B: Buf>(
 /// [`EpochEndOffset::UNDEFINED_EPOCH`]. This is not the FetchSnapshot API
 /// and does not start those RPCs. Top-level NodeEndpoints tagged field 0
 /// is decoded at v16+ so unknown CurrentLeader brokers can be inserted
-/// before apply. v18+ (KIP-1166 HighWatermark) is not spoken.
+/// before apply. v18 adds request partition HighWatermark tag 1 (KIP-1166);
+/// consumers omit its unsupported default. Responses are unchanged.
 fn fetch_flexible(version: i16) -> Result<bool> {
     match version {
         4..=11 => Ok(false),
-        12..=17 => Ok(true),
+        12..=FETCH_CRATE_MAX_VERSION => Ok(true),
         other => Err(Error::protocol(format!(
             "Fetch version {other} is not implemented"
         ))),
@@ -1695,14 +1812,14 @@ fn decode_fetch_partition_tags<B: Buf>(buf: &mut B) -> Result<(i32, i64, i32, i3
 /// and when consumers skip the tag). ClusterId is JSON `12+` tagged field 0
 /// (nullable compact STRING, default `null`; omitted below v12 and when
 /// consumers skip the tag).
-#[expect(
-    clippy::type_complexity,
-    reason = "Fetch request decode returns isolation, max bytes, topics, rack, session, forgotten, max wait, min bytes, replica id, replica epoch, and cluster id together"
-)]
-pub fn decode_fetch_request<B: Buf>(
-    buf: &mut B,
-    version: i16,
-) -> Result<(
+pub fn decode_fetch_request<B: Buf>(buf: &mut B, version: i16) -> Result<DecodedFetchRequest> {
+    decode_fetch_request_body(buf, version, None)
+}
+
+/// Existing request decode tuple, preserving its field order and signatures:
+/// isolation, max bytes, topics, rack, session, forgotten, max wait, min bytes,
+/// replica id, replica epoch and cluster id.
+pub type DecodedFetchRequest = (
     i8,
     i32,
     Vec<FetchTopic>,
@@ -1714,7 +1831,26 @@ pub fn decode_fetch_request<B: Buf>(
     i32,
     i64,
     Option<String>,
-)> {
+);
+
+/// Decode a request plus KIP-1166 high-watermarks aligned with its topic and
+/// partition lists. The existing decoder validates known tag lengths without
+/// allocating this sidecar. Version 18 missing/default tags and earlier
+/// versions yield [`REPLICA_HIGH_WATERMARK_NOT_SUPPORTED`].
+pub fn decode_fetch_request_with_high_watermarks<B: Buf>(
+    buf: &mut B,
+    version: i16,
+) -> Result<(DecodedFetchRequest, FetchReplicaHighWatermarks)> {
+    let mut high_watermarks = Vec::new();
+    let request = decode_fetch_request_body(buf, version, Some(&mut high_watermarks))?;
+    Ok((request, high_watermarks))
+}
+
+fn decode_fetch_request_body<B: Buf>(
+    buf: &mut B,
+    version: i16,
+    mut high_watermarks: Option<&mut FetchReplicaHighWatermarks>,
+) -> Result<DecodedFetchRequest> {
     let flexible = fetch_flexible(version)?;
     let untagged_replica_id = if version <= 14 {
         buf::get_i32(buf)?
@@ -1736,6 +1872,7 @@ pub fn decode_fetch_request<B: Buf>(
         let (topic, topic_id) = get_fetch_topic_identity(buf, version, flexible)?;
         let pn = buf::get_array_len(buf, flexible)?.unwrap_or(0);
         let mut partitions = Vec::with_capacity(pn);
+        let mut topic_high_watermarks = high_watermarks.as_ref().map(|_| Vec::with_capacity(pn));
         for _ in 0..pn {
             let partition = buf::get_i32(buf)?;
             let current_leader_epoch = if version >= 9 {
@@ -1755,11 +1892,14 @@ pub fn decode_fetch_request<B: Buf>(
                 INVALID_LOG_START_OFFSET
             };
             let partition_max_bytes = buf::get_i32(buf)?;
-            let replica_directory_id = if flexible {
+            let (replica_directory_id, high_watermark) = if flexible {
                 decode_fetch_request_partition_tags(buf, version)?
             } else {
-                [0; 16]
+                ([0; 16], REPLICA_HIGH_WATERMARK_NOT_SUPPORTED)
             };
+            if let Some(values) = &mut topic_high_watermarks {
+                values.push(high_watermark);
+            }
             partitions.push(FetchPartition {
                 partition,
                 current_leader_epoch,
@@ -1772,6 +1912,9 @@ pub fn decode_fetch_request<B: Buf>(
         }
         if flexible {
             buf::skip_tagged_fields(buf)?;
+        }
+        if let (Some(output), Some(values)) = (high_watermarks.as_mut(), topic_high_watermarks) {
+            output.push(values);
         }
         topics.push(FetchTopic {
             topic,
@@ -1826,7 +1969,7 @@ pub fn decode_fetch_request<B: Buf>(
     ))
 }
 
-/// Encode a Fetch v4–v11 (classic) or v12–v17 (flexible) response.
+/// Encode a Fetch v4–v11 (classic) or v12–v18 (flexible) response.
 ///
 /// ThrottleTimeMs is the JSON default (`0`) on v1+ (JSON `1+`).
 /// Top-level ErrorCode is `0` and SessionId is
@@ -1854,11 +1997,11 @@ pub fn encode_fetch_response(
     )
 }
 
-/// Encode Fetch v4–v17 with ThrottleTimeMs.
+/// Encode Fetch v4–v18 with ThrottleTimeMs.
 ///
 /// ThrottleTimeMs is JSON `1+`: written first on every spoken version
-/// (this crate speaks 4–17). v4–v11 are classic. v12–v17 are flexible.
-/// Kafka 4.0 `validVersions` is `4-17`. v18+ is not spoken. Official Java
+/// (this crate speaks 4–18). v4–v11 are classic. v12–v18 are flexible.
+/// Kafka 4.0 `validVersions` is `4-17`. v19+ is not spoken. Official Java
 /// `getErrorResponse` sets `throttleTimeMs` from the argument. Convenience
 /// encode still writes `0`. Top-level ErrorCode is at bytes 4–5 on v7+.
 /// ErrorCode / SessionId stay `0` / [`FetchMetadata::INVALID_SESSION_ID`]
@@ -1966,10 +2109,10 @@ fn encode_fetch_response_fields(
     Ok(())
 }
 
-/// Decode a Fetch v4–v11 (classic) or v12–v17 (flexible) response:
+/// Decode a Fetch v4–v11 (classic) or v12–v18 (flexible) response:
 /// `(topics, node_endpoints, error_code, session_id, throttle_time_ms)`.
 ///
-/// ThrottleTimeMs is JSON `1+`; this crate speaks 4–17 so the field is
+/// ThrottleTimeMs is JSON `1+`; this crate speaks 4–18 so the field is
 /// always on the wire. Below v7 ErrorCode and SessionId are omitted;
 /// decode fills `0`.
 /// LogStartOffset is v5+; PreferredReadReplica is v11+; below those
@@ -2436,7 +2579,7 @@ mod tests {
         // FetchRequest.replicaId() read it. Encode previously always wrote
         // CONSUMER_REPLICA_ID; decode discarded it. v15+ omits the untagged
         // field even when non-default (ReplicaState tagged field 1 is not
-        // written). This crate speaks 4–17. This is not ReplicaState /
+        // written). This crate speaks 4–18. This is not ReplicaState /
         // ListOffsets ReplicaId / OffsetForLeaderEpoch ReplicaId.
         for version in [4_i16, 11, 12, 14, 15, 17] {
             let mut buf = BytesMut::new();
@@ -2487,7 +2630,7 @@ mod tests {
         // Kafka 4.0 FetchRequest.json MaxWaitMs is versions 0+ (INT32 after
         // ReplicaId on v0–v14; first untagged field on v15+). Official Java
         // FetchRequest.maxWait reads it. Encode already takes max_wait_ms;
-        // decode previously discarded it. This crate speaks 4–17. This is
+        // decode previously discarded it. This crate speaks 4–18. This is
         // not MinBytes / MaxBytes / ShareFetch MaxWaitMs.
         let topics = vec![FetchTopic {
             topic: "t".into(),
@@ -2548,7 +2691,7 @@ mod tests {
         // Kafka 4.0 FetchRequest.json MinBytes is versions 0+ (INT32 after
         // MaxWaitMs). Official Java FetchRequest.minBytes reads it. Encode
         // already takes min_bytes; decode previously discarded it. This
-        // crate speaks 4–17. This is not MaxBytes / MaxWaitMs / ShareFetch
+        // crate speaks 4–18. This is not MaxBytes / MaxWaitMs / ShareFetch
         // MinBytes.
         let topics = vec![FetchTopic {
             topic: "t".into(),
@@ -3034,7 +3177,7 @@ mod tests {
         // Java 4.0 FetchResponse.of: toMessage(error, throttleTimeMs,
         // sessionId, iterator, empty). Official Java FetchResponse.of
         // (empty NodeEndpoints). Convenience encode still writes throttle
-        // 0, ErrorCode 0, SessionId INVALID. This crate speaks 4-17. This
+        // 0, ErrorCode 0, SessionId INVALID. This crate speaks 4-18. This
         // is not toMessage leftover / sizeOf leftover / with_throttle
         // leftover / with_endpoints leftover / Request.getErrorResponse
         // leftover.
@@ -3864,7 +4007,7 @@ mod tests {
         // Topics are the caller's values. Replica epoch lives on Java
         // ReplicaState (v15+ tagged field 1); this crate does not write
         // that field. Encode still writes ReplicaId independently on
-        // v4-v14. This crate speaks 4-17. This is not forConsumer /
+        // v4-v14. This crate speaks 4-18. This is not forConsumer /
         // forgotten_from_removed / topics_from_fetch_data / replicaId
         // encode / ListOffsets forReplica.
         let (oldest, latest, replica_id, replica_epoch) = FetchRequest::for_replica(17, 7, 3);
@@ -3911,7 +4054,7 @@ mod tests {
         // is this helper with oldest 4, ReplicaId CONSUMER_REPLICA_ID,
         // ReplicaEpoch -1. forReplica is this helper with min=max.
         // Encode still writes ReplicaId independently of this Builder
-        // range. This crate speaks 4-17. This is not forConsumer /
+        // range. This crate speaks 4-18. This is not forConsumer /
         // forReplica / SimpleBuilder.build / replica_for_build /
         // forgotten_from_removed / topics_from_fetch_data.
         let (oldest, latest, replica_id, replica_epoch) = FetchRequest::builder(4, 17, 7, 3);
@@ -4038,7 +4181,7 @@ mod tests {
         // INVALID_LOG_START_OFFSET; below v9 omits CurrentLeaderEpoch;
         // decode fills NO_PARTITION_LEADER_EPOCH; below v12 omits
         // LastFetchedEpoch; decode fills NO_PARTITION_LEADER_EPOCH). This
-        // crate speaks 4-17. This is not fetch_data /
+        // crate speaks 4-18. This is not fetch_data /
         // topics_from_fetch_data / ReplicaDirectoryId / replicaId encode.
         let none = FetchPartition::partition_data(0, 0, INVALID_LOG_START_OFFSET, 1, None, None);
         assert_eq!(none.partition, 0);
@@ -4379,7 +4522,7 @@ mod tests {
         // replicaEpoch. Official Java FetchRequest.Builder.build.
         // MaxBytes below v3 is DEFAULT_RESPONSE_MAX_BYTES (crate speaks
         // v4+). Encode still writes untagged ReplicaId on v4-v14 and
-        // omits ReplicaState on v15+. This crate speaks 4-17. This is
+        // omits ReplicaState on v15+. This crate speaks 4-18. This is
         // not replicaId() / replicaId(data) / SimpleBuilder.build /
         // forConsumer / forReplica.
         assert_eq!(
@@ -4504,7 +4647,7 @@ mod tests {
         // ReplicaState on v15+ and untagged ReplicaId below v15. Encode
         // previously omitted the tag even when ReplicaId was not -1.
         // encode_fetch_request_with_replica_id still omits ReplicaState.
-        // This crate speaks 4-17. This is not ClusterId tagged field 0 /
+        // This crate speaks 4-18. This is not ClusterId tagged field 0 /
         // partition ReplicaDirectoryId / replicaId() / forReplica leftover.
         let replica_id = 7;
         let replica_epoch = 3i64;
@@ -4664,7 +4807,7 @@ mod tests {
         // field 0 (nullable compact STRING, default null, ignorable).
         // Official Java FetchRequestData.clusterId. Consumers omit it.
         // encode_fetch_request and encode_fetch_request_with_replica_state
-        // still omit ClusterId. This crate speaks 4-17. This is not
+        // still omit ClusterId. This crate speaks 4-18. This is not
         // ReplicaState tagged field 1 / partition ReplicaDirectoryId /
         // replicaId encode leftover.
         let replica_id = 7;
@@ -4886,7 +5029,7 @@ mod tests {
         // partition tagged field 0 (UUID, default zeros, ignorable).
         // Official Java FetchRequestData.FetchPartition.replicaDirectoryId
         // (KIP-853). Consumers omit the tag. Below v17 encode omits even
-        // when non-zero; decode fills zeros. This crate speaks 4-17. This
+        // when non-zero; decode fills zeros. This crate speaks 4-18. This
         // is not ClusterId tagged field 0 / ReplicaState tagged field 1 /
         // response DivergingEpoch tagged field 0.
         let directory = [9u8; 16];
@@ -5132,7 +5275,7 @@ mod tests {
         // and v7+ ErrorCode / SessionId. NodeEndpoints stay empty.
         // Official Java FetchRequest.getErrorResponse. Convenience encode
         // still writes throttle 0, ErrorCode 0, SessionId INVALID.
-        // This crate speaks 4–17. This is not error_response leftover /
+        // This crate speaks 4–18. This is not error_response leftover /
         // with_throttle leftover / with_endpoints leftover / ErrorCode
         // leftover / SessionId leftover / ThrottleTimeMs leftover.
         let topic = FetchTopic {
@@ -5323,7 +5466,7 @@ mod tests {
     #[test]
     fn fetch_response_throttle_time_ms_matches_java() {
         // Kafka 4.0.0 FetchResponse.json ThrottleTimeMs is versions 1+
-        // (INT32 first field; ignorable). Crate speaks 4–17 so the field
+        // (INT32 first field; ignorable). Crate speaks 4–18 so the field
         // is on the wire for every spoken version. Official Java
         // FetchRequest.getErrorResponse sets throttleTimeMs from the
         // argument. encode_fetch_response still writes 0.
@@ -6382,8 +6525,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v18+ (HighWatermark) is not spoken"
+            encode_fetch_request(&mut req, 19, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v19+ is not spoken"
         );
     }
 
@@ -6510,8 +6653,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v18+ (HighWatermark) is not spoken"
+            encode_fetch_request(&mut req, 19, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v19+ is not spoken"
         );
     }
 
@@ -6653,8 +6796,8 @@ mod tests {
         );
         req.clear();
         assert!(
-            encode_fetch_request(&mut req, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v18+ (HighWatermark) is not spoken"
+            encode_fetch_request(&mut req, 19, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v19+ is not spoken"
         );
     }
 
@@ -6770,8 +6913,8 @@ mod tests {
         );
         v16.clear();
         assert!(
-            encode_fetch_request(&mut v16, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v18+ (HighWatermark) is not spoken"
+            encode_fetch_request(&mut v16, 19, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v19+ is not spoken"
         );
     }
 
@@ -7205,8 +7348,8 @@ mod tests {
         );
         v17.clear();
         assert!(
-            encode_fetch_request(&mut v17, 18, 10, 1, 1024, 0, &req_topics, None).is_err(),
-            "Fetch v18+ (HighWatermark) is not spoken"
+            encode_fetch_request(&mut v17, 19, 10, 1, 1024, 0, &req_topics, None).is_err(),
+            "Fetch v19+ is not spoken"
         );
     }
 }

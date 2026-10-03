@@ -172,7 +172,7 @@ peer tests cover broker isolation, in-flight acknowledgements, reconnection,
 version boundaries, expiry and shutdown; no live quota deployment is claimed.
 Admin and heartbeat/group quota scheduling remain separate qualifications.
 
-Fetch quota scheduling supports negotiated v8–v17 per broker with per-response
+Fetch quota scheduling supports negotiated v8–v18 per broker with per-response
 completion clocks; v4–v7 retain server throttling. Other brokers and buffered
 records continue delivering while a peer is muted. All-muted waits share the
 poll long-poll and original request budgets and accept wakeup/caller cancellation.
@@ -182,10 +182,17 @@ buffer cap, deadline expiry, cancellation and idle reconnection. The Apache Java
 4.3.1 scheduling reference is executed independently; no live quota deployment
 or throughput improvement is claimed.
 
-Incremental Fetch runtime support covers broker-local v7–v17 sessions and v4–v6
+Incremental Fetch runtime support covers broker-local v7–v18 sessions and v4–v6
 full fallback, partition/identity validation, bounded session-error recovery,
 assignment and topic-ID changes, and terminal close. Tests and the strict
 32-partition live runner cover a named reconnect reset with 65 exact Rust/Java
 records. The Apache 4.3.1 handler independently executes 80 state transitions.
 Request-byte reduction is measured; no throughput, latency or sustained broker
 fault campaign result is claimed.
+
+Fetch18 KIP-1166 is implemented with explicit replica HighWatermark sidecars,
+strict known-tag lengths and default omission by ordinary consumers. Existing
+public partition layouts and helper signatures are preserved. Apache4.1.0 and
+4.1.2/4.2.1/4.3.1 independently serialize the same request bytes; named A01–A05
+regressions run at the observed18 version. Replica acknowledgment and quorum
+commit behavior are outside this client codec.

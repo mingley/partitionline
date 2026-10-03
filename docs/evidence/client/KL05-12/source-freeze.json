@@ -1,0 +1,18 @@
+{
+  "base_source_sha": "04986a07830a2e10f11946b3bd62c3359f462d90",
+  "files": {
+    "src/protocol/fetch.rs": "c2135201b0ed16fb52327bfc204acd621a162043e898ab72b4ceb31da7faf6ed",
+    "src/consumer.rs": "65671d05e822b39882f601df8b6cf22ef244eff1ee6432269577f9b0a351343a",
+    "src/net.rs": "0f8226208deeb350ab2a81ba17f819cc42fa2f577237a300ae902c7bbcb5339a",
+    "tests/protocol_oracles.rs": "8d93745cbec0515561a4881377cdacdcd3319c3c4fd46abef3914f90c992f317",
+    "tests/consumer_fetch_semantics.rs": "01664988d5f31db1a09a06f79e0eecafd05b99a01163c11d22cbafab65d47c90",
+    "tests/consumer_close_commit.rs": "cc0d055e8281a04f599c6c07115bdf7a45c25c44d95fc7d98bbe4928e8df8e88",
+    "tests/common/fetch_fixture.rs": "778660e3be001d8caa38f89e7d6d4bd0d97f1dbdf2061cea6e6692168edc1e42",
+    "scripts/check-protocol-coverage.py": "2f8b72e7acb6178c8eb1755f17e3e755df4283b10496d4ca8daef7567b660968",
+    "tests/conformance/test_check_protocol_coverage.py": "45edf24484d2812a4f2dc486e64a644b509461df81d6d81e189c9d853723914c",
+    "tests/conformance/java/FetchV18Fixtures.java": "3c4fa1354671d32ba3dc12b7001f19794be556f20f86dd2c72be13b955d8e173",
+    "tests/conformance/java/generate_fetch_v18.py": "07f226b011aec81ff845e9bedafe6d2428492041bbe937e3860bf1d4c4487d41"
+  },
+  "status": "source_frozen_full_immutable_qualification_pending",
+  "scope": "Fetch18 explicit KIP1166 codec and ordinary consumer per-peer negotiation; compatibility/sessions/delivery/commit regressions. No replication acknowledgment implementation or speed claim."
+}

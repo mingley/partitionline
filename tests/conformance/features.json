@@ -264,10 +264,10 @@
     "id": "manual_consumer.v18_wire",
     "profile": "manual consumer",
     "layer": "wire_helper",
-    "disposition": "missing",
-    "entrypoint": "none",
-    "evidence": "docs/ROADMAP.md:KL-05",
-    "notes": "Fetch v18 wire delta is not implemented; tracked in KL05-12."
+    "disposition": "present",
+    "entrypoint": "partitionline::protocol::fetch::encode_fetch_request_with_replica_high_watermarks",
+    "evidence": "tests/protocol_oracles.rs:fetch_v18_apache_high_watermarks_and_lower_version_fallbacks",
+    "notes": "KL05-12 implements KIP-1166 partition HighWatermark tag1 with i64MAX omission/default and unknown-1; existing consumer APIs omit the tag. Broker-local consumer negotiation includes18; explicit replica sidecar preserves FetchPartition layout. This codec does not implement follower acknowledgment/quorum commit semantics."
   },
   {
     "id": "manual_consumer.incremental_fetch_wire",
@@ -285,7 +285,7 @@
     "disposition": "present",
     "entrypoint": "partitionline::Consumer::fetch",
     "evidence": "tests/consumer_fetch_semantics.rs",
-    "notes": "KL05-06/07 implement broker-local v7-v17 sessions, v4-v6 full fallback, full/incremental response validation, bounded session-error recovery and terminal close. Tests cover peer retries, cancellation/wakeup, broker cache loss, leader movement and topic recreation. The strict 32-partition live runner observes one reconnect reset and compares 65 records with pinned Apache Java; the separate Apache 4.3.1 handler executes 80 reference transitions. This runtime disposition is not a full profile or long-running fault campaign qualification."
+    "notes": "KL05-06/07 implement broker-local v7-v18 sessions, v4-v6 full fallback, full/incremental response validation, bounded session-error recovery and terminal close. Tests cover peer retries, cancellation/wakeup, broker cache loss, leader movement and topic recreation. The strict 32-partition live runner observes one reconnect reset and compares 65 records with pinned Apache Java; the separate Apache 4.3.1 handler executes 80 reference transitions. This runtime disposition is not a full profile or long-running fault campaign qualification. KL05-12 replays session, UUID, mixed-peer and A01-A05 regressions at negotiated18."
   },
   {
     "id": "manual_consumer.offset_for_leader_epoch",

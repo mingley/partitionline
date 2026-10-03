@@ -1,0 +1,154 @@
+   Compiling libc v0.2.189
+   Compiling cfg-if v1.0.4
+   Compiling find-msvc-tools v0.1.11
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.4
+   Compiling typenum v1.20.1
+   Compiling proc-macro2 v1.0.107
+   Compiling hybrid-array v0.4.14
+   Compiling ring v0.17.14
+   Compiling unicode-ident v1.0.24
+   Compiling quote v1.0.47
+   Compiling cmov v0.5.4
+   Compiling zeroize v1.9.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling ctutils v0.4.2
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling getrandom v0.2.17
+   Compiling untrusted v0.9.0
+   Compiling semver v1.0.28
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.4
+   Compiling errno v0.3.14
+   Compiling parking_lot_core v0.9.12
+   Compiling rustls v0.23.45
+   Compiling crc32fast v1.5.1
+   Compiling signal-hook-registry v1.4.8
+   Compiling tokio-macros v2.7.2
+   Compiling rustls-webpki v0.103.15
+   Compiling crc32c v0.6.8
+   Compiling mio v1.2.2
+   Compiling socket2 v0.6.5
+   Compiling smallvec v1.15.2
+   Compiling subtle v2.6.1
+   Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
+   Compiling scopeguard v1.2.0
+   Compiling once_cell v1.21.4
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling getrandom v0.4.3
+   Compiling snap v1.1.2
+   Compiling tokio v1.53.1
+   Compiling lock_api v0.4.14
+   Compiling miniz_oxide v0.9.1
+   Compiling hmac v0.13.0
+   Compiling cpufeatures v0.3.1
+   Compiling twox-hash v2.1.2
+   Compiling zlib-rs v0.6.8
+   Compiling flate2 v1.1.10
+   Compiling lz4_flex v0.14.0
+   Compiling sha2 v0.11.0
+   Compiling pbkdf2 v0.13.0
+   Compiling parking_lot v0.12.5
+   Compiling tokio-rustls v0.26.5
+   Compiling webpki-roots v1.0.9
+   Compiling base64 v0.23.1
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+    Finished `test` profile [unoptimized] target(s) in 44.54s
+     Running unittests src/lib.rs (/workspace/work/target-fetch-v18/debug/deps/partitionline-af37b16a5d920fc8)
+
+running 56 tests
+test protocol::fetch::tests::decode_fetch_response_keeps_log_start_on_offset_out_of_range ... ok
+test protocol::fetch::tests::fetch_error_code_session_id_matches_java ... ok
+test protocol::fetch::tests::decode_fetch_response_from_bytes_shares_record_value ... ok
+test protocol::fetch::tests::decode_fetch_response_uses_record_batch_decoder_on_partition_bytes ... ok
+test protocol::fetch::tests::fetch_metadata_matches_java ... ok
+test protocol::fetch::tests::fetch_json_version_gates_match_java ... ok
+test protocol::fetch::tests::fetch_request_encode_error_response_matches_java ... ok
+test protocol::fetch::tests::fetch_request_builder_matches_java ... ok
+test protocol::fetch::tests::fetch_request_cluster_id_matches_java ... ok
+test protocol::fetch::tests::fetch_partition_data_matches_java ... ok
+test protocol::fetch::tests::fetch_request_error_response_matches_java ... ok
+test protocol::fetch::tests::fetch_request_fetch_data_matches_java ... ok
+test protocol::fetch::tests::fetch_request_for_consumer_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_matches_java ... ok
+test protocol::fetch::tests::fetch_request_for_replica_matches_java ... ok
+test protocol::fetch::tests::fetch_request_log_start_offset_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_topics_matches_java ... ok
+test protocol::fetch::tests::fetch_request_forgotten_from_removed_matches_java ... ok
+test protocol::fetch::tests::fetch_request_max_wait_ms_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_directory_id_matches_java ... ok
+test protocol::fetch::tests::fetch_request_min_bytes_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_for_build_matches_java ... ok
+test protocol::fetch::tests::fetch_request_rack_id_is_empty_string_not_null ... ok
+test protocol::fetch::tests::fetch_request_replica_id_matches_java ... ok
+test protocol::fetch::tests::fetch_request_replica_id_sentinels_match_java ... ok
+test protocol::fetch::tests::fetch_request_sends_current_leader_epoch ... ok
+test protocol::fetch::tests::fetch_request_replica_state_matches_java ... ok
+test protocol::fetch::tests::fetch_request_sends_rack_id ... ok
+test protocol::fetch::tests::fetch_request_session_matches_java ... ok
+test protocol::fetch::tests::fetch_request_simple_builder_build_matches_java ... ok
+test protocol::fetch::tests::fetch_request_topics_from_fetch_data_matches_java ... ok
+test protocol::fetch::tests::fetch_response_error_counts_matches_java ... ok
+test protocol::fetch::tests::fetch_response_of_matches_java ... ok
+test protocol::fetch::tests::fetch_response_of_with_endpoints_matches_java ... ok
+test protocol::fetch::tests::fetch_response_preserves_aborted_transactions ... ok
+test protocol::fetch::tests::fetch_response_records_size_matches_java ... ok
+test protocol::fetch::tests::fetch_response_response_data_matches_java ... ok
+test protocol::fetch::tests::fetch_response_throttle_time_ms_matches_java ... ok
+test protocol::fetch::tests::fetch_response_size_of_matches_java ... ok
+test protocol::fetch::tests::fetch_response_to_message_matches_java ... ok
+test protocol::fetch::tests::fetch_response_snapshot_id_matches_java ... ok
+test protocol::fetch::tests::fetch_response_topic_ids_matches_java ... ok
+test protocol::fetch::tests::fetch_v11_roundtrip ... ok
+test protocol::fetch::tests::fetch_v14_forgotten_topic_id_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v14_request_matches_topic_id_layout ... ok
+test protocol::fetch::tests::fetch_v12_request_matches_compact_layout ... ok
+test protocol::fetch::tests::fetch_v15_request_omits_untagged_replica_id ... ok
+test protocol::fetch::tests::fetch_v16_current_leader_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty ... FAILED
+test protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty ... FAILED
+test protocol::fetch::tests::fetch_v16_diverging_epoch_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty ... FAILED
+test protocol::fetch::tests::fetch_v16_node_endpoints_tagged_is_leftover_empty ... ok
+test protocol::fetch::tests::fetched_partition_invalid_sentinels_match_java ... ok
+test protocol::fetch::tests::fetch_v17_roundtrip_matches_v16 ... ok
+test protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty ... FAILED
+
+failures:
+
+---- protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty stdout ----
+
+thread 'protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty' (324382) panicked at src/protocol/fetch.rs:6798:9:
+Fetch v19+ is not spoken
+
+---- protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty stdout ----
+
+thread 'protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty' (324380) panicked at src/protocol/fetch.rs:6655:9:
+Fetch v19+ is not spoken
+
+---- protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty stdout ----
+
+thread 'protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty' (324377) panicked at src/protocol/fetch.rs:6527:9:
+Fetch v19+ is not spoken
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty stdout ----
+
+thread 'protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty' (324386) panicked at src/protocol/fetch.rs:6915:9:
+Fetch v19+ is not spoken
+
+
+failures:
+    protocol::fetch::tests::fetch_v12_roundtrip_is_leftover_empty
+    protocol::fetch::tests::fetch_v14_roundtrip_is_leftover_empty
+    protocol::fetch::tests::fetch_v15_roundtrip_is_leftover_empty
+    protocol::fetch::tests::fetch_v16_roundtrip_is_leftover_empty
+
+test result: FAILED. 52 passed; 4 failed; 0 ignored; 0 measured; 1044 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

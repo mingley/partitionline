@@ -1,0 +1,10 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+error: unused result of type `std::vec::Splice<'_, std::array::IntoIter<u8, 10>>`
+   --> tests/protocol_oracles.rs:356:5
+    |
+356 |     duplicate.splice(at + needle.len()..at + needle.len(), needle);
+    |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: requested on the command line with `-D unused-results`
+
+error: could not compile `partitionline` (test "protocol_oracles") due to 1 previous error

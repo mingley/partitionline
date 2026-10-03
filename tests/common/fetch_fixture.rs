@@ -162,11 +162,17 @@ pub struct FixtureBroker {
     task: Option<JoinHandle<()>>,
     active_conns: Arc<AtomicUsize>,
     attempts: Arc<AtomicUsize>,
+    last_fetch_version: Arc<AtomicUsize>,
 }
 
 impl FixtureBroker {
     /// Start a new fixture broker bound to `127.0.0.1:0` running the given scenario.
     pub async fn start(scenario: Scenario) -> Self {
+        Self::start_with_version(scenario, 12).await
+    }
+
+    /// Run the same batches and assertions at an explicitly advertised version.
+    pub async fn start_with_version(scenario: Scenario, fetch_max_version: i16) -> Self {
         let partition_count = if matches!(scenario, Scenario::PartialRetry) {
             2
         } else {
@@ -176,6 +182,7 @@ impl FixtureBroker {
             "t",
             partition_count,
             Arc::new(move |topics, attempt| build_fetch_response(scenario, topics, attempt)),
+            fetch_max_version,
         )
         .await
     }
@@ -185,13 +192,14 @@ impl FixtureBroker {
     where
         F: Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync + 'static,
     {
-        Self::start_internal(topic, partition_count, Arc::new(handler)).await
+        Self::start_internal(topic, partition_count, Arc::new(handler), 12).await
     }
 
     async fn start_internal(
         topic: &str,
         partition_count: usize,
         fetch_handler: Arc<dyn Fn(&[FetchTopic], usize) -> Vec<FetchedTopic> + Send + Sync>,
+        fetch_max_version: i16,
     ) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0")
             .await
@@ -200,12 +208,14 @@ impl FixtureBroker {
         let port = address.port();
         let addr = address.to_string();
         let attempts = Arc::new(AtomicUsize::new(0));
+        let last_fetch_version = Arc::new(AtomicUsize::new(0));
         let active_conns = Arc::new(AtomicUsize::new(0));
         let (shutdown_tx, mut shutdown_rx) = oneshot::channel();
 
         let topic_name = topic.to_string();
         let active_conns_outer = Arc::clone(&active_conns);
         let attempts_outer = Arc::clone(&attempts);
+        let last_fetch_version_outer = Arc::clone(&last_fetch_version);
 
         let task = tokio::spawn(async move {
             let mut connections = JoinSet::new();
@@ -223,6 +233,7 @@ impl FixtureBroker {
                         let _ = active_conns_outer.fetch_add(1, Ordering::SeqCst);
                         let active_conns_inner = Arc::clone(&active_conns_outer);
                         let attempts = Arc::clone(&attempts_outer);
+                        let last_fetch_version = Arc::clone(&last_fetch_version_outer);
                         let handler = Arc::clone(&fetch_handler);
                         let topic_name = topic_name.clone();
                         let partition_count = partition_count;
@@ -272,7 +283,8 @@ impl FixtureBroker {
                                 }
                                 match header.api_key {
                                     API_VERSIONS => {
-                                        let api_keys = [(API_VERSIONS, 0, 4), (METADATA, 1, 9), (FETCH, 4, 12)]
+                                        let metadata_max = if fetch_max_version >= 13 { 13 } else { 9 };
+                                        let api_keys = [(API_VERSIONS, 0, 4), (METADATA, 1, metadata_max), (FETCH, 4, fetch_max_version)]
                                             .into_iter()
                                             .map(|(api_key, min_version, max_version)| ApiVersion {
                                                 api_key,
@@ -303,12 +315,14 @@ impl FixtureBroker {
                                                 Vec::new(),
                                             ))
                                             .collect();
+                                        let mut topic = TopicMetadata::new(0, &topic_name, false, partitions);
+                                        topic.topic_id = [1; 16];
                                         let metadata = MetadataResponse {
                                             throttle_time_ms: 0,
                                             brokers: vec![Broker::new(0, "127.0.0.1", i32::from(address.port()), None)],
                                             cluster_id: Some("fetch-fixture".into()),
                                             controller_id: 0,
-                                            topics: vec![TopicMetadata::new(0, &topic_name, false, partitions)],
+                                            topics: vec![topic],
                                             cluster_authorized_operations: i32::MIN,
                                             error_code: 0,
                                         };
@@ -317,6 +331,7 @@ impl FixtureBroker {
                                         }
                                     }
                                     FETCH => {
+                                        last_fetch_version.store(usize::try_from(header.api_version).expect("nonnegative Fetch version"), Ordering::SeqCst);
                                         let (_, _, topics, ..) = match decode_fetch_request(&mut request, header.api_version) {
                                             Ok(decoded) => decoded,
                                             Err(_) => return,
@@ -358,6 +373,7 @@ impl FixtureBroker {
             task: Some(task),
             active_conns,
             attempts,
+            last_fetch_version,
         }
     }
 
@@ -374,6 +390,13 @@ impl FixtureBroker {
     /// Number of fetch attempts processed.
     pub fn attempt_count(&self) -> usize {
         self.attempts.load(Ordering::SeqCst)
+    }
+
+    /// Fetch version observed on the actual socket, rather than a test setting.
+    pub fn last_fetch_version(&self) -> Option<i16> {
+        i16::try_from(self.last_fetch_version.load(Ordering::SeqCst))
+            .ok()
+            .filter(|v| *v != 0)
     }
 
     /// Number of currently active connection tasks.

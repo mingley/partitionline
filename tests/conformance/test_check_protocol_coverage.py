@@ -205,7 +205,7 @@ class TestProtocolCoverageChecker(unittest.TestCase):
         self.assertEqual(len(version_gaps), 38)
         # Check key expected version gaps
         self.assertTrue(any(g["api_key"] == 0 and g["version"] == 13 for g in version_gaps))  # Produce v13 vs Apache3.9.1 max11
-        self.assertTrue(any(g["api_key"] == 1 and g["version"] == 18 for g in version_gaps))  # Fetch v18
+        self.assertFalse(any(g["api_key"] == 1 and g["version"] == 18 and g.get("direction") == "upstream_cap" for g in version_gaps))  # Fetch18 is implemented; old peer difference stays classified
         self.assertFalse(any(g["api_key"] == 2 and g["version"] == 11 for g in version_gaps))  # ListOffsets v11 implemented
         self.assertTrue(any(g["api_key"] == 78 and g["version"] == 2 for g in version_gaps)) # ShareFetch v2
         self.assertFalse(any(g["api_key"] == 35 and g["version"] == 5 for g in version_gaps)) # DescribeLogDirs v5 implemented

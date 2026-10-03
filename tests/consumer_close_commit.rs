@@ -360,50 +360,54 @@ async fn unsubscribe_with_auto_commit_does_not_commit_positions() {
 
 #[tokio::test]
 async fn commit_after_capped_poll_must_not_commit_buffered_records() {
-    let mock = common::Mock::start().await;
-    let producer =
-        Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+    for version in [17, 18] {
+        let mock = common::Mock::start().await;
+        mock.set_node_api_max(1, partitionline::protocol::api_keys::FETCH, version);
+        let producer =
+            Producer::new(ProducerConfig::bootstrap([mock.addr.clone()]).linger(Duration::ZERO))
+                .await
+                .unwrap();
+        let _ = producer
+            .send_all([
+                ProduceRecord::to("t").value(&b"a"[..]),
+                ProduceRecord::to("t").value(&b"b"[..]),
+                ProduceRecord::to("t").value(&b"c"[..]),
+            ])
             .await
             .unwrap();
-    let _ = producer
-        .send_all([
-            ProduceRecord::to("t").value(&b"a"[..]),
-            ProduceRecord::to("t").value(&b"b"[..]),
-            ProduceRecord::to("t").value(&b"c"[..]),
-        ])
+        producer.close().await.unwrap();
+
+        let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
+        cfg.max_poll_records = Some(1);
+        let mut group = ConsumerGroup::join(cfg, "audit-capped-poll", "t")
+            .await
+            .unwrap();
+        let first = group.poll().await.unwrap();
+        assert_eq!(
+            first.iter().map(|record| record.offset).collect::<Vec<_>>(),
+            vec![0]
+        );
+        assert_eq!(mock.last_fetch_version_for_node(1), Some(version));
+        group.commit().await.unwrap();
+        group.leave().await.unwrap();
+
+        let mut replacement = ConsumerGroup::join(
+            ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
+            "audit-capped-poll",
+            "t",
+        )
         .await
         .unwrap();
-    producer.close().await.unwrap();
-
-    let mut cfg = ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false);
-    cfg.max_poll_records = Some(1);
-    let mut group = ConsumerGroup::join(cfg, "audit-capped-poll", "t")
-        .await
-        .unwrap();
-    let first = group.poll().await.unwrap();
-    assert_eq!(
-        first.iter().map(|record| record.offset).collect::<Vec<_>>(),
-        vec![0]
-    );
-    group.commit().await.unwrap();
-    group.leave().await.unwrap();
-
-    let mut replacement = ConsumerGroup::join(
-        ConsumerConfig::bootstrap([mock.addr.clone()]).auto_commit(false),
-        "audit-capped-poll",
-        "t",
-    )
-    .await
-    .unwrap();
-    let remaining = replacement.poll().await.unwrap();
-    replacement.leave().await.unwrap();
-    assert_eq!(
-        remaining
-            .iter()
-            .map(|record| record.offset)
-            .collect::<Vec<_>>(),
-        vec![1, 2]
-    );
+        let remaining = replacement.poll().await.unwrap();
+        replacement.leave().await.unwrap();
+        assert_eq!(
+            remaining
+                .iter()
+                .map(|record| record.offset)
+                .collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+    }
 }
 
 #[tokio::test]

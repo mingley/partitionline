@@ -123,7 +123,7 @@ PINNED_APACHE_APIS: Dict[int, Dict[str, Any]] = {
 # Client spoken version ranges in partitionline
 CLIENT_SPOKEN_VERSIONS: Dict[int, List[int]] = {
     0: list(range(3, 14)),   # Produce: 3-13
-    1: list(range(4, 18)),   # Fetch: 4-17
+    1: list(range(4, 19)),   # Fetch: 4-18
     2: list(range(1, 12)),   # ListOffsets: 1-11
     3: list(range(1, 14)),   # Metadata: 1-13
     8: list(range(2, 10)),   # OffsetCommit: 2-9
@@ -253,7 +253,8 @@ CLASSIFIED_VERSION_GAPS: Dict[Tuple[int, int], Dict[str, Any]] = {
     (1, 1): {"pin": "3.9.1", "direction": "pin_only", "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"},
     (1, 2): {"pin": "3.9.1", "direction": "pin_only", "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"},
     (1, 3): {"pin": "3.9.1", "direction": "pin_only", "reason": "Fetch v0-v3 legacy format removed in Kafka 4.0; client starts at v4"},
-    (1, 18): {"pin": "4.1.0+", "direction": "upstream_cap", "reason": "Fetch v18 adds HighWatermark (KIP-1166); client capped at v17 (manual_consumer.v18_wire missing in features.json, cases.json)"},
+
+    (1, 18): {"pin": "3.9.1", "direction": "client_only", "reason": "Fetch18 HighWatermark (KIP-1166) is implemented against Apache4.1 and current SDKs; Apache3.9.1 supports through17."},
 
     # ListOffsets (2)
     (2, 0): {"pin": "3.9.1", "direction": "pin_only", "reason": "ListOffsets v0 legacy format removed in Kafka 4.0; client starts at v1"},

@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "task": "KL05-12",
+  "status": "in_progress",
+  "source_sha": null,
+  "source_freeze": "docs/evidence/client/KL05-12/source-freeze.json",
+  "commands": [
+    "Focused stable3integration suites after nullable empty-record correction: [('17', '0', '0'), ('62', '0', '1'), ('36', '0', '1')]",
+    "Fetchunit56passed",
+    "Strict focused allfeatures secondattempt0",
+    "Four SDK authenticgenerator+Rust-body decoder all0"
+  ],
+  "results": {
+    "authentic_apache_fixtures": "30 bodies; Apache4.1.0 and three current4.1.2/4.2.1/4.3.1 regenerate unchanged",
+    "actual_java_parses_rust": "fourrequest/responsepairs eachSDK, all0",
+    "full_exact_source_matrix": "pending",
+    "independent_read_only_review": "zstd_decision WORK production hashes no blocker; exactsource binding pending"
+  },
+  "limits": [
+    "Existingignoredlive tests remain separately qualified; full production/globalperformance claims remain open.",
+    "ExistingRustemptyVec records encodesnullable null; ApachefixtureEMPTY encodesnonnull zero-length. Both parsed independently with equal required fields; source unchanged.",
+    "No follower acknowledgment or quorum-commit runtime in this clientcodec."
+  ]
+}

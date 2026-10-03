@@ -7,6 +7,12 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
 
 ## [Unreleased]
 
+- Consumer negotiates Fetch18 per broker. KIP-1166 HighWatermark tag1 is
+  supported through added replica sidecar helpers while ordinary consumers omit
+  its default; existing `FetchPartition` and encoder/decoder signatures remain.
+  Lower-version fallbacks, sessions and maintained delivery/commit regressions
+  retain coverage. This codec adds no follower acknowledgment behavior (KL05-12).
+
 - Producer supports Produce v13 using nonzero Metadata topic IDs and maps replies
   through the identity snapshot sent with each request. Stale IDs refresh and
   retry within the original delivery deadline; v3–v12 fallback remains available.
@@ -23,7 +29,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   Framing, CRC and codec errors still fail the whole fetch; errors found only
   while decompressing now surface when that batch is applied (KL10-16).
 
-- Consumer uses broker-local incremental Fetch sessions on v7–v17, retaining
+- Consumer uses broker-local incremental Fetch sessions on v7–v18, retaining
   full v4–v6 fallback, changed/forgotten partitions and independent epochs.
   Session errors retry within the original deadline, response identities and
   partition sets are validated before records are applied, and topic recreation
@@ -31,7 +37,7 @@ and this project adheres to the 0.x policy in [`docs/RELEASE.md`](docs/RELEASE.m
   budget; wakeup notifications no longer leak into a later fetch. Request-byte
   reduction is measured against Apache serialization; no throughput gain is claimed.
 
-- Consumer honors Fetch v8–v17 broker quotas while delivering from eligible peers
+- Consumer honors Fetch v8–v18 broker quotas while delivering from eligible peers
   and buffered records. Quota waits retain poll/request budgets and accept wakeup
   and caller cancellation; cancelling a one-shot poll preserves later settings.
   `ConsumerMetrics` adds `throttle` (`metrics::ThrottleStats`); exhaustive struct

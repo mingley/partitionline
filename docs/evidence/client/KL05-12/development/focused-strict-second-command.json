@@ -1,0 +1,23 @@
+[
+  "taskset",
+  "-c",
+  "0-2,4",
+  "cargo",
+  "+stable",
+  "clippy",
+  "--offline",
+  "--locked",
+  "--lib",
+  "--test",
+  "protocol_oracles",
+  "--test",
+  "consumer_fetch_semantics",
+  "--test",
+  "consumer_close_commit",
+  "--all-features",
+  "--jobs",
+  "1",
+  "--",
+  "-D",
+  "warnings"
+]

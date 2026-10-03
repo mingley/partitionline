@@ -1,0 +1,34 @@
+{
+  "apache_client_version": "4.1.0",
+  "source_commit_sha": "13f70256db3c994c590e5d262a7cc50b9e973204",
+  "jar_sha256": "180c9228a9ee3ccce6c1dffefe4808c8d74e3b7b1f9e2639aea9a60adc37f2cb",
+  "slf4j_jar_sha256": "d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0",
+  "generator_sha256": "40ef83b903299aa3544b03713a0a0226856c34194e7865ab7d9f6829aa5e409b",
+  "exit_codes": {
+    "java-version": 0,
+    "compile": 2
+  },
+  "commands": {
+    "java-version": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "-version"
+    ],
+    "compile": [
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin/java",
+      "--add-modules",
+      "jdk.compiler",
+      "com.sun.tools.javac.Main",
+      "--release",
+      "21",
+      "-Xlint:all",
+      "-Werror",
+      "-cp",
+      "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "-d",
+      "/workspace/work/fetch-v18/java-4.1.0-first",
+      "/workspace/work/fetch-v18/java-4.1.0-first/FetchV18Fixtures.java"
+    ]
+  },
+  "mode": "generate",
+  "compiled_source_sha256": "40ef83b903299aa3544b03713a0a0226856c34194e7865ab7d9f6829aa5e409b"
+}

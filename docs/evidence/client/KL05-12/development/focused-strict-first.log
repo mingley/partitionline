@@ -1,0 +1,239 @@
+    Checking libc v0.2.189
+    Checking cfg-if v1.0.4
+    Checking typenum v1.20.1
+    Checking hybrid-array v0.4.14
+    Checking zeroize v1.9.0
+    Checking cmov v0.5.4
+    Checking ctutils v0.4.2
+    Checking rustls-pki-types v1.15.1
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking getrandom v0.2.17
+    Checking once_cell v1.21.4
+    Checking untrusted v0.9.0
+    Checking const-oid v0.10.2
+    Checking digest v0.11.3
+    Checking ring v0.17.14
+    Checking errno v0.3.14
+    Checking pin-project-lite v0.2.17
+    Checking signal-hook-registry v1.4.8
+    Checking rustls-webpki v0.103.15
+   Compiling syn v2.0.119
+    Checking socket2 v0.6.5
+    Checking mio v1.2.2
+    Checking simd-adler32 v0.3.10
+    Checking adler2 v2.0.1
+    Checking scopeguard v1.2.0
+    Checking subtle v2.6.1
+    Checking bytes v1.12.1
+    Checking smallvec v1.15.2
+    Checking parking_lot_core v0.9.12
+    Checking tokio v1.53.1
+    Checking rustls v0.23.45
+    Checking lock_api v0.4.14
+    Checking miniz_oxide v0.9.1
+   Compiling tracing-attributes v0.1.31
+    Checking crc32fast v1.5.1
+    Checking hmac v0.13.0
+    Checking tracing-core v0.1.36
+    Checking zlib-rs v0.6.8
+    Checking cpufeatures v0.3.1
+    Checking twox-hash v2.1.2
+    Checking lz4_flex v0.14.0
+    Checking sha2 v0.11.0
+    Checking flate2 v1.1.10
+    Checking tracing v0.1.44
+    Checking pbkdf2 v0.13.0
+    Checking crc32c v0.6.8
+    Checking snap v1.1.2
+    Checking getrandom v0.4.3
+    Checking parking_lot v0.12.5
+    Checking tokio-rustls v0.26.5
+    Checking webpki-roots v1.0.9
+    Checking base64 v0.23.1
+    Checking partitionline v0.1.0 (/workspace/partitionline)
+error: use of a disallowed method `std::fs::read`
+  --> tests/protocol_oracles.rs:77:5
+   |
+77 |     std::fs::read(
+   |     ^^^^^^^^^^^^^
+   |
+   = note: Blocking IO on an async runtime. Use tokio::fs.
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+   = note: requested on the command line with `-D clippy::disallowed-methods`
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:143:21
+    |
+143 |                     i as i32 * 3,
+    |                     ^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+    = note: requested on the command line with `-D clippy::cast-possible-truncation`
+help: ... or use `try_from` and handle the error accordingly
+    |
+143 -                     i as i32 * 3,
+143 +                     i32::try_from(i) * 3,
+    |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+   --> tests/protocol_oracles.rs:143:21
+    |
+143 |                     i as i32 * 3,
+    |                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+    = note: requested on the command line with `-D clippy::cast-possible-wrap`
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:144:21
+    |
+144 |                     i as i64 + 50,
+    |                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:145:21
+    |
+145 |                     i as i32 + 11,
+    |                     ^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+145 -                     i as i32 + 11,
+145 +                     i32::try_from(i) + 11,
+    |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+   --> tests/protocol_oracles.rs:145:21
+    |
+145 |                     i as i32 + 11,
+    |                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:146:21
+    |
+146 |                     i as i32 + 10,
+    |                     ^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+146 -                     i as i32 + 10,
+146 +                     i32::try_from(i) + 10,
+    |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+   --> tests/protocol_oracles.rs:146:21
+    |
+146 |                     i as i32 + 10,
+    |                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:147:21
+    |
+147 |                     i as i64 + 3
+    |                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:153:64
+    |
+153 |                 "known" | "both_tags" | "unknown_tags" => 41 + i as i64,
+    |                                                                ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i32` may truncate the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:191:18
+    |
+191 |                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |                  ^^^^^^^^
+    |
+    = help: if this is intentional allow the lint with `#[allow(clippy::cast_possible_truncation)]` ...
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_truncation
+help: ... or use `try_from` and handle the error accordingly
+    |
+191 -                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+191 +                 (i32::try_from(i) * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |
+
+error: casting `usize` to `i32` may wrap around the value on targets with 32-bit wide pointers
+   --> tests/protocol_oracles.rs:191:18
+    |
+191 |                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |                  ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:191:38
+    |
+191 |                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |                                      ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:191:53
+    |
+191 |                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |                                                     ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: casting `usize` to `i64` may wrap around the value on targets with 64-bit wide pointers
+   --> tests/protocol_oracles.rs:191:67
+    |
+191 |                 (i as i32 * 3, 100 + i as i64, 90 + i as i64, 3 + i as i64)
+    |                                                                   ^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#cast_possible_wrap
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/protocol_oracles.rs:201:13
+    |
+201 |             std::fs::read(root.join(format!("fetch_v17_delta_{cell}_request.bin"))).unwrap();
+    |             ^^^^^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::read`
+   --> tests/protocol_oracles.rs:254:13
+    |
+254 |             std::fs::read(root.join(format!("fetch_v17_delta_{cell}_response.bin"))).unwrap(),
+    |             ^^^^^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/protocol_oracles.rs:336:13
+    |
+336 |             std::fs::write(
+    |             ^^^^^^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: use of a disallowed method `std::fs::write`
+   --> tests/protocol_oracles.rs:341:13
+    |
+341 |             std::fs::write(
+    |             ^^^^^^^^^^^^^^
+    |
+    = note: Blocking IO on an async runtime. Use tokio::fs.
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#disallowed_methods
+
+error: could not compile `partitionline` (test "protocol_oracles") due to 19 previous errors

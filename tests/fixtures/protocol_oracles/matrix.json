@@ -90,7 +90,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ],
       "pin_supported": [
         4,
@@ -108,7 +109,12 @@
         16,
         17
       ],
-      "classified_diffs": []
+      "classified_diffs": [
+        {
+          "version": 18,
+          "reason": "KIP-1166 HighWatermark first appears in Kafka4.1; Apache3.9.1 supports through17."
+        }
+      ]
     },
     {
       "api": "Fetch",
@@ -128,7 +134,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ],
       "pin_supported": [
         4,
@@ -144,7 +151,8 @@
         14,
         15,
         16,
-        17
+        17,
+        18
       ],
       "classified_diffs": []
     },

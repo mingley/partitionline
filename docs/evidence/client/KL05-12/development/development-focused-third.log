@@ -1,0 +1,45 @@
+   Compiling partitionline v0.1.0 (/workspace/partitionline)
+error[E0061]: this function takes 9 arguments but 10 arguments were supplied
+    --> tests/protocol_oracles.rs:207:13
+     |
+ 207 |             encode_fetch_request_with_session(
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 217 |                 &forgotten,
+     |                 ---------- unexpected argument #10 of type `&Vec<ForgottenTopic>`
+     |
+note: function defined here
+    --> src/protocol/fetch.rs:1108:8
+     |
+1108 | pub fn encode_fetch_request_with_session(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+     |
+ 216 -                 session,
+ 217 -                 &forgotten,
+ 216 +                 session,
+     |
+
+error[E0061]: this function takes 9 arguments but 10 arguments were supplied
+    --> tests/protocol_oracles.rs:268:13
+     |
+ 268 |             encode_fetch_request_with_session(
+     |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+ 278 |                 &forgotten,
+     |                 ---------- unexpected argument #10 of type `&Vec<ForgottenTopic>`
+     |
+note: function defined here
+    --> src/protocol/fetch.rs:1108:8
+     |
+1108 | pub fn encode_fetch_request_with_session(
+     |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+help: remove the extra argument
+     |
+ 277 -                 session,
+ 278 -                 &forgotten,
+ 277 +                 session,
+     |
+
+For more information about this error, try `rustc --explain E0061`.
+error: could not compile `partitionline` (test "protocol_oracles") due to 2 previous errors

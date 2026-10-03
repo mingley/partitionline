@@ -375,7 +375,7 @@ overlap and a producer may have no queued work. These counters have no broker or
 topic labels. This policy covers Produce; Fetch, Admin and group quotas have
 separate support entries.
 
-Fetch v8–v17 quota headers mute new Fetch requests to that broker; v4–v7 retain
+Fetch v8–v18 quota headers mute new Fetch requests to that broker; v4–v7 retain
 server throttling. Eligible brokers and already buffered records remain available.
 Each interval starts when its response finishes, so a slower peer cannot restart
 another broker's expired quota. Headers from every completed response are observed
@@ -633,9 +633,20 @@ partition queues and brokers (KL02-08):
 Mock coverage: `tests/fetch_buffer_budget.rs`.
 
 
+### Fetch version 18
+
+Each broker connection negotiates Fetch up to version 18. KIP-1166 adds a
+request partition HighWatermark tag; ordinary consumers omit its i64MAX
+default. The added `encode_fetch_request_with_replica_high_watermarks` and
+`decode_fetch_request_with_high_watermarks` helpers use a sidecar aligned with
+topic and partition order, preserving `FetchPartition` and existing signatures.
+They encode replica values, including unknown `-1`, without implementing follower
+acknowledgment or quorum-commit behavior. Older versions omit this ignorable
+field, and response layouts remain unchanged.
+
 ### Incremental Fetch sessions
 
-The consumer keeps one Fetch session per active broker on v7–v17, sends changed
+The consumer keeps one Fetch session per active broker on v7–v18, sends changed
 partitions and removes forgotten partitions, and retains full requests on v4–v6.
 Session metadata is bounded by the active assignment. Each completed response
 advances its broker epoch even when the record buffer budget discards the body.

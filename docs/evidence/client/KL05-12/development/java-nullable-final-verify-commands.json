@@ -1,0 +1,94 @@
+[
+  {
+    "version": "4.1.0",
+    "command": [
+      "python3",
+      "tests/conformance/java/generate_fetch_v18.py",
+      "--version",
+      "4.1.0",
+      "--kafka-jar",
+      "/workspace/work/fetch-v18/jars/kafka-clients-4.1.0.jar",
+      "--slf4j-jar",
+      "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "--java-bin",
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+      "--output",
+      "tests/fixtures/protocol_oracles/fetch_v18",
+      "--artifacts",
+      "/workspace/work/fetch-v18/java-4.1.0-nullable-final-verify",
+      "--verify"
+    ],
+    "exit_code": 0,
+    "stdout": "Apache 4.1.0 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.1.2",
+    "command": [
+      "python3",
+      "tests/conformance/java/generate_fetch_v18.py",
+      "--version",
+      "4.1.2",
+      "--kafka-jar",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.1.2.jar",
+      "--slf4j-jar",
+      "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "--java-bin",
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+      "--output",
+      "tests/fixtures/protocol_oracles/fetch_v18",
+      "--artifacts",
+      "/workspace/work/fetch-v18/java-4.1.2-nullable-final-verify",
+      "--verify"
+    ],
+    "exit_code": 0,
+    "stdout": "Apache 4.1.2 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.2.1",
+    "command": [
+      "python3",
+      "tests/conformance/java/generate_fetch_v18.py",
+      "--version",
+      "4.2.1",
+      "--kafka-jar",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.2.1.jar",
+      "--slf4j-jar",
+      "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "--java-bin",
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+      "--output",
+      "tests/fixtures/protocol_oracles/fetch_v18",
+      "--artifacts",
+      "/workspace/work/fetch-v18/java-4.2.1-nullable-final-verify",
+      "--verify"
+    ],
+    "exit_code": 0,
+    "stdout": "Apache 4.2.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  },
+  {
+    "version": "4.3.1",
+    "command": [
+      "python3",
+      "tests/conformance/java/generate_fetch_v18.py",
+      "--version",
+      "4.3.1",
+      "--kafka-jar",
+      "/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar",
+      "--slf4j-jar",
+      "/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar",
+      "--java-bin",
+      "/usr/lib/jvm/java-21-openjdk-amd64/bin",
+      "--output",
+      "tests/fixtures/protocol_oracles/fetch_v18",
+      "--artifacts",
+      "/workspace/work/fetch-v18/java-4.3.1-nullable-final-verify",
+      "--verify"
+    ],
+    "exit_code": 0,
+    "stdout": "Apache 4.3.1 Fetch v18: ten v18 cells, five v17 fallback cells, thirty bodies and every process status passed\n",
+    "stderr": ""
+  }
+]
