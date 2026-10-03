@@ -1,0 +1,22 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/replication-mutants-db002076/distinct-majority/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.41s
+     Running tests/replication_guard_probe.rs (/workspace/work/target-replication-mutants/debug/deps/replication_guard_probe-f568111816017599)
+
+running 1 test
+one remote match; leader commit=2, local tail=2
+
+thread 'five_voters_cannot_commit_with_only_one_remote_durable_match' (670362) panicked at tests/replication_guard_probe.rs:93:5:
+assertion `left == right` failed: two of five durable positions committed
+  left: 2
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test five_voters_cannot_commit_with_only_one_remote_durable_match ... FAILED
+
+failures:
+
+failures:
+    five_voters_cannot_commit_with_only_one_remote_durable_match
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test replication_guard_probe`

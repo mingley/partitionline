@@ -1,0 +1,85 @@
+import argparse,hashlib,json,pathlib
+ap=argparse.ArgumentParser();ap.add_argument('--gate',type=pathlib.Path,required=True);args=ap.parse_args();args.gate=args.gate.resolve()
+repo=pathlib.Path(__file__).resolve().parents[5];root=repo/'docs/evidence/broker/KL11-73/runtime';rpath='docs/evidence/broker/KL11-73/runtime/'
+def read(p):return json.loads(p.read_text())
+def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def artifact(p):
+ p=repo/p if isinstance(p,str) else p
+ return {'path':str(p.relative_to(repo)),'sha256':digest(p)}
+r=read(root/'final-db002076/results.json');m=read(root/'mutants/final-db002076/results.json');h=read(repo/'docs/evidence/broker/KL11-73/oracle/history/final-db002076/validation.json');a=read(repo/'docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-validation.json');g=read(args.gate)
+assert g['passed'] and g['runtime_source_sha']==r['source_sha']
+controller_labels=read(root/'controller-labels-final-1e357b04/validation.json')
+assert controller_labels['passed'] and controller_labels['source_sha']==g['gate_source_sha']
+commands=[]
+for c in controller_labels['commands']:
+ commands.append(dict(c,name='fresh-controller-labels',source_sha=g['gate_source_sha'],scope='focused affected controller reporter/golden/TCP tests; runtime bytes unchanged',log=rpath+'controller-labels-final-1e357b04/'+c['log']))
+for c in r['commands']:
+ commands.append(dict(c, source_sha=r['source_sha'],scope='immutable broker QA',log=rpath+'final-db002076/'+c['log']))
+for c in m['results']:
+ commands.append({'name':'guard/'+c['name'],'argv':c['argv'],'exit_code':c['exit_code'],'expected_outcome_verified':c['expected_outcome_verified'],'base_source_sha':r['source_sha'],'mutated_source_sha256':c['source_sha256'],'log':rpath+'mutants/final-db002076/'+c['name']+'/test.log','log_sha256':c['log_sha256'],'scope':'compiled evidence-only durability probe; four deliberate unsafe variants'})
+for c in h['commands']:
+ commands.append({'name':'independent-history/'+c['lane']+'/'+str(c['voters']),'argv':c['command'],'exit_code':c['exit_code'],'source_sha':h['checker_source_sha'],'receipt':c['receipt'],'scope':'separately executed independent WAL/election/causal checker'})
+n=read(repo/'docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-command.json')
+commands.append(dict(n,name='independent-apache-components',source_sha=a['probe_source_sha'],scope=a['scope']))
+for c in read(root/'final-source/environment.json')['commands']:commands.append(dict(c,name='environment',scope='toolchain provenance'))
+for c in read(root/'registry-final-1e357b04/commands.json'):
+ commands.append(dict(c,source_sha=g['gate_source_sha'],scope='preserved stale reflected-label combined attempt',log=rpath+'registry-final-1e357b04/'+c['log']))
+for c in g['commands']:
+ commands.append(dict(c,source_sha=g['gate_source_sha'],runtime_source_sha=r['source_sha'],scope='immutable checked registry and frozen compiled reports',log=str((args.gate.parent/c['log']).relative_to(repo))))
+commands.append({'name':'initial-stale-registry-failure','argv':['python3','-B','scripts/check-broker-api-matrix.py','--report',str(root/'final-db002076/inventory-initial.json')],'cwd':'/workspace/work/replication-final/source','source_sha':r['source_sha'],'exit_code':1,'log':rpath+'final-db002076/inventory-initial.log','scope':'preserved integration failure; registry referenced previous source hashes'})
+commands.append({'name':'whole-source-identity-after-qa-and-mutants','argv':['python3',rpath+'verify-source.py','--source','/workspace/work/replication-final/source','--manifest',rpath+'final-source/source-integrity-before.json','--output',rpath+'final-source/source-integrity-after-mutants.json'],'source_sha':r['source_sha'],'exit_code':0,'receipt':rpath+'final-source/source-integrity-after-mutants.json'})
+failures=[
+ {'artifacts':['development/tests-first.log'],'kind':'incorrect test setup','finding':'The original recovery fixture invented a regressed core after a durable commit; the original torn bytes were arbitrary corruption rather than a recognizable partial entry header. Corrected fixtures model possible crash state and known partial header; complete corrupt bytes remain fail-closed.'},
+ {'artifacts':['development/history-first.log','development/history-second.log'],'kind':'incorrect stale-request fixture','finding':'A request addressed to peer5 was delivered as peer2 input without declaring mutation. Final trace programmatically marks changed peer and original prepare ordinal; only rejected outcomes may use this declared test mutation.'},
+ {'artifacts':['development/clippy-first.log','development/clippy-second.log','development/msrv-clippy-final-draft.log'],'kind':'strict lint failure','finding':'Corrected arithmetic lint, repository-disallowed whole-file helpers, redundant pattern and MSRV collapsible_else_if without lint allowances. All intermediate subsequent logs remain retained.'},
+ {'artifacts':['development/follower-commit-first.log'],'kind':'failing-first durable replay regression','finding':'Checksum-valid follower Commit could authorize an entry newer than its authority term. Runtime and replay now require entry term<=authority term; actual mutated Journal fails recovery.'},
+ {'artifacts':['development/unowned-core-first.log'],'kind':'failing-first recovery regression','finding':'Opening a new empty content WAL with an unrelated legacy election summary could erase its log identity. Recovered summary must match a confirmed operation-tail position before reconciliation.'},
+ {'artifacts':['development/authority-regression-first.log'],'kind':'failing-first authority regression','finding':'A later checksum-valid Commit could regress authority term while committing an older entry. Runtime/replay reject authority below earlier WAL max term.'},
+ {'artifacts':['development/tests-eighth.log'],'kind':'configuration/bound review','finding':'Initial actor-envelope accounting charged the standalone64-slot/8MiB queue setting to the new replication actor. Config now has its own default16 slots and conservative canceled-input plus unconsumed-receipt bound; final default and small-limit configurations pass.'},
+ {'artifacts':['registry-final-1e357b04/stable-default.json','registry-final-1e357b04/stable-default.log','registry-final-1e357b04/failure-context.json'],'kind':'reflected compiled reporter label failure','finding':'Controller reporter includes registry hash labels. Historical db002076 embeds old labels despite actual source identity proof; all four affected controller reporters reran at normalized 1e registry. Only three labels differ; all 222 payload/frame bytes remain identical.'},
+ {'artifacts':['final-db002076/inventory-initial.json','final-db002076/inventory-initial.log'],'kind':'source/registry integration failure','finding':'db002076 contained unchanged prior registry hashes for controller/election/module; coordinator-only exact-source hash normalization and immutable final gate qualify the unchanged runtime blobs.'},
+]
+for f in failures:f['artifacts']=[artifact(root/p) for p in f['artifacts']]
+artifacts=[artifact(root/'README.md'),artifact(root/'source-freeze.json'),artifact(root/'final-db002076/results.json'),artifact(root/'final-db002076/commands.json'),artifact(root/'final-db002076/capture-summary.json'),artifact(root/'final-source/source-integrity-before.json'),artifact(root/'final-source/source-integrity-after-qa.json'),artifact(root/'final-source/source-integrity-after-mutants.json'),artifact(root/'final-source/environment.json'),artifact(root/'mutants/final-db002076/plan.json'),artifact(root/'mutants/final-db002076/results.json'),artifact(repo/'docs/evidence/broker/KL11-73/oracle/history/final-db002076/validation.json'),artifact(repo/'docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-validation.json'),artifact(args.gate),artifact(root/'controller-labels-final-1e357b04/validation.json'),artifact(root/'final-source/registry-source-integrity-before.json'),artifact(root/'final-source/registry-source-integrity-after.json'),artifact(root/'retained-binaries.json'),artifact(root/'metadata-assembly-attempts.json')]
+limits=[
+ 'Fixed trusted membership only; reconfiguration returns MembershipChangeUnsupported. Dynamic voter changes remain KL11-74, snapshots remain KL11-15, aggregate KL11-14 remains open.',
+ 'Caller-driven typed Request/Response and explicit polling/leader activation are not Kafka replication wire or an autonomous peer/controller network loop. No new API advertisement.',
+ 'Opaque metadata bytes/internal empty barriers are a custom local content format, not Kafka control-record serialization or application-state replay/compaction.',
+ 'Trusted storage paths and typed peer IDs do not authenticate a network peer. Existing controller-v0 transport/goldens are preserved separately.',
+ 'Finite deterministic process histories and injected torn headers do not prove exhaustive scheduling, machine power-loss or production qualification. Loss of a response/in-flight cancellation may leave uncommitted durable data; reopen reconciles before serving.',
+ 'Durable local Commit WAL marks do not encode historical vote/majority receipts; independent causal captures supply that separate majority proof.',
+ 'Returned consumed record vectors are caller-owned outside actor admission; bounded actor accounting covers pending/canceled input, unconsumed output and in-flight work.',
+ 'Official Apache probes execute component classes and real local logs only. Bare LeaderState trusts caller offsets and local log component high-watermark is not durably retained; separate envelope guards/WAL authority remain essential.',
+ 'Optional external live-port Rust helpers were unset. Their conditional passing test counts do not establish an external Kafka session.',
+ 'Registry gate reuses independently frozen KL11-68 data/read API18 seed/restart exchanges and newly compiled db002076 outcomes; it does not conduct another external session.',
+ 'No benchmark or public performance claim, no production qualification claim.'
+]
+e={
+ 'schema_version':1,'task':'KL11-73','status':'done','acceptance_met':True,'disposition':'accepted fixed-membership constituent; aggregate14 and dynamic74 remain open','source_sha':r['source_sha'],'registry_source_sha':g['gate_source_sha'],
+ 'implementation':'Durable append-only operation WAL, bounded caller-driven leader/follower exchange and one joined actor; fixed configured voters, current-term barrier plus strict distinct durable majority, committed-prefix preservation and pre-service election/content reconciliation.',
+ 'qualification':{'production':'not_run','Kafka_replication_wire':'not_implemented','autonomous_peer_runtime':'not_implemented','dynamic_membership':'not_implemented','snapshots':'separate KL11-15','aggregate_KL11_14':'in_progress'},
+ 'source_files_sha256':r['source_sha256'],
+ 'tested_source':{'runtime_archive':artifact(root/'final-source/source-integrity-before.json'),'after_qa':artifact(root/'final-source/source-integrity-after-qa.json'),'after_mutants':artifact(root/'final-source/source-integrity-after-mutants.json'),'all_tracked_files':20137,'shared_working_tree_excluded':True,'registry_archive':g['gate_source_sha'],'registry_all_broker_bytes_equal_tested_runtime':True},
+ 'commands':commands,
+ 'results':{'full_broker_cells':r['cells'],'full_broker_test_passes':sum(c['passed'] for c in r['cells']),'fresh_controller_label_tests_passed':40,'fresh_controller_report_source_sha':g['gate_source_sha'],'fresh_controller_only_metadata_labels_changed':True,'full_broker_failures':0,'full_broker_ignored':0,'doctest_cases':0,'strict_clippy_rustdoc_doctest_compilation_fmt':'passed','replication_integration_tests_per_lane':17,'controller_goldens_per_lane':201,'controller_actual_tcp_exchanges_per_lane':18,'all_controller_raw_files_identical_four_lanes':True,'histories':h['histories'],'history_events':h['events'],'actual_paired_WAL_checkpoints':h['paired_data_and_election_journal_checkpoints'],'independent_proof_counterexamples_rejected':h['deliberate_proof_counterexamples_rejected'],'guard_probe_baseline_passes':4,'compiled_predeclared_unsafe_mutants_rejected':4,'apache_component_assertions':a['positive_component_assertions'],'apache_expected_bad_assertions_detected':a['deliberate_controlled_failures_detected'],'registry_compiled_cells':g['compiled_report_cells'],'registry_baseline_mutation_tests':g['baseline_mutation_tests'],'compiled_case_outcomes_per_lane':{'protocol':99,'Metadata':555,'Produce':708,'Fetch_ListOffsets':366,'read_write_ApiVersions':15,'controller':201}},
+ 'bounds':{'fixed_voters':64,'max_record_bytes':1048576,'default_chunk_fetch_bytes':2097152,'max_configurable_chunk_fetch_bytes':4194304,'max_live_entries':4096,'max_live_payload_bytes':67108864,'max_WAL_operations':65536,'max_WAL_bytes':268435456,'startup_operation_tail_positions_bytes_max':1048576,'outstanding_requests_per_peer':1,'actor_default_slots':16,'actor_slot_range':[1,1024],'actor_resident_envelope_formula':'(2*slots+1)*(max(chunk+live_entry_headers,fetch,controller_request)+Command/State headers), checked<=512MiB','actor_conservative_envelope_ceiling_bytes':536870912,'recovery':'Existing bounded Journal index/read scratch plus bounded operation-tail positions, released before readiness.'},
+ 'acceptance_evidence':[
+ {'contract':'durable ACK/read ordering','proof':'Operation WAL fsync then election reconciliation precede follower success; synchronized Commit precedes committed fetch. wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation verifies WAL-first crash ambiguity.'},
+ {'contract':'current-term strict majority and exact causality','proof':'Actual3/5-voter histories, independent causal checker and public-Node compiled guard mutations. One outstanding term/member/sequence/exact sent position is required; two of five cannot commit and an old-term partial prefix cannot commit before the new barrier.'},
+ {'contract':'committed prefix and recovery authority','proof':'Runtime preflight and durable operation replay reject committed truncation, same-term payload conflict, unowned legacy summary, follower authority below entry term and authority regression. Checksum-valid actual Journal counterexamples plus process restart receipts retained.'},
+ {'contract':'bounded admission and recovery','proof':'Config/limits tests, bounded slot/canceled input/unconsumed fetch receipt tests, per-peer outstanding request and explicit overload, per-WAL/live/chunk budgets, poisoning until verified reopen.'},
+ {'contract':'actual faults and byte-prefix agreement','proof':'Four fresh3/5-node child/parent runs, abrupt child process exit without destructors, actual file reopen, lost/reordered/stale ACKs, quorum expiry, partitions, catch-up and higher-term orphan repair. Independent raw journal plus causal checker accepts8 histories/776 events/104 checkpoint pairs and rejects76 controls.'},
+ {'contract':'legacy election/controller profile','proof':'Complete stable/MSRV default/all-feature broker suites, unchanged raft_protocol test source, all201 golden outcomes and18 actual TCP exchanges per lane. Registry gate compares compiled bytes/advertisement and rejects forged claims. Fixed reconfiguration rejection leaves74 open.'},
+ ],
+ 'independent_oracle':{'history':artifact(repo/'docs/evidence/broker/KL11-73/oracle/history/final-db002076/validation.json'),'apache':artifact(repo/'docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-validation.json'),'scope_separation':'Raw copied WAL/election/causal histories qualify runtime persistence; Apache component execution corroborates source semantics separately and does not run Partitionline quorum or network.', 'mutation_classification':'partial-final-operation is structurally incomplete despite generic legacy checksum_valid_semantic_mutation metadata; complete semantic/checksummed variants remain separately identified.'},
+ 'registry_normalization':{'runtime_reports_untouched':True,'fresh_affected_controller_reports':controller_labels,'all_broker_files_equal_original_runtime':True,'registry_source_sha':g['gate_source_sha'],'old_and_normalized_combined_failures_retained':True},
+ 'compiled_safety_mutations':[{'name':x['name'],'exit_code':x['exit_code'],'expected_outcome_verified':x['expected_outcome_verified'],'source_sha256':x['source_sha256'],'patch_sha256':x['patch_sha256']} for x in m['results']],
+ 'retained_failures_and_corrections':failures,
+ 'artifacts':artifacts,'limitations':limits,
+ 'checksum_manifest':rpath+'SHA256SUMS',
+}
+# Preserve the runner's historical pending-oracle wording; this final aggregate supplies the receipt.
+for cell in e['results']['full_broker_cells']:cell['independent_oracle_status']='accepted by separately owned final-db002076 receipt'
+(root/'final-evidence.json').write_text(json.dumps(e,indent=2)+'\n')
+(repo/'docs/plan/evidence/KL11-73.json').write_text(json.dumps(e,indent=2)+'\n')
+print(json.dumps({'source_sha':e['source_sha'],'commands':len(commands),'full_broker_test_passes':e['results']['full_broker_test_passes']}))

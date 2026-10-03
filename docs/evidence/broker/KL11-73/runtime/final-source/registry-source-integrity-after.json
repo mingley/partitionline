@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+  "all_git_blobs_and_modes_unchanged": true,
+  "file_count": 20900,
+  "ordered_manifest_sha256": "d1cbd1cfde9108ab817186314274cd9cb6a004b446449fdb7190e19208ba72d3",
+  "before_manifest_sha256": "077eb2c6d0833088894b0c00cbf11758d8c1ec8e46b437636726cf6a47388450",
+  "scope": "Alltracked files after focused controller rerun and static/compiled/CI verifier gates."
+}

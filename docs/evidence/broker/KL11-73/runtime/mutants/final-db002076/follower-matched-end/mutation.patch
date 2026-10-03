@@ -1,0 +1,11 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -1259,7 +1259,7 @@
+         let commit = request
+             .leader_commit
+             .min(self.log.last().index)
+-            .min(target.index);
++            ;
+         let result = self
+             .log
+             .commit(commit, request.term, request.leader, 1, request.sequence);

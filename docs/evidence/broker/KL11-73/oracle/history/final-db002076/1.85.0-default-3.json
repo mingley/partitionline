@@ -1,0 +1,227 @@
+{
+  "schema_version": 1,
+  "baseline": {
+    "schema_version": 1,
+    "disposition": "accepted captured fixed-member safety history",
+    "trace_sha256": "d9697f34799dca08c0b1ed7a1f7017f12cf08eb5681e1def02c87c776f239501",
+    "source_sha_reported": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+    "source_binding_scope": "external immutable runner required",
+    "voters": [
+      1,
+      2,
+      3
+    ],
+    "events": 73,
+    "event_kinds": {
+      "initial": 1,
+      "campaign": 2,
+      "vote_request": 2,
+      "vote_response": 2,
+      "activate": 2,
+      "propose": 3,
+      "prepare": 16,
+      "receive": 16,
+      "ack": 16,
+      "drop": 3,
+      "timeout": 2,
+      "poll": 1,
+      "crash": 1,
+      "fault": 1,
+      "reopen": 4,
+      "process_exit": 1
+    },
+    "raw_journal_checkpoints": [
+      {
+        "ordinal": 0,
+        "node": 1,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "bb059c84a94979ae4e76c5e0e19cbd207da5f51ed724a322cba8dcfa92519530",
+        "election_sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 2,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "1b9327b87fa8586470dd1a170077fdcbe8c4e749dd36486a3ba678dc550cdf90",
+        "election_sha256": "0c017ba25d96c63856146a029d7ace6e05c3d7ef89072c307faeba621b801bfa",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 0,
+        "node": 3,
+        "operations": 1,
+        "committed_end": 0,
+        "sha256": "c2da2bfc21dde8bb9a7ceb3b1c024f10b803923cfd7881b89a38af6209ab2ee8",
+        "election_sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+        "election_states": 2,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 66,
+        "node": 1,
+        "operations": 7,
+        "committed_end": 5,
+        "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+        "election_sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+        "election_states": 8,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 69,
+        "node": 1,
+        "operations": 7,
+        "committed_end": 5,
+        "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+        "election_sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+        "election_states": 8,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 69,
+        "node": 2,
+        "operations": 5,
+        "committed_end": 5,
+        "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+        "election_sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 69,
+        "node": 3,
+        "operations": 7,
+        "committed_end": 5,
+        "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+        "election_sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+        "election_states": 8,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 70,
+        "node": 1,
+        "operations": 7,
+        "committed_end": 5,
+        "sha256": "a0c19fd24e56bcaa9d39366ce157028fa4073ad45697d2a40cf60fbdc64495f8",
+        "election_sha256": "a679da2228bf1adf70683e5ef594f7f86e37fb1c5ba5b3e39c4ff0b376597de7",
+        "election_states": 8,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 71,
+        "node": 2,
+        "operations": 5,
+        "committed_end": 5,
+        "sha256": "157162214afd78d89fd943156d045c79114ba208015bb31b66e8913bffe65cd1",
+        "election_sha256": "566a441f5b1a21f9aff80424e466dbdadda810cf044efae132efe7f787637759",
+        "election_states": 6,
+        "election_reconciliations": 0
+      },
+      {
+        "ordinal": 72,
+        "node": 3,
+        "operations": 7,
+        "committed_end": 5,
+        "sha256": "d9e7a4222fc8eb4c6568f36440e9ca7f0c66d14caee7180cfd75e528da9e266f",
+        "election_sha256": "13c3ec9ba8442782c25b962f32360d4f06744ecc08fa786aaba3628d1f219654",
+        "election_states": 8,
+        "election_reconciliations": 0
+      }
+    ],
+    "leader_commit_advances": 2,
+    "follower_commit_advances": 4,
+    "agreed_committed_positions": 5,
+    "limitations": [
+      "Captured histories only; no exhaustive model or production/wire qualification.",
+      "Apache election/component checks and immutable source binding are separate proofs."
+    ]
+  },
+  "all_counterexamples_rejected": true,
+  "cases": [
+    {
+      "name": "stale-ack-sequence",
+      "disposition": "rejected",
+      "expected_reason": "ack fabricated/stale response",
+      "observed_reason": "event 11 ack: ack fabricated/stale response",
+      "input_sha256": "dd5c465067765763611b9773ecc33d8d7e0b03e7fa62afff52b25508579086bd",
+      "artifact": "stale-ack-sequence.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "forged-ack-position",
+      "disposition": "rejected",
+      "expected_reason": "ack fabricated/stale response",
+      "observed_reason": "event 11 ack: ack fabricated/stale response",
+      "input_sha256": "7fdbd4e9a5cbd859b7c9aa304c737ee5da1d9ffa540e325e35a8043da3572568",
+      "artifact": "forged-ack-position.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "fabricated-follower-match",
+      "disposition": "rejected",
+      "expected_reason": "response exact durable target",
+      "observed_reason": "event 10 receive: response exact durable target",
+      "input_sha256": "12f3d420ff95d3fb79e436cafd7cd7a18a01355041c30fb9d8db11d30e3566ef",
+      "artifact": "fabricated-follower-match.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "false-leader-commit-announcement",
+      "disposition": "rejected",
+      "expected_reason": "advertised commit",
+      "observed_reason": "event 6 prepare: advertised commit",
+      "input_sha256": "bcf39f70aff44e150d8791d8835c07ae8b7ebe827355a643b27a7ee1d55f69c3",
+      "artifact": "false-leader-commit-announcement.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "duplicate-voter-state",
+      "disposition": "rejected",
+      "expected_reason": "complete unique node states",
+      "observed_reason": "event 5 propose: complete unique node states",
+      "input_sha256": "a5998bb53c0d3f4fb9b73b0abf77c7e4aa746c43c9220f315395760310371dd6",
+      "artifact": "duplicate-voter-state.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "unacknowledged-local-commit",
+      "disposition": "rejected",
+      "expected_reason": "commit without causal receive/majority",
+      "observed_reason": "event 5 propose: commit without causal receive/majority",
+      "input_sha256": "f113220517c473a91ddcaf19203918a14106974c0c2f6b1b90fb7216dcea4c0d",
+      "artifact": "unacknowledged-local-commit.json",
+      "checksum_valid_semantic_mutation": false
+    },
+    {
+      "name": "foreign-replica-identity",
+      "disposition": "rejected",
+      "expected_reason": "foreign local ID",
+      "observed_reason": "foreign local ID",
+      "input_sha256": "c5ef6b7573443238630ded524633d1e148907341a78dc941911296011973bc65",
+      "artifact": "foreign-replica-identity.wal",
+      "checksum_valid_semantic_mutation": true
+    },
+    {
+      "name": "old-term-follower-commit",
+      "disposition": "rejected",
+      "expected_reason": "commit position/authority",
+      "observed_reason": "commit position/authority",
+      "input_sha256": "f52ddaa2bd3d616deedc32f1083a25650ad4c32bb94a2db5debd1ebfb682b1c2",
+      "artifact": "old-term-follower-commit.wal",
+      "checksum_valid_semantic_mutation": true
+    },
+    {
+      "name": "partial-final-operation",
+      "disposition": "rejected",
+      "expected_reason": "partial journal entry header",
+      "observed_reason": "partial journal entry header",
+      "input_sha256": "b6559ccddfd63c3cf8fa6216352869aad4f81d310235ca51e9bedf2cf1bbc1e1",
+      "artifact": "partial-final-operation.wal",
+      "checksum_valid_semantic_mutation": true
+    }
+  ]
+}

@@ -1435,40 +1435,46 @@
       ]
     },
     {
-      "id": "KL03-16",
-      "title": "Prove share lock expiry and partial acknowledgments",
-      "priority": "P1",
-      "kind": "implementation",
-      "status": "in_progress",
-      "owner": "codex-client-share-20261003",
-      "depends_on": [
-        "KL03-13"
-      ],
-      "files": [
-        "src/share.rs",
-        "tests/full_surface.rs",
-        "tests/common/mod.rs"
-      ],
-      "deliverable": "Focused share-group acquisition/accept/release/reject histories with clock and fault controls.",
-      "acceptance": [
-        "Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.",
-        "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.",
-        "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."
-      ],
-      "validation": [
-        "cargo test --locked --test full_surface share",
-        "Compare the case dispositions with pinned Apache share-consumer tests."
-      ],
-      "evidence": [],
-      "write_set": [
-        "src/share.rs",
-        "tests/full_surface.rs",
-        "tests/common/mod.rs",
-        "tests/share_semantics.rs",
-        "docs/evidence/client/KL03-16/",
-        "docs/plan/evidence/KL03-16.json"
-      ]
-    },
+  "id": "KL03-16",
+  "title": "Prove share lock expiry and partial acknowledgments",
+  "priority": "P1",
+  "kind": "implementation",
+  "status": "in_progress",
+  "owner": "codex-client-share-20261003",
+  "depends_on": [
+    "KL03-13"
+  ],
+  "files": [
+    "src/share.rs",
+    "tests/full_surface.rs",
+    "tests/common/mod.rs"
+  ],
+  "deliverable": "Focused share-group acquisition/accept/release/reject histories with clock and fault controls.",
+  "acceptance": [
+    "Track locks/delivery counts across expiry, partial ack failures, redelivery and coordinator/leader changes.",
+    "Expected redelivery is distinguished from forbidden duplicate acceptance; successful acknowledgments are not discarded with failed neighbors.",
+    "Acquired/decoded buffers stay bounded and are released on leave; create a separate budget card if the ownership repair grows."
+  ],
+  "validation": [
+    "cargo test --locked --test full_surface share",
+    "Compare the case dispositions with pinned Apache share-consumer tests."
+  ],
+  "evidence": [],
+  "write_set": [
+    "src/share.rs",
+    "tests/full_surface.rs",
+    "tests/common/mod.rs",
+    "tests/share_semantics.rs",
+    "docs/evidence/client/KL03-16/",
+    "docs/plan/evidence/KL03-16.json"
+  ],
+  "delegated_write_sets": {
+    "codex-coordinator-20261003": [
+      "src/consumer.rs"
+    ]
+  },
+  "delegation_note": "Root removes only obsolete crate-private Consumer::roundtrip_node after share runtime moves to per-node negotiated sockets. Removal and runtime source must commit together; public Consumer API and held record codecs remain unchanged."
+},
     {
       "id": "KL03-17",
       "title": "Create an isolated three-broker fault topology",
@@ -38369,7 +38375,7 @@
       "title": "Replicate durable metadata content with fixed trusted membership",
       "priority": "P1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "done",
       "owner": "codex-rpc-reuse-20261003",
       "depends_on": [
         "KL11-12",
@@ -38403,7 +38409,1818 @@
         "Run exact committed-source stable/Rust1.85 full broker gates and strict format/lint/documentation checks.",
         "Retain failures, limits, independent evidence and actual process/byte results; do not infer production readiness or Kafka wire interoperability from a typed local exchange."
       ],
-      "evidence": [],
+      "evidence": [
+        {
+                "schema_version": 1,
+                "task": "KL11-73",
+                "status": "done",
+                "acceptance_met": true,
+                "disposition": "accepted fixed-membership constituent; aggregate14 and dynamic74 remain open",
+                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                "registry_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                "implementation": "Durable append-only operation WAL, bounded caller-driven leader/follower exchange and one joined actor; fixed configured voters, current-term barrier plus strict distinct durable majority, committed-prefix preservation and pre-service election/content reconciliation.",
+                "qualification": {
+                        "production": "not_run",
+                        "Kafka_replication_wire": "not_implemented",
+                        "autonomous_peer_runtime": "not_implemented",
+                        "dynamic_membership": "not_implemented",
+                        "snapshots": "separate KL11-15",
+                        "aggregate_KL11_14": "in_progress"
+                },
+                "source_files_sha256": {
+                        "partitionline-broker/src/raft/replication.rs": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+                        "partitionline-broker/src/raft/election.rs": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+                        "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+                        "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+                        "partitionline-broker/tests/raft_replication.rs": "63c78a259811e276492fdd5a154aa31d1b98908b0f16c51c0eda6fa0df8ce84f",
+                        "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+                        "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+                },
+                "tested_source": {
+                        "runtime_archive": {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-before.json",
+                                "sha256": "9f9fb2cd18c898e83f6fa2644e9f06d2450cd845ca97d24273c37998b52f7f07"
+                        },
+                        "after_qa": {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-qa.json",
+                                "sha256": "b083e591e8491744900406fbf86a9801e88060ef818c9cca6cb5e96ac96b735f"
+                        },
+                        "after_mutants": {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-mutants.json",
+                                "sha256": "00be578b0caa652f72d41b99f588e239a12283c6193a55b0403160c710baea97"
+                        },
+                        "all_tracked_files": 20137,
+                        "shared_working_tree_excluded": true,
+                        "registry_archive": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                        "registry_all_broker_bytes_equal_tested_runtime": true
+                },
+                "commands": [
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "raft_protocol",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-default/tests.log",
+                                "log_sha256": "406deb5f5159320bcd5c540d0f0781f84ff75205d7c6d0d78f7be510c89f08eb",
+                                "name": "fresh-controller-labels",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "focused affected controller reporter/golden/TCP tests; runtime bytes unchanged"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "raft_protocol",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-all-features/tests.log",
+                                "log_sha256": "90a66fa36b013fed66e982e2f63e0dbdbdb71808cff762c92e92416a5076b0bc",
+                                "name": "fresh-controller-labels",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "focused affected controller reporter/golden/TCP tests; runtime bytes unchanged"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "raft_protocol",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-default/tests.log",
+                                "log_sha256": "7e7502f60368f720d67482b35f87bfba4841a92e940e1f844b09a8c59ed72d5e",
+                                "name": "fresh-controller-labels",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "focused affected controller reporter/golden/TCP tests; runtime bytes unchanged"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--locked",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "raft_protocol",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-all-features/tests.log",
+                                "log_sha256": "ab0bd59c37cffad4a0d2b56973111f56104838026be69b8d67a9a2e832de0491",
+                                "name": "fresh-controller-labels",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "focused affected controller reporter/golden/TCP tests; runtime bytes unchanged"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clean",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-clean.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.04676373500115005,
+                                "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/tests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 23.92363549300353,
+                                "sha256": "b90354a0eaab02f543a69da4086a437a2d033d85e918375952430d2578f7caf0",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication",
+                                        "--source-root",
+                                        "/workspace/work/replication-final/source",
+                                        "--source-sha",
+                                        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/seal.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.06140467099612579,
+                                "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/clippy.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 7.3617669960003695,
+                                "sha256": "0c5077be57f4348c3909793e462150daa45cd53ca72efcd20745e9ab68e3378e",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--no-deps",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/docs.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.3788150760010467,
+                                "sha256": "f34580a85e03079fcb566175a5c0ec74ed821950aabc0854c968c5b4100597cd",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--doc",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/doctests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.12418125700060045,
+                                "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/tests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 44.15817030300241,
+                                "sha256": "36f05f6ce31f10d38ba590a1b8c7b5e630ef1474a51f9921ace4ab49d0c5b280",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication",
+                                        "--source-root",
+                                        "/workspace/work/replication-final/source",
+                                        "--source-sha",
+                                        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/seal.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.06333986200479558,
+                                "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/clippy.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 11.060703283001203,
+                                "sha256": "4f3b4f6271999ce7b684055504a7df9b3b756a0d5222d7f18a0b7af17261126d",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "doc",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--no-deps",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/docs.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5240959239963559,
+                                "sha256": "37a2c3550ee789557915bcc864b1d2b6ac3a7a15c95eafe41c4ee313536c654e",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--doc",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/doctests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.1514626420030254,
+                                "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clean",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "-p",
+                                        "partitionline-broker"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-clean.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.04716532000020379,
+                                "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/tests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 26.56693714499852,
+                                "sha256": "5a8ab54bd5cc975ffc3b102ab57cd6c1c2d048c73cc0bbe93c4fff2e90ebd059",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication",
+                                        "--source-root",
+                                        "/workspace/work/replication-final/source",
+                                        "--source-sha",
+                                        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/seal.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.06380985500436509,
+                                "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/clippy.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 9.531404016001034,
+                                "sha256": "8089281057d18edca3d36b4ae3eb2966c01d2d7db2ae477a9e3e5446354a9edc",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--no-deps",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/docs.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5991806659949361,
+                                "sha256": "5d04f2f8fb07352de973200229e4aaf57bd25b33d19eb85f311bccf4d70b4194",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--doc",
+                                        "-j1"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/doctests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.12670386999525363,
+                                "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/tests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 53.768773960000544,
+                                "sha256": "10b0be7431b079532faa085abf4cea4b3e9cc480672a07e49877887a617b7e9c",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication",
+                                        "--source-root",
+                                        "/workspace/work/replication-final/source",
+                                        "--source-sha",
+                                        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/seal.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.06258006999996724,
+                                "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "clippy",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--all-targets",
+                                        "-j1",
+                                        "--all-features",
+                                        "--",
+                                        "-D",
+                                        "warnings"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/clippy.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 15.219146048999391,
+                                "sha256": "ef91447b0f8359ee028f486e5a3db11f6bb81330291186855e16712262311f01",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "doc",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--no-deps",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/docs.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.8954292489943327,
+                                "sha256": "9a5b025de2cda302eda0f9c12dd1d370072c1d7fffaf1905feb21ab816568f8f",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+1.85.0",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--doc",
+                                        "-j1",
+                                        "--all-features"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/doctests.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.18734393800696125,
+                                "sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "fmt",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--",
+                                        "--check"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/fmt.log",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.2741213529952802,
+                                "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable broker QA"
+                        },
+                        {
+                                "name": "guard/baseline",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "replication_guard_probe",
+                                        "-j1",
+                                        "--",
+                                        "--nocapture"
+                                ],
+                                "exit_code": 0,
+                                "expected_outcome_verified": true,
+                                "base_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "mutated_source_sha256": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+                                "log": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/baseline/test.log",
+                                "log_sha256": "7fef7e239f65428435184e551936e3e26e674d5640e0fcef548ed0d96cb3cf0b",
+                                "scope": "compiled evidence-only durability probe; four deliberate unsafe variants"
+                        },
+                        {
+                                "name": "guard/exact-response-target",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "replication_guard_probe",
+                                        "-j1",
+                                        "exact_sent_target_cannot_be_forged_inside_the_local_durable_tail",
+                                        "--",
+                                        "--nocapture"
+                                ],
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "base_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "mutated_source_sha256": "83eecf18a8cfd6ea0c4f563072bcd6ba5907272a61f7e23950c1772dd99b90ad",
+                                "log": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/exact-response-target/test.log",
+                                "log_sha256": "accbb9b2a92ca5f1729b629c7d2d79be324405909bd1806dfe9624ef9f7d4975",
+                                "scope": "compiled evidence-only durability probe; four deliberate unsafe variants"
+                        },
+                        {
+                                "name": "guard/distinct-majority",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "replication_guard_probe",
+                                        "-j1",
+                                        "five_voters_cannot_commit_with_only_one_remote_durable_match",
+                                        "--",
+                                        "--nocapture"
+                                ],
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "base_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "mutated_source_sha256": "7295e93b937909bb41e62a93bf0efaa353a9055ac87b8f8db5181e012883c8af",
+                                "log": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/distinct-majority/test.log",
+                                "log_sha256": "4479bbd6bdf102bc239d85655ae6b9a6a3df4bad0fb6bb0f79927460afdd1ab7",
+                                "scope": "compiled evidence-only durability probe; four deliberate unsafe variants"
+                        },
+                        {
+                                "name": "guard/current-term-commit",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "replication_guard_probe",
+                                        "-j1",
+                                        "a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches",
+                                        "--",
+                                        "--nocapture"
+                                ],
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "base_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "mutated_source_sha256": "da9a1771272f9df13570e97f728dafdea5b7f2706a0b80aa4e6ff4adffe87ce2",
+                                "log": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/current-term-commit/test.log",
+                                "log_sha256": "b29a4aa4d2f4e00ac57f3e9fb6b445a0c4a888468553852ba5ac09fafdea008d",
+                                "scope": "compiled evidence-only durability probe; four deliberate unsafe variants"
+                        },
+                        {
+                                "name": "guard/follower-matched-end",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "cargo",
+                                        "+stable",
+                                        "test",
+                                        "--manifest-path",
+                                        "partitionline-broker/Cargo.toml",
+                                        "--test",
+                                        "replication_guard_probe",
+                                        "-j1",
+                                        "a_follower_cannot_commit_beyond_this_requests_verified_prefix",
+                                        "--",
+                                        "--nocapture"
+                                ],
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "base_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "mutated_source_sha256": "14a804e2707a65aace28b97206a497eb02cd04b65eab408ddc8f0bbd04ab714e",
+                                "log": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/follower-matched-end/test.log",
+                                "log_sha256": "50ca5756620a2713a17c935f6bfe93adb492d0ee21f13eac07a2e10cb586b35a",
+                                "scope": "compiled evidence-only durability probe; four deliberate unsafe variants"
+                        },
+                        {
+                                "name": "independent-history/stable-default/3",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication/history-3/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-stable-default-3",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-3.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-3.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/stable-default/5",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication/history-5/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-stable-default-5",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-5.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-5.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/stable-all-features/3",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication/history-3/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-stable-all-features-3",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-3.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-3.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/stable-all-features/5",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication/history-5/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-stable-all-features-5",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-5.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-5.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/1.85.0-default/3",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication/history-3/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-1.85.0-default-3",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-3.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-3.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/1.85.0-default/5",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication/history-5/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-1.85.0-default-5",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-5.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-5.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/1.85.0-all-features/3",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication/history-3/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-1.85.0-all-features-3",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-3.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-3.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "name": "independent-history/1.85.0-all-features/5",
+                                "argv": [
+                                        "python3",
+                                        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication/history-5/trace.json",
+                                        "--work",
+                                        "/workspace/work/integration/73-counterexamples-1.85.0-all-features-5",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-5.json"
+                                ],
+                                "exit_code": 0,
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-5.json",
+                                "scope": "separately executed independent WAL/election/causal checker"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "/workspace/work/raft-quorum-final-f0d4e5d/source/docs/evidence/broker/KL11-73/oracle/apache/prepare-and-run.py",
+                                        "--work",
+                                        "/workspace/work/raft-quorum-final-f0d4e5d/runtime",
+                                        "--output",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d",
+                                        "--source-archives",
+                                        "/workspace/work/broker-api",
+                                        "--distributions",
+                                        "/workspace/work/broker-wire/releases"
+                                ],
+                                "cwd": "/workspace/work/raft-quorum-final-f0d4e5d/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 10.938,
+                                "source_before": {
+                                        "tracked_files_checked": 20124,
+                                        "passed": true
+                                },
+                                "source_after": {
+                                        "tracked_files_checked": 20124,
+                                        "passed": true
+                                },
+                                "runner_log_sha256": "410554984b1b96bf0bb08eac081d68055dae107794266c759a39c787b27b93b1",
+                                "name": "independent-apache-components",
+                                "source_sha": "f0d4e5d0947d0fbf254f156ad6aa0d7a87e10781",
+                                "scope": "Official Apache LeaderState/FollowerState and real local KafkaRaftLog components; no partitionline73 execution, multi-node durable-history or Kafka network claim"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "rustc",
+                                        "+stable",
+                                        "--version",
+                                        "--verbose"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-source/stable-rustc.log",
+                                "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112",
+                                "name": "environment",
+                                "scope": "toolchain provenance"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "rustc",
+                                        "+1.85.0",
+                                        "--version",
+                                        "--verbose"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-source/msrv-rustc.log",
+                                "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a",
+                                "name": "environment",
+                                "scope": "toolchain provenance"
+                        },
+                        {
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "--version"
+                                ],
+                                "exit_code": 0,
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-source/python.log",
+                                "sha256": "4c3569f5da09975434dd9fd9a91fadbc4367a91d8f3c3fab59e9241ab9ee4bd8",
+                                "name": "environment",
+                                "scope": "toolchain provenance"
+                        },
+                        {
+                                "name": "static",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/static.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.6106943970007706,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/static.log",
+                                "log_sha256": "0f0bf66ffc09c9d5a0ffc8932dd12f93fdc6d00a90feec660a37601bd42f7342",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "preserved stale reflected-label combined attempt"
+                        },
+                        {
+                                "name": "stable-default",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/protocol-report.json",
+                                        "--metadata-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/metadata-report.json",
+                                        "--produce-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/produce-report.json",
+                                        "--read-write-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/fetch-report.json",
+                                        "--controller-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-report.json",
+                                        "--controller-tcp-responses",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-responses/transport",
+                                        "--data-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+                                        "--read-write-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/stable-default.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 1,
+                                "elapsed_seconds": 0.5665202029995271,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/stable-default.log",
+                                "log_sha256": "a87de8e10067750faf9d5fe93357c1ce584065f9de8ba8cdbdffb6d40489dd15",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "scope": "preserved stale reflected-label combined attempt"
+                        },
+                        {
+                                "name": "static",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/static.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5743380109997815,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/static.log",
+                                "log_sha256": "0f0bf66ffc09c9d5a0ffc8932dd12f93fdc6d00a90feec660a37601bd42f7342",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "stable-default",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/protocol-report.json",
+                                        "--metadata-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/metadata-report.json",
+                                        "--produce-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/produce-report.json",
+                                        "--read-write-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/fetch-report.json",
+                                        "--controller-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-default/controller-report.json",
+                                        "--controller-tcp-responses",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-default/controller-responses/transport",
+                                        "--data-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+                                        "--read-write-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/stable-default.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5598803049942944,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/stable-default.log",
+                                "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "stable-all-features",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/protocol-report.json",
+                                        "--metadata-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/metadata-report.json",
+                                        "--produce-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/produce-report.json",
+                                        "--read-write-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/fetch-report.json",
+                                        "--controller-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-all-features/controller-report.json",
+                                        "--controller-tcp-responses",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-all-features/controller-responses/transport",
+                                        "--data-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+                                        "--read-write-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/stable-all-features.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5658322720046272,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/stable-all-features.log",
+                                "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "1.85.0-default",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/protocol-report.json",
+                                        "--metadata-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/metadata-report.json",
+                                        "--produce-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/produce-report.json",
+                                        "--read-write-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/fetch-report.json",
+                                        "--controller-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-default/controller-report.json",
+                                        "--controller-tcp-responses",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-default/controller-responses/transport",
+                                        "--data-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+                                        "--read-write-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/1.85.0-default.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.569732848998683,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/1.85.0-default.log",
+                                "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "1.85.0-all-features",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/protocol-report.json",
+                                        "--metadata-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/metadata-report.json",
+                                        "--produce-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/produce-report.json",
+                                        "--read-write-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/fetch-report.json",
+                                        "--controller-handler-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-all-features/controller-report.json",
+                                        "--controller-tcp-responses",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-all-features/controller-responses/transport",
+                                        "--data-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+                                        "--read-write-api-versions-report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/1.85.0-all-features.json"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 0.5790935440018075,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/1.85.0-all-features.log",
+                                "log_sha256": "086f20dbd76e1bf84dd7c2e63091247f05f31866230f39d4bb519802b215eb1e",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "baseline-and-mutations",
+                                "argv": [
+                                        "taskset",
+                                        "-c",
+                                        "0-2,4",
+                                        "python3",
+                                        "-B",
+                                        "-m",
+                                        "unittest",
+                                        "discover",
+                                        "-s",
+                                        "tests/ci",
+                                        "-p",
+                                        "test_broker_api_matrix.py",
+                                        "-v"
+                                ],
+                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                "exit_code": 0,
+                                "elapsed_seconds": 63.00119464599993,
+                                "log": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/baseline-and-mutations.log",
+                                "log_sha256": "260cbce50a3d1159740bc49e7ab3bda6731c3696c4f5195a5a9e030c66273ae9",
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "scope": "immutable checked registry and frozen compiled reports"
+                        },
+                        {
+                                "name": "initial-stale-registry-failure",
+                                "argv": [
+                                        "python3",
+                                        "-B",
+                                        "scripts/check-broker-api-matrix.py",
+                                        "--report",
+                                        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/inventory-initial.json"
+                                ],
+                                "cwd": "/workspace/work/replication-final/source",
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "exit_code": 1,
+                                "log": "docs/evidence/broker/KL11-73/runtime/final-db002076/inventory-initial.log",
+                                "scope": "preserved integration failure; registry referenced previous source hashes"
+                        },
+                        {
+                                "name": "whole-source-identity-after-qa-and-mutants",
+                                "argv": [
+                                        "python3",
+                                        "docs/evidence/broker/KL11-73/runtime/verify-source.py",
+                                        "--source",
+                                        "/workspace/work/replication-final/source",
+                                        "--manifest",
+                                        "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-before.json",
+                                        "--output",
+                                        "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-mutants.json"
+                                ],
+                                "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "exit_code": 0,
+                                "receipt": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-mutants.json"
+                        }
+                ],
+                "results": {
+                        "full_broker_cells": [
+                                {
+                                        "toolchain": "stable",
+                                        "features": "default",
+                                        "passed": 173,
+                                        "failed": 0,
+                                        "ignored": 0,
+                                        "suite_results": 18,
+                                        "replication_events": [
+                                                73,
+                                                121
+                                        ],
+                                        "independent_oracle_status": "accepted by separately owned final-db002076 receipt"
+                                },
+                                {
+                                        "toolchain": "stable",
+                                        "features": "all-features",
+                                        "passed": 250,
+                                        "failed": 0,
+                                        "ignored": 0,
+                                        "suite_results": 18,
+                                        "replication_events": [
+                                                73,
+                                                121
+                                        ],
+                                        "independent_oracle_status": "accepted by separately owned final-db002076 receipt"
+                                },
+                                {
+                                        "toolchain": "1.85.0",
+                                        "features": "default",
+                                        "passed": 173,
+                                        "failed": 0,
+                                        "ignored": 0,
+                                        "suite_results": 18,
+                                        "replication_events": [
+                                                73,
+                                                121
+                                        ],
+                                        "independent_oracle_status": "accepted by separately owned final-db002076 receipt"
+                                },
+                                {
+                                        "toolchain": "1.85.0",
+                                        "features": "all-features",
+                                        "passed": 250,
+                                        "failed": 0,
+                                        "ignored": 0,
+                                        "suite_results": 18,
+                                        "replication_events": [
+                                                73,
+                                                121
+                                        ],
+                                        "independent_oracle_status": "accepted by separately owned final-db002076 receipt"
+                                }
+                        ],
+                        "full_broker_test_passes": 846,
+                        "fresh_controller_label_tests_passed": 40,
+                        "fresh_controller_report_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                        "fresh_controller_only_metadata_labels_changed": true,
+                        "full_broker_failures": 0,
+                        "full_broker_ignored": 0,
+                        "doctest_cases": 0,
+                        "strict_clippy_rustdoc_doctest_compilation_fmt": "passed",
+                        "replication_integration_tests_per_lane": 17,
+                        "controller_goldens_per_lane": 201,
+                        "controller_actual_tcp_exchanges_per_lane": 18,
+                        "all_controller_raw_files_identical_four_lanes": true,
+                        "histories": 8,
+                        "history_events": 776,
+                        "actual_paired_WAL_checkpoints": 104,
+                        "independent_proof_counterexamples_rejected": 76,
+                        "guard_probe_baseline_passes": 4,
+                        "compiled_predeclared_unsafe_mutants_rejected": 4,
+                        "apache_component_assertions": 330,
+                        "apache_expected_bad_assertions_detected": 3,
+                        "registry_compiled_cells": 4,
+                        "registry_baseline_mutation_tests": 48,
+                        "compiled_case_outcomes_per_lane": {
+                                "protocol": 99,
+                                "Metadata": 555,
+                                "Produce": 708,
+                                "Fetch_ListOffsets": 366,
+                                "read_write_ApiVersions": 15,
+                                "controller": 201
+                        }
+                },
+                "bounds": {
+                        "fixed_voters": 64,
+                        "max_record_bytes": 1048576,
+                        "default_chunk_fetch_bytes": 2097152,
+                        "max_configurable_chunk_fetch_bytes": 4194304,
+                        "max_live_entries": 4096,
+                        "max_live_payload_bytes": 67108864,
+                        "max_WAL_operations": 65536,
+                        "max_WAL_bytes": 268435456,
+                        "startup_operation_tail_positions_bytes_max": 1048576,
+                        "outstanding_requests_per_peer": 1,
+                        "actor_default_slots": 16,
+                        "actor_slot_range": [
+                                1,
+                                1024
+                        ],
+                        "actor_resident_envelope_formula": "(2*slots+1)*(max(chunk+live_entry_headers,fetch,controller_request)+Command/State headers), checked<=512MiB",
+                        "actor_conservative_envelope_ceiling_bytes": 536870912,
+                        "recovery": "Existing bounded Journal index/read scratch plus bounded operation-tail positions, released before readiness."
+                },
+                "acceptance_evidence": [
+                        {
+                                "contract": "durable ACK/read ordering",
+                                "proof": "Operation WAL fsync then election reconciliation precede follower success; synchronized Commit precedes committed fetch. wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation verifies WAL-first crash ambiguity."
+                        },
+                        {
+                                "contract": "current-term strict majority and exact causality",
+                                "proof": "Actual3/5-voter histories, independent causal checker and public-Node compiled guard mutations. One outstanding term/member/sequence/exact sent position is required; two of five cannot commit and an old-term partial prefix cannot commit before the new barrier."
+                        },
+                        {
+                                "contract": "committed prefix and recovery authority",
+                                "proof": "Runtime preflight and durable operation replay reject committed truncation, same-term payload conflict, unowned legacy summary, follower authority below entry term and authority regression. Checksum-valid actual Journal counterexamples plus process restart receipts retained."
+                        },
+                        {
+                                "contract": "bounded admission and recovery",
+                                "proof": "Config/limits tests, bounded slot/canceled input/unconsumed fetch receipt tests, per-peer outstanding request and explicit overload, per-WAL/live/chunk budgets, poisoning until verified reopen."
+                        },
+                        {
+                                "contract": "actual faults and byte-prefix agreement",
+                                "proof": "Four fresh3/5-node child/parent runs, abrupt child process exit without destructors, actual file reopen, lost/reordered/stale ACKs, quorum expiry, partitions, catch-up and higher-term orphan repair. Independent raw journal plus causal checker accepts8 histories/776 events/104 checkpoint pairs and rejects76 controls."
+                        },
+                        {
+                                "contract": "legacy election/controller profile",
+                                "proof": "Complete stable/MSRV default/all-feature broker suites, unchanged raft_protocol test source, all201 golden outcomes and18 actual TCP exchanges per lane. Registry gate compares compiled bytes/advertisement and rejects forged claims. Fixed reconfiguration rejection leaves74 open."
+                        }
+                ],
+                "independent_oracle": {
+                        "history": {
+                                "path": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/validation.json",
+                                "sha256": "70bcb1132fb2ed1d6e10a80331af8150847392c7aef63864db306c17a8bb98f0"
+                        },
+                        "apache": {
+                                "path": "docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-validation.json",
+                                "sha256": "dcf36747f72f960649484f60c163c209a5f4532a51780a26ef8ca92ee6398cc5"
+                        },
+                        "scope_separation": "Raw copied WAL/election/causal histories qualify runtime persistence; Apache component execution corroborates source semantics separately and does not run Partitionline quorum or network.",
+                        "mutation_classification": "partial-final-operation is structurally incomplete despite generic legacy checksum_valid_semantic_mutation metadata; complete semantic/checksummed variants remain separately identified."
+                },
+                "registry_normalization": {
+                        "runtime_reports_untouched": true,
+                        "fresh_affected_controller_reports": {
+                                "schema_version": 1,
+                                "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                                "original_runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+                                "passed": true,
+                                "cells": [
+                                        {
+                                                "lane": "stable-default",
+                                                "passed": 10,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "golden_outcomes": 201,
+                                                "tcp_exchanges": 18,
+                                                "raw_files": 222,
+                                                "all_raw_response_bytes_equal_original_runtime": true,
+                                                "only_changed_report_fields": [
+                                                        "controller_source_sha256",
+                                                        "election_source_sha256",
+                                                        "raft_module_source_sha256"
+                                                ]
+                                        },
+                                        {
+                                                "lane": "stable-all-features",
+                                                "passed": 10,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "golden_outcomes": 201,
+                                                "tcp_exchanges": 18,
+                                                "raw_files": 222,
+                                                "all_raw_response_bytes_equal_original_runtime": true,
+                                                "only_changed_report_fields": [
+                                                        "controller_source_sha256",
+                                                        "election_source_sha256",
+                                                        "raft_module_source_sha256"
+                                                ]
+                                        },
+                                        {
+                                                "lane": "1.85.0-default",
+                                                "passed": 10,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "golden_outcomes": 201,
+                                                "tcp_exchanges": 18,
+                                                "raw_files": 222,
+                                                "all_raw_response_bytes_equal_original_runtime": true,
+                                                "only_changed_report_fields": [
+                                                        "controller_source_sha256",
+                                                        "election_source_sha256",
+                                                        "raft_module_source_sha256"
+                                                ]
+                                        },
+                                        {
+                                                "lane": "1.85.0-all-features",
+                                                "passed": 10,
+                                                "failed": 0,
+                                                "ignored": 0,
+                                                "golden_outcomes": 201,
+                                                "tcp_exchanges": 18,
+                                                "raw_files": 222,
+                                                "all_raw_response_bytes_equal_original_runtime": true,
+                                                "only_changed_report_fields": [
+                                                        "controller_source_sha256",
+                                                        "election_source_sha256",
+                                                        "raft_module_source_sha256"
+                                                ]
+                                        }
+                                ],
+                                "commands": [
+                                        {
+                                                "argv": [
+                                                        "taskset",
+                                                        "-c",
+                                                        "0-2,4",
+                                                        "cargo",
+                                                        "+stable",
+                                                        "test",
+                                                        "--locked",
+                                                        "--manifest-path",
+                                                        "partitionline-broker/Cargo.toml",
+                                                        "--test",
+                                                        "raft_protocol",
+                                                        "-j1"
+                                                ],
+                                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                                "exit_code": 0,
+                                                "log": "stable-default/tests.log",
+                                                "log_sha256": "406deb5f5159320bcd5c540d0f0781f84ff75205d7c6d0d78f7be510c89f08eb"
+                                        },
+                                        {
+                                                "argv": [
+                                                        "taskset",
+                                                        "-c",
+                                                        "0-2,4",
+                                                        "cargo",
+                                                        "+stable",
+                                                        "test",
+                                                        "--locked",
+                                                        "--manifest-path",
+                                                        "partitionline-broker/Cargo.toml",
+                                                        "--test",
+                                                        "raft_protocol",
+                                                        "-j1",
+                                                        "--all-features"
+                                                ],
+                                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                                "exit_code": 0,
+                                                "log": "stable-all-features/tests.log",
+                                                "log_sha256": "90a66fa36b013fed66e982e2f63e0dbdbdb71808cff762c92e92416a5076b0bc"
+                                        },
+                                        {
+                                                "argv": [
+                                                        "taskset",
+                                                        "-c",
+                                                        "0-2,4",
+                                                        "cargo",
+                                                        "+1.85.0",
+                                                        "test",
+                                                        "--locked",
+                                                        "--manifest-path",
+                                                        "partitionline-broker/Cargo.toml",
+                                                        "--test",
+                                                        "raft_protocol",
+                                                        "-j1"
+                                                ],
+                                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                                "exit_code": 0,
+                                                "log": "1.85.0-default/tests.log",
+                                                "log_sha256": "7e7502f60368f720d67482b35f87bfba4841a92e940e1f844b09a8c59ed72d5e"
+                                        },
+                                        {
+                                                "argv": [
+                                                        "taskset",
+                                                        "-c",
+                                                        "0-2,4",
+                                                        "cargo",
+                                                        "+1.85.0",
+                                                        "test",
+                                                        "--locked",
+                                                        "--manifest-path",
+                                                        "partitionline-broker/Cargo.toml",
+                                                        "--test",
+                                                        "raft_protocol",
+                                                        "-j1",
+                                                        "--all-features"
+                                                ],
+                                                "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+                                                "exit_code": 0,
+                                                "log": "1.85.0-all-features/tests.log",
+                                                "log_sha256": "ab0bd59c37cffad4a0d2b56973111f56104838026be69b8d67a9a2e832de0491"
+                                        }
+                                ],
+                                "reason": "Compiled reporter embeds reflected registry source labels; only three labels changed. Actual original-source compilation was already proven independently.",
+                                "scope": "Focused controller golden and real TCP tests only; full broker matrix remains the original immutable runtime receipt."
+                        },
+                        "all_broker_files_equal_original_runtime": true,
+                        "registry_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+                        "old_and_normalized_combined_failures_retained": true
+                },
+                "compiled_safety_mutations": [
+                        {
+                                "name": "baseline",
+                                "exit_code": 0,
+                                "expected_outcome_verified": true,
+                                "source_sha256": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+                                "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+                        },
+                        {
+                                "name": "exact-response-target",
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "source_sha256": "83eecf18a8cfd6ea0c4f563072bcd6ba5907272a61f7e23950c1772dd99b90ad",
+                                "patch_sha256": "748da3d31a7b96e97700c31d6664d53b701b53bcaa2f28adb827b6f3a3d8528b"
+                        },
+                        {
+                                "name": "distinct-majority",
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "source_sha256": "7295e93b937909bb41e62a93bf0efaa353a9055ac87b8f8db5181e012883c8af",
+                                "patch_sha256": "e6e3f97922164778d717dbb798a383a312df82254aa163700dbed0980e471f25"
+                        },
+                        {
+                                "name": "current-term-commit",
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "source_sha256": "da9a1771272f9df13570e97f728dafdea5b7f2706a0b80aa4e6ff4adffe87ce2",
+                                "patch_sha256": "07b790e582df7483330647b6f3b3fb58751d676535e5df7b319407b7efde20b5"
+                        },
+                        {
+                                "name": "follower-matched-end",
+                                "exit_code": 101,
+                                "expected_outcome_verified": true,
+                                "source_sha256": "14a804e2707a65aace28b97206a497eb02cd04b65eab408ddc8f0bbd04ab714e",
+                                "patch_sha256": "6b23ada7d65d462a9661029d20b428ead903e3d059ef3fa241ad1983f8577b31"
+                        }
+                ],
+                "retained_failures_and_corrections": [
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/tests-first.log",
+                                                "sha256": "c1e6ba8d556e29ad75c603f60d3758719e37402f2fc1f4dae0dba0d535c64443"
+                                        }
+                                ],
+                                "kind": "incorrect test setup",
+                                "finding": "The original recovery fixture invented a regressed core after a durable commit; the original torn bytes were arbitrary corruption rather than a recognizable partial entry header. Corrected fixtures model possible crash state and known partial header; complete corrupt bytes remain fail-closed."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/history-first.log",
+                                                "sha256": "0dfd36bc83297b8499c6db6a53daff8a034a681bd6d9ec1c84e5dbca435ab525"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/history-second.log",
+                                                "sha256": "95753d0030f3bd065421068b6e6992f1c0f6a110c882a919b06294d205d0fef2"
+                                        }
+                                ],
+                                "kind": "incorrect stale-request fixture",
+                                "finding": "A request addressed to peer5 was delivered as peer2 input without declaring mutation. Final trace programmatically marks changed peer and original prepare ordinal; only rejected outcomes may use this declared test mutation."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/clippy-first.log",
+                                                "sha256": "efa42d0880ca096202a312ff2b1028ac66672f6bc4af30026ecee32457364d92"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/clippy-second.log",
+                                                "sha256": "f43dfb3b747de918d8379dbb55a604d9dd08574506630b42c77a5e8a9a725ffa"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/msrv-clippy-final-draft.log",
+                                                "sha256": "61f150a9ceaa484febf368234e618949a23d411659c46daa367eead8d4cc7690"
+                                        }
+                                ],
+                                "kind": "strict lint failure",
+                                "finding": "Corrected arithmetic lint, repository-disallowed whole-file helpers, redundant pattern and MSRV collapsible_else_if without lint allowances. All intermediate subsequent logs remain retained."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/follower-commit-first.log",
+                                                "sha256": "97bcdd52c2694d383e09c451c66b66722b0287041f723cc0dcbed6561a0681ef"
+                                        }
+                                ],
+                                "kind": "failing-first durable replay regression",
+                                "finding": "Checksum-valid follower Commit could authorize an entry newer than its authority term. Runtime and replay now require entry term<=authority term; actual mutated Journal fails recovery."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/unowned-core-first.log",
+                                                "sha256": "42ce1ec5d9285389ba3e75f5713bbcb2cd18d8c64e710919bdfb0b03a3f80826"
+                                        }
+                                ],
+                                "kind": "failing-first recovery regression",
+                                "finding": "Opening a new empty content WAL with an unrelated legacy election summary could erase its log identity. Recovered summary must match a confirmed operation-tail position before reconciliation."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/authority-regression-first.log",
+                                                "sha256": "da982818bf8d406db0bcca5a9bc309913788684c1e35570e0565c159e6128b1c"
+                                        }
+                                ],
+                                "kind": "failing-first authority regression",
+                                "finding": "A later checksum-valid Commit could regress authority term while committing an older entry. Runtime/replay reject authority below earlier WAL max term."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/development/tests-eighth.log",
+                                                "sha256": "478df698f48b7f3bf3d1efb879fe41099427ac8bdf53969b02f31e1863a0c9fe"
+                                        }
+                                ],
+                                "kind": "configuration/bound review",
+                                "finding": "Initial actor-envelope accounting charged the standalone64-slot/8MiB queue setting to the new replication actor. Config now has its own default16 slots and conservative canceled-input plus unconsumed-receipt bound; final default and small-limit configurations pass."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/stable-default.json",
+                                                "sha256": "a87de8e10067750faf9d5fe93357c1ce584065f9de8ba8cdbdffb6d40489dd15"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/stable-default.log",
+                                                "sha256": "a87de8e10067750faf9d5fe93357c1ce584065f9de8ba8cdbdffb6d40489dd15"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/failure-context.json",
+                                                "sha256": "6692a7ecb2ac708836bab9dbfdd2a396e437c3245e16fd7eb193f193d9e20723"
+                                        }
+                                ],
+                                "kind": "reflected compiled reporter label failure",
+                                "finding": "Controller reporter includes registry hash labels. Historical db002076 embeds old labels despite actual source identity proof; all four affected controller reporters reran at normalized 1e registry. Only three labels differ; all 222 payload/frame bytes remain identical."
+                        },
+                        {
+                                "artifacts": [
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/final-db002076/inventory-initial.json",
+                                                "sha256": "51d682371ca0b5190649a40d767b5caad6b98ae4e126a5700ff5003f3dbfc715"
+                                        },
+                                        {
+                                                "path": "docs/evidence/broker/KL11-73/runtime/final-db002076/inventory-initial.log",
+                                                "sha256": "51d682371ca0b5190649a40d767b5caad6b98ae4e126a5700ff5003f3dbfc715"
+                                        }
+                                ],
+                                "kind": "source/registry integration failure",
+                                "finding": "db002076 contained unchanged prior registry hashes for controller/election/module; coordinator-only exact-source hash normalization and immutable final gate qualify the unchanged runtime blobs."
+                        }
+                ],
+                "artifacts": [
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/README.md",
+                                "sha256": "9476a3dd1441e4ad3a75c4cb8929bf2fec11569bf40ed6d1f7330c89f60a44a6"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/source-freeze.json",
+                                "sha256": "11d322f234d08cae51e107f953d48c80a4c32463b61db113cbfa26a16d378551"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-db002076/results.json",
+                                "sha256": "3edcfd075da9c6f081928fb48b9ffa9066ccb16b7dceb1b941a7700e93708261"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-db002076/commands.json",
+                                "sha256": "e6fe3729d4a604e61140d13b9a6dd83f617ab881f4c93bf062e4e4b845e7c2a5"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-db002076/capture-summary.json",
+                                "sha256": "2867d3c35ff89bcc295f0001530c42796a5a9e235148b4878545edebc4f11680"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-before.json",
+                                "sha256": "9f9fb2cd18c898e83f6fa2644e9f06d2450cd845ca97d24273c37998b52f7f07"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-qa.json",
+                                "sha256": "b083e591e8491744900406fbf86a9801e88060ef818c9cca6cb5e96ac96b735f"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/source-integrity-after-mutants.json",
+                                "sha256": "00be578b0caa652f72d41b99f588e239a12283c6193a55b0403160c710baea97"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/environment.json",
+                                "sha256": "de3adb8717e4312e47f40ab39c5e92fc795ce8c5c0c7763c5043c420c29a7dbe"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/plan.json",
+                                "sha256": "95fcfe751e0ac99f7b6be20fad1f61792172f1cbb0ffe59f03e2691e236495a6"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/mutants/final-db002076/results.json",
+                                "sha256": "53303376d002de57a47062f39f7eb1fde72d5f0423fd2a2bdd3a6890afc5ea80"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/validation.json",
+                                "sha256": "70bcb1132fb2ed1d6e10a80331af8150847392c7aef63864db306c17a8bb98f0"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/oracle/apache/final-f0d4e5d/immutable-validation.json",
+                                "sha256": "dcf36747f72f960649484f60c163c209a5f4532a51780a26ef8ca92ee6398cc5"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/validation.json",
+                                "sha256": "edec68fb8f5a4db99c35e14b419476b5c1a9dd79790752f0afe7c226a4f8a887"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/validation.json",
+                                "sha256": "5d00cbda4cfbbce12c78f570148ac6b2cfa6ddd49f185bd9ab36b7bd7ae4cefa"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/registry-source-integrity-before.json",
+                                "sha256": "077eb2c6d0833088894b0c00cbf11758d8c1ec8e46b437636726cf6a47388450"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/final-source/registry-source-integrity-after.json",
+                                "sha256": "9f4b57aa7176d50707a6dd97410ef083bcd2f6993cf3a64e8312b08e122a38ab"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/retained-binaries.json",
+                                "sha256": "3ef7ad7395d6a319caf54080836d36002f7fb0c7b14f335cd93f07b68b2146f0"
+                        },
+                        {
+                                "path": "docs/evidence/broker/KL11-73/runtime/metadata-assembly-attempts.json",
+                                "sha256": "83babb990c9babf0503ed1d9104fa294c9ef81c6f1e7926d66bf1a872da8b6e1"
+                        }
+                ],
+                "limitations": [
+                        "Fixed trusted membership only; reconfiguration returns MembershipChangeUnsupported. Dynamic voter changes remain KL11-74, snapshots remain KL11-15, aggregate KL11-14 remains open.",
+                        "Caller-driven typed Request/Response and explicit polling/leader activation are not Kafka replication wire or an autonomous peer/controller network loop. No new API advertisement.",
+                        "Opaque metadata bytes/internal empty barriers are a custom local content format, not Kafka control-record serialization or application-state replay/compaction.",
+                        "Trusted storage paths and typed peer IDs do not authenticate a network peer. Existing controller-v0 transport/goldens are preserved separately.",
+                        "Finite deterministic process histories and injected torn headers do not prove exhaustive scheduling, machine power-loss or production qualification. Loss of a response/in-flight cancellation may leave uncommitted durable data; reopen reconciles before serving.",
+                        "Durable local Commit WAL marks do not encode historical vote/majority receipts; independent causal captures supply that separate majority proof.",
+                        "Returned consumed record vectors are caller-owned outside actor admission; bounded actor accounting covers pending/canceled input, unconsumed output and in-flight work.",
+                        "Official Apache probes execute component classes and real local logs only. Bare LeaderState trusts caller offsets and local log component high-watermark is not durably retained; separate envelope guards/WAL authority remain essential.",
+                        "Optional external live-port Rust helpers were unset. Their conditional passing test counts do not establish an external Kafka session.",
+                        "Registry gate reuses independently frozen KL11-68 data/read API18 seed/restart exchanges and newly compiled db002076 outcomes; it does not conduct another external session.",
+                        "No benchmark or public performance claim, no production qualification claim."
+                ],
+                "checksum_manifest": "docs/evidence/broker/KL11-73/runtime/SHA256SUMS"
+        }
+      ],
       "delegated_write_sets": {
         "codex-c-peer-20261003": [
           "docs/evidence/broker/KL11-73/oracle/apache/"

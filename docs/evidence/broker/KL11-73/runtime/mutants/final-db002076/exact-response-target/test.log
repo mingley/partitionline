@@ -1,0 +1,33 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/replication-mutants-db002076/exact-response-target/partitionline-broker)
+warning: field `target` is never read
+   --> src/raft/replication.rs:753:5
+    |
+749 | struct Outstanding {
+    |        ----------- field in this struct
+...
+753 |     target: LogPosition,
+    |     ^^^^^^
+    |
+    = note: `Outstanding` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (lib) generated 1 warning
+    Finished `test` profile [unoptimized] target(s) in 1.43s
+     Running tests/replication_guard_probe.rs (/workspace/work/target-replication-mutants/debug/deps/replication_guard_probe-f568111816017599)
+
+running 1 test
+actual sent end=4, follower durable end=4, forged end=5, local durable end=6
+
+thread 'exact_sent_target_cannot_be_forged_inside_the_local_durable_tail' (670316) panicked at tests/replication_guard_probe.rs:72:5:
+forged unsent end accepted inside local durable tail
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test exact_sent_target_cannot_be_forged_inside_the_local_durable_tail ... FAILED
+
+failures:
+
+failures:
+    exact_sent_target_cannot_be_forged_inside_the_local_durable_tail
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test replication_guard_probe`

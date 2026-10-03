@@ -1,0 +1,532 @@
+{
+  "schema_version": 1,
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+    "partitionline-broker/src/raft/election.rs": "106e3c312ebaf15533c70906dfd9febd2c1e66db5e195990a0ce0636f298ceac",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+    "partitionline-broker/tests/raft_replication.rs": "63c78a259811e276492fdd5a154aa31d1b98908b0f16c51c0eda6fa0df8ce84f",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+  },
+  "cells": [
+    {
+      "toolchain": "stable",
+      "features": "default",
+      "passed": 173,
+      "failed": 0,
+      "ignored": 0,
+      "suite_results": 18,
+      "replication_events": [
+        73,
+        121
+      ],
+      "independent_oracle_status": "pending separate receipt"
+    },
+    {
+      "toolchain": "stable",
+      "features": "all-features",
+      "passed": 250,
+      "failed": 0,
+      "ignored": 0,
+      "suite_results": 18,
+      "replication_events": [
+        73,
+        121
+      ],
+      "independent_oracle_status": "pending separate receipt"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "default",
+      "passed": 173,
+      "failed": 0,
+      "ignored": 0,
+      "suite_results": 18,
+      "replication_events": [
+        73,
+        121
+      ],
+      "independent_oracle_status": "pending separate receipt"
+    },
+    {
+      "toolchain": "1.85.0",
+      "features": "all-features",
+      "passed": 250,
+      "failed": 0,
+      "ignored": 0,
+      "suite_results": 18,
+      "replication_events": [
+        73,
+        121
+      ],
+      "independent_oracle_status": "pending separate receipt"
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-clean.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.04676373500115005,
+      "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-default/tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 23.92363549300353,
+      "sha256": "b90354a0eaab02f543a69da4086a437a2d033d85e918375952430d2578f7caf0"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication",
+        "--source-root",
+        "/workspace/work/replication-final/source",
+        "--source-sha",
+        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-default/seal.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.06140467099612579,
+      "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-default/clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 7.3617669960003695,
+      "sha256": "0c5077be57f4348c3909793e462150daa45cd53ca72efcd20745e9ab68e3378e"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-default/docs.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.3788150760010467,
+      "sha256": "f34580a85e03079fcb566175a5c0ec74ed821950aabc0854c968c5b4100597cd"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-default/doctests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.12418125700060045,
+      "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-all-features/tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 44.15817030300241,
+      "sha256": "36f05f6ce31f10d38ba590a1b8c7b5e630ef1474a51f9921ace4ab49d0c5b280"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication",
+        "--source-root",
+        "/workspace/work/replication-final/source",
+        "--source-sha",
+        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-all-features/seal.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.06333986200479558,
+      "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-all-features/clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 11.060703283001203,
+      "sha256": "4f3b4f6271999ce7b684055504a7df9b3b756a0d5222d7f18a0b7af17261126d"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-all-features/docs.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5240959239963559,
+      "sha256": "37a2c3550ee789557915bcc864b1d2b6ac3a7a15c95eafe41c4ee313536c654e"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "stable-all-features/doctests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.1514626420030254,
+      "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clean",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "-p",
+        "partitionline-broker"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-clean.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.04716532000020379,
+      "sha256": "0bdaeb2aa6a92a0fdfec2d2cc4d0ab71946de5d0654e08c526e4629130ae0f28"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-default/tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 26.56693714499852,
+      "sha256": "5a8ab54bd5cc975ffc3b102ab57cd6c1c2d048c73cc0bbe93c4fff2e90ebd059"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication",
+        "--source-root",
+        "/workspace/work/replication-final/source",
+        "--source-sha",
+        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-default/seal.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.06380985500436509,
+      "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-default/clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 9.531404016001034,
+      "sha256": "8089281057d18edca3d36b4ae3eb2966c01d2d7db2ae477a9e3e5446354a9edc"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-default/docs.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5991806659949361,
+      "sha256": "5d04f2f8fb07352de973200229e4aaf57bd25b33d19eb85f311bccf4d70b4194"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "-j1"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-default/doctests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.12670386999525363,
+      "sha256": "62ca454618d0bd5c48161956decf9ec8129407d5d574965c655ddd9ca3f1d878"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-all-features/tests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 53.768773960000544,
+      "sha256": "10b0be7431b079532faa085abf4cea4b3e9cc480672a07e49877887a617b7e9c"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/seal-traces.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication",
+        "--source-root",
+        "/workspace/work/replication-final/source",
+        "--source-sha",
+        "db002076bb5a19ed4a84cf8a60bce949c1d9cd84"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-all-features/seal.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.06258006999996724,
+      "sha256": "04a9d6c6a1537366a0787ab05d1f0cda3b67e5948dce887bf93b9ceb6ca0f51a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "clippy",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--all-targets",
+        "-j1",
+        "--all-features",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-all-features/clippy.log",
+      "exit_code": 0,
+      "elapsed_seconds": 15.219146048999391,
+      "sha256": "ef91447b0f8359ee028f486e5a3db11f6bb81330291186855e16712262311f01"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "doc",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--no-deps",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-all-features/docs.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.8954292489943327,
+      "sha256": "9a5b025de2cda302eda0f9c12dd1d370072c1d7fffaf1905feb21ab816568f8f"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+1.85.0",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--doc",
+        "-j1",
+        "--all-features"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "1.85.0-all-features/doctests.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.18734393800696125,
+      "sha256": "2dfd5f0e43f0164b2d5643e6ef7260a6d9ee5c7e92d085be049c3da47145d30d"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "fmt",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--",
+        "--check"
+      ],
+      "cwd": "/workspace/work/replication-final/source",
+      "log": "fmt.log",
+      "exit_code": 0,
+      "elapsed_seconds": 0.2741213529952802,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "scope": "Compiled broker behavior/strict/docs/capture gates; independent Apache/WAL validation and qualification disposition are separate.",
+  "limits": [
+    "Typed replication is caller-driven and has no Kafka replication codec or autonomous peer runtime.",
+    "Optional external live-port helper tests are not an external Kafka session proof.",
+    "Dynamic membership, snapshots and production qualification remain separate tasks."
+  ]
+}

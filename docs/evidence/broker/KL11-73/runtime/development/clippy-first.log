@@ -1,0 +1,29 @@
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+error: unnecessary `>= y + 1` or `x - 1 >=`
+   --> src/raft/replication.rs:939:9
+    |
+939 | /         1 + self
+940 | |             .peers
+941 | |             .iter()
+942 | |             .filter(|p| {
+...   |
+946 | |             .count()
+947 | |             >= self.config.controller.voters.len() / 2 + 1
+    | |__________________________________________________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#int_plus_one
+    = note: `-D clippy::int-plus-one` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::int_plus_one)]`
+help: change it to
+    |
+939 ~         1 + self
+940 +             .peers
+941 +             .iter()
+942 +             .filter(|p| {
+943 +                 p.contact
+944 +                     .is_some_and(|seen| now.saturating_sub(seen) <= self.config.quorum_timeout_ms)
+945 +             })
+946 +             .count() > self.config.controller.voters.len() / 2
+    |
+
+error: could not compile `partitionline-broker` (lib) due to 1 previous error

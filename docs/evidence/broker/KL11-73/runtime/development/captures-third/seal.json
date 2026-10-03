@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "source_sha": "development-WORK",
+  "source_files_sha256": {
+    "partitionline-broker/src/raft/replication.rs": "fc1509d1facebbbb628d393ba8439fb271204104c941d90c6320eccdf0355d6b",
+    "partitionline-broker/src/raft/election.rs": "b7a78bde59f14deca065ac0ea9aa0cba52c719834223fb88d861868850d58f42",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+    "partitionline-broker/tests/raft_replication.rs": "86c531797cfa987b1539d428548ddd663c3e796a3a279e7cdc187db4c2d546ce"
+  },
+  "purpose": "hash/provenance binding only; independent safety checker is separately owned",
+  "histories": [
+    {
+      "path": "history-3",
+      "events": 73,
+      "copied_journal_receipts": 10,
+      "raw_trace_sha256": "f8c99270135466610cf49566183897424e70413c206de4e49eebcf144e9a37b3",
+      "sealed_trace_sha256": "7105584e9038a45b90000da76830aad6263cd4b0d8e37bee20379956c303b875"
+    },
+    {
+      "path": "history-5",
+      "events": 121,
+      "copied_journal_receipts": 16,
+      "raw_trace_sha256": "1c0ece2c39b55fd04f79b6d5063b1214c966068169d48fd12fbf9d0c903a4c7b",
+      "sealed_trace_sha256": "06ad125fd76242beb8a7553a12074c8f7ddea125a20746da7134171809079641"
+    }
+  ],
+  "source_binding_scope": "Development only: source files hashed at seal time after one owner-only same-index reconciliation routing correction; not an immutable compiled-source receipt. Behavioral binaries preceded that correction. Final exact-source runs must replace this developmental qualification scope."
+}

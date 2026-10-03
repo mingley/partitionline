@@ -1,0 +1,36 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling libc v0.2.189
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+    Checking mio v1.2.3
+    Checking socket2 v0.6.5
+    Checking bytes v1.12.1
+    Checking pin-project-lite v0.2.17
+    Checking cfg-if v1.0.5
+    Checking tokio v1.53.1
+    Checking partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+warning: constant `HEADER` is never used
+  --> src/raft/replication.rs:31:7
+   |
+31 | const HEADER: usize = 16;
+   |       ^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `u16` is never used
+   --> src/raft/replication.rs:244:8
+    |
+224 | impl<'a> Reader<'a> {
+    | ------------------- method in this implementation
+...
+244 |     fn u16(&mut self) -> Result<u16, Error> {
+    |        ^^^
+
+warning: `partitionline-broker` (lib) generated 2 warnings
+    Finished `dev` profile [unoptimized] target(s) in 7.50s

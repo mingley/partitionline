@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+  "git_tree": "8fe46c1e21fc49126cafad1208ecd5243bd18be0",
+  "archive_sha256": "9979aa7af4294dd5af0fcc6c43d34e55de0b005ef910aec9de0d3c035e5d2250",
+  "all_git_blobs_and_modes_verified": true,
+  "file_count": 20900,
+  "ordered_manifest_sha256": "d1cbd1cfde9108ab817186314274cd9cb6a004b446449fdb7190e19208ba72d3",
+  "source_root": "/workspace/work/replication-registry-final-1e357b04/source",
+  "command": [
+    "git",
+    "archive",
+    "1e357b041dcb307dbc270bff369d51e7bb525f25"
+  ]
+}

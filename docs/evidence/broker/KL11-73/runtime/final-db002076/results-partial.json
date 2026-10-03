@@ -1,0 +1,54 @@
+[
+  {
+    "toolchain": "stable",
+    "features": "default",
+    "passed": 173,
+    "failed": 0,
+    "ignored": 0,
+    "suite_results": 18,
+    "replication_events": [
+      73,
+      121
+    ],
+    "independent_oracle_status": "pending separate receipt"
+  },
+  {
+    "toolchain": "stable",
+    "features": "all-features",
+    "passed": 250,
+    "failed": 0,
+    "ignored": 0,
+    "suite_results": 18,
+    "replication_events": [
+      73,
+      121
+    ],
+    "independent_oracle_status": "pending separate receipt"
+  },
+  {
+    "toolchain": "1.85.0",
+    "features": "default",
+    "passed": 173,
+    "failed": 0,
+    "ignored": 0,
+    "suite_results": 18,
+    "replication_events": [
+      73,
+      121
+    ],
+    "independent_oracle_status": "pending separate receipt"
+  },
+  {
+    "toolchain": "1.85.0",
+    "features": "all-features",
+    "passed": 250,
+    "failed": 0,
+    "ignored": 0,
+    "suite_results": 18,
+    "replication_events": [
+      73,
+      121
+    ],
+    "independent_oracle_status": "pending separate receipt"
+  }
+]

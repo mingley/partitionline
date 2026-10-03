@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "baseline_four_probes_pass": true,
+  "four_predeclared_mutants_fail_named_tests": true,
+  "immutable_source_unchanged": true,
+  "plan_sha256": "95fcfe751e0ac99f7b6be20fad1f61792172f1cbb0ffe59f03e2691e236495a6",
+  "results": [
+    {
+      "name": "baseline",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "replication_guard_probe",
+        "-j1",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 0,
+      "expected_outcome_verified": true,
+      "elapsed_seconds": 9.20097958799306,
+      "source_sha256": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+      "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+      "log_sha256": "7fef7e239f65428435184e551936e3e26e674d5640e0fcef548ed0d96cb3cf0b",
+      "patch_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "raw_journals": [
+        {
+          "path": "baseline/raw-journals/current-term/1.election",
+          "sha256": "80e351451c315aaf47e742387067aaf39082c306428aace778ff2cb2f77f52fa",
+          "bytes": 924
+        },
+        {
+          "path": "baseline/raw-journals/current-term/1.wal",
+          "sha256": "bc27da9125112d231fe50f3a9b8bb5b2ebde0a838bea22952b5e937d98e6e6e1",
+          "bytes": 1665
+        },
+        {
+          "path": "baseline/raw-journals/current-term/2.election",
+          "sha256": "f541a053556d9b3e47e6a8f69e33422eb4b10915a4f04cfa7faacaa2f691aba5",
+          "bytes": 724
+        },
+        {
+          "path": "baseline/raw-journals/current-term/2.wal",
+          "sha256": "03db162abcfcc326fec59e99a058d2249d7c6fac68951ff4dbc3686720868067",
+          "bytes": 1497
+        },
+        {
+          "path": "baseline/raw-journals/current-term/3.election",
+          "sha256": "2169e1ef5cff6695cfb5642f6df4b84f84348b58e3b5cfe5d3c303951f6a5d37",
+          "bytes": 524
+        },
+        {
+          "path": "baseline/raw-journals/current-term/3.wal",
+          "sha256": "6c202998f5887b13801d7603d64235273b0ab78a3341d195253a5766dfc6f43e",
+          "bytes": 897
+        },
+        {
+          "path": "baseline/raw-journals/current-term/4.election",
+          "sha256": "df4a658d8dd1bbd6ea2a213b33bcd9023f87d9afaf3342bbe3aa2db82bb63c9a",
+          "bytes": 324
+        },
+        {
+          "path": "baseline/raw-journals/current-term/4.wal",
+          "sha256": "6c8da0ca7d0e536656a4fc83ccb02c7f61986d9df082352b2d9a0fe1dc8ac279",
+          "bytes": 137
+        },
+        {
+          "path": "baseline/raw-journals/current-term/5.election",
+          "sha256": "b4115a640f46d92074d42097d117493c0aecac3e0ce38c94acdb640ed159719b",
+          "bytes": 424
+        },
+        {
+          "path": "baseline/raw-journals/current-term/5.wal",
+          "sha256": "6c189c7bd071eb75324d916854f0a29cea0c6397124eee3a8f3e8593fe14c6d1",
+          "bytes": 897
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/1.election",
+          "sha256": "d1bb954160e43181d302113bbf82c510ba7f837a46f0ea3f37a958aa00b7374b",
+          "bytes": 524
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/1.wal",
+          "sha256": "70bf1c329bc368611a0ddd183ebc80a3ce90ce0ff000ce7e8837299df9e05d7c",
+          "bytes": 327
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/2.election",
+          "sha256": "c3cdd800c3f069b3fb5f4e3d889551a60964c0f43d42eebd12a21de145637069",
+          "bytes": 424
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/2.wal",
+          "sha256": "39be8b0061ef82ad07dd0db7b19ef970ef2579575cdf7f663268cbe6cf915efc",
+          "bytes": 263
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/3.election",
+          "sha256": "02dec28228779abecd61fe09718a351d18fced3acb70bf8d674697566a8c32a0",
+          "bytes": 324
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/3.wal",
+          "sha256": "970276c4215b6fd36df4f01b5432078aa2d4cb9279d42f49353657b220532a15",
+          "bytes": 137
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/4.election",
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "bytes": 224
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/4.wal",
+          "sha256": "6c8da0ca7d0e536656a4fc83ccb02c7f61986d9df082352b2d9a0fe1dc8ac279",
+          "bytes": 137
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/5.election",
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "bytes": 224
+        },
+        {
+          "path": "baseline/raw-journals/distinct-majority/5.wal",
+          "sha256": "a3b91d900352eb64c8be3e3d454e9cb7c60998c93a5c7d064de398e7930f2369",
+          "bytes": 137
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/1.election",
+          "sha256": "b38df51d3dc90bba80db49dc86ff190d16df382ad85d61411a92d05f36cc69b5",
+          "bytes": 852
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/1.wal",
+          "sha256": "2577556821b20cb6e652c88575f2bf63e6717b0c946277e84fe0f7a5ffe20703",
+          "bytes": 1737
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/2.election",
+          "sha256": "690d458135104800eec79be600969dcecca317e014c02423b36450fb79368f16",
+          "bytes": 392
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/2.wal",
+          "sha256": "a8d6338053184bd72baaf605592430434b1387d28e4984698b023e15cb9d4c1a",
+          "bytes": 889
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/3.election",
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "bytes": 208
+        },
+        {
+          "path": "baseline/raw-journals/exact-target/3.wal",
+          "sha256": "d0deb8e9a0613b6c4977437542a5210c14a0a938c3ab4be59c669413c2034bdc",
+          "bytes": 129
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/1.election",
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "bytes": 208
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/1.wal",
+          "sha256": "e6f6091773cc14fbbc7417603d3e07ca6acd6f03e9d735fd750cd91849fe316f",
+          "bytes": 129
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/2.election",
+          "sha256": "2e5b48d4453d670f1893913d86b5cb1ecdd92a49bc438bbe50d28be7bbcce4ff",
+          "bytes": 484
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/2.wal",
+          "sha256": "7f644f70e707de2846f6ef51e4a68e0e805aee24447e90c3a9815fce0897937a",
+          "bytes": 342
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/3.election",
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "bytes": 208
+        },
+        {
+          "path": "baseline/raw-journals/matched-end/3.wal",
+          "sha256": "d0deb8e9a0613b6c4977437542a5210c14a0a938c3ab4be59c669413c2034bdc",
+          "bytes": 129
+        }
+      ]
+    },
+    {
+      "name": "exact-response-target",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "replication_guard_probe",
+        "-j1",
+        "exact_sent_target_cannot_be_forged_inside_the_local_durable_tail",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 101,
+      "expected_outcome_verified": true,
+      "elapsed_seconds": 1.4590044289943762,
+      "source_sha256": "83eecf18a8cfd6ea0c4f563072bcd6ba5907272a61f7e23950c1772dd99b90ad",
+      "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+      "log_sha256": "accbb9b2a92ca5f1729b629c7d2d79be324405909bd1806dfe9624ef9f7d4975",
+      "patch_sha256": "748da3d31a7b96e97700c31d6664d53b701b53bcaa2f28adb827b6f3a3d8528b",
+      "raw_journals": [
+        {
+          "path": "exact-response-target/raw-journals/exact-target/1.election",
+          "sha256": "b38df51d3dc90bba80db49dc86ff190d16df382ad85d61411a92d05f36cc69b5",
+          "bytes": 852
+        },
+        {
+          "path": "exact-response-target/raw-journals/exact-target/1.wal",
+          "sha256": "6935930ab81f690779b0175cb5986d13e19d72dbe1e8fbc28b7c12656f541d22",
+          "bytes": 1737
+        },
+        {
+          "path": "exact-response-target/raw-journals/exact-target/2.election",
+          "sha256": "690d458135104800eec79be600969dcecca317e014c02423b36450fb79368f16",
+          "bytes": 392
+        },
+        {
+          "path": "exact-response-target/raw-journals/exact-target/2.wal",
+          "sha256": "a8d6338053184bd72baaf605592430434b1387d28e4984698b023e15cb9d4c1a",
+          "bytes": 889
+        },
+        {
+          "path": "exact-response-target/raw-journals/exact-target/3.election",
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "bytes": 208
+        },
+        {
+          "path": "exact-response-target/raw-journals/exact-target/3.wal",
+          "sha256": "d0deb8e9a0613b6c4977437542a5210c14a0a938c3ab4be59c669413c2034bdc",
+          "bytes": 129
+        }
+      ]
+    },
+    {
+      "name": "distinct-majority",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "replication_guard_probe",
+        "-j1",
+        "five_voters_cannot_commit_with_only_one_remote_durable_match",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 101,
+      "expected_outcome_verified": true,
+      "elapsed_seconds": 1.4476604750016122,
+      "source_sha256": "7295e93b937909bb41e62a93bf0efaa353a9055ac87b8f8db5181e012883c8af",
+      "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+      "log_sha256": "4479bbd6bdf102bc239d85655ae6b9a6a3df4bad0fb6bb0f79927460afdd1ab7",
+      "patch_sha256": "e6e3f97922164778d717dbb798a383a312df82254aa163700dbed0980e471f25",
+      "raw_journals": [
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/1.election",
+          "sha256": "d1bb954160e43181d302113bbf82c510ba7f837a46f0ea3f37a958aa00b7374b",
+          "bytes": 524
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/1.wal",
+          "sha256": "ba072c27bfdac16a6068b888a1aa63e9313670fd273b4531c47d204f10ad87c6",
+          "bytes": 407
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/2.election",
+          "sha256": "c3cdd800c3f069b3fb5f4e3d889551a60964c0f43d42eebd12a21de145637069",
+          "bytes": 424
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/2.wal",
+          "sha256": "39be8b0061ef82ad07dd0db7b19ef970ef2579575cdf7f663268cbe6cf915efc",
+          "bytes": 263
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/3.election",
+          "sha256": "02dec28228779abecd61fe09718a351d18fced3acb70bf8d674697566a8c32a0",
+          "bytes": 324
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/3.wal",
+          "sha256": "970276c4215b6fd36df4f01b5432078aa2d4cb9279d42f49353657b220532a15",
+          "bytes": 137
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/4.election",
+          "sha256": "ee304fe9306196b36cfcb8002ed3a7403193360e6e58e1c8830df3bf3fe1fba7",
+          "bytes": 224
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/4.wal",
+          "sha256": "6c8da0ca7d0e536656a4fc83ccb02c7f61986d9df082352b2d9a0fe1dc8ac279",
+          "bytes": 137
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/5.election",
+          "sha256": "23496e34894422555312c7fac72177a179c8ac5b9bd4700ee2520fee0a346d4a",
+          "bytes": 224
+        },
+        {
+          "path": "distinct-majority/raw-journals/distinct-majority/5.wal",
+          "sha256": "a3b91d900352eb64c8be3e3d454e9cb7c60998c93a5c7d064de398e7930f2369",
+          "bytes": 137
+        }
+      ]
+    },
+    {
+      "name": "current-term-commit",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "replication_guard_probe",
+        "-j1",
+        "a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 101,
+      "expected_outcome_verified": true,
+      "elapsed_seconds": 1.4805114359987783,
+      "source_sha256": "da9a1771272f9df13570e97f728dafdea5b7f2706a0b80aa4e6ff4adffe87ce2",
+      "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+      "log_sha256": "b29a4aa4d2f4e00ac57f3e9fb6b445a0c4a888468553852ba5ac09fafdea008d",
+      "patch_sha256": "07b790e582df7483330647b6f3b3fb58751d676535e5df7b319407b7efde20b5",
+      "raw_journals": [
+        {
+          "path": "current-term-commit/raw-journals/current-term/1.election",
+          "sha256": "80e351451c315aaf47e742387067aaf39082c306428aace778ff2cb2f77f52fa",
+          "bytes": 924
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/1.wal",
+          "sha256": "bc27da9125112d231fe50f3a9b8bb5b2ebde0a838bea22952b5e937d98e6e6e1",
+          "bytes": 1665
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/2.election",
+          "sha256": "f541a053556d9b3e47e6a8f69e33422eb4b10915a4f04cfa7faacaa2f691aba5",
+          "bytes": 724
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/2.wal",
+          "sha256": "8860a1cd61ae563e60270abc4c7cdce504a4e216546ac32a02346b9d18e4955e",
+          "bytes": 1577
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/3.election",
+          "sha256": "2169e1ef5cff6695cfb5642f6df4b84f84348b58e3b5cfe5d3c303951f6a5d37",
+          "bytes": 524
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/3.wal",
+          "sha256": "6c202998f5887b13801d7603d64235273b0ab78a3341d195253a5766dfc6f43e",
+          "bytes": 897
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/4.election",
+          "sha256": "df4a658d8dd1bbd6ea2a213b33bcd9023f87d9afaf3342bbe3aa2db82bb63c9a",
+          "bytes": 324
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/4.wal",
+          "sha256": "6c8da0ca7d0e536656a4fc83ccb02c7f61986d9df082352b2d9a0fe1dc8ac279",
+          "bytes": 137
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/5.election",
+          "sha256": "b4115a640f46d92074d42097d117493c0aecac3e0ce38c94acdb640ed159719b",
+          "bytes": 424
+        },
+        {
+          "path": "current-term-commit/raw-journals/current-term/5.wal",
+          "sha256": "6c189c7bd071eb75324d916854f0a29cea0c6397124eee3a8f3e8593fe14c6d1",
+          "bytes": 897
+        }
+      ]
+    },
+    {
+      "name": "follower-matched-end",
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "cargo",
+        "+stable",
+        "test",
+        "--manifest-path",
+        "partitionline-broker/Cargo.toml",
+        "--test",
+        "replication_guard_probe",
+        "-j1",
+        "a_follower_cannot_commit_beyond_this_requests_verified_prefix",
+        "--",
+        "--nocapture"
+      ],
+      "exit_code": 101,
+      "expected_outcome_verified": true,
+      "elapsed_seconds": 1.4700166229958995,
+      "source_sha256": "14a804e2707a65aace28b97206a497eb02cd04b65eab408ddc8f0bbd04ab714e",
+      "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+      "log_sha256": "50ca5756620a2713a17c935f6bfe93adb492d0ee21f13eac07a2e10cb586b35a",
+      "patch_sha256": "6b23ada7d65d462a9661029d20b428ead903e3d059ef3fa241ad1983f8577b31",
+      "raw_journals": [
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/1.election",
+          "sha256": "c112d5f8c61e1c7545e26652b374b7e3783a34b193c776b70a04ced9a08f5248",
+          "bytes": 208
+        },
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/1.wal",
+          "sha256": "e6f6091773cc14fbbc7417603d3e07ca6acd6f03e9d735fd750cd91849fe316f",
+          "bytes": 129
+        },
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/2.election",
+          "sha256": "2e5b48d4453d670f1893913d86b5cb1ecdd92a49bc438bbe50d28be7bbcce4ff",
+          "bytes": 484
+        },
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/2.wal",
+          "sha256": "624b2949244c6db0dba43dd1c7dd0b3791bbc5fb5f46c56f7175d45d0d230299",
+          "bytes": 342
+        },
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/3.election",
+          "sha256": "934f1c80f3ff419afe33c485210261b29a22f6dcde1f2554605dcbae333a9e60",
+          "bytes": 208
+        },
+        {
+          "path": "follower-matched-end/raw-journals/matched-end/3.wal",
+          "sha256": "d0deb8e9a0613b6c4977437542a5210c14a0a938c3ab4be59c669413c2034bdc",
+          "bytes": 129
+        }
+      ]
+    }
+  ],
+  "scope": "Actual compiled Node public-API/election/WAL scenarios on isolated minimal archives. Current-term mutant removes both owner policy and its defensive runtime WAL equality guard; replay guard remains, and no mutant is published."
+}

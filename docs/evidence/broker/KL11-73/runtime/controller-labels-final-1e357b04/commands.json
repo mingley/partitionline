@@ -1,0 +1,84 @@
+[
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_protocol",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 0,
+    "log": "stable-default/tests.log",
+    "log_sha256": "406deb5f5159320bcd5c540d0f0781f84ff75205d7c6d0d78f7be510c89f08eb"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_protocol",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 0,
+    "log": "stable-all-features/tests.log",
+    "log_sha256": "90a66fa36b013fed66e982e2f63e0dbdbdb71808cff762c92e92416a5076b0bc"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_protocol",
+      "-j1"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 0,
+    "log": "1.85.0-default/tests.log",
+    "log_sha256": "7e7502f60368f720d67482b35f87bfba4841a92e940e1f844b09a8c59ed72d5e"
+  },
+  {
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "cargo",
+      "+1.85.0",
+      "test",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--test",
+      "raft_protocol",
+      "-j1",
+      "--all-features"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 0,
+    "log": "1.85.0-all-features/tests.log",
+    "log_sha256": "ab0bd59c37cffad4a0d2b56973111f56104838026be69b8d67a9a2e832de0491"
+  }
+]

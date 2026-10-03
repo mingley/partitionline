@@ -1,0 +1,12 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -1299,8 +1299,7 @@
+             return Ok(self.log.committed);
+         }
+         if response.success {
+-            if response.matched != outstanding.target
+-                || response.conflict_index != 0
++            if response.conflict_index != 0
+                 || response.matched.index > self.log.last().index
+                 || self.log.term_at(response.matched.index) != Some(response.matched.term)
+             {

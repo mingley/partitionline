@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "status": "proposed before implementation; changes will be coordinated before trace freeze",
+  "index_convention": "Metadata index is inclusive one-based;0 is empty. Numeric committed_end equals exclusive zero-based Kafka offset. Core term maps wireepoch+1. Outer Journal operation offsets are separate zero-based counters.",
+  "outer_journal": "Existing Journal format/CRC32C unchanged; one operation per Journal entry,record_count1,base_offset0.",
+  "wal_payload": {
+    "magic_ascii": "PLREPL01",
+    "byte_order": "big-endian",
+    "header": [
+      {
+        "field": "magic",
+        "bytes": 8
+      },
+      {
+        "field": "opcode",
+        "bytes": 1
+      },
+      {
+        "field": "reserved_zero",
+        "bytes": 7
+      }
+    ],
+    "opcodes": {
+      "1_init": {
+        "fields": [
+          "local_id:u32",
+          "partition:i32",
+          "voter_count:u16",
+          "cluster_utf8_bytes:u16",
+          "topic_utf8_bytes:u16",
+          "reserved_zero:u16",
+          "sorted_voter_ids:u32[count]",
+          "cluster_utf8",
+          "topic_utf8"
+        ],
+        "invariants": [
+          "firstoperationonly",
+          "count1..64",
+          "local included",
+          "allIDs<=i32max",
+          "cluster/topic1..249bytes",
+          "exactconfiguredidentity"
+        ]
+      },
+      "2_append": {
+        "fields": [
+          "start_index:u64",
+          "record_count:u32",
+          "reserved_zero:u32",
+          "records[count]"
+        ],
+        "record": [
+          "coreterm:u64",
+          "kind:u8(0=data,1=internalbarrier)",
+          "reserved_zero:7bytes",
+          "payload_bytes:u32",
+          "reserved_zero:u32",
+          "payload"
+        ],
+        "invariants": [
+          "start==last_index+1",
+          "termsnondecreasing",
+          "positivecoreterms<=signedwirelimit",
+          "data nonempty/barrierempty",
+          "live/count/chunk/record limits",
+          "fullconsumption"
+        ]
+      },
+      "3_truncate": {
+        "fields": [
+          "target_index:u64",
+          "expected_last_term:u64",
+          "expected_last_index:u64",
+          "leader_term:u64",
+          "committed_floor:u64"
+        ],
+        "invariants": [
+          "expectedlastmatchescurrenttail",
+          "committedfloor==currentcommit",
+          "target>=commit and target<last",
+          "leaderterm>removedtailterm",
+          "deleteonlyindex>target",
+          "leader term cannot regress behind any term already witnessed by the WAL"
+        ]
+      },
+      "4_commit": {
+        "fields": [
+          "committed_end:u64",
+          "leader_term:u64",
+          "authorizer_id:u32",
+          "authority:u8(0=localmajority,1=leaderrequest)",
+          "reserved_zero:3bytes",
+          "request_sequence:u64"
+        ],
+        "invariants": [
+          "strictlyincreasingcommit<=last",
+          "configuredauthorizer",
+          "localmajority=currenttermentry/barrierpluscausaldurablemajority",
+          "follower commit backed by valid known leader request and min(local durable tail, leader commit, current request matched end)",
+          "entry term at committed index <= authorizing leader term",
+          "authorizing leader term cannot regress behind any term already witnessed by the WAL"
+        ]
+      }
+    }
+  },
+  "election_reconciliation": {
+    "magic_ascii": "PLRECON1",
+    "encoding": "Existing PLELECT1 fullstate payload with first8magicreplaced, followed by expected_old_log_term:u64,expected_old_log_index:u64,committed_floor:u64. Existing PLELECT1 bytes and monotonic validation unchanged.",
+    "invariants": [
+      "exactpriorlogmatches",
+      "term/voteunchanged",
+      "currentterm>priorlastlogterm",
+      "replacementindex>=floor",
+      "floor<=oldlastindex",
+      "WALandcoreverifiedbeforeexposure"
+    ]
+  },
+  "trace": {
+    "top_level": [
+      "schema_version",
+      "source_sha",
+      "seed",
+      "group{cluster_id,topic,partition,voters}",
+      "events[]",
+      "final_journals[]",
+      "source_files_sha256"
+    ],
+    "event_common": [
+      "ordinal",
+      "now_ms",
+      "kind",
+      "node_id",
+      "args",
+      "result",
+      "after[]"
+    ],
+    "after_each_node": [
+      "node_id",
+      "term",
+      "role",
+      "leader",
+      "voted_for",
+      "poisoned",
+      "ready",
+      "last_position{term,index}",
+      "committed_end",
+      "committed_records[{index,term,kind,payload_hex,sha256}]",
+      "wal_durable_ops",
+      "election_durable_states",
+      "open",
+      "active_term"
+    ],
+    "event_kinds": {
+      "campaign": [
+        "candidate",
+        "correlation",
+        "encoded_request_hex"
+      ],
+      "vote_request": [
+        "candidate",
+        "voter",
+        "correlation",
+        "response_hex"
+      ],
+      "vote_response": [
+        "candidate",
+        "voter",
+        "correlation",
+        "disposition"
+      ],
+      "propose": [
+        "node_id",
+        "payload_hex",
+        "result_index"
+      ],
+      "prepare": [
+        "leader",
+        "peer",
+        "sequence",
+        "term",
+        "prev_position",
+        "leader_commit",
+        "entries[]"
+      ],
+      "receive": [
+        "leader",
+        "follower",
+        "sequence",
+        "request",
+        "response{peer,leader,term,sequence,success,matched:{term,index},conflict_index}"
+      ],
+      "ack": [
+        "leader",
+        "follower",
+        "sequence",
+        "response",
+        "disposition"
+      ],
+      "drop": [
+        "messageidentity",
+        "reason"
+      ],
+      "poll": [
+        "node_id",
+        "quorumexpired"
+      ],
+      "crash": [
+        "node_id",
+        "checkpoint_files[]"
+      ],
+      "reopen": [
+        "node_id",
+        "recovery{truncated_bytes}",
+        "copied_input_files[]"
+      ],
+      "fault": [
+        "type",
+        "file",
+        "before_sha256",
+        "after_sha256",
+        "bytecount"
+      ],
+      "activate": [
+        "node_id",
+        "current_term",
+        "barrier_index",
+        "barrier_kind=1",
+        "barrier_payload_empty",
+        "disposition"
+      ],
+      "timeout": [
+        "peer",
+        "sequence",
+        "disposition"
+      ],
+      "initial": [
+        "all recovered owners ready and initial journal receipts"
+      ],
+      "process_exit": [
+        "destructors=false",
+        "confirmed journals copied before exit; parent reopens all replicas"
+      ]
+    },
+    "copied_file_receipt": [
+      "node_id",
+      "phase",
+      "election_path",
+      "election_sha256",
+      "wal_path",
+      "wal_sha256",
+      "wal_confirmed_ops",
+      "election_confirmed_states",
+      "exact groupidentity"
+    ],
+    "causal_rules": [
+      "Acksuccess implies followerWALsync and coreSummaryready beforeresponse.",
+      "Leadercommit requires majority of distinct correlated durablepositions and currenttermentry/barrier.",
+      "Everypair of committed recordsequences agrees onall sharedindices.",
+      "Post-crash vote/append/read admission requires recoveredWAL/core reconciliation.",
+      "Duplicate/drop/reorder/stale/futurecorrelations cannot advancecommit.",
+      "An explicit activate_leader operation persists an empty current-term barrier before any typed leader request or proposal is admitted."
+    ],
+    "notes": [
+      "Development and final artifact sealing preserves trace-raw.json and adds SHA256 from actual payload_hex and copied file bytes. It supplies provenance only; independent checks live in separately owned oracle directories.",
+      "Three-voter history elects the longer-log orphan holder; five-voter history elects a shorter candidate with clean majority and actually truncates two uncommitted orphan tails. A separate three-voter regression test verifies truncation.",
+      "Every process history terminates a child via process::exit(0), leaving owner destructors unrun; parent reopens all actual journal files. A separate closed-owner recognizable final header injection verifies reported torn-tail repair.",
+      "A deliberately changed receive input records input_origin {type:mutated_prepared_request,source_ordinal,changed_fields:[peer],purpose:stale epoch rejection}, bound to the actual earlier prepare event; it is never accepted as a majority receipt."
+    ]
+  },
+  "recovery_invariants": [
+    "Recovered election log position must equal a confirmed WAL operation-tail position before owner reconciliation. A new empty WAL cannot erase an unrelated legacy nonempty core summary.",
+    "Startup tail-position list is bounded by65536operations (1MiB of LogPosition values) and released before ready."
+  ]
+}

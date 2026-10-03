@@ -1,0 +1,18 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/replication-registry-final-1e357b04/source/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 2.57s
+     Running tests/raft_protocol.rs (/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_protocol-ab246e857326ed2a)
+
+running 10 tests
+test end_rank_timers_are_exact_and_invalid_successors_cannot_mutate ... ok
+test cross_peer_wire_votes_count_distinct_members_and_fence_correlations ... ok
+test configured_request_queue_and_identity_budgets_validate ... ok
+test initial_epoch_zero_nonempty_log_and_restart_preserve_vote ... ok
+test malformed_prefixes_tags_and_counts_are_bounded_before_mutation ... ok
+test semantic_errors_and_stale_epochs_do_not_rewrite_state ... ok
+test wire_overflow_and_storage_exhaustion_fail_without_affirmative_reply ... ok
+test independent_controller_goldens_cross_actual_tcp_transport ... ok
+test independent_apache_controller_goldens_and_registry ... ok
+test actual_transport_dispatch_advertises_controller_profile_and_joins ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+

@@ -1,0 +1,8 @@
+{
+  "gate_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+  "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "failed": "stable-default combined report",
+  "reason": "Controller compiled reporter reflects include_str registry labels; db002076 embeds historical old labels. Whole source identity proves actual tested blobs separately. Fresh affected controller reporters at normalized registry will retain original responses and explicit new metadata.",
+  "initial_runner_sha256": "0673720b817b242a7cbe12179911ba2534bdf0a89607af8e7c16d0419646f7cb",
+  "source_or_raw_report_edits": false
+}

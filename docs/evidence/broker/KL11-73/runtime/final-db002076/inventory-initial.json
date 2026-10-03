@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "verdict": "failed",
+  "implementation_claim": false,
+  "error": "controller_source: profile source checksum mismatch"
+}

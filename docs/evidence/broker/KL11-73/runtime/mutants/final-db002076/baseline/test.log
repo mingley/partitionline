@@ -1,0 +1,32 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling libc v0.2.189
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.26
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling syn v3.0.6
+   Compiling crc32c v0.6.8
+   Compiling getrandom v0.4.3
+   Compiling tokio-macros v2.7.2
+   Compiling mio v1.2.3
+   Compiling socket2 v0.6.5
+   Compiling bytes v1.12.1
+   Compiling cfg-if v1.0.5
+   Compiling pin-project-lite v0.2.17
+   Compiling tokio v1.53.1
+   Compiling partitionline-broker v0.1.0 (/workspace/work/replication-mutants-db002076/baseline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 9.16s
+     Running tests/replication_guard_probe.rs (/workspace/work/target-replication-mutants/debug/deps/replication_guard_probe-f568111816017599)
+
+running 4 tests
+actual sent end=4, follower durable end=4, forged end=5, local durable end=6
+verified end1; old local tail2; claimed leader commit2; follower commit=1
+test a_follower_cannot_commit_beyond_this_requests_verified_prefix ... ok
+test exact_sent_target_cannot_be_forged_inside_the_local_durable_tail ... ok
+one remote match; leader commit=0, local tail=2
+test five_voters_cannot_commit_with_only_one_remote_durable_match ... ok
+new term=3, barrier index7; durable majority matches old term2/index4; leader commit=0
+test a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

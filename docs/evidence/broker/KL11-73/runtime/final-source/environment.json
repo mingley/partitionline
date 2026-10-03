@@ -1,0 +1,60 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "commands": [
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+stable",
+        "--version",
+        "--verbose"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-73/runtime/final-source/stable-rustc.log",
+      "sha256": "b569b0c98ea3133c7252b4b8ea6b39b7b353813df0dd5f5c412c355691424112"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "rustc",
+        "+1.85.0",
+        "--version",
+        "--verbose"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-73/runtime/final-source/msrv-rustc.log",
+      "sha256": "be9e105cd61ce407c0e06d80a25240f93cc48de72942117e1886f09aa08f9a2a"
+    },
+    {
+      "argv": [
+        "taskset",
+        "-c",
+        "0-2,4",
+        "python3",
+        "--version"
+      ],
+      "exit_code": 0,
+      "log": "docs/evidence/broker/KL11-73/runtime/final-source/python.log",
+      "sha256": "4c3569f5da09975434dd9fd9a91fadbc4367a91d8f3c3fab59e9241ab9ee4bd8"
+    }
+  ],
+  "runtime_env": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_BUILD_JOBS": "1",
+    "cpu_affinity": "0-2,4",
+    "RUSTDOCFLAGS": "-D warnings (doc and doctest only)"
+  },
+  "notes": [
+    "Four full QA lanes use dedicated stable/MSRV targets and fresh captures.",
+    "Optional external live-port helpers were explicitly unset; no external Kafka session was claimed.",
+    "Shared working-tree changes were excluded by the complete Git archive."
+  ]
+}

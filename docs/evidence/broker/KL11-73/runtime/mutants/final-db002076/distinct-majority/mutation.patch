@@ -1,0 +1,11 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -1335,7 +1335,7 @@
+         }
+         let count = self.peers.len() + 1;
+         matched[..count].sort_unstable();
+-        let index = matched[count - (count / 2 + 1)];
++        let index = matched[count - 2];
+         if index > self.log.committed && self.log.term_at(index) == Some(state.persistent.term) {
+             let result = self.log.commit(
+                 index,

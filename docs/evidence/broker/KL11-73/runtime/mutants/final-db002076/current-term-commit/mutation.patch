@@ -1,0 +1,20 @@
+--- partitionline-broker/src/raft/replication.rs
++++ partitionline-broker/src/raft/replication.rs
+@@ -494,7 +494,7 @@
+             || !self.voters.contains(&leader)
+             || authority > 1
+             || (authority == 0
+-                && (leader != self.local || sequence != 0 || self.term_at(index) != Some(term)))
++                && (leader != self.local || sequence != 0))
+             || (authority == 1 && (leader == self.local || sequence == 0))
+         {
+             return Err(Error::InvalidPeer);
+@@ -1336,7 +1336,7 @@
+         let count = self.peers.len() + 1;
+         matched[..count].sort_unstable();
+         let index = matched[count - (count / 2 + 1)];
+-        if index > self.log.committed && self.log.term_at(index) == Some(state.persistent.term) {
++        if index > self.log.committed {
+             let result = self.log.commit(
+                 index,
+                 state.persistent.term,

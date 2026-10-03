@@ -1,0 +1,54 @@
+[
+  {
+    "name": "static",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/static.json"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 0,
+    "elapsed_seconds": 0.6106943970007706,
+    "log": "static.log",
+    "log_sha256": "0f0bf66ffc09c9d5a0ffc8932dd12f93fdc6d00a90feec660a37601bd42f7342"
+  },
+  {
+    "name": "stable-default",
+    "argv": [
+      "taskset",
+      "-c",
+      "0-2,4",
+      "python3",
+      "-B",
+      "scripts/check-broker-api-matrix.py",
+      "--handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/protocol-report.json",
+      "--metadata-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/metadata-report.json",
+      "--produce-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/produce-report.json",
+      "--read-write-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/fetch-report.json",
+      "--controller-handler-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-report.json",
+      "--controller-tcp-responses",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/controller-responses/transport",
+      "--data-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-produce-api-versions/validation.json",
+      "--read-write-api-versions-report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-68/live-read/api-versions.json",
+      "--report",
+      "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04/stable-default.json"
+    ],
+    "cwd": "/workspace/work/replication-registry-final-1e357b04/source",
+    "exit_code": 1,
+    "elapsed_seconds": 0.5665202029995271,
+    "log": "stable-default.log",
+    "log_sha256": "a87de8e10067750faf9d5fe93357c1ce584065f9de8ba8cdbdffb6d40489dd15"
+  }
+]

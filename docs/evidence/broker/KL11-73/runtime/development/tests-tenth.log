@@ -1,0 +1,91 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 0.59s
+     Running unittests src/lib.rs (/workspace/work/target-replication/debug/deps/partitionline_broker-c952dbf8a96b13dc)
+
+running 28 tests
+test catalog::tests::complete_unconfirmed_tombstone_keeps_previous_state_until_recovery ... ok
+test journal::tests::bounded_index_capacity_and_rejections_never_write ... ok
+test journal::tests::complete_recovery_sync_failure_never_reports_durable_state ... ok
+test catalog::tests::complete_unconfirmed_create_is_invisible_until_synced_replay ... ok
+test journal::tests::corrupted_file_header_and_recovery_offset_overflow_fail_closed ... ok
+test journal::tests::early_zero_read_does_not_become_a_successful_tail_repair ... ok
+test journal::tests::header_length_bomb_fails_before_tail_allocation_or_repair ... ok
+test journal::tests::success_synchronizes_complete_bytes_before_return ... ok
+test journal::tests::tail_repair_truncate_and_sync_errors_never_report_success ... ok
+test journal::tests::partial_header_and_payload_writes_poison_without_advancing ... ok
+test journal::tests::valid_later_header_prevents_repair_after_interior_byte_loss ... ok
+test journal::tests::zero_write_and_sync_failure_poison_with_ambiguous_recovery ... ok
+test journal::tests::recovery_loops_through_partial_reads_and_interrupted_calls ... ok
+test metadata::tests::committed_operation_with_lost_receipt_replays ... ok
+test metadata::tests::committed_data_with_lost_receipt_replays_without_deduplication ... ok
+test metadata::tests::failed_actor_join_remains_failed_on_retry ... ok
+test metadata::tests::queued_cancel_and_full_admission_never_mutate ... ok
+test raft::election::tests::failed_higher_term_persistence_disables_old_leader_before_any_reply ... ok
+test metadata::tests::queued_data_cancel_and_full_admission_never_append ... ok
+test raft::election::tests::higher_term_revokes_old_leadership_even_if_timer_cannot_be_armed ... ok
+test raft::election::tests::owner_reconciliation_preserves_term_vote_and_checks_floor_and_role ... ok
+test raft::election::tests::strict_state_encoding_rejects_reserved_bits_unknown_votes_and_empty_mismatch ... ok
+test raft::election::tests::synchronization_precedes_grant_and_ambiguous_failure_requires_recovery ... ok
+test raft::replication::tests::follower_commit_runtime_checks_entry_term_before_persistence ... ok
+test metadata::tests::unconsumed_data_receipt_keeps_admission_bounded ... ok
+test raft::replication::tests::full_queue_canceled_work_and_owner_completion_have_distinct_outcomes ... ok
+test raft::replication::tests::unconsumed_fetch_receipt_keeps_admission_bounded ... ok
+test metadata::tests::canceled_shutdown_retains_join_and_pending_work_is_rejected ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/raft_election.rs (/workspace/work/target-replication/debug/deps/raft_election-fdd916042ccc2539)
+
+running 10 tests
+test a_real_peer_vote_elects_and_stale_leader_assertions_are_fenced ... ok
+test durable_log_freshness_uses_term_then_index_and_denials_persist_higher_term ... ok
+test duplicate_stale_negative_and_misrouted_responses_cannot_create_a_majority ... ok
+test exhausted_storage_poison_prevents_even_repeat_grants_until_recovery ... ok
+test membership_clock_term_and_timeout_bounds_fail_explicitly ... ok
+test seeded_timers_are_reproducible_node_separated_and_always_bounded ... ok
+test synchronized_vote_survives_restart_and_never_changes_in_same_term ... ok
+test torn_unconfirmed_tail_repairs_but_checksummed_double_vote_and_corruption_fail_closed ... ok
+test tagged_owner_reconciliation_replay_validates_complete_checksums_and_state_invariants ... ok
+test deterministic_seeded_losing_partition_and_restart_histories ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/raft_protocol.rs (/workspace/work/target-replication/debug/deps/raft_protocol-a5d013805f23b48d)
+
+running 10 tests
+test configured_request_queue_and_identity_budgets_validate ... ok
+test cross_peer_wire_votes_count_distinct_members_and_fence_correlations ... ok
+test end_rank_timers_are_exact_and_invalid_successors_cannot_mutate ... ok
+test initial_epoch_zero_nonempty_log_and_restart_preserve_vote ... ok
+test malformed_prefixes_tags_and_counts_are_bounded_before_mutation ... ok
+test semantic_errors_and_stale_epochs_do_not_rewrite_state ... ok
+test wire_overflow_and_storage_exhaustion_fail_without_affirmative_reply ... ok
+test independent_apache_controller_goldens_and_registry ... ok
+test independent_controller_goldens_cross_actual_tcp_transport ... ok
+test actual_transport_dispatch_advertises_controller_profile_and_joins ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/raft_replication.rs (/workspace/work/target-replication/debug/deps/raft_replication-0ded16aa4dab486e)
+
+running 17 tests
+test bounds_queue_envelope_fetch_and_fixed_membership_are_explicit ... ok
+test changed_external_file_poison_prevents_reply_and_known_torn_tail_can_reopen ... ok
+test checksummed_authority_term_regression_fails_recovery_even_for_an_older_entry ... ok
+test checksummed_follower_commit_cannot_authorize_a_newer_entry_term ... ok
+test committed_prefix_and_same_term_payload_conflicts_fail_before_wal_mutation ... ok
+test complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read ... ok
+test five_voters_need_three_distinct_durable_positions_and_reject_forged_replies ... ok
+test foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes ... ok
+test higher_term_repairs_only_uncommitted_suffix_and_preserves_vote_after_restart ... ok
+test minority_partition_expiry_and_lost_ack_cannot_commit ... ok
+test partial_request_does_not_commit_an_unverified_old_suffix ... ok
+test strict_majority_barrier_and_committed_visibility_survive_reopen ... ok
+test unowned_legacy_log_summary_is_not_silently_replaced_by_an_empty_new_wal ... ok
+test actor_serializes_controller_and_typed_storage_and_joins_shutdown ... ok
+test wal_success_then_core_budget_failure_is_ambiguous_and_poisoned_until_reconciliation ... ok
+test actual_three_node_process_history ... ok
+test actual_five_node_process_history ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

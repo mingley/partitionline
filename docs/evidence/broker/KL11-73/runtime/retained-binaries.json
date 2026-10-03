@@ -1,0 +1,213 @@
+{
+  "schema_version": 1,
+  "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "registry_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+  "retained_binary_directory": "/workspace/work/replication-retained-binaries-db002076",
+  "records": [
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/7b1753ad1e3b-partitionline_broker-26c2c94d65eb563c",
+      "sha256": "7b1753ad1e3b2cb978f4ed86f0fc1c15f3045984abce7f7cc524501092db4812",
+      "bytes": 8408528,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/partitionline_broker-26c2c94d65eb563c",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/b025d0ea0ca6-raft_election-4f0567222ee5040d",
+      "sha256": "b025d0ea0ca672020b744cd0c698ae3f05fe88f2b2fe9520a8b3c1f665fc92c4",
+      "bytes": 1743992,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_election-4f0567222ee5040d",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/71d5476c6872-raft_protocol-d02259b3fe7decdf",
+      "sha256": "71d5476c687212a877a494652969f7c70075c58501242c415071e2c93bf3a1b8",
+      "bytes": 7185544,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_protocol-d02259b3fe7decdf",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/70bb4bf883ee-raft_replication-92c6c1bcd325acf9",
+      "sha256": "70bb4bf883ee81137b990a61f3839ebf58f051075d31f37efff0c7e0e893e6d9",
+      "bytes": 3687232,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_replication-92c6c1bcd325acf9",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/341e9950e01c-partitionline_broker-ea773fb32d16e69c",
+      "sha256": "341e9950e01c86e62d95494d925c9871ec2ed9ecd4f5b61983c3fb16b1c6fa65",
+      "bytes": 5259416,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/partitionline_broker-ea773fb32d16e69c",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/8b4e8ce48f8f-raft_election-c18593246fa844c7",
+      "sha256": "8b4e8ce48f8f847f88a3d5bca6a9d3174bf4e84c1e2b4569c5d3137618a98b15",
+      "bytes": 1688608,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_election-c18593246fa844c7",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/f97bca165ff9-raft_protocol-ab246e857326ed2a",
+      "sha256": "f97bca165ff98b1700ccccabcd5003f7ee40c26a32a83b3c8472eee682261616",
+      "bytes": 4446504,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_protocol-ab246e857326ed2a",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/9ce1c94b69c5-raft_replication-9bcefe4fc77d2f90",
+      "sha256": "9ce1c94b69c5b384854b5a7f3344aff622c8e403cde12f8905674cbaa2346584",
+      "bytes": 3610808,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_replication-9bcefe4fc77d2f90",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/14fbe81f2efe-partitionline_broker-92a2b3eca838ec9a",
+      "sha256": "14fbe81f2efe6f2c8115af508d95663078c6ee39435ba947b7a1f4caf9e3c002",
+      "bytes": 10619880,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/partitionline_broker-92a2b3eca838ec9a",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/4eb9d46b9056-raft_election-2965f8051a1df7be",
+      "sha256": "4eb9d46b9056f79caefdba6479a9ee82c6f61655a24a2479d5ed1c73c692b362",
+      "bytes": 1990472,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_election-2965f8051a1df7be",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/7ae58f5ebc4f-raft_protocol-557658cab4ce3f15",
+      "sha256": "7ae58f5ebc4fe4c7e1d89228deff28c93e7c29b2f14e51b14e6ecbb4f3790562",
+      "bytes": 8437464,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_protocol-557658cab4ce3f15",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/74f751260b7f-raft_replication-c5028a266e8b844d",
+      "sha256": "74f751260b7fd5fad6bd351a4549feba8e8b97cb4f1e62f2f6327035fdd0bdb6",
+      "bytes": 4315248,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_replication-c5028a266e8b844d",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/86948f24bab4-partitionline_broker-c952dbf8a96b13dc",
+      "sha256": "86948f24bab4c29ea000c61b0003405b9e3cca8d86358b3fbde9389f5f5058e8",
+      "bytes": 6394488,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/partitionline_broker-c952dbf8a96b13dc",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/d554b4965b4c-raft_election-fdd916042ccc2539",
+      "sha256": "d554b4965b4cb2bbf59eb26287a71dd012d15347848a08a938c7af78412c89f7",
+      "bytes": 1792064,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_election-fdd916042ccc2539",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/bc53e27b4cad-raft_protocol-a5d013805f23b48d",
+      "sha256": "bc53e27b4cad1a67302ed6dcc70ebe8843c058a5966c4bb00413b5b848171813",
+      "bytes": 5201000,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_protocol-a5d013805f23b48d",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/16abf8c8ed24-raft_replication-0ded16aa4dab486e",
+      "sha256": "16abf8c8ed2417d24294c5936129d82e18f35127cfbc13b125ed51b215b9c74c",
+      "bytes": 4064008,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_replication-0ded16aa4dab486e",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/tests.log",
+      "log_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "note": "Retained executable referenced by frozen runtime QA."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/71d5476c6872-raft_protocol-d02259b3fe7decdf",
+      "sha256": "71d5476c687212a877a494652969f7c70075c58501242c415071e2c93bf3a1b8",
+      "bytes": 7185544,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_protocol-d02259b3fe7decdf",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-all-features/tests.log",
+      "log_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/f97bca165ff9-raft_protocol-ab246e857326ed2a",
+      "sha256": "f97bca165ff98b1700ccccabcd5003f7ee40c26a32a83b3c8472eee682261616",
+      "bytes": 4446504,
+      "original_path": "/workspace/work/replication-final-targets/1.85.0/debug/deps/raft_protocol-ab246e857326ed2a",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/1.85.0-default/tests.log",
+      "log_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/7ae58f5ebc4f-raft_protocol-557658cab4ce3f15",
+      "sha256": "7ae58f5ebc4fe4c7e1d89228deff28c93e7c29b2f14e51b14e6ecbb4f3790562",
+      "bytes": 8437464,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_protocol-557658cab4ce3f15",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-all-features/tests.log",
+      "log_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/bc53e27b4cad-raft_protocol-a5d013805f23b48d",
+      "sha256": "bc53e27b4cad1a67302ed6dcc70ebe8843c058a5966c4bb00413b5b848171813",
+      "bytes": 5201000,
+      "original_path": "/workspace/work/replication-final-targets/stable/debug/deps/raft_protocol-a5d013805f23b48d",
+      "referenced_log": "docs/evidence/broker/KL11-73/runtime/controller-labels-final-1e357b04/stable-default/tests.log",
+      "log_source_sha": "1e357b041dcb307dbc270bff369d51e7bb525f25",
+      "note": "Retainedcurrent binary. Controller filename is reused by focused1e recompile; its current executable is attributed to normalized registry1e, with original captured db outputs retained separately."
+    },
+    {
+      "binary": "/workspace/work/replication-retained-binaries-db002076/c84c9de23cb6-replication_guard_probe-f568111816017599",
+      "sha256": "c84c9de23cb62409f21c2abfe36038c25701ff8892bef02bdfdd48f33039eef1",
+      "bytes": 2000856,
+      "original_path": "/workspace/work/target-replication-mutants/debug/deps/replication_guard_probe-f568111816017599",
+      "scope": "Lastcompiled follower-matched-end deliberate mutant; earlier variant executable paths were reused. Patches/sources/rawjournals and every actual exit101 test log are retained independently."
+    }
+  ],
+  "cache_paths_released_to_coordinator_after_process_reference_check": [
+    "/workspace/work/replication-final-targets",
+    "/workspace/work/target-replication-mutants",
+    "/workspace/work/target-replication",
+    "/workspace/work/target-replication-msrv"
+  ],
+  "keep": [
+    "/workspace/work/replication-final",
+    "/workspace/work/replication-registry-final-1e357b04",
+    "/workspace/work/replication-mutants-db002076",
+    "/workspace/work/replication-retained-binaries-db002076",
+    "Allrepositoryruntime/oracle evidence, traces and rawjournalreceipts"
+  ],
+  "notes": [
+    "No cache was removed by this worker.",
+    "Earliercompiled mutant binaries were replaced in their shared target; each retained actual mutation result remains backed by frozen mutation source, exact command/log and rawJournal output.",
+    "Controller original db binary names were reused by focused normalized-registry recompile; the copied binary is the final1e executable, not falsely labeled original db bytecode."
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "source_file": "partitionline-broker/src/raft/replication.rs",
+  "baseline_source_sha256": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+  "probe_sha256": "3e4fff39fad8f2914d12c531be1a057e5d558be1a98b93c940c75be9c2e09a5f",
+  "variants": [
+    {
+      "name": "baseline",
+      "test": null,
+      "replacements": null
+    },
+    {
+      "name": "exact-response-target",
+      "test": "exact_sent_target_cannot_be_forged_inside_the_local_durable_tail",
+      "replacements": [
+        [
+          "response.matched != outstanding.target\n                || response.conflict_index != 0",
+          "response.conflict_index != 0"
+        ]
+      ]
+    },
+    {
+      "name": "distinct-majority",
+      "test": "five_voters_cannot_commit_with_only_one_remote_durable_match",
+      "replacements": [
+        [
+          "let index = matched[count - (count / 2 + 1)];",
+          "let index = matched[count - 2];"
+        ]
+      ]
+    },
+    {
+      "name": "current-term-commit",
+      "test": "a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches",
+      "replacements": [
+        [
+          "if index > self.log.committed && self.log.term_at(index) == Some(state.persistent.term)",
+          "if index > self.log.committed"
+        ],
+        [
+          "leader != self.local || sequence != 0 || self.term_at(index) != Some(term)",
+          "leader != self.local || sequence != 0"
+        ]
+      ]
+    },
+    {
+      "name": "follower-matched-end",
+      "test": "a_follower_cannot_commit_beyond_this_requests_verified_prefix",
+      "replacements": [
+        [
+          ".min(target.index)",
+          ""
+        ]
+      ]
+    }
+  ],
+  "expectation": "baseline four cases pass; each predeclared mutant fails its named real-durability scenario; no production source is changed"
+}

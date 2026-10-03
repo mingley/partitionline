@@ -1,0 +1,12 @@
+{
+  "status": "draft source frozen pending source-review feedback and immutable remote pin",
+  "sha256": {
+    "partitionline-broker/src/raft/replication.rs": "8b5c4c64ebf1f5ad60d557c22d5cc57d2723d78bd541e8987bc9c1b577a9169d",
+    "partitionline-broker/src/raft/election.rs": "6ec3e0b5248027f33464791eb7c7589fb2eb1412cd4c229fad83c6b4faa78413",
+    "partitionline-broker/src/raft/protocol.rs": "fd5e4d18dc4a09c8fbf06119c196e5e765b6e6c6fe4a1b60b58a362e34c33c67",
+    "partitionline-broker/src/raft/mod.rs": "09be62124befe9cc3a81dda8725e694ff9f274acffaf7440d4fc3a9192482779",
+    "partitionline-broker/tests/raft_replication.rs": "63c78a259811e276492fdd5a154aa31d1b98908b0f16c51c0eda6fa0df8ce84f",
+    "partitionline-broker/tests/raft_election.rs": "097c59675747568c835762639aa9280b1579791872306e46e2f72a36e8484d43",
+    "partitionline-broker/tests/raft_protocol.rs": "d35fe4056de161b75eb8aaf738faeae195cf34a68deb0a17c6d793c15525a0f1"
+  }
+}

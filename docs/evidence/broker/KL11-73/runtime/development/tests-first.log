@@ -1,0 +1,50 @@
+   Compiling libc v0.2.189
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.3
+   Compiling pin-project-lite v0.2.17
+   Compiling bytes v1.12.1
+   Compiling cfg-if v1.0.5
+   Compiling getrandom v0.4.3
+   Compiling tokio v1.53.1
+   Compiling crc32c v0.6.8
+   Compiling partitionline-broker v0.1.0 (/workspace/partitionline/partitionline-broker)
+warning: unused import: `Path`
+  --> tests/raft_replication.rs:14:12
+   |
+14 |     path::{Path, PathBuf},
+   |            ^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `partitionline-broker` (test "raft_replication") generated 1 warning (run `cargo fix --test "raft_replication" -p partitionline-broker` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 6.11s
+     Running tests/raft_replication.rs (/workspace/work/target-replication/debug/deps/raft_replication-0ded16aa4dab486e)
+
+running 10 tests
+test bounds_queue_envelope_fetch_and_fixed_membership_are_explicit ... ok
+test committed_prefix_and_same_term_payload_conflicts_fail_before_wal_mutation ... ok
+test complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read ... FAILED
+test foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes ... FAILED
+test five_voters_need_three_distinct_durable_positions_and_reject_forged_replies ... ok
+test partial_request_does_not_commit_an_unverified_old_suffix ... ok
+test minority_partition_expiry_and_lost_ack_cannot_commit ... ok
+test higher_term_repairs_only_uncommitted_suffix_and_preserves_vote_after_restart ... ok
+test strict_majority_barrier_and_committed_visibility_survive_reopen ... ok
+test actor_serializes_controller_and_typed_storage_and_joins_shutdown ... ok
+
+failures:
+
+---- complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read stdout ----
+Error: Controller(Election(LogRegression))
+
+---- foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes stdout ----
+Error: Storage(Corrupt { byte_offset: 134, kind: EntryHeader })
+
+
+failures:
+    complete_wal_ahead_of_core_is_reconciled_before_vote_or_committed_read
+    foreign_identity_corrupt_complete_and_torn_tail_have_distinct_outcomes
+
+test result: FAILED. 8 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `--test raft_replication`

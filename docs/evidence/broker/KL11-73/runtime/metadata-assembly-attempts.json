@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "attempts": [
+    {
+      "attempt": 1,
+      "result": "failed before writing final card",
+      "cause": "Evidence assembly passed a relative gate path to absolute repository-relative conversion. ValueError; no source, test result or raw report mutation.",
+      "command": [
+        "python3",
+        "/workspace/work/replication-final/assemble-evidence.py",
+        "--gate",
+        "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/validation.json"
+      ],
+      "correction": "Resolve the supplied gate path before artifact conversion; metadata only."
+    },
+    {
+      "attempt": 2,
+      "result": "passed",
+      "source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+      "command": [
+        "python3",
+        "/workspace/work/replication-final/assemble-evidence.py",
+        "--gate",
+        "docs/evidence/broker/KL11-73/runtime/registry-final-1e357b04-fresh-controller/validation.json"
+      ],
+      "note": "Corrected absolute path conversion; final evidence regeneration adds final cache-retention/failed-label receipts without repeating tests."
+    }
+  ]
+}

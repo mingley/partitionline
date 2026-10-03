@@ -1,0 +1,7 @@
+$ taskset -c 0-2,4 java -cp /workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/classes:/workspace/work/broker-wire/jars/kafka-clients-4.3.1.jar:/workspace/work/broker-wire/jars/slf4j-api-1.7.36.jar:/workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/kafka-storage-4.3.1.jar:/workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/kafka-storage-api-4.3.1.jar:/workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/kafka-server-common-4.3.1.jar:/workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/metrics-core-2.2.0.jar SegmentIndexProbe /workspace/work/segments-assessment/apache-final-afaf4ea9/4.3.1/segments-1 docs/evidence/broker/KL11-09/oracle/final-afaf4ea9/4.3.1-run-1.json
+{"segments":3,"assertions":821,"close_reopen_equal":true}
+SLF4J: Failed to load class "org.slf4j.impl.StaticLoggerBinder".
+SLF4J: Defaulting to no-operation (NOP) logger implementation
+SLF4J: See http://www.slf4j.org/codes.html#StaticLoggerBinder for further details.
+
+exit_code=0

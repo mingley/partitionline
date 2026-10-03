@@ -1,0 +1,178 @@
+{
+  "runtime_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "checker_source_sha": "db002076bb5a19ed4a84cf8a60bce949c1d9cd84",
+  "commands": [
+    {
+      "lane": "stable-default",
+      "voters": 3,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication/history-3/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-stable-default-3",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-3.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 73, \"counterexamples_rejected\": 9}",
+      "trace_sha256": "d9697f34799dca08c0b1ed7a1f7017f12cf08eb5681e1def02c87c776f239501",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-3.json",
+      "receipt_sha256": "2f28c25f627046d6e21c9273a54ba2b734e645ae25187be53e18af0d840bf33f",
+      "events": 73,
+      "checkpoint_pairs": 10,
+      "counterexamples": 9
+    },
+    {
+      "lane": "stable-default",
+      "voters": 5,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-default/replication/history-5/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-stable-default-5",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-5.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 121, \"counterexamples_rejected\": 10}",
+      "trace_sha256": "117e24213debe620535ca7f8f768529d5722388386ee126260886b24b1146117",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-default-5.json",
+      "receipt_sha256": "7a85f0e6b1b676b151cef01f0828633e3e97f192c8865a63c66763e10a3cd24a",
+      "events": 121,
+      "checkpoint_pairs": 16,
+      "counterexamples": 10
+    },
+    {
+      "lane": "stable-all-features",
+      "voters": 3,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication/history-3/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-stable-all-features-3",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 73, \"counterexamples_rejected\": 9}",
+      "trace_sha256": "d9697f34799dca08c0b1ed7a1f7017f12cf08eb5681e1def02c87c776f239501",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-3.json",
+      "receipt_sha256": "2f28c25f627046d6e21c9273a54ba2b734e645ae25187be53e18af0d840bf33f",
+      "events": 73,
+      "checkpoint_pairs": 10,
+      "counterexamples": 9
+    },
+    {
+      "lane": "stable-all-features",
+      "voters": 5,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/stable-all-features/replication/history-5/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-stable-all-features-5",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 121, \"counterexamples_rejected\": 10}",
+      "trace_sha256": "117e24213debe620535ca7f8f768529d5722388386ee126260886b24b1146117",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/stable-all-features-5.json",
+      "receipt_sha256": "7a85f0e6b1b676b151cef01f0828633e3e97f192c8865a63c66763e10a3cd24a",
+      "events": 121,
+      "checkpoint_pairs": 16,
+      "counterexamples": 10
+    },
+    {
+      "lane": "1.85.0-default",
+      "voters": 3,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication/history-3/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-1.85.0-default-3",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-3.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 73, \"counterexamples_rejected\": 9}",
+      "trace_sha256": "d9697f34799dca08c0b1ed7a1f7017f12cf08eb5681e1def02c87c776f239501",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-3.json",
+      "receipt_sha256": "2f28c25f627046d6e21c9273a54ba2b734e645ae25187be53e18af0d840bf33f",
+      "events": 73,
+      "checkpoint_pairs": 10,
+      "counterexamples": 9
+    },
+    {
+      "lane": "1.85.0-default",
+      "voters": 5,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-default/replication/history-5/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-1.85.0-default-5",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-5.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 121, \"counterexamples_rejected\": 10}",
+      "trace_sha256": "117e24213debe620535ca7f8f768529d5722388386ee126260886b24b1146117",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-default-5.json",
+      "receipt_sha256": "7a85f0e6b1b676b151cef01f0828633e3e97f192c8865a63c66763e10a3cd24a",
+      "events": 121,
+      "checkpoint_pairs": 16,
+      "counterexamples": 10
+    },
+    {
+      "lane": "1.85.0-all-features",
+      "voters": 3,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication/history-3/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-1.85.0-all-features-3",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-3.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 73, \"counterexamples_rejected\": 9}",
+      "trace_sha256": "d9697f34799dca08c0b1ed7a1f7017f12cf08eb5681e1def02c87c776f239501",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-3.json",
+      "receipt_sha256": "2f28c25f627046d6e21c9273a54ba2b734e645ae25187be53e18af0d840bf33f",
+      "events": 73,
+      "checkpoint_pairs": 10,
+      "counterexamples": 9
+    },
+    {
+      "lane": "1.85.0-all-features",
+      "voters": 5,
+      "command": [
+        "python3",
+        "/workspace/work/integration/73-pushed-checkers/check-counterexamples.py",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/runtime/final-db002076/1.85.0-all-features/replication/history-5/trace.json",
+        "--work",
+        "/workspace/work/integration/73-counterexamples-1.85.0-all-features-5",
+        "--output",
+        "/workspace/partitionline/docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-5.json"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"baseline_events\": 121, \"counterexamples_rejected\": 10}",
+      "trace_sha256": "117e24213debe620535ca7f8f768529d5722388386ee126260886b24b1146117",
+      "receipt": "docs/evidence/broker/KL11-73/oracle/history/final-db002076/1.85.0-all-features-5.json",
+      "receipt_sha256": "7a85f0e6b1b676b151cef01f0828633e3e97f192c8865a63c66763e10a3cd24a",
+      "events": 121,
+      "checkpoint_pairs": 16,
+      "counterexamples": 10
+    }
+  ],
+  "limitations": [
+    "Each input receipt directly validates copied Journal bytes and causal captures; immutable runtime compilation/source proof is supplied separately by the runtime matrix.",
+    "partial-final-operation deliberately models truncation, despite original generic checksum_valid_semantic_mutation metadata flag; it is structural incompleteness, not a complete checksum-valid semantic operation."
+  ]
+}

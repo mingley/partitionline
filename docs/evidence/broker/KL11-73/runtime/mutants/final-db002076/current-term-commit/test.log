@@ -1,0 +1,22 @@
+   Compiling partitionline-broker v0.1.0 (/workspace/work/replication-mutants-db002076/current-term-commit/partitionline-broker)
+    Finished `test` profile [unoptimized] target(s) in 1.45s
+     Running tests/replication_guard_probe.rs (/workspace/work/target-replication-mutants/debug/deps/replication_guard_probe-f568111816017599)
+
+running 1 test
+new term=3, barrier index7; durable majority matches old term2/index4; leader commit=4
+
+thread 'a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches' (670408) panicked at tests/replication_guard_probe.rs:127:5:
+assertion `left == right` failed: old-term partial majority committed before barrier
+  left: 4
+ right: 0
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches ... FAILED
+
+failures:
+
+failures:
+    a_new_leader_cannot_commit_an_old_term_partial_chunk_before_its_barrier_matches
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `--test replication_guard_probe`
