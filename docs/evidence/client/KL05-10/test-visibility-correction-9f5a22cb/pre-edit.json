@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "actual_pushed_source": "9f5a22cb1a1f3bb0d42fd2b94d633d1fd46b1acf",
+  "path": "tests/sticky_partitioner.rs",
+  "sha256": "9d42a3a64008bac73e4b4d88c0bdaffa89d0b3b421da8ada5ab4f43add2785fc",
+  "bytes": 37454,
+  "mode": "0o600",
+  "finding": "Integration test imported a pub(crate) free function; use the existing public Record method with identical key/value/headers",
+  "Cargo_executed": false,
+  "JVM_executed": false
+}

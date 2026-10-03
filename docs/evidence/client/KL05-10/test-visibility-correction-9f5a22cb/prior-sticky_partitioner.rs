@@ -6,21 +6,10 @@ mod common;
 use partitionline::error;
 use partitionline::partitioner::{StickyPartitioner, StickyPartitionerConfig};
 use partitionline::producer::PreSendFault;
-use partitionline::protocol::records::Record;
+use partitionline::protocol::records::record_size_upper_bound;
 use partitionline::{partition_for_key, Error, ProduceRecord, Producer, ProducerConfig};
 use std::time::Duration;
 use tokio::time::{sleep, timeout};
-
-fn unkeyed_packed_bytes(value: &'static [u8]) -> u64 {
-    let record = Record {
-        offset: 0,
-        timestamp: 0,
-        key: None,
-        value: Some(bytes::Bytes::from_static(value)),
-        headers: Vec::new(),
-    };
-    u64::try_from(record.record_size_upper_bound().unwrap()).unwrap()
-}
 
 async fn admit(producer: &Producer, record: ProduceRecord) -> partitionline::Result<()> {
     timeout(Duration::from_secs(5), async {
@@ -82,8 +71,10 @@ async fn sticky_burst_is_one_real_batch_and_partial_flush_preserves_partition() 
         mock.produce_batches().last().map(|batch| batch.1),
         Some(chosen)
     );
-    let first_bytes = unkeyed_packed_bytes(b"first");
-    let second_bytes = unkeyed_packed_bytes(b"second");
+    let first_bytes =
+        u64::try_from(record_size_upper_bound(None, Some(b"first"), &[]).unwrap()).unwrap();
+    let second_bytes =
+        u64::try_from(record_size_upper_bound(None, Some(b"second"), &[]).unwrap()).unwrap();
     assert_eq!(before.4, first_bytes * 9 + 61);
     assert_eq!(
         producer.__test_sticky_state().unwrap().4,
