@@ -1,0 +1,2422 @@
+{
+  "schema_version": 1,
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "cell": "stable-all-features",
+  "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/membership",
+  "exit_code": 0,
+  "captures_closed": true,
+  "classification": "closed actual all-targets harness captures; no transformed membership files",
+  "written_utc_unix": 1791029721.6675713,
+  "actual_command": {
+    "name": "stable-all-features-all-targets",
+    "argv": [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--all-targets",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "ledger": "commands",
+    "cpu_affinity": {
+      "requested": "2,4",
+      "taskset_argument": "2,4",
+      "actual_cpu_ids": [
+        2,
+        4
+      ]
+    },
+    "environment_additions": {
+      "PARTITIONLINE_WIRE_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/wire-report.json",
+      "PARTITIONLINE_METADATA_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/metadata-report.json",
+      "PARTITIONLINE_PRODUCE_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/produce-report.json",
+      "PARTITIONLINE_FETCH_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/fetch-report.json",
+      "PARTITIONLINE_SEGMENTS_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/rolling-report.json",
+      "PARTITIONLINE_SEGMENTS_ORACLE_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/apache-router-report.json",
+      "PARTITIONLINE_SEGMENTS_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/responses",
+      "PARTITIONLINE_SEGMENTS_PROOF_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/proof",
+      "PARTITIONLINE_SEGMENTS_FAULT_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/rolling-fault-histories",
+      "PL_COMPACTION_FAULT_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/compaction-fault-histories",
+      "PARTITIONLINE_COMPACTION_CORPUS_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/compaction-corpus",
+      "PARTITIONLINE_RETENTION_FAULT_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/retention-fault-histories",
+      "PARTITIONLINE_RETENTION_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/retention-report.json",
+      "PARTITIONLINE_FETCH_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/fetch-responses",
+      "PL_BROKER_CONTROLLER_REPORT": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/controller-report.json",
+      "PL_CONTROLLER_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/controller-responses",
+      "PL_SNAPSHOT_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/snapshot",
+      "PL_SNAPSHOT_NODE_INNER_PROOF_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/snapshot-inner",
+      "PL_REPLICATION_RESPONSE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/replication",
+      "PL_MEMBERSHIP_CAPTURE_DIR": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/membership",
+      "PL_SNAPSHOT_SOURCE_SHA": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "PL_REPLICATION_SOURCE_SHA": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+      "PL_MEMBERSHIP_SOURCE_SHA": "403be1e3db073df86921d6fb21189f695c4f1eaf"
+    },
+    "exit_code": 0,
+    "elapsed_seconds": 114.405,
+    "source_before": {
+      "file_count": 71885,
+      "all_git_blobs_match": true,
+      "all_baseline_permission_modes_match": true,
+      "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+    },
+    "external_test_tools_before": [
+      {
+        "path": "/usr/bin/openssl",
+        "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+        "full_permission_mode": 493
+      }
+    ],
+    "disk_monitor": {
+      "threshold_bytes": 367001600,
+      "poll_interval_seconds": 0.5,
+      "minimum_free_bytes": 4110757888,
+      "samples": 231,
+      "triggered": false,
+      "trigger": null,
+      "actual_process_exit_code": 0,
+      "sample_log_sha256": "5b905509ca85f7823cd91e496ecafd278bd0cab43532e0d7ae176dbe2ce9691d"
+    },
+    "log_sha256": "985a111ab2dbdc87114730c9bb940ec711dd483d08a95d90800bc34f7b409eb1",
+    "executed_elfs": [
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/catalog-c9cad73163ebaed8",
+        "sha256": "d5adda0fe8940ea265cd36262f1890d0df08103297c6b6f2a683552e0c7e111b",
+        "original_mode": 448,
+        "bytes": 2078152,
+        "retained_object": "bin/elf-objects/d5adda0fe8940ea265cd36262f1890d0df08103297c6b6f2a683552e0c7e111b.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/codecs-57c6b58bd2171dad",
+        "sha256": "ac3afeb82d1ab8b6f9e0accb5fe2d384311422c88d1b380d4ff5cc6b2ffb7029",
+        "original_mode": 448,
+        "bytes": 2370904,
+        "retained_object": "bin/elf-objects/ac3afeb82d1ab8b6f9e0accb5fe2d384311422c88d1b380d4ff5cc6b2ffb7029.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/compaction-1b8799cf8181335c",
+        "sha256": "ac869257a5f8d43945bdf712b9a50adf65857e52da29b77305a58e41761db667",
+        "original_mode": 448,
+        "bytes": 2649584,
+        "retained_object": "bin/elf-objects/ac869257a5f8d43945bdf712b9a50adf65857e52da29b77305a58e41761db667.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/fetch-1e357d401d6ca825",
+        "sha256": "007f50c6d0ffbb9c7c4987f042572142ccf901edb0e319e840706eca4c028208",
+        "original_mode": 448,
+        "bytes": 17266976,
+        "retained_object": "bin/elf-objects/007f50c6d0ffbb9c7c4987f042572142ccf901edb0e319e840706eca4c028208.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/journal-650e5ce8344cdba6",
+        "sha256": "2e516f6cf8c3f56baddc410a80d1879e2c675f504e4533ec25644b7fd6e6abfb",
+        "original_mode": 448,
+        "bytes": 1966560,
+        "retained_object": "bin/elf-objects/2e516f6cf8c3f56baddc410a80d1879e2c675f504e4533ec25644b7fd6e6abfb.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/metadata-d4d10d9f9b5f94db",
+        "sha256": "cb045e6cf25f0d651d1f567b00a7432df861320b697ad43ecf21e843b4ebbbda",
+        "original_mode": 448,
+        "bytes": 14398544,
+        "retained_object": "bin/elf-objects/cb045e6cf25f0d651d1f567b00a7432df861320b697ad43ecf21e843b4ebbbda.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_http-12695a6775ba8674",
+        "sha256": "06fd8a02ed052fac4b98665cea42be2751835b1e97151c54c199d8b9baeeff94",
+        "original_mode": 448,
+        "bytes": 12049960,
+        "retained_object": "bin/elf-objects/06fd8a02ed052fac4b98665cea42be2751835b1e97151c54c199d8b9baeeff94.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_sessions-b982fd99e53a117c",
+        "sha256": "f240c6e2b94158f25747c6723d1eb152f52213e35278b29173255c706b931a0f",
+        "original_mode": 448,
+        "bytes": 14480408,
+        "retained_object": "bin/elf-objects/f240c6e2b94158f25747c6723d1eb152f52213e35278b29173255c706b931a0f.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_validation-15034c018747bc12",
+        "sha256": "07145a6eebc5053d348f913c65c9e8c70739e5bd2d1bd35c344694b783087d19",
+        "original_mode": 448,
+        "bytes": 4272992,
+        "retained_object": "bin/elf-objects/07145a6eebc5053d348f913c65c9e8c70739e5bd2d1bd35c344694b783087d19.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/partition-747e88e95cf322cb",
+        "sha256": "80e03ccee190e9ee7c1326b3b3168b6d2ad84652c541ed7e98fb670bf3875387",
+        "original_mode": 448,
+        "bytes": 2373272,
+        "retained_object": "bin/elf-objects/80e03ccee190e9ee7c1326b3b3168b6d2ad84652c541ed7e98fb670bf3875387.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-d553c0d403ec4ee5",
+        "sha256": "fa2af1d6423ff031b5977cd7a160243a6bb00a5445c37f51a614dc8afdf15596",
+        "original_mode": 448,
+        "bytes": 22319008,
+        "retained_object": "bin/elf-objects/fa2af1d6423ff031b5977cd7a160243a6bb00a5445c37f51a614dc8afdf15596.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/produce-057c4bfa6059c4c4",
+        "sha256": "b8877b424092930eab15fa081bc3823d8a1bf445c7dfbc337b3489339c8fabe3",
+        "original_mode": 448,
+        "bytes": 14179832,
+        "retained_object": "bin/elf-objects/b8877b424092930eab15fa081bc3823d8a1bf445c7dfbc337b3489339c8fabe3.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/protocol-7277bf9ed8449c0c",
+        "sha256": "4d310573181c988b1261ecbfb81a3ac783393a0881ce731bc209122c30d7ec67",
+        "original_mode": 448,
+        "bytes": 11105896,
+        "retained_object": "bin/elf-objects/4d310573181c988b1261ecbfb81a3ac783393a0881ce731bc209122c30d7ec67.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_election-d7ec6ad543a2cd21",
+        "sha256": "15624ee035df4686ab5bc001b4717066ec1d55f727b362ef95a9cc91bd8cc572",
+        "original_mode": 448,
+        "bytes": 2102704,
+        "retained_object": "bin/elf-objects/15624ee035df4686ab5bc001b4717066ec1d55f727b362ef95a9cc91bd8cc572.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-f13dec248cd337ba",
+        "sha256": "f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121",
+        "original_mode": 448,
+        "bytes": 3758192,
+        "retained_object": "bin/elf-objects/f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_protocol-2eb56817bf467f97",
+        "sha256": "b302d7211e19d6cb89348126d8f2e63631bae5997faeb9c243dc1465e7115d02",
+        "original_mode": 448,
+        "bytes": 12882544,
+        "retained_object": "bin/elf-objects/b302d7211e19d6cb89348126d8f2e63631bae5997faeb9c243dc1465e7115d02.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_replication-f54b01b49a708c2b",
+        "sha256": "36e5959a1eabaa50798232bac3a7042c53f0b466952a3787d265dc30f57b522a",
+        "original_mode": 448,
+        "bytes": 5617280,
+        "retained_object": "bin/elf-objects/36e5959a1eabaa50798232bac3a7042c53f0b466952a3787d265dc30f57b522a.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_snapshot-504fddb62bcd9d30",
+        "sha256": "2bb9dafd342701e197e4553ab2d4477ac4a7d4c54c75c8d305f725531133c572",
+        "original_mode": 448,
+        "bytes": 2150144,
+        "retained_object": "bin/elf-objects/2bb9dafd342701e197e4553ab2d4477ac4a7d4c54c75c8d305f725531133c572.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/records-8024c5e3009ff876",
+        "sha256": "1ca58d7d565758df797649ca54bdcbd982b90255d6f93d7415c63ed09ca03dae",
+        "original_mode": 448,
+        "bytes": 1971728,
+        "retained_object": "bin/elf-objects/1ca58d7d565758df797649ca54bdcbd982b90255d6f93d7415c63ed09ca03dae.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/retention-eb0959a4081096b8",
+        "sha256": "818057cb2eaedfb68a8ee86ca91f32f8ed97f0cfa40254eabaf77ff00b132a45",
+        "original_mode": 448,
+        "bytes": 14084056,
+        "retained_object": "bin/elf-objects/818057cb2eaedfb68a8ee86ca91f32f8ed97f0cfa40254eabaf77ff00b132a45.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl-b79793747d359560",
+        "sha256": "ba57b20fa4bbbbbd38679abde82cf5b2892803e4dd97e3e105a144b57600bec4",
+        "original_mode": 448,
+        "bytes": 3940520,
+        "retained_object": "bin/elf-objects/ba57b20fa4bbbbbd38679abde82cf5b2892803e4dd97e3e105a144b57600bec4.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_credentials-3add33d7750fd844",
+        "sha256": "caabf2d9131bd571b2e6bb5d002c4b49262131d5d64a6dc2729e2b5f795fcefd",
+        "original_mode": 448,
+        "bytes": 4384152,
+        "retained_object": "bin/elf-objects/caabf2d9131bd571b2e6bb5d002c4b49262131d5d64a6dc2729e2b5f795fcefd.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_sessions-392db3a5bc1508b4",
+        "sha256": "e19c4271d8bd07e2590e401f07598cf8adacd5394458798b140a8df1cdbe7fdf",
+        "original_mode": 448,
+        "bytes": 13263824,
+        "retained_object": "bin/elf-objects/e19c4271d8bd07e2590e401f07598cf8adacd5394458798b140a8df1cdbe7fdf.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/segments-b4b87189b57b3a3d",
+        "sha256": "3a1fb9b118b4714266666319346bfd1c41dcc875ba692e9d42e1ca1819acd28b",
+        "original_mode": 448,
+        "bytes": 2647216,
+        "retained_object": "bin/elf-objects/3a1fb9b118b4714266666319346bfd1c41dcc875ba692e9d42e1ca1819acd28b.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/tls-86e3f538d0b3e839",
+        "sha256": "58566745f7d48c09ac52548661deae696bd2f08e83a57020a9c19bd05c236345",
+        "original_mode": 448,
+        "bytes": 13650880,
+        "retained_object": "bin/elf-objects/58566745f7d48c09ac52548661deae696bd2f08e83a57020a9c19bd05c236345.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/transport-adfafaa7060b0246",
+        "sha256": "8a0b70f4ed5a39a4f5f5023f7bff4bbbb8df4778ed636fff431b985967e30066",
+        "original_mode": 448,
+        "bytes": 18107304,
+        "retained_object": "bin/elf-objects/8a0b70f4ed5a39a4f5f5023f7bff4bbbb8df4778ed636fff431b985967e30066.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-69604b3db811d90f",
+        "sha256": "01df9c8d0495777d29e8b9811a088722c529800725e86b2da15b71d3d2b18873",
+        "original_mode": 448,
+        "bytes": 1074920,
+        "retained_object": "bin/elf-objects/01df9c8d0495777d29e8b9811a088722c529800725e86b2da15b71d3d2b18873.gz",
+        "reason": "Cargo-reported execution, success or failure",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      }
+    ],
+    "post_command_cache_elfs": [
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build-script-build",
+        "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+        "original_mode": 448,
+        "bytes": 756016,
+        "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/crc32c-8d7d3e05d0424bcb/build_script_build-8d7d3e05d0424bcb",
+        "sha256": "73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2",
+        "original_mode": 448,
+        "bytes": 756016,
+        "retained_object": "bin/elf-objects/73644938e27ab13c7d2ed172c0fadb33f9b53d9b71a9523f73fee4eefe28bec2.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/crc32fast-0694fcb622573f45/build-script-build",
+        "sha256": "255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab",
+        "original_mode": 448,
+        "bytes": 558104,
+        "retained_object": "bin/elf-objects/255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/crc32fast-0694fcb622573f45/build_script_build-0694fcb622573f45",
+        "sha256": "255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab",
+        "original_mode": 448,
+        "bytes": 558104,
+        "retained_object": "bin/elf-objects/255d21b51cd414be2196a1015b22b568d6492bccbe5ac701e9e2fb9dd0de7cab.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build-script-build",
+        "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+        "original_mode": 448,
+        "bytes": 478224,
+        "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/getrandom-b56168953075a26e/build_script_build-b56168953075a26e",
+        "sha256": "0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30",
+        "original_mode": 448,
+        "bytes": 478224,
+        "retained_object": "bin/elf-objects/0ba2f466618c72ad1b5cffdd68a6159ee83b3bc0d2d6f2084c43593abe836c30.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-3e664ead7e51fa42/build-script-build",
+        "sha256": "f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314",
+        "original_mode": 448,
+        "bytes": 614592,
+        "retained_object": "bin/elf-objects/f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/httparse-3e664ead7e51fa42/build_script_build-3e664ead7e51fa42",
+        "sha256": "f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314",
+        "original_mode": 448,
+        "bytes": 614592,
+        "retained_object": "bin/elf-objects/f366b0bbf317ff7fcdf28176cac74591b441a68c0b2c7acfd036551b338b7314.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build-script-build",
+        "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+        "original_mode": 448,
+        "bytes": 638632,
+        "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/libc-d69758f4542b08f1/build_script_build-d69758f4542b08f1",
+        "sha256": "609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0",
+        "original_mode": 448,
+        "bytes": 638632,
+        "retained_object": "bin/elf-objects/609064a81c0ff21872360022b837e1649891243326fada965e44db21f8e81ea0.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build-script-build",
+        "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+        "original_mode": 448,
+        "bytes": 613824,
+        "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/proc-macro2-346fa1be638f98f3/build_script_build-346fa1be638f98f3",
+        "sha256": "48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900",
+        "original_mode": 448,
+        "bytes": 613824,
+        "retained_object": "bin/elf-objects/48502d499975a25b4cd5f906974f26710c880f815b86fe77a4332982cb17e900.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build-script-build",
+        "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+        "original_mode": 448,
+        "bytes": 556632,
+        "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/quote-281b1bc39d16de7f/build_script_build-281b1bc39d16de7f",
+        "sha256": "e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7",
+        "original_mode": 448,
+        "bytes": 556632,
+        "retained_object": "bin/elf-objects/e18d5d503d3b3090ec427d228f052d9cb91dd81c8b7924b7e0d11c59e2538fa7.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-010fb5496596defa/build-script-build",
+        "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+        "original_mode": 448,
+        "bytes": 2028648,
+        "retained_object": "bin/elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-010fb5496596defa/build_script_build-010fb5496596defa",
+        "sha256": "6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad",
+        "original_mode": 448,
+        "bytes": 2028648,
+        "retained_object": "bin/elf-objects/6e64b7a424f5b1a3e95725334fdf1be8c85147e6bb86f746eeb3c34d0b6cf6ad.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery.o",
+        "sha256": "4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499",
+        "original_mode": 384,
+        "bytes": 85024,
+        "retained_object": "bin/elf-objects/4d11f3485e1f40727a847f43fc11fd95e789df98af1c5285000979b17793f499.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/00c879ee3285a50d-montgomery_inv.o",
+        "sha256": "c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027",
+        "original_mode": 384,
+        "bytes": 79792,
+        "retained_object": "bin/elf-objects/c5894d22ad45724c1d32a8160970962bb5e3cc67892f698cd94f9bfa7abaa027.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/0bbbd18bda93c05b-aes_nohw.o",
+        "sha256": "741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951",
+        "original_mode": 384,
+        "bytes": 124880,
+        "retained_object": "bin/elf-objects/741f01986e97b79d883443a8cd6caa0e52a66f7927c284da20335cc73bfcf951.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519.o",
+        "sha256": "273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9",
+        "original_mode": 384,
+        "bytes": 232480,
+        "retained_object": "bin/elf-objects/273dc72db451d8caeaa7f0385d7182e3aa2bab338fe4f9f416869c8e5d8b0eb9.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/25ac62e5b3c53843-curve25519_64_adx.o",
+        "sha256": "d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f",
+        "original_mode": 384,
+        "bytes": 557112,
+        "retained_object": "bin/elf-objects/d7e3b0515f162f6da566a16372611a9fd1a476cb2203d51c28d04ed805823a2f.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-ecp_nistz.o",
+        "sha256": "b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186",
+        "original_mode": 384,
+        "bytes": 79832,
+        "retained_object": "bin/elf-objects/b0a0f7cbfc2a529a668735839b5c8b667c486e3daeeddacd360f64f8d95cd186.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p256.o",
+        "sha256": "c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5",
+        "original_mode": 384,
+        "bytes": 79392,
+        "retained_object": "bin/elf-objects/c569f5db80ff81b4c6642c0f8e767fa4e48ed775776bc8a388960777d5a37bf5.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-gfp_p384.o",
+        "sha256": "98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1",
+        "original_mode": 384,
+        "bytes": 121248,
+        "retained_object": "bin/elf-objects/98552ca96b1d3f196e80370e73478931efc15488761b6ec4e4b3db8a878858e1.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256-nistz.o",
+        "sha256": "820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc",
+        "original_mode": 384,
+        "bytes": 262240,
+        "retained_object": "bin/elf-objects/820ae336b9366e9fc37664c44231d28db0f0326014d2a475304a7c8967072fdc.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a0330e891e733f4e-p256.o",
+        "sha256": "be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02",
+        "original_mode": 384,
+        "bytes": 79824,
+        "retained_object": "bin/elf-objects/be076980cc6c63d9d748ab23d04a3f1089a5eb34c7c758db1b0960cb42acdb02.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-constant_time_test.o",
+        "sha256": "36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda",
+        "original_mode": 384,
+        "bytes": 91208,
+        "retained_object": "bin/elf-objects/36c19427254ce1b93f2ad866cea73011a774016276d8f141e8744c4e24f28bda.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-cpu_intel.o",
+        "sha256": "40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735",
+        "original_mode": 384,
+        "bytes": 81200,
+        "retained_object": "bin/elf-objects/40386aa154b4b07f3d4103f4bb90b00d628066322d175ef4f6e27ecca33cd735.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-crypto.o",
+        "sha256": "e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59",
+        "original_mode": 384,
+        "bytes": 72296,
+        "retained_object": "bin/elf-objects/e62bd9f67ae5361772d71c43ea1a33ab0aa29619e1f0373caa24f131fbe21c59.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/a4019cc0736b0423-mem.o",
+        "sha256": "780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2",
+        "original_mode": 384,
+        "bytes": 78392,
+        "retained_object": "bin/elf-objects/780b4216f6fc3dd6b9d2575ceab4eef299c0247c647d7a69eb8172988bffdff2.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/aaa1ba3e455ee2e1-limbs.o",
+        "sha256": "50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb",
+        "original_mode": 384,
+        "bytes": 102792,
+        "retained_object": "bin/elf-objects/50f9300b5a5408ebdeb8d6e661479c7e6d1d14bdfb7c102b7e5f97e6b426d0cb.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aes-gcm-avx2-x86_64-elf.o",
+        "sha256": "c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f",
+        "original_mode": 384,
+        "bytes": 8904,
+        "retained_object": "bin/elf-objects/c41dc2f204bfc95e7cb4848b4d1f7f92a50f030521227d9ecdbf920cd30e299f.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-gcm-x86_64-elf.o",
+        "sha256": "0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d",
+        "original_mode": 384,
+        "bytes": 7728,
+        "retained_object": "bin/elf-objects/0b113f18d20d3b35f37e24d66240f807a13e110e69b059bc8c90650d9a7d4a9d.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-aesni-x86_64-elf.o",
+        "sha256": "f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0",
+        "original_mode": 384,
+        "bytes": 9176,
+        "retained_object": "bin/elf-objects/f9d0001789c7005efa46ecc68d0214289d304202d86060f8051f8ae216f087f0.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha-x86_64-elf.o",
+        "sha256": "f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd",
+        "original_mode": 384,
+        "bytes": 11760,
+        "retained_object": "bin/elf-objects/f45c5e28ef870c36a102f8ea847abd8ad6dc412178c34980cdbf7ab446b3ccbd.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-chacha20_poly1305_x86_64-elf.o",
+        "sha256": "fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b",
+        "original_mode": 384,
+        "bytes": 62048,
+        "retained_object": "bin/elf-objects/fc651b5a7888b2cc7183f5c9f6e41202a12d9b352ba1932737eb6324429f6d8b.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-ghash-x86_64-elf.o",
+        "sha256": "8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce",
+        "original_mode": 384,
+        "bytes": 8976,
+        "retained_object": "bin/elf-objects/8394e6b19cd398f7fdbb0e25eefc900ef8f93f04ade7a2dbb2d0c7ae5cddffce.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-p256-x86_64-asm-elf.o",
+        "sha256": "d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b",
+        "original_mode": 384,
+        "bytes": 29824,
+        "retained_object": "bin/elf-objects/d0e544cb84bd8484ba628d6afedb3623867b3f5fbe716cbbee52fa70f6490e9b.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha256-x86_64-elf.o",
+        "sha256": "1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95",
+        "original_mode": 384,
+        "bytes": 21160,
+        "retained_object": "bin/elf-objects/1152758d392c6854cd4b02602099d2853c888c64eccb4f48ea0fc23b3a619e95.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-sha512-x86_64-elf.o",
+        "sha256": "d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e",
+        "original_mode": 384,
+        "bytes": 16328,
+        "retained_object": "bin/elf-objects/d3ee47df8684a44df9742cd1d94720e66f563360581a8d65556016ab77ef194e.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-vpaes-x86_64-elf.o",
+        "sha256": "113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781",
+        "original_mode": 384,
+        "bytes": 7952,
+        "retained_object": "bin/elf-objects/113c17acb5f46f03d8721f12be47a964ffa612581584e27be336d375c90fb781.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont-elf.o",
+        "sha256": "ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901",
+        "original_mode": 384,
+        "bytes": 8632,
+        "retained_object": "bin/elf-objects/ebac04f9313faf586c6b80dd6a5b074fc17b7f529326d493b4031949bff94901.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/c322a0bcc369f531-x86_64-mont5-elf.o",
+        "sha256": "ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47",
+        "original_mode": 384,
+        "bytes": 18816,
+        "retained_object": "bin/elf-objects/ded48af6ea4ebf9077dae78254eed0a1ecb783758a02b876b33147b00ace3d47.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/d5a9841f3dc6e253-poly1305.o",
+        "sha256": "28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0",
+        "original_mode": 384,
+        "bytes": 89096,
+        "retained_object": "bin/elf-objects/28845446da0d7bc50086db4e88d8db6485f4191b963477a54033c4ea73c6b3f0.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_mul.o",
+        "sha256": "3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121",
+        "original_mode": 384,
+        "bytes": 3680,
+        "retained_object": "bin/elf-objects/3dc514fa8c29a094c05b963ac0744227fd3b10dd8e53fca602f5ad93e2454121.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/ring-58e867ca49159cdb/out/e165cd818145c705-fiat_curve25519_adx_square.o",
+        "sha256": "66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb",
+        "original_mode": 384,
+        "bytes": 3472,
+        "retained_object": "bin/elf-objects/66e32951d5437883eb544f30df57b7d8497d915c7eb3de7947a251fd0743c8fb.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-e9f91de87a16cf3c/build-script-build",
+        "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+        "original_mode": 448,
+        "bytes": 438184,
+        "retained_object": "bin/elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/rustls-e9f91de87a16cf3c/build_script_build-e9f91de87a16cf3c",
+        "sha256": "28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad",
+        "original_mode": 448,
+        "bytes": 438184,
+        "retained_object": "bin/elf-objects/28eb1eb9828db99c2d4e3afdfb8e2a827a9a9bba70b214dfc56643a4bd8823ad.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde-816d234d4ddf0de2/build-script-build",
+        "sha256": "a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc",
+        "original_mode": 448,
+        "bytes": 588056,
+        "retained_object": "bin/elf-objects/a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde-816d234d4ddf0de2/build_script_build-816d234d4ddf0de2",
+        "sha256": "a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc",
+        "original_mode": 448,
+        "bytes": 588056,
+        "retained_object": "bin/elf-objects/a70dbf2c12c2b35ce6ac38d2e162556f4ce326449786733a7268ec1183989bbc.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-379a79d6a7b391e5/build-script-build",
+        "sha256": "c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552",
+        "original_mode": 448,
+        "bytes": 590864,
+        "retained_object": "bin/elf-objects/c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde_core-379a79d6a7b391e5/build_script_build-379a79d6a7b391e5",
+        "sha256": "c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552",
+        "original_mode": 448,
+        "bytes": 590864,
+        "retained_object": "bin/elf-objects/c6ac351f893227f75e7fffcf28a710073a560345b9a04adaf70023c936482552.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-2df4e160f567d3e9/build-script-build",
+        "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+        "original_mode": 448,
+        "bytes": 449968,
+        "retained_object": "bin/elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/serde_json-2df4e160f567d3e9/build_script_build-2df4e160f567d3e9",
+        "sha256": "00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8",
+        "original_mode": 448,
+        "bytes": 449968,
+        "retained_object": "bin/elf-objects/00e164412031e7a83975bccf129de43e29a0cd595498bb43ce37576226f51be8.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/snap-6e3d3ff8099b40dd/build-script-build",
+        "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+        "original_mode": 448,
+        "bytes": 500648,
+        "retained_object": "bin/elf-objects/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/snap-6e3d3ff8099b40dd/build_script_build-6e3d3ff8099b40dd",
+        "sha256": "7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd",
+        "original_mode": 448,
+        "bytes": 500648,
+        "retained_object": "bin/elf-objects/7fd2c01bd1783f6649cb0ecadcde214a38ec433d4772daf1dfc7edf33d9a0afd.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-9224f156551122bc/build-script-build",
+        "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+        "original_mode": 448,
+        "bytes": 561760,
+        "retained_object": "bin/elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/build/zmij-9224f156551122bc/build_script_build-9224f156551122bc",
+        "sha256": "8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f",
+        "original_mode": 448,
+        "bytes": 561760,
+        "retained_object": "bin/elf-objects/8bac39aae370aa625cb270248a576d280970b09a722e8a37ffb9b7071eb3612f.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/catalog-c9cad73163ebaed8",
+        "sha256": "d5adda0fe8940ea265cd36262f1890d0df08103297c6b6f2a683552e0c7e111b",
+        "original_mode": 448,
+        "bytes": 2078152,
+        "retained_object": "bin/elf-objects/d5adda0fe8940ea265cd36262f1890d0df08103297c6b6f2a683552e0c7e111b.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/codecs-57c6b58bd2171dad",
+        "sha256": "ac3afeb82d1ab8b6f9e0accb5fe2d384311422c88d1b380d4ff5cc6b2ffb7029",
+        "original_mode": 448,
+        "bytes": 2370904,
+        "retained_object": "bin/elf-objects/ac3afeb82d1ab8b6f9e0accb5fe2d384311422c88d1b380d4ff5cc6b2ffb7029.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/compaction-1b8799cf8181335c",
+        "sha256": "ac869257a5f8d43945bdf712b9a50adf65857e52da29b77305a58e41761db667",
+        "original_mode": 448,
+        "bytes": 2649584,
+        "retained_object": "bin/elf-objects/ac869257a5f8d43945bdf712b9a50adf65857e52da29b77305a58e41761db667.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/fetch-1e357d401d6ca825",
+        "sha256": "007f50c6d0ffbb9c7c4987f042572142ccf901edb0e319e840706eca4c028208",
+        "original_mode": 448,
+        "bytes": 17266976,
+        "retained_object": "bin/elf-objects/007f50c6d0ffbb9c7c4987f042572142ccf901edb0e319e840706eca4c028208.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/journal-650e5ce8344cdba6",
+        "sha256": "2e516f6cf8c3f56baddc410a80d1879e2c675f504e4533ec25644b7fd6e6abfb",
+        "original_mode": 448,
+        "bytes": 1966560,
+        "retained_object": "bin/elf-objects/2e516f6cf8c3f56baddc410a80d1879e2c675f504e4533ec25644b7fd6e6abfb.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/libtokio_macros-0f1e217bb1a990ca.so",
+        "sha256": "76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d",
+        "original_mode": 448,
+        "bytes": 3482104,
+        "retained_object": "bin/elf-objects/76e95962ef57ff48a458aa5955b61e65673a3764248115fb876698d5bda3509d.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/metadata-d4d10d9f9b5f94db",
+        "sha256": "cb045e6cf25f0d651d1f567b00a7432df861320b697ad43ecf21e843b4ebbbda",
+        "original_mode": 448,
+        "bytes": 14398544,
+        "retained_object": "bin/elf-objects/cb045e6cf25f0d651d1f567b00a7432df861320b697ad43ecf21e843b4ebbbda.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_http-12695a6775ba8674",
+        "sha256": "06fd8a02ed052fac4b98665cea42be2751835b1e97151c54c199d8b9baeeff94",
+        "original_mode": 448,
+        "bytes": 12049960,
+        "retained_object": "bin/elf-objects/06fd8a02ed052fac4b98665cea42be2751835b1e97151c54c199d8b9baeeff94.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_sessions-b982fd99e53a117c",
+        "sha256": "f240c6e2b94158f25747c6723d1eb152f52213e35278b29173255c706b931a0f",
+        "original_mode": 448,
+        "bytes": 14480408,
+        "retained_object": "bin/elf-objects/f240c6e2b94158f25747c6723d1eb152f52213e35278b29173255c706b931a0f.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/oidc_validation-15034c018747bc12",
+        "sha256": "07145a6eebc5053d348f913c65c9e8c70739e5bd2d1bd35c344694b783087d19",
+        "original_mode": 448,
+        "bytes": 4272992,
+        "retained_object": "bin/elf-objects/07145a6eebc5053d348f913c65c9e8c70739e5bd2d1bd35c344694b783087d19.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/partition-747e88e95cf322cb",
+        "sha256": "80e03ccee190e9ee7c1326b3b3168b6d2ad84652c541ed7e98fb670bf3875387",
+        "original_mode": 448,
+        "bytes": 2373272,
+        "retained_object": "bin/elf-objects/80e03ccee190e9ee7c1326b3b3168b6d2ad84652c541ed7e98fb670bf3875387.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/partitionline_broker-d553c0d403ec4ee5",
+        "sha256": "fa2af1d6423ff031b5977cd7a160243a6bb00a5445c37f51a614dc8afdf15596",
+        "original_mode": 448,
+        "bytes": 22319008,
+        "retained_object": "bin/elf-objects/fa2af1d6423ff031b5977cd7a160243a6bb00a5445c37f51a614dc8afdf15596.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/produce-057c4bfa6059c4c4",
+        "sha256": "b8877b424092930eab15fa081bc3823d8a1bf445c7dfbc337b3489339c8fabe3",
+        "original_mode": 448,
+        "bytes": 14179832,
+        "retained_object": "bin/elf-objects/b8877b424092930eab15fa081bc3823d8a1bf445c7dfbc337b3489339c8fabe3.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/protocol-7277bf9ed8449c0c",
+        "sha256": "4d310573181c988b1261ecbfb81a3ac783393a0881ce731bc209122c30d7ec67",
+        "original_mode": 448,
+        "bytes": 11105896,
+        "retained_object": "bin/elf-objects/4d310573181c988b1261ecbfb81a3ac783393a0881ce731bc209122c30d7ec67.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_election-d7ec6ad543a2cd21",
+        "sha256": "15624ee035df4686ab5bc001b4717066ec1d55f727b362ef95a9cc91bd8cc572",
+        "original_mode": 448,
+        "bytes": 2102704,
+        "retained_object": "bin/elf-objects/15624ee035df4686ab5bc001b4717066ec1d55f727b362ef95a9cc91bd8cc572.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_membership-f13dec248cd337ba",
+        "sha256": "f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121",
+        "original_mode": 448,
+        "bytes": 3758192,
+        "retained_object": "bin/elf-objects/f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_protocol-2eb56817bf467f97",
+        "sha256": "b302d7211e19d6cb89348126d8f2e63631bae5997faeb9c243dc1465e7115d02",
+        "original_mode": 448,
+        "bytes": 12882544,
+        "retained_object": "bin/elf-objects/b302d7211e19d6cb89348126d8f2e63631bae5997faeb9c243dc1465e7115d02.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_replication-f54b01b49a708c2b",
+        "sha256": "36e5959a1eabaa50798232bac3a7042c53f0b466952a3787d265dc30f57b522a",
+        "original_mode": 448,
+        "bytes": 5617280,
+        "retained_object": "bin/elf-objects/36e5959a1eabaa50798232bac3a7042c53f0b466952a3787d265dc30f57b522a.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/raft_snapshot-504fddb62bcd9d30",
+        "sha256": "2bb9dafd342701e197e4553ab2d4477ac4a7d4c54c75c8d305f725531133c572",
+        "original_mode": 448,
+        "bytes": 2150144,
+        "retained_object": "bin/elf-objects/2bb9dafd342701e197e4553ab2d4477ac4a7d4c54c75c8d305f725531133c572.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/records-8024c5e3009ff876",
+        "sha256": "1ca58d7d565758df797649ca54bdcbd982b90255d6f93d7415c63ed09ca03dae",
+        "original_mode": 448,
+        "bytes": 1971728,
+        "retained_object": "bin/elf-objects/1ca58d7d565758df797649ca54bdcbd982b90255d6f93d7415c63ed09ca03dae.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/retention-eb0959a4081096b8",
+        "sha256": "818057cb2eaedfb68a8ee86ca91f32f8ed97f0cfa40254eabaf77ff00b132a45",
+        "original_mode": 448,
+        "bytes": 14084056,
+        "retained_object": "bin/elf-objects/818057cb2eaedfb68a8ee86ca91f32f8ed97f0cfa40254eabaf77ff00b132a45.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl-b79793747d359560",
+        "sha256": "ba57b20fa4bbbbbd38679abde82cf5b2892803e4dd97e3e105a144b57600bec4",
+        "original_mode": 448,
+        "bytes": 3940520,
+        "retained_object": "bin/elf-objects/ba57b20fa4bbbbbd38679abde82cf5b2892803e4dd97e3e105a144b57600bec4.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_credentials-3add33d7750fd844",
+        "sha256": "caabf2d9131bd571b2e6bb5d002c4b49262131d5d64a6dc2729e2b5f795fcefd",
+        "original_mode": 448,
+        "bytes": 4384152,
+        "retained_object": "bin/elf-objects/caabf2d9131bd571b2e6bb5d002c4b49262131d5d64a6dc2729e2b5f795fcefd.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/sasl_sessions-392db3a5bc1508b4",
+        "sha256": "e19c4271d8bd07e2590e401f07598cf8adacd5394458798b140a8df1cdbe7fdf",
+        "original_mode": 448,
+        "bytes": 13263824,
+        "retained_object": "bin/elf-objects/e19c4271d8bd07e2590e401f07598cf8adacd5394458798b140a8df1cdbe7fdf.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/segments-b4b87189b57b3a3d",
+        "sha256": "3a1fb9b118b4714266666319346bfd1c41dcc875ba692e9d42e1ca1819acd28b",
+        "original_mode": 448,
+        "bytes": 2647216,
+        "retained_object": "bin/elf-objects/3a1fb9b118b4714266666319346bfd1c41dcc875ba692e9d42e1ca1819acd28b.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/tls-86e3f538d0b3e839",
+        "sha256": "58566745f7d48c09ac52548661deae696bd2f08e83a57020a9c19bd05c236345",
+        "original_mode": 448,
+        "bytes": 13650880,
+        "retained_object": "bin/elf-objects/58566745f7d48c09ac52548661deae696bd2f08e83a57020a9c19bd05c236345.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/deps/transport-adfafaa7060b0246",
+        "sha256": "8a0b70f4ed5a39a4f5f5023f7bff4bbbb8df4778ed636fff431b985967e30066",
+        "original_mode": 448,
+        "bytes": 18107304,
+        "retained_object": "bin/elf-objects/8a0b70f4ed5a39a4f5f5023f7bff4bbbb8df4778ed636fff431b985967e30066.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      },
+      {
+        "original_path": "/workspace/work/target-broker-segments/debug/examples/oidc_live_probe-69604b3db811d90f",
+        "sha256": "01df9c8d0495777d29e8b9811a088722c529800725e86b2da15b71d3d2b18873",
+        "original_mode": 448,
+        "bytes": 1074920,
+        "retained_object": "bin/elf-objects/01df9c8d0495777d29e8b9811a088722c529800725e86b2da15b71d3d2b18873.gz",
+        "reason": "immediate post-command cache snapshot before any later overwrite",
+        "command": "stable-all-features-all-targets",
+        "pre_clean_bytes_and_gzip_verified": false
+      }
+    ],
+    "source_after": {
+      "file_count": 71885,
+      "all_git_blobs_match": true,
+      "all_baseline_permission_modes_match": true,
+      "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+    },
+    "external_test_tools_after": [
+      {
+        "path": "/usr/bin/openssl",
+        "sha256": "f4aa15f2822f670af7b5c1043d7aa6ebbbc64229fd2fae382edfc6a4524749c1",
+        "full_permission_mode": 493
+      }
+    ],
+    "capture_directory": "stable-all-features"
+  },
+  "actual_command_json_sha256": "4aac9a5931824f23006d6c846191438a9dd0558f5f45e68274bfc6fbbcabe40f",
+  "observed_shared_qa_receipt": {
+    "path": "/workspace/work/broker-merged-qualification-403be1e3/validation.json",
+    "sha256_at_observation": "92751497d5d88cf4ff9191254f666c7d5dc9b6e9cb8fee81b591f744fe6dcae9"
+  },
+  "source_manifest": {
+    "path": "source-integrity.json.gz",
+    "sha256": "e8b9fd5b37c11244d9f756bf0543cc89711193fac539024bad375bc03dc47697",
+    "uncompressed_sha256": "dfdbc0ae74fd45a6fa2f973b9e5c88da935c40dd2360bfa7f362e9377cfe2056",
+    "uncompressed_bytes": 26829477,
+    "original_mode": 384,
+    "restore_path": "source-integrity.json",
+    "compression": "gzip",
+    "decompression_verified": true,
+    "compressed_mode": 384
+  },
+  "source_origin_receipt": {
+    "path": "/workspace/work/integration/broker-merged-source-403be1e3/receipt.json",
+    "sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff"
+  },
+  "retained_membership_harness": {
+    "lane": "stable-all-features-all-targets",
+    "path": "bin/stable-all-features/proof/raft-membership.gz",
+    "compression": "gzip",
+    "sha256": "0271517e6ec1e2b229387b52816f031f3fbf889be58b9cf0eaf1d63ceec2f3b8",
+    "uncompressed_sha256": "f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121",
+    "uncompressed_bytes": 3758192,
+    "original_mode": 448,
+    "decompression_verified": true,
+    "same_object_hardlink": "bin/elf-objects/f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121.gz",
+    "source_commit": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+    "build_command": [
+      "taskset",
+      "-c",
+      "2,4",
+      "cargo",
+      "+stable",
+      "test",
+      "--offline",
+      "--locked",
+      "--manifest-path",
+      "partitionline-broker/Cargo.toml",
+      "--all-features",
+      "--all-targets",
+      "--",
+      "--test-threads=1",
+      "--nocapture"
+    ],
+    "toolchain": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1\n"
+  },
+  "captured_files": [
+    {
+      "path": "equal-view-data-source-forgery/forged-election.wal",
+      "sha256": "b45fe7b9008f49fcabf87979b115d398546042be7a42c45608dedd14296878ca",
+      "bytes": 3011,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-data-source-forgery/metadata.wal",
+      "sha256": "59f802398afc19742f6143fe3a656dea3c6f89dbd61806d1552804b8d59c6014",
+      "bytes": 3872,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-data-source-forgery/mutation.json",
+      "sha256": "69a6854e3feb86d2edcae3b855baac2ce97434503c2082523a0195b22e522f03",
+      "bytes": 1435,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-data-source-forgery/original-election.wal",
+      "sha256": "e98b51e8c705cd23712055837ad93cd00998f82af6b5d10067b7d06c69c61e11",
+      "bytes": 3011,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-source-forgery/forged-election.wal",
+      "sha256": "ac9cc1a6c6a247de8f298f8413bbb4cc08b11117e6d46c7496bcc23903a41707",
+      "bytes": 2647,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-source-forgery/metadata.wal",
+      "sha256": "3e1109965098d39808ec62e1f93713ae5caed6651b17365b9f5030eb644f9082",
+      "bytes": 3015,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-source-forgery/mutation.json",
+      "sha256": "09a4d82bac5790b0491acf926e887aae0ee41f2435e3a2c397aeaf82ba1bfae5",
+      "bytes": 1432,
+      "full_mode": 384
+    },
+    {
+      "path": "equal-view-source-forgery/original-election.wal",
+      "sha256": "b2b120207091139c6f25e9e2f817c7c2c17965c6f31ce4f34d680d2be927ed34",
+      "bytes": 2647,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/checkpoints-progress.jsonl",
+      "sha256": "f4131f7365afce3de5cd6eac7e63fe7a277e03ee1f0a4736beaffab95e21c883",
+      "bytes": 9708,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/clock.txt",
+      "sha256": "49ca5d81054fdd20572294b9350b605d05e0df91da09a46fb8bde7fd6c1c172d",
+      "bytes": 5,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/events-progress.jsonl",
+      "sha256": "f843e9af0b00044bbb996ce9eb42b69c64287b4c7a9651392df6cbc0913e2826",
+      "bytes": 1058307,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/100-committed-leader-removal-4/election.wal",
+      "sha256": "580b49bd42009cb420b16836b7216ed2ac4476a32f0432e3a30b71f414a6cb94",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/100-committed-leader-removal-4/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/100-committed-leader-removal-4/metadata.wal",
+      "sha256": "35dc0a01dfe1c0a4db7f8474b6ba9f3990570195018f6177f4657d74b5caaa20",
+      "bytes": 1924,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/119-new-leader-new-set-1/election.wal",
+      "sha256": "e3c37ad2fd0286a93fe7a8d7f659c5b62499d66e0bd909806626df1d075314a9",
+      "bytes": 3690,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/119-new-leader-new-set-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/119-new-leader-new-set-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/119-new-leader-new-set-1/metadata.wal",
+      "sha256": "eb63113df86d65d695d6686cf3e570dc594d616d3710cbd614adf89192f512ca",
+      "bytes": 5754,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/120-new-leader-new-set-2/election.wal",
+      "sha256": "0218af70b6146f15467b0f2ae95aaa148ccbca06b586968bb492e4e7fef4778f",
+      "bytes": 4320,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/120-new-leader-new-set-2/metadata.wal",
+      "sha256": "6de79562907d73e434fa288ba7d858685bfffe1be3182e936c95db93173b0fcd",
+      "bytes": 4583,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/121-new-leader-new-set-3/election.wal",
+      "sha256": "9fbf52eb7c3bbfcdfde1207fb57eeb7fbd757687bc998f0df91a58b49d556656",
+      "bytes": 3592,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/121-new-leader-new-set-3/metadata.wal",
+      "sha256": "ab2bf0b171402edd92cfd5561e01b29910eba90b7761f5a0716a00bb09ee0c03",
+      "bytes": 3452,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/122-new-leader-new-set-4/election.wal",
+      "sha256": "100b5e95a582cb432757a0b0485642ad7923d1e14a01980507700146cf68b6a6",
+      "bytes": 3326,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/122-new-leader-new-set-4/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/122-new-leader-new-set-4/metadata.wal",
+      "sha256": "d7c7f3b4cd84077e4c1ece582db1e9c319c2a6c47be848dd51c383699f47336f",
+      "bytes": 2853,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/124-final-reopen-1/election.wal",
+      "sha256": "e3c37ad2fd0286a93fe7a8d7f659c5b62499d66e0bd909806626df1d075314a9",
+      "bytes": 3690,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/124-final-reopen-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/124-final-reopen-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/124-final-reopen-1/metadata.wal",
+      "sha256": "eb63113df86d65d695d6686cf3e570dc594d616d3710cbd614adf89192f512ca",
+      "bytes": 5754,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/126-final-reopen-2/election.wal",
+      "sha256": "0218af70b6146f15467b0f2ae95aaa148ccbca06b586968bb492e4e7fef4778f",
+      "bytes": 4320,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/126-final-reopen-2/metadata.wal",
+      "sha256": "6de79562907d73e434fa288ba7d858685bfffe1be3182e936c95db93173b0fcd",
+      "bytes": 4583,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/128-final-reopen-3/election.wal",
+      "sha256": "9fbf52eb7c3bbfcdfde1207fb57eeb7fbd757687bc998f0df91a58b49d556656",
+      "bytes": 3592,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/128-final-reopen-3/metadata.wal",
+      "sha256": "ab2bf0b171402edd92cfd5561e01b29910eba90b7761f5a0716a00bb09ee0c03",
+      "bytes": 3452,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/130-final-reopen-4/election.wal",
+      "sha256": "100b5e95a582cb432757a0b0485642ad7923d1e14a01980507700146cf68b6a6",
+      "bytes": 3326,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/130-final-reopen-4/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/130-final-reopen-4/metadata.wal",
+      "sha256": "d7c7f3b4cd84077e4c1ece582db1e9c319c2a6c47be848dd51c383699f47336f",
+      "bytes": 2853,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/30-before-add-1/election.wal",
+      "sha256": "ea76ae9471b8aa3f54868594315e42c8939f2a1fa779333ab50e5504c821736b",
+      "bytes": 1588,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/30-before-add-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/30-before-add-1/metadata.wal",
+      "sha256": "a85a64cca0748178fd5dba6dc0f9ee9fd04bb03ea24dc4b169841ed6636ef574",
+      "bytes": 2569,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/31-before-add-2/election.wal",
+      "sha256": "5cdfc62bbe290bc08ea71749948667392d87075c3dfddf6fe6d4b3685de365b2",
+      "bytes": 1588,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/31-before-add-2/metadata.wal",
+      "sha256": "edefc1c08e2e65439e10c8068c4c883b7a58480e35f9496141706e6cf3e834b1",
+      "bytes": 1447,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/32-before-add-3/election.wal",
+      "sha256": "c5ede4796f5cee2a90e9a8c1b03be8f2e6cf1bf4d44a45630f89ce74a01eda04",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/32-before-add-3/metadata.wal",
+      "sha256": "1dace1554b59195dad4c64a1488941e481a83f468ab092a774372eba79ae2579",
+      "bytes": 1058,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/33-before-add-4/election.wal",
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/33-before-add-4/metadata.wal",
+      "sha256": "262f8edb7e0d1db6e2baa60e7ac2c670e02df1d753faadfbb0b1504c51791b65",
+      "bytes": 1108,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/39-uncommitted-add-old-majority-1/election.wal",
+      "sha256": "4bf7a92b3d4d16b159a9d3fd5b074db56e0bc8953f54bfa3ded0cb58517c0522",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/39-uncommitted-add-old-majority-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/39-uncommitted-add-old-majority-1/metadata.wal",
+      "sha256": "a813cf43a2f15969a2465ffccd818a0178c121ec31eb6355fcb9856d9a612286",
+      "bytes": 3217,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/40-uncommitted-add-old-majority-2/election.wal",
+      "sha256": "867915e9d1460c893e04a37dd2eaf8d209bf35a606a6b2f5d63545d277781928",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/40-uncommitted-add-old-majority-2/metadata.wal",
+      "sha256": "05c6f327f98bb952a77ad29dbf750e1b1e5e8ee2aead12376552a9b1f89b94a0",
+      "bytes": 2499,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/41-uncommitted-add-old-majority-3/election.wal",
+      "sha256": "c5ede4796f5cee2a90e9a8c1b03be8f2e6cf1bf4d44a45630f89ce74a01eda04",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/41-uncommitted-add-old-majority-3/metadata.wal",
+      "sha256": "1dace1554b59195dad4c64a1488941e481a83f468ab092a774372eba79ae2579",
+      "bytes": 1058,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/42-uncommitted-add-old-majority-4/election.wal",
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/42-uncommitted-add-old-majority-4/metadata.wal",
+      "sha256": "262f8edb7e0d1db6e2baa60e7ac2c670e02df1d753faadfbb0b1504c51791b65",
+      "bytes": 1108,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/46-reopened-pending-add-1/election.wal",
+      "sha256": "4bf7a92b3d4d16b159a9d3fd5b074db56e0bc8953f54bfa3ded0cb58517c0522",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/46-reopened-pending-add-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/46-reopened-pending-add-1/metadata.wal",
+      "sha256": "a813cf43a2f15969a2465ffccd818a0178c121ec31eb6355fcb9856d9a612286",
+      "bytes": 3217,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/48-reopened-pending-add-2/election.wal",
+      "sha256": "867915e9d1460c893e04a37dd2eaf8d209bf35a606a6b2f5d63545d277781928",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/48-reopened-pending-add-2/metadata.wal",
+      "sha256": "05c6f327f98bb952a77ad29dbf750e1b1e5e8ee2aead12376552a9b1f89b94a0",
+      "bytes": 2499,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/50-reopened-pending-add-3/election.wal",
+      "sha256": "c5ede4796f5cee2a90e9a8c1b03be8f2e6cf1bf4d44a45630f89ce74a01eda04",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/50-reopened-pending-add-3/metadata.wal",
+      "sha256": "1dace1554b59195dad4c64a1488941e481a83f468ab092a774372eba79ae2579",
+      "bytes": 1058,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/52-reopened-pending-add-4/election.wal",
+      "sha256": "9a34f5376269c853f30b5a8d1922abec9f40fd60fcfcaeb16a23769e1b620461",
+      "bytes": 1273,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/52-reopened-pending-add-4/metadata.wal",
+      "sha256": "262f8edb7e0d1db6e2baa60e7ac2c670e02df1d753faadfbb0b1504c51791b65",
+      "bytes": 1108,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/80-committed-add-image-1/election.wal",
+      "sha256": "9dec951f0705ae1f23b3f359c57cd54c9d20ba5da75176a67c90bde85501cfb6",
+      "bytes": 3003,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/80-committed-add-image-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/80-committed-add-image-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/80-committed-add-image-1/metadata.wal",
+      "sha256": "a7194fb71560f116cc1cb045aa068f7776c1be02f17f34da4d5d882cddc0ec34",
+      "bytes": 4849,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/81-committed-add-image-2/election.wal",
+      "sha256": "276efcac70aeeeb814a630f15294a77a4612908830d89a664135a3d5e09b22f1",
+      "bytes": 3003,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/81-committed-add-image-2/metadata.wal",
+      "sha256": "f4081ace5d0458e88f6e7f1570d5747c1c0a3e8765209f8e89dc52e75f00eed0",
+      "bytes": 2911,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/82-committed-add-image-3/election.wal",
+      "sha256": "422353cdc0b271241d3cb4247ab588364230787803608961e412714911e80227",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/82-committed-add-image-3/metadata.wal",
+      "sha256": "7e9b46b8bfc6c0786fc3131265f241b47c6f1ef35ba788df41e5b3f80b50f55e",
+      "bytes": 2184,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/83-committed-add-image-4/election.wal",
+      "sha256": "580b49bd42009cb420b16836b7216ed2ac4476a32f0432e3a30b71f414a6cb94",
+      "bytes": 2275,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/83-committed-add-image-4/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/83-committed-add-image-4/metadata.wal",
+      "sha256": "35dc0a01dfe1c0a4db7f8474b6ba9f3990570195018f6177f4657d74b5caaa20",
+      "bytes": 1924,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/97-committed-leader-removal-1/election.wal",
+      "sha256": "e3c37ad2fd0286a93fe7a8d7f659c5b62499d66e0bd909806626df1d075314a9",
+      "bytes": 3690,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/97-committed-leader-removal-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "e853b5023469265dcc4bb2dac0c2cbe6e25198afde77bad766aef203e1d3f865",
+      "bytes": 434,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/97-committed-leader-removal-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "edac20a1bed76214540b296b574016e2da4822c3b7b3f21a1bc1ccc19563bc1e",
+      "bytes": 734,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/97-committed-leader-removal-1/metadata.wal",
+      "sha256": "eb63113df86d65d695d6686cf3e570dc594d616d3710cbd614adf89192f512ca",
+      "bytes": 5754,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/98-committed-leader-removal-2/election.wal",
+      "sha256": "a179e893ded48c5e0510f24e8f30f9bb1c13f88f87d6dca9cad51f51d628749d",
+      "bytes": 3690,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/98-committed-leader-removal-2/metadata.wal",
+      "sha256": "e8558c55de4527d9613926a3481cdc8aed3caf899b37a0bd992c271bee07ed57",
+      "bytes": 3865,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/99-committed-leader-removal-3/election.wal",
+      "sha256": "a9c14eeb990e3fe5d176c4ce25bbf86f83ff98d0d6eb38cbc6a9643cfd93f673",
+      "bytes": 2962,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/journals/99-committed-leader-removal-3/metadata.wal",
+      "sha256": "3b556c9a3ec39a9fb249d3a14641ec32bdb7108b8a746b70625471ba8146d9b2",
+      "bytes": 3089,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/last-states.jsonl",
+      "sha256": "03da84c9bfa41ddb402ff81b9627692b2796a90eab8c91ee2adc2105cf260736",
+      "bytes": 9969,
+      "full_mode": 384
+    },
+    {
+      "path": "history-3/trace.json",
+      "sha256": "159f15e2f5437ce88089afead8d43fc495087ca2e998748d7466828e2558aee4",
+      "bytes": 1070276,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/checkpoints-progress.jsonl",
+      "sha256": "3218740faf631117621587b229da5a12ec90f757186b4df032ead2d26c9515e5",
+      "bytes": 14601,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/clock.txt",
+      "sha256": "49ca5d81054fdd20572294b9350b605d05e0df91da09a46fb8bde7fd6c1c172d",
+      "bytes": 5,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/events-progress.jsonl",
+      "sha256": "2b0c55e8e347786c9ce1623b15a5055be915fd60903e26fa9719bd36f0201113",
+      "bytes": 3007672,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/120-committed-add-image-1/election.wal",
+      "sha256": "ce65931b044487e659bbf64bb3e9aeaf14309387cdf977eb53b8dfc237709de6",
+      "bytes": 3885,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/120-committed-add-image-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/120-committed-add-image-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/120-committed-add-image-1/metadata.wal",
+      "sha256": "cfc3d456c2e5ba1712d52c81b47e0ed427102aff5b672cadf561545e5fbe10df",
+      "bytes": 6147,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/121-committed-add-image-2/election.wal",
+      "sha256": "f3fee5c26538f3ed400af3e5592421a19daaa01fd5782ab2cfc61bd87c2b83a1",
+      "bytes": 3885,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/121-committed-add-image-2/metadata.wal",
+      "sha256": "6896b55fa05af8ea8701ff6329b7b034ac7f5a1a3f25a77a11cf40656902f411",
+      "bytes": 3703,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/122-committed-add-image-3/election.wal",
+      "sha256": "c2d93f94ba65f25e9c92cb572e8ce4c760802d223cd57b09935d100fa33bc72c",
+      "bytes": 3885,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/122-committed-add-image-3/metadata.wal",
+      "sha256": "baafdd822a0bafd4ea7559af30ddb505c02de6ebbbc0eb20f45a54089992b3f5",
+      "bytes": 3703,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/123-committed-add-image-4/election.wal",
+      "sha256": "2f19611d4ba6c6ab6a07a427d6b4a4387c3f8bcaebe936cc5fcb4e4a30882477",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/123-committed-add-image-4/metadata.wal",
+      "sha256": "5a2d61e7feab89b491c06a760dbd6fdce33c0676e54997244a0ee99adf92d05b",
+      "bytes": 2780,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/124-committed-add-image-5/election.wal",
+      "sha256": "b23e54eb8940d946c60fc860cd88f2911d9a3a63a96b9c0b84a0007997ba2503",
+      "bytes": 2078,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/124-committed-add-image-5/metadata.wal",
+      "sha256": "6d5f5c6151017e097f185d500517da82f71bcdf4b31be45966b1891afbc7203a",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/125-committed-add-image-6/election.wal",
+      "sha256": "ace1a69d0e97c5ef6b65ad092e2f9ecb3dad88fdb3e42e8c1331550a88773881",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/125-committed-add-image-6/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/125-committed-add-image-6/metadata.wal",
+      "sha256": "b9fe5b5297e03f36fb2662d718daf60cdb305c8039b383c8289fb1531673e319",
+      "bytes": 2430,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/142-committed-leader-removal-1/election.wal",
+      "sha256": "35c08952ecac9f55bda2c3fc79934be38cfa309ab0201f2800b578ca989ab7e4",
+      "bytes": 4768,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/142-committed-leader-removal-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/142-committed-leader-removal-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/142-committed-leader-removal-1/metadata.wal",
+      "sha256": "70d70c665254e917dcd9f8081132267eaa5dad6e8b352e2d0ac2597a47ead178",
+      "bytes": 7346,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/143-committed-leader-removal-2/election.wal",
+      "sha256": "b5a41ed4627b3d8dc4f45c665184c141974f9f6cd346a5b03809efff370d2e10",
+      "bytes": 4768,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/143-committed-leader-removal-2/metadata.wal",
+      "sha256": "ece3af20ac25cd684efce53d6e27f2694089c0737e8a83171dd851416bca92e1",
+      "bytes": 4951,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/144-committed-leader-removal-3/election.wal",
+      "sha256": "99994d5070d5d0963db1609d843223bc998fc783af3ca56f511242712e74512f",
+      "bytes": 4768,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/144-committed-leader-removal-3/metadata.wal",
+      "sha256": "8f7869a83f03e8f14bcef0c89d910e9f5b7119c85f6319e77c22f0b364da38c0",
+      "bytes": 4902,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/145-committed-leader-removal-4/election.wal",
+      "sha256": "802a8d9b5b7f27c95629b9294a481c696e6fd22c8e644b0568b8fb1ecd2a9a92",
+      "bytes": 3844,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/145-committed-leader-removal-4/metadata.wal",
+      "sha256": "229d95eaf432a3dcfdee59e6c656e742132f4e2c7be0874ad93c52984a4c4c47",
+      "bytes": 3979,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/146-committed-leader-removal-5/election.wal",
+      "sha256": "b23e54eb8940d946c60fc860cd88f2911d9a3a63a96b9c0b84a0007997ba2503",
+      "bytes": 2078,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/146-committed-leader-removal-5/metadata.wal",
+      "sha256": "6d5f5c6151017e097f185d500517da82f71bcdf4b31be45966b1891afbc7203a",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/147-committed-leader-removal-6/election.wal",
+      "sha256": "ace1a69d0e97c5ef6b65ad092e2f9ecb3dad88fdb3e42e8c1331550a88773881",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/147-committed-leader-removal-6/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/147-committed-leader-removal-6/metadata.wal",
+      "sha256": "b9fe5b5297e03f36fb2662d718daf60cdb305c8039b383c8289fb1531673e319",
+      "bytes": 2430,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/182-new-leader-new-set-1/election.wal",
+      "sha256": "35c08952ecac9f55bda2c3fc79934be38cfa309ab0201f2800b578ca989ab7e4",
+      "bytes": 4768,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/182-new-leader-new-set-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/182-new-leader-new-set-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/182-new-leader-new-set-1/metadata.wal",
+      "sha256": "70d70c665254e917dcd9f8081132267eaa5dad6e8b352e2d0ac2597a47ead178",
+      "bytes": 7346,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/183-new-leader-new-set-2/election.wal",
+      "sha256": "e15d2c85326e558798a8c328f6ec1e4d284a660cd2bf0caa447d871fed402dca",
+      "bytes": 5594,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/183-new-leader-new-set-2/metadata.wal",
+      "sha256": "ca5ae05886e9928f9935f7cd1ef3b825baa0dd3d8461759d75949bbbfcfd7135",
+      "bytes": 5865,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/184-new-leader-new-set-3/election.wal",
+      "sha256": "d575c717775bd6c0dd6f950ef6a48b1c455e736c6f09bbcfdb1e7e9b754ab6be",
+      "bytes": 5594,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/184-new-leader-new-set-3/metadata.wal",
+      "sha256": "1f6d0bb10a9f78ff2f071c17024de5c97e51a3e88a6bc7939573a585e53e737a",
+      "bytes": 5363,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/185-new-leader-new-set-4/election.wal",
+      "sha256": "21724cf195ef435a8440ffd052ed56062565c3a15e6382c0a8d6f6c685f10eab",
+      "bytes": 4670,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/185-new-leader-new-set-4/metadata.wal",
+      "sha256": "3ef4eacc33f336ffdb61e5deb46b04362a7f6ffe82f2009ba30a086899ad4d29",
+      "bytes": 4440,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/186-new-leader-new-set-5/election.wal",
+      "sha256": "9d82260e75cecfe07750dafa8745c79238e61bfb6a5071ecdd7f427a32403ea8",
+      "bytes": 3325,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/186-new-leader-new-set-5/metadata.wal",
+      "sha256": "041a504881916dec3f3ef36de193d359980c191a1c1b8287557a0c5907421511",
+      "bytes": 3015,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/187-new-leader-new-set-6/election.wal",
+      "sha256": "d4a05621f3996056c0fe465339ca8e23431b27a0e70f1735fd1d08ebac026c5c",
+      "bytes": 4306,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/187-new-leader-new-set-6/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/187-new-leader-new-set-6/metadata.wal",
+      "sha256": "dc12bdd1a1716842f9bf901b44d76206d1e13b720af34ea7b99ef9dee7996bf3",
+      "bytes": 3653,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/189-final-reopen-1/election.wal",
+      "sha256": "35c08952ecac9f55bda2c3fc79934be38cfa309ab0201f2800b578ca989ab7e4",
+      "bytes": 4768,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/189-final-reopen-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/189-final-reopen-1/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/189-final-reopen-1/metadata.wal",
+      "sha256": "70d70c665254e917dcd9f8081132267eaa5dad6e8b352e2d0ac2597a47ead178",
+      "bytes": 7346,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/191-final-reopen-2/election.wal",
+      "sha256": "e15d2c85326e558798a8c328f6ec1e4d284a660cd2bf0caa447d871fed402dca",
+      "bytes": 5594,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/191-final-reopen-2/metadata.wal",
+      "sha256": "ca5ae05886e9928f9935f7cd1ef3b825baa0dd3d8461759d75949bbbfcfd7135",
+      "bytes": 5865,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/193-final-reopen-3/election.wal",
+      "sha256": "d575c717775bd6c0dd6f950ef6a48b1c455e736c6f09bbcfdb1e7e9b754ab6be",
+      "bytes": 5594,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/193-final-reopen-3/metadata.wal",
+      "sha256": "1f6d0bb10a9f78ff2f071c17024de5c97e51a3e88a6bc7939573a585e53e737a",
+      "bytes": 5363,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/195-final-reopen-4/election.wal",
+      "sha256": "21724cf195ef435a8440ffd052ed56062565c3a15e6382c0a8d6f6c685f10eab",
+      "bytes": 4670,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/195-final-reopen-4/metadata.wal",
+      "sha256": "3ef4eacc33f336ffdb61e5deb46b04362a7f6ffe82f2009ba30a086899ad4d29",
+      "bytes": 4440,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/197-final-reopen-5/election.wal",
+      "sha256": "9d82260e75cecfe07750dafa8745c79238e61bfb6a5071ecdd7f427a32403ea8",
+      "bytes": 3325,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/197-final-reopen-5/metadata.wal",
+      "sha256": "041a504881916dec3f3ef36de193d359980c191a1c1b8287557a0c5907421511",
+      "bytes": 3015,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/199-final-reopen-6/election.wal",
+      "sha256": "d4a05621f3996056c0fe465339ca8e23431b27a0e70f1735fd1d08ebac026c5c",
+      "bytes": 4306,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/199-final-reopen-6/images/snapshot-02020202020202020202020202020202.image",
+      "sha256": "da7389910b13f8415001ec78ca8687e8369a3d04b5f71529e5fbac4e1300971f",
+      "bytes": 938,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/199-final-reopen-6/metadata.wal",
+      "sha256": "dc12bdd1a1716842f9bf901b44d76206d1e13b720af34ea7b99ef9dee7996bf3",
+      "bytes": 3653,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/49-before-add-1/election.wal",
+      "sha256": "187aba691faf48d1159bfb401a920be99d2eccff65b22e2b12e3562959f7101e",
+      "bytes": 2078,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/49-before-add-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/49-before-add-1/metadata.wal",
+      "sha256": "0d66cecda4e2be32e6a78ff19bc1ae76dccb779a46ca34136b8fccea45c939af",
+      "bytes": 3271,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/50-before-add-2/election.wal",
+      "sha256": "faf0c8d1f80e59712d17b101cade99bfe8b0ca8625271d0642bdddfd1c09017a",
+      "bytes": 2078,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/50-before-add-2/metadata.wal",
+      "sha256": "9589b9453dab6e4db05af49cc816bd05930c04f9543b0454ac62077e3cfbecda",
+      "bytes": 1847,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/51-before-add-3/election.wal",
+      "sha256": "17cbde52a7342687c13129edf27711660b0fb79ae2d491222feb3e36d23428aa",
+      "bytes": 2078,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/51-before-add-3/metadata.wal",
+      "sha256": "1fb064a7940ee69756f233c38e0aae92af11b697c8814d7a96c6d1a3836eeb0f",
+      "bytes": 1847,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/52-before-add-4/election.wal",
+      "sha256": "90049ff2f000cc8c8c947d6117198183fb15faadddfc4279416f76210567c17a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/52-before-add-4/metadata.wal",
+      "sha256": "64e0da28157ad89e46c0cacfa9f7e9ffbe5c714a9ab9c07b866ddf8e74158091",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/53-before-add-5/election.wal",
+      "sha256": "1357037e5998ddcc79c28beae780b77ab6ea180d7f3b87d1beabbefe0f79a35a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/53-before-add-5/metadata.wal",
+      "sha256": "6d5f5c6151017e097f185d500517da82f71bcdf4b31be45966b1891afbc7203a",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/54-before-add-6/election.wal",
+      "sha256": "34cebfd06e31ba6d09ca1cc5c08928ee796abc014c593a401e98f444bbd8dbde",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/54-before-add-6/metadata.wal",
+      "sha256": "4f41c988fc1f7224392c1cb175f2749a5a5f961c15fb7eaad507aede32032216",
+      "bytes": 1410,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/63-uncommitted-add-old-majority-1/election.wal",
+      "sha256": "c4eec011653fbe4549f005ba9d40b78da182b3f9c476444e5993b47a76decf32",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/63-uncommitted-add-old-majority-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/63-uncommitted-add-old-majority-1/metadata.wal",
+      "sha256": "fcfe0e8fcbd42eaeb41d6360ff5c1a3c60b82aa0b691bb645881e2b7eaecc540",
+      "bytes": 4115,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/64-uncommitted-add-old-majority-2/election.wal",
+      "sha256": "0afa31bde6a32e3aa8aaab44fc0c382338103a0eed61239b3dbc7137f819f322",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/64-uncommitted-add-old-majority-2/metadata.wal",
+      "sha256": "4ac7cf34a7d4437bfe36c67d958e77fd55ece2554642d06e833037c3b0ccb945",
+      "bytes": 3193,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/65-uncommitted-add-old-majority-3/election.wal",
+      "sha256": "2bc4a62bff5fe8cb2dc795bff416d89342da5cb011b941bd87e16f9dc2353d62",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/65-uncommitted-add-old-majority-3/metadata.wal",
+      "sha256": "a1f8945ae79562016a790056457ec14c3d935dd9692676cb5626d91fe990945a",
+      "bytes": 3193,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/66-uncommitted-add-old-majority-4/election.wal",
+      "sha256": "90049ff2f000cc8c8c947d6117198183fb15faadddfc4279416f76210567c17a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/66-uncommitted-add-old-majority-4/metadata.wal",
+      "sha256": "64e0da28157ad89e46c0cacfa9f7e9ffbe5c714a9ab9c07b866ddf8e74158091",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/67-uncommitted-add-old-majority-5/election.wal",
+      "sha256": "1357037e5998ddcc79c28beae780b77ab6ea180d7f3b87d1beabbefe0f79a35a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/67-uncommitted-add-old-majority-5/metadata.wal",
+      "sha256": "6d5f5c6151017e097f185d500517da82f71bcdf4b31be45966b1891afbc7203a",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/68-uncommitted-add-old-majority-6/election.wal",
+      "sha256": "34cebfd06e31ba6d09ca1cc5c08928ee796abc014c593a401e98f444bbd8dbde",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/68-uncommitted-add-old-majority-6/metadata.wal",
+      "sha256": "4f41c988fc1f7224392c1cb175f2749a5a5f961c15fb7eaad507aede32032216",
+      "bytes": 1410,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/72-reopened-pending-add-1/election.wal",
+      "sha256": "c4eec011653fbe4549f005ba9d40b78da182b3f9c476444e5993b47a76decf32",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/72-reopened-pending-add-1/images/snapshot-01010101010101010101010101010101.image",
+      "sha256": "8e7e2a6fa6fbed1ed8c1949deafb4245f7b372253f6d0f7fc60781a6de1e99bf",
+      "bytes": 540,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/72-reopened-pending-add-1/metadata.wal",
+      "sha256": "fcfe0e8fcbd42eaeb41d6360ff5c1a3c60b82aa0b691bb645881e2b7eaecc540",
+      "bytes": 4115,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/74-reopened-pending-add-2/election.wal",
+      "sha256": "0afa31bde6a32e3aa8aaab44fc0c382338103a0eed61239b3dbc7137f819f322",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/74-reopened-pending-add-2/metadata.wal",
+      "sha256": "4ac7cf34a7d4437bfe36c67d958e77fd55ece2554642d06e833037c3b0ccb945",
+      "bytes": 3193,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/76-reopened-pending-add-3/election.wal",
+      "sha256": "2bc4a62bff5fe8cb2dc795bff416d89342da5cb011b941bd87e16f9dc2353d62",
+      "bytes": 2961,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/76-reopened-pending-add-3/metadata.wal",
+      "sha256": "a1f8945ae79562016a790056457ec14c3d935dd9692676cb5626d91fe990945a",
+      "bytes": 3193,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/78-reopened-pending-add-4/election.wal",
+      "sha256": "90049ff2f000cc8c8c947d6117198183fb15faadddfc4279416f76210567c17a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/78-reopened-pending-add-4/metadata.wal",
+      "sha256": "64e0da28157ad89e46c0cacfa9f7e9ffbe5c714a9ab9c07b866ddf8e74158091",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/80-reopened-pending-add-5/election.wal",
+      "sha256": "1357037e5998ddcc79c28beae780b77ab6ea180d7f3b87d1beabbefe0f79a35a",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/80-reopened-pending-add-5/metadata.wal",
+      "sha256": "6d5f5c6151017e097f185d500517da82f71bcdf4b31be45966b1891afbc7203a",
+      "bytes": 1360,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/82-reopened-pending-add-6/election.wal",
+      "sha256": "34cebfd06e31ba6d09ca1cc5c08928ee796abc014c593a401e98f444bbd8dbde",
+      "bytes": 1665,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/journals/82-reopened-pending-add-6/metadata.wal",
+      "sha256": "4f41c988fc1f7224392c1cb175f2749a5a5f961c15fb7eaad507aede32032216",
+      "bytes": 1410,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/last-states.jsonl",
+      "sha256": "a2d3cc13c0dc156a1e5b07c17c4556f3e70d2840c440b981e0bf69e9b335e8a6",
+      "bytes": 19647,
+      "full_mode": 384
+    },
+    {
+      "path": "history-5/trace.json",
+      "sha256": "a53ad66625cd03ee85e530ba6aee4f1642c86d219f31ac19d193992e7230e968",
+      "bytes": 3025449,
+      "full_mode": 384
+    }
+  ],
+  "closed_file_count": 188,
+  "capture_file_hashes_before_after_match": true,
+  "completed_command_process_group": 1148086,
+  "completed_command_process_group_owners": []
+}

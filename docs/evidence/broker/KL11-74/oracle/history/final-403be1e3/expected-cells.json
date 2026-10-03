@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "cells": [
+    "stable-default",
+    "stable-tls",
+    "stable-sasl",
+    "stable-sasl+tls",
+    "stable-oidc",
+    "stable-all-features",
+    "1.85.0-default",
+    "1.85.0-tls",
+    "1.85.0-sasl",
+    "1.85.0-sasl+tls",
+    "1.85.0-oidc",
+    "1.85.0-all-features"
+  ],
+  "origin": "Coordinator ROOT GO for corrected immutable source; each cell runs only after authentic closed runtime completion manifest."
+}

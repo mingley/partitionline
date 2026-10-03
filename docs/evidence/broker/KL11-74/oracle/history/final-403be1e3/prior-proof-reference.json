@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "historical_source_sha": "6e498e3054180449520767ac040270bb1ba0e61b",
+  "historical_checker_receipt": {
+    "path": "/workspace/work/membership-strict-6e498e30/cells/stable-default/attempt-1/cell-result.json",
+    "sha256": "1ab42e19c018dad30c1dde4cd04f2a37e5926573b9f91bc48bce4106501aa4d6"
+  },
+  "historical_status": {
+    "path": "/workspace/work/membership-strict-6e498e30/interruption-status.json",
+    "sha256": "69a7d1976037ca7b91054d7b58328f7fb5dfab36fc7e428672dfd8e20484d15a"
+  },
+  "disposition": "Preserved valid first-cell actual captured-history proof, while earlier complete broker matrix stopped at unrelated test-module-ordering Clippy; not relabeled to403 or finalqualification"
+}

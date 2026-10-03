@@ -1,0 +1,1641 @@
+{
+  "schema_version": 1,
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "expected_cell_spec_sha256": "731cc9ba3862f226a4b4701b496fee56e47dec6ead894762841859b4b6b28eac",
+  "passed": true,
+  "cells": [
+    {
+      "cell": "stable-default",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-default/attempt-1/cell-result.json",
+          "sha256": "1188d411311e4ad97ff81816d4d5f6de9cc11ee3bf4a7fa377421b2b8cf8d43e",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-default",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-default/membership",
+            "completion_receipt_sha256": "bb30a7a7db9c9c8d0d79865582c7fa232c211c73d9a7850cf0274d46f2ad57ec",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "bb30a7a7db9c9c8d0d79865582c7fa232c211c73d9a7850cf0274d46f2ad57ec",
+              "actual_command_json_sha256": "e0e9e94802d152baf2760c5a0c65a9c9b5311a0ad494597fc69610d5b2423220",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "135059fa6b30ce9c641be5c47dba5a685a6d4fe8d7323226b9b770207fc62ae5",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "bb30a7a7db9c9c8d0d79865582c7fa232c211c73d9a7850cf0274d46f2ad57ec",
+              "actual_command_json_sha256": "e0e9e94802d152baf2760c5a0c65a9c9b5311a0ad494597fc69610d5b2423220",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "135059fa6b30ce9c641be5c47dba5a685a6d4fe8d7323226b9b770207fc62ae5",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-default/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-default/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:02:04.572119+00:00",
+                "ended_utc": "2026-10-03T12:02:04.717332+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-default/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-default/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:02:04.719045+00:00",
+                "ended_utc": "2026-10-03T12:02:04.970488+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "stable-tls",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-tls/attempt-1/cell-result.json",
+          "sha256": "c6558925ccc6bad62752b433539a42abff5795d330ca9e5ba09250451bae94ca",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-tls",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-tls/membership",
+            "completion_receipt_sha256": "5dcc12bd00a90b1945a75c9396a970be285f7bfe80c4a56531627d176c313648",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "5dcc12bd00a90b1945a75c9396a970be285f7bfe80c4a56531627d176c313648",
+              "actual_command_json_sha256": "9a2a259b480986906fd81ecf2a59dcba6cc70abc5bf15c071e4479a200491a2a",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "a2eb06b9766fb39ba93e6fc2fb4a9be080496859e8ffc4c6eda0c3e6cfa2ba56",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "5dcc12bd00a90b1945a75c9396a970be285f7bfe80c4a56531627d176c313648",
+              "actual_command_json_sha256": "9a2a259b480986906fd81ecf2a59dcba6cc70abc5bf15c071e4479a200491a2a",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "a2eb06b9766fb39ba93e6fc2fb4a9be080496859e8ffc4c6eda0c3e6cfa2ba56",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-tls/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-tls/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:04:25.996205+00:00",
+                "ended_utc": "2026-10-03T12:04:26.199058+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-tls/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-tls/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:04:26.199596+00:00",
+                "ended_utc": "2026-10-03T12:04:26.508091+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "stable-sasl",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-sasl/attempt-1/cell-result.json",
+          "sha256": "83eff7589763842b1003de89634964c6447675f8ec9dbf2605130d05a9d368fd",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-sasl",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl/membership",
+            "completion_receipt_sha256": "d4dad62ae2ebff8aceaefd64eb7aca964417f6193c31905f2a2466a9b446b6f8",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "d4dad62ae2ebff8aceaefd64eb7aca964417f6193c31905f2a2466a9b446b6f8",
+              "actual_command_json_sha256": "6e4689edd91e265f71f99c5a505200097ac1b7af564945acb6947651f576a7b0",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "1b7604c2da3239e05763b0cd8a48e5744be2aca2bbd258bcd6c8a4de3b704205",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "d4dad62ae2ebff8aceaefd64eb7aca964417f6193c31905f2a2466a9b446b6f8",
+              "actual_command_json_sha256": "6e4689edd91e265f71f99c5a505200097ac1b7af564945acb6947651f576a7b0",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "1b7604c2da3239e05763b0cd8a48e5744be2aca2bbd258bcd6c8a4de3b704205",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-sasl/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:07:01.106455+00:00",
+                "ended_utc": "2026-10-03T12:07:01.270508+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-sasl/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:07:01.270919+00:00",
+                "ended_utc": "2026-10-03T12:07:01.512128+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "stable-sasl+tls",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-sasl+tls/attempt-1/cell-result.json",
+          "sha256": "a5ecde692f186db9b5ea4d7dec1558e3dddc52b75e40c3255aa2ed9c18931b7b",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-sasl+tls",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl+tls/membership",
+            "completion_receipt_sha256": "d961b5a44f57e58e7f14d23aad194d231ca5ffe446cb2dfc06d59706933af98a",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "d961b5a44f57e58e7f14d23aad194d231ca5ffe446cb2dfc06d59706933af98a",
+              "actual_command_json_sha256": "7237f8d61aa76e75218bb0a805269194c5466a0ce1c82cf88faa1297295a0d10",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "476322f8ad9f26570803549ff0c103daa882c08f017deec68a9d7b6adcad1f98",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "d961b5a44f57e58e7f14d23aad194d231ca5ffe446cb2dfc06d59706933af98a",
+              "actual_command_json_sha256": "7237f8d61aa76e75218bb0a805269194c5466a0ce1c82cf88faa1297295a0d10",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "476322f8ad9f26570803549ff0c103daa882c08f017deec68a9d7b6adcad1f98",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl+tls/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-sasl+tls/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:09:15.590714+00:00",
+                "ended_utc": "2026-10-03T12:09:15.735312+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-sasl+tls/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-sasl+tls/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:09:15.735686+00:00",
+                "ended_utc": "2026-10-03T12:09:15.971538+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "stable-oidc",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-oidc/attempt-1/cell-result.json",
+          "sha256": "78d3bb7f062ae7dfea2f0c7782bbcf7989891f8f42213e5d3b6ca44d28755a4a",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-oidc",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-oidc/membership",
+            "completion_receipt_sha256": "17db2604a9b566b6f89d25aa28794f0ed37a0cd94288c1b9694a7edec96e2f7e",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "17db2604a9b566b6f89d25aa28794f0ed37a0cd94288c1b9694a7edec96e2f7e",
+              "actual_command_json_sha256": "ea27e5f3e233649d1f9bbe8562bcdab6a4002c8fc9b6d44c5dc7c927547f4e8a",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "8fcae91cc8f1033fa79f466222c0730a4daecee7d183bca60a6a714a714e07c7",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "17db2604a9b566b6f89d25aa28794f0ed37a0cd94288c1b9694a7edec96e2f7e",
+              "actual_command_json_sha256": "ea27e5f3e233649d1f9bbe8562bcdab6a4002c8fc9b6d44c5dc7c927547f4e8a",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "8fcae91cc8f1033fa79f466222c0730a4daecee7d183bca60a6a714a714e07c7",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-oidc/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-oidc/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:12:56.961465+00:00",
+                "ended_utc": "2026-10-03T12:12:57.144576+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-oidc/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-oidc/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:12:57.145035+00:00",
+                "ended_utc": "2026-10-03T12:12:57.434800+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "stable-all-features",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/stable-all-features/attempt-1/cell-result.json",
+          "sha256": "7ddcde20ee8f08a40e6d175fca73be1e5aab3ca7956c48aeba02f5300454672f",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "stable-all-features",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/membership",
+            "completion_receipt_sha256": "35df0c1efb78cef280fd8dfe3f3682aea7e1696afafb63aadcc04b692f0857b0",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "35df0c1efb78cef280fd8dfe3f3682aea7e1696afafb63aadcc04b692f0857b0",
+              "actual_command_json_sha256": "4aac9a5931824f23006d6c846191438a9dd0558f5f45e68274bfc6fbbcabe40f",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "35df0c1efb78cef280fd8dfe3f3682aea7e1696afafb63aadcc04b692f0857b0",
+              "actual_command_json_sha256": "4aac9a5931824f23006d6c846191438a9dd0558f5f45e68274bfc6fbbcabe40f",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "f741e5094b68b5c4f84cdb649b11d789ecd0c8236a330dde52f10ced589d1121",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-all-features/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:16:03.825713+00:00",
+                "ended_utc": "2026-10-03T12:16:03.964291+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/stable-all-features/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/stable-all-features/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:16:03.964664+00:00",
+                "ended_utc": "2026-10-03T12:16:04.203275+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-default",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-default/attempt-1/cell-result.json",
+          "sha256": "1aa4be07a911f497959c30ba19e45885a8c5afb76128a3034ddf15cef88303b9",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-default",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-default/membership",
+            "completion_receipt_sha256": "58844ba3204f4e5491d0d910aae61647e55f9612c1949975d9dcd7da2bfc7c16",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "58844ba3204f4e5491d0d910aae61647e55f9612c1949975d9dcd7da2bfc7c16",
+              "actual_command_json_sha256": "24daa53c6a1c4d76ac747967384d4b89e7099c84ab2b9943f4cc24fd0ca221d2",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "5e9e89e2186f28a316de163185092f9f108ec5164b5c2fb8c40e6225734581e4",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "58844ba3204f4e5491d0d910aae61647e55f9612c1949975d9dcd7da2bfc7c16",
+              "actual_command_json_sha256": "24daa53c6a1c4d76ac747967384d4b89e7099c84ab2b9943f4cc24fd0ca221d2",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "5e9e89e2186f28a316de163185092f9f108ec5164b5c2fb8c40e6225734581e4",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-default/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-default/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:22:53.874181+00:00",
+                "ended_utc": "2026-10-03T12:22:54.015548+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-default/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-default/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:22:54.015916+00:00",
+                "ended_utc": "2026-10-03T12:22:54.258858+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-tls",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-tls/attempt-1/cell-result.json",
+          "sha256": "d005312b28a3ecd26721664a504671f4c183358b1c0e18d3f908df8dc06d7a5e",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-tls",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-tls/membership",
+            "completion_receipt_sha256": "c546a12c26cc15bca725531faf378a58db709044e6a2b4ad378b169fd32f72f0",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "c546a12c26cc15bca725531faf378a58db709044e6a2b4ad378b169fd32f72f0",
+              "actual_command_json_sha256": "f4c1eb311aff613dc8110527710115e1352d8f481c1ae3e3b73610914f83b77b",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "999442beec51b7ef62e32a85c4ce890be5b14b36c57d4d7c7a5e4cb9eed55785",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "c546a12c26cc15bca725531faf378a58db709044e6a2b4ad378b169fd32f72f0",
+              "actual_command_json_sha256": "f4c1eb311aff613dc8110527710115e1352d8f481c1ae3e3b73610914f83b77b",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "999442beec51b7ef62e32a85c4ce890be5b14b36c57d4d7c7a5e4cb9eed55785",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-tls/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-tls/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:22:53.884323+00:00",
+                "ended_utc": "2026-10-03T12:22:54.160867+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-tls/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-tls/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:22:54.161421+00:00",
+                "ended_utc": "2026-10-03T12:22:54.481634+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-sasl",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl/attempt-1/cell-result.json",
+          "sha256": "7dacdecd75bf01aae7581a54f1fd3eded9251e27b34688f5a49231835ac06e25",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-sasl",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl/membership",
+            "completion_receipt_sha256": "1a8728d700fc223990251e29327aac80895acf100fc2a94283e9de3fcfc4cfae",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "1a8728d700fc223990251e29327aac80895acf100fc2a94283e9de3fcfc4cfae",
+              "actual_command_json_sha256": "d7b2f0a7c99c00d675e98682438bf802bab3a77da453566584a14ee3246e5c8d",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "f091d431c23eec7208a861356cb7c32a252c4651d1776d14c48073f93276f7bd",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "1a8728d700fc223990251e29327aac80895acf100fc2a94283e9de3fcfc4cfae",
+              "actual_command_json_sha256": "d7b2f0a7c99c00d675e98682438bf802bab3a77da453566584a14ee3246e5c8d",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "f091d431c23eec7208a861356cb7c32a252c4651d1776d14c48073f93276f7bd",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:23:53.994206+00:00",
+                "ended_utc": "2026-10-03T12:23:54.136067+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:23:54.136444+00:00",
+                "ended_utc": "2026-10-03T12:23:54.369370+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-sasl+tls",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl+tls/attempt-1/cell-result.json",
+          "sha256": "c4ff7f2b637887078d905b67fd29d9db32c700fbd5e2602b0beb647d207ce99e",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-sasl+tls",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl+tls/membership",
+            "completion_receipt_sha256": "ff6bc65dba44ae109e13dff2535628e7df6c592a7acdfd05d4fb9480ab655daf",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "ff6bc65dba44ae109e13dff2535628e7df6c592a7acdfd05d4fb9480ab655daf",
+              "actual_command_json_sha256": "db4a58ff5e8bdc39587cb65f8daa25b6f9ca3ae1e88b9fbdd43a4a1b43dfd7ba",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "4a0b24b3003139691cfaf9d753c88b843009cdd18186e8c04b0cccc6b5035252",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "ff6bc65dba44ae109e13dff2535628e7df6c592a7acdfd05d4fb9480ab655daf",
+              "actual_command_json_sha256": "db4a58ff5e8bdc39587cb65f8daa25b6f9ca3ae1e88b9fbdd43a4a1b43dfd7ba",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "4a0b24b3003139691cfaf9d753c88b843009cdd18186e8c04b0cccc6b5035252",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl+tls/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl+tls/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:25:55.335335+00:00",
+                "ended_utc": "2026-10-03T12:25:55.472949+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-sasl+tls/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-sasl+tls/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:25:55.473474+00:00",
+                "ended_utc": "2026-10-03T12:25:55.718065+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-oidc",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-oidc/attempt-1/cell-result.json",
+          "sha256": "2877d01c37c685b8d7ce1aa48aa3ab2f75661d12deff0cfae13d9959eeb2d0ec",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-oidc",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-oidc/membership",
+            "completion_receipt_sha256": "50f8afdaedb7205adad2d5cd8f97bbc39543cf68809fa3bd4bafe01553b22644",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "50f8afdaedb7205adad2d5cd8f97bbc39543cf68809fa3bd4bafe01553b22644",
+              "actual_command_json_sha256": "6b3523603423d25d6489dc804a0fb35f6a7388bd2b79f6b422aaa762c2eea237",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "c8c79fd4c50eb3e56bce0ac5611e056f0afdda446793763eed8b510ceeb4c54f",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "50f8afdaedb7205adad2d5cd8f97bbc39543cf68809fa3bd4bafe01553b22644",
+              "actual_command_json_sha256": "6b3523603423d25d6489dc804a0fb35f6a7388bd2b79f6b422aaa762c2eea237",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "c8c79fd4c50eb3e56bce0ac5611e056f0afdda446793763eed8b510ceeb4c54f",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-oidc/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-oidc/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:32:35.337450+00:00",
+                "ended_utc": "2026-10-03T12:32:35.507846+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-oidc/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-oidc/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:32:35.508298+00:00",
+                "ended_utc": "2026-10-03T12:32:35.782996+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "status": "passed",
+      "attempts": [
+        {
+          "path": "/workspace/work/membership-strict-403be1e3/cells/1.85.0-all-features/attempt-1/cell-result.json",
+          "sha256": "5364ee28eb15f51973a5c82fb9fe352741da2b75e404f747d9053f8ce51132b9",
+          "result": {
+            "schema_version": 1,
+            "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+            "cell": "1.85.0-all-features",
+            "attempt": "attempt-1",
+            "capture_root": "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-all-features/membership",
+            "completion_receipt_sha256": "3ca64b74ec2097cd25ea40fb977c2f16e6c64cca7d4b3fe53281f14b0d841a21",
+            "captures_bytes_and_full_modes_unchanged": true,
+            "frozen_sources_unchanged": true,
+            "completion_before": {
+              "completion_sha256": "3ca64b74ec2097cd25ea40fb977c2f16e6c64cca7d4b3fe53281f14b0d841a21",
+              "actual_command_json_sha256": "663144b7249e10e5ac8b3752fadfb7d88ad016eff45dbfe25259d73c497f87d0",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "d546c33a32667bb4d931b376bfa720e70bf1ba5ea7ceed738b777eb18f75e52c",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "completion_after": {
+              "completion_sha256": "3ca64b74ec2097cd25ea40fb977c2f16e6c64cca7d4b3fe53281f14b0d841a21",
+              "actual_command_json_sha256": "663144b7249e10e5ac8b3752fadfb7d88ad016eff45dbfe25259d73c497f87d0",
+              "whole_source_guard": {
+                "file_count": 71885,
+                "all_git_blobs_match": true,
+                "all_baseline_permission_modes_match": true,
+                "set_and_blob_sha256": "4a4e7642d0bef31a1873bab79a23a9864b5bf1d817ebd2b8db340bfcadd1f5e3"
+              },
+              "captured_files": 188,
+              "retained_harness_sha256": "d546c33a32667bb4d931b376bfa720e70bf1ba5ea7ceed738b777eb18f75e52c",
+              "exact_command_source_environment_capture_modes_and_harness_verified": true
+            },
+            "commands": [
+              {
+                "voters": 3,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-all-features/membership/history-3/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-all-features/attempt-1/history-3-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:38:32.017255+00:00",
+                "ended_utc": "2026-10-03T12:38:32.162094+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-3.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-3.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-3-result.json",
+                  "sha256": "29929e0cd50f40967dfa5f7020379af2277c14bc978438d019159e5f129475b3"
+                },
+                "counts": {
+                  "events": 132,
+                  "paired_raw_checkpoints": 28,
+                  "remote_wal_authorities_bound": 20
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              },
+              {
+                "voters": 5,
+                "command": [
+                  "taskset",
+                  "-c",
+                  "2,4",
+                  "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+                  "-B",
+                  "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+                  "/workspace/work/broker-merged-qualification-403be1e3/1.85.0-all-features/membership/history-5/trace.json",
+                  "--require-admission-settings",
+                  "--output",
+                  "/workspace/work/membership-strict-403be1e3/cells/1.85.0-all-features/attempt-1/history-5-result.json"
+                ],
+                "cwd": "/workspace/work/broker-merged-source-403be1e3",
+                "started_utc": "2026-10-03T12:38:32.162534+00:00",
+                "ended_utc": "2026-10-03T12:38:32.402538+00:00",
+                "exit_code": 0,
+                "stdout": {
+                  "path": "history-5.stdout.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "stderr": {
+                  "path": "history-5.stderr.bin",
+                  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "bytes": 0
+                },
+                "result": {
+                  "path": "history-5-result.json",
+                  "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+                },
+                "counts": {
+                  "events": 201,
+                  "paired_raw_checkpoints": 42,
+                  "remote_wal_authorities_bound": 33
+                },
+                "admission_mode": "observed-settings",
+                "admission_changes": 2,
+                "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+                "strict_result_valid": true
+              }
+            ],
+            "synthetic_control_executions": 0,
+            "scope": "Two fresh actual typed 3/5-node captured histories; strict observed-settings admission, no native wire or exhaustive proof.",
+            "passed": true
+          }
+        }
+      ]
+    }
+  ],
+  "completed_cells": 12,
+  "failed_cells": 0,
+  "pending_cells": 0,
+  "actual_history_commands": 24,
+  "checker_exit_failures": 0,
+  "all_attempt_cell_failures": 0,
+  "all_attempt_checker_exit_failures": 0,
+  "events": 3996,
+  "raw_checkpoint_pairs": 840,
+  "remote_authorities_bound": 636,
+  "actual_admission_change_proofs": 48,
+  "synthetic_control_executions": 0,
+  "scope": "Finite coordinator-completed captured runtime cells; settings are read from immutable traces, never synthesized."
+}

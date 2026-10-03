@@ -1,0 +1,18 @@
+{
+  "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+    "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+    "full_mode": "0o600"
+  },
+  "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+    "sha256": "2548c08901ed46a9c01501f9f66e087a41917679d475ebc520b4e001234176eb",
+    "full_mode": "0o600"
+  },
+  "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+    "sha256": "a7d0ea99081c56064ec4ffb7e15c457043c3448116fad1ee553f18281a12d380",
+    "full_mode": "0o600"
+  },
+  "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+    "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+    "full_mode": "0o600"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "wrapper_sha256": "c7b21841320b09f0d3a6952990995f92b8abce81fd2cfb1dd1dd42b06bb68c01",
+  "wrapper_full_mode": "0o600",
+  "frozen_checker_sources": {
+    "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "2548c08901ed46a9c01501f9f66e087a41917679d475ebc520b4e001234176eb",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "a7d0ea99081c56064ec4ffb7e15c457043c3448116fad1ee553f18281a12d380",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+      "full_mode": "0o600"
+    }
+  },
+  "syntax_valid": true,
+  "old_wrapper_sha256": "3eed283a484991eb6d293eabe15bee9001d5021965d53f87bbc579deb5ceafb6",
+  "old_actual_receipt_sha256": "1ab42e19c018dad30c1dde4cd04f2a37e5926573b9f91bc48bce4106501aa4d6",
+  "source_origin_receipt_sha256": "d6e9a3578b31fe76ba8e764303a83cc615437744498e4874b37ef0c8af2d2fff",
+  "checker_invocations": 0,
+  "native_runtime_claim": false,
+  "capture_transformations": 0
+}

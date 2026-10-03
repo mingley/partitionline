@@ -1,0 +1,42 @@
+{
+  "voters": 5,
+  "command": [
+    "taskset",
+    "-c",
+    "2,4",
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "-B",
+    "/workspace/work/broker-merged-source-403be1e3/docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py",
+    "/workspace/work/broker-merged-qualification-403be1e3/stable-default/membership/history-5/trace.json",
+    "--require-admission-settings",
+    "--output",
+    "/workspace/work/membership-strict-403be1e3/cells/stable-default/attempt-1/history-5-result.json"
+  ],
+  "cwd": "/workspace/work/broker-merged-source-403be1e3",
+  "started_utc": "2026-10-03T12:02:04.719045+00:00",
+  "ended_utc": "2026-10-03T12:02:04.970488+00:00",
+  "exit_code": 0,
+  "stdout": {
+    "path": "history-5.stdout.bin",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "stderr": {
+    "path": "history-5.stderr.bin",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "result": {
+    "path": "history-5-result.json",
+    "sha256": "1c36a55b4ce5ef0b65c303082bed17b6bd8e4290eeac1d42afd50535b81e6d23"
+  },
+  "counts": {
+    "events": 201,
+    "paired_raw_checkpoints": 42,
+    "remote_wal_authorities_bound": 33
+  },
+  "admission_mode": "observed-settings",
+  "admission_changes": 2,
+  "result_scope": "finite typed caller-driven 3/5 directory membership; raw durable images/journals and actual process exits; no autonomous/native wire or exhaustive safety claim",
+  "strict_result_valid": true
+}

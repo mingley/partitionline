@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "passed": true,
+  "source_sha": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "actual_cells": 12,
+  "actual_history_checker_executions": 24,
+  "all_actual_commands_exit_zero": true,
+  "all_capture_bytes_full_modes_unchanged": true,
+  "all_source_command_env_completion_harness_bindings_verified_before_after_and_at_seal": true,
+  "events": 3996,
+  "raw_checkpoint_pairs": 840,
+  "remote_authorities_bound": 636,
+  "actual_admission_change_proofs": 48,
+  "distinct_trace_content_sha256": 2,
+  "distinct_checker_result_content_sha256": 2,
+  "trace_content_sha256": [
+    "159f15e2f5437ce88089afead8d43fc495087ca2e998748d7466828e2558aee4",
+    "a53ad66625cd03ee85e530ba6aee4f1642c86d219f31ac19d193992e7230e968"
+  ],
+  "observed_settings": {
+    "quorum_timeout_ms": 1000,
+    "election_min_ms": 10,
+    "election_max_ms": 10
+  },
+  "synthetic_executions_in_this_packet": 0,
+  "sources": {
+    "docs/evidence/broker/KL11-74/oracle/history/membership_raw.py": {
+      "sha256": "4bd82d8f7ecd9c7fff6ea3323e5cfd7c5fd4649c30462e2e64364d930e19d7b0",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/check-membership-history.py": {
+      "sha256": "2548c08901ed46a9c01501f9f66e087a41917679d475ebc520b4e001234176eb",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-74/oracle/history/test-membership-history.py": {
+      "sha256": "a7d0ea99081c56064ec4ffb7e15c457043c3448116fad1ee553f18281a12d380",
+      "full_mode": "0o600"
+    },
+    "docs/evidence/broker/KL11-15/oracle/history/wal_oracle.py": {
+      "sha256": "a2df594ffb1ba9f413fff5ae4606f510c32118a2ae192864acfc2351fa4fd8ae",
+      "full_mode": "0o600"
+    }
+  },
+  "publication_files_exact_utf8_or_empty": true,
+  "compiled_executables_jars_classes_copied": 0,
+  "capture_journals_or_images_transformed_or_copied": 0,
+  "cell_final_reviews": [
+    {
+      "cell": "stable-default",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "stable-tls",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "stable-sasl",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "stable-sasl+tls",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "stable-oidc",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "stable-all-features",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-default",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-tls",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-sasl",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-sasl+tls",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-oidc",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    },
+    {
+      "cell": "1.85.0-all-features",
+      "original_capture_unchanged_at_seal": true,
+      "complete_actual_command_source_env_harness_rechecked": true
+    }
+  ],
+  "scope": "Finite typed current/prior-end admission and directory-qualified durable history from actual3/5process captures across six profiles/two toolchains. Twelve actual executions are reported separately from unique byte contents. No native wire, autonomous election scheduling, exhaustive consensus safety, or broader broker strict-gate claim.",
+  "prior_source_proof": "prior-proof-reference.json",
+  "matrix_receipt": "matrix-result.json"
+}
