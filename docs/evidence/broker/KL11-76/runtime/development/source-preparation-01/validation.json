@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "claim_sha": "b7440d52eb1e4eb55cab90b777671c660d19cb89",
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "head_at_preparation": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "state": "repository source preparation, uncompiled and unqualified",
+  "source_files": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+      "mode": 384,
+      "bytes": 96094
+    },
+    "partitionline-broker/src/raft/peer_codec.rs": {
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+      "mode": 384,
+      "bytes": 31440
+    },
+    "partitionline-broker/src/raft/replication.rs": {
+      "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+      "mode": 384,
+      "bytes": 175742
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+      "mode": 384,
+      "bytes": 72376
+    }
+  },
+  "commands": [
+    {
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/peer_codec.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/replication.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "before": {
+        "partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+          "mode": 384,
+          "bytes": 96094
+        },
+        "partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "partitionline-broker/src/raft/replication.rs": {
+          "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+          "mode": 384,
+          "bytes": 175742
+        },
+        "partitionline-broker/tests/raft_membership.rs": {
+          "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+          "mode": 384,
+          "bytes": 72376
+        }
+      },
+      "after": {
+        "partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+          "mode": 384,
+          "bytes": 96094
+        },
+        "partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "partitionline-broker/src/raft/replication.rs": {
+          "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+          "mode": 384,
+          "bytes": 175742
+        },
+        "partitionline-broker/tests/raft_membership.rs": {
+          "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+          "mode": 384,
+          "bytes": 72376
+        }
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/partitionline/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/peer_codec.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/partitionline/partitionline-broker/src/raft/replication.rs",
+        "/workspace/partitionline/partitionline-broker/tests/raft_membership.rs"
+      ],
+      "exit_code": 0,
+      "before": {
+        "partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+          "mode": 384,
+          "bytes": 96094
+        },
+        "partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "partitionline-broker/src/raft/replication.rs": {
+          "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+          "mode": 384,
+          "bytes": 175742
+        },
+        "partitionline-broker/tests/raft_membership.rs": {
+          "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+          "mode": 384,
+          "bytes": 72376
+        }
+      },
+      "after": {
+        "partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+          "mode": 384,
+          "bytes": 96094
+        },
+        "partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "partitionline-broker/src/raft/replication.rs": {
+          "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+          "mode": 384,
+          "bytes": 175742
+        },
+        "partitionline-broker/tests/raft_membership.rs": {
+          "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+          "mode": 384,
+          "bytes": 72376
+        }
+      },
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "cargo_invocations": 0,
+  "type_checks_executed": 0,
+  "tests_executed": 0,
+  "live_histories_executed": 0,
+  "root_exports_pending": [
+    "pub mod runtime;",
+    "mod peer_codec;"
+  ]
+}

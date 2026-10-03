@@ -1,0 +1,52 @@
+--- a/partitionline-broker/src/raft/runtime.rs
++++ b/partitionline-broker/src/raft/runtime.rs
+@@ -1225,7 +1225,7 @@
+         term: 0,
+     };
+     #[cfg(test)]
+-    let mut trace = TestTrace::open(&paths, c)?;
++    let mut trace = TestTrace::open(&paths, c, receiver.max_capacity())?;
+     let _ = startup.send(1);
+     while let Some(envelope) = receiver.blocking_recv() {
+         let Envelope {
+@@ -1837,7 +1837,7 @@
+ }
+ #[cfg(test)]
+ impl TestTrace {
+-    fn open(paths: &Paths, c: &Config) -> Result<Option<Self>> {
++    fn open(paths: &Paths, c: &Config, command_queue_capacity: usize) -> Result<Option<Self>> {
+         use std::io::Write;
+         let Some(base) = std::env::var_os("PL_PEER_RUNTIME_CAPTURE_DIR") else {
+             return Ok(None);
+@@ -1874,8 +1874,29 @@
+         {
+             return Err(Error::InvalidConfig);
+         }
+-        writeln!(file,"{{\"schema_version\":1,\"source_sha\":\"{source}\",\"local_id\":{},\"directory\":\"{}\",\"genesis_hex\":\"{}\",\"clock_basis\":\"process-local monotonic Instant; restart begins a new clock epoch\",\"pid\":{},\"runtime_settings\":{{\"quorum_ms\":{},\"election_min_ms\":{},\"election_max_ms\":{},\"managed_bytes\":{},\"extra_test_encode_hex_bytes\":{}}}}}",
+-            local.id,Self::hex(&local.directory)?,Self::hex(&c.group.genesis)?,std::process::id(),c.limits.quorum_ms,c.limits.election_min_ms,c.limits.election_max_ms,c.managed,extra)?;
++        writeln!(file,concat!(
++            "{{\"schema_version\":1,\"source_sha\":\"{source}\",\"local_id\":{local_id},\"directory\":\"{directory}\",\"genesis_hex\":\"{genesis}\",",
++            "\"clock_basis\":\"process-local monotonic Instant; restart begins a new clock epoch\",\"pid\":{pid},",
++            "\"trace_layer\":\"exclusive Node owner; typed bodies are not TCP packet captures\",",
++            "\"runtime_settings\":{{\"frame_bytes\":{frame_bytes},\"record_bytes\":{record_bytes},\"chunk_bytes\":{chunk_bytes},",
++            "\"live_entries\":{live_entries},\"live_bytes\":{live_bytes},\"operations\":{operations},\"wal_bytes\":{wal_bytes},\"fetch_bytes\":{fetch_bytes},",
++            "\"image_bytes\":{image_bytes},\"image_records\":{image_records},\"image_record_bytes\":{image_record_bytes},\"image_payload_bytes\":{image_payload_bytes},",
++            "\"image_chunk_bytes\":{image_chunk_bytes},\"image_decoded_bytes\":{image_decoded_bytes},\"image_generations\":{image_generations},\"image_disk_bytes\":{image_disk_bytes},",
++            "\"peer_count\":{peer_count},\"incoming_slots\":{incoming_slots},\"client_slots\":{client_slots},\"command_queue_capacity\":{command_queue_capacity},",
++            "\"peer_mailbox_slots\":1,\"dns_admissions\":0,\"canonical_configuration_max_bytes\":{configuration_max},\"task_bound\":{task_bound},\"socket_bound_with_listener\":{socket_bound},",
++            "\"quorum_ms\":{quorum_ms},\"quorum_timeout_ms\":{quorum_ms},\"election_min_ms\":{election_min_ms},\"election_max_ms\":{election_max_ms},",
++            "\"tick_ms\":{tick_ms},\"heartbeat_ms\":{heartbeat_ms},\"connect_ms\":{connect_ms},\"rpc_ms\":{rpc_ms},\"transfer_ms\":{transfer_ms},\"command_ms\":{command_ms},",
++            "\"transport_charge_bytes\":{charge},\"transport_pool_bytes\":{pool},\"managed_bytes\":{managed},\"managed_ceiling_bytes\":{ceiling},\"extra_test_encode_hex_bytes\":{extra}}}}}"
++        ),source=source,local_id=local.id,directory=Self::hex(&local.directory)?,genesis=Self::hex(&c.group.genesis)?,pid=std::process::id(),
++            frame_bytes=c.limits.frame_bytes,record_bytes=c.storage.record_bytes,chunk_bytes=c.storage.chunk_bytes,
++            live_entries=c.storage.live_entries,live_bytes=c.storage.live_bytes,operations=c.storage.operations,wal_bytes=c.storage.wal_bytes,fetch_bytes=c.storage.fetch_bytes,
++            image_bytes=c.storage.images.image_bytes(),image_records=c.storage.images.records(),image_record_bytes=c.storage.images.record_bytes(),image_payload_bytes=c.storage.images.payload_bytes(),
++            image_chunk_bytes=c.storage.images.chunk_bytes(),image_decoded_bytes=c.storage.images.decoded_bytes(),image_generations=c.storage.images.generations(),image_disk_bytes=c.storage.images.disk_bytes(),
++            peer_count=c.peers.len(),incoming_slots=c.limits.incoming,client_slots=c.limits.client_slots,command_queue_capacity=command_queue_capacity,
++            configuration_max=MAX_CONFIGURATION_BYTES,task_bound=c.task_bound(),socket_bound=checked_sum(&[1,c.peers.len(),c.limits.incoming])?,
++            quorum_ms=c.limits.quorum_ms,election_min_ms=c.limits.election_min_ms,election_max_ms=c.limits.election_max_ms,
++            tick_ms=c.limits.tick_ms,heartbeat_ms=c.limits.heartbeat_ms,connect_ms=c.limits.connect_ms,rpc_ms=c.limits.rpc_ms,transfer_ms=c.limits.transfer_ms,command_ms=c.limits.command_ms,
++            charge=c.charge,pool=c.pool,managed=c.managed,ceiling=MANAGED_CEILING,extra=extra)?;
+         file.sync_all()?;
+         let disk_bytes = file.metadata()?.len();
+         Ok(Some(Self {

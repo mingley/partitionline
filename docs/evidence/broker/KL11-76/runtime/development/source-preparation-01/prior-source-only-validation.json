@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "state": "source-only draft, unqualified",
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "scope": "rustfmt parsing/formatting only; no Rust type checking or tests",
+  "env": {
+    "CARGO_HOME": "/workspace/work/cargo",
+    "RUSTUP_HOME": "/workspace/work/rustup"
+  },
+  "sources_before_format": {
+    "draft/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "e2b37b29b2ed412fb309cbe8aa4f5e6abdd092146b802096100f123347df3c6d",
+      "mode": 384,
+      "bytes": 92645
+    },
+    "draft/partitionline-broker/src/raft/peer_codec.rs": {
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "draft/partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+      "mode": 384,
+      "bytes": 31440
+    },
+    "hooks/timeout-dynamic-vote.rs.fragment": {
+      "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+      "mode": 384,
+      "bytes": 1091
+    },
+    "hooks/vote-cancel-regression.rs.fragment": {
+      "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+      "mode": 384,
+      "bytes": 3374
+    }
+  },
+  "final_sources": {
+    "draft/partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+      "mode": 384,
+      "bytes": 93127
+    },
+    "draft/partitionline-broker/src/raft/peer_codec.rs": {
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "draft/partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+      "mode": 384,
+      "bytes": 31440
+    },
+    "hooks/timeout-dynamic-vote.rs.fragment": {
+      "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+      "mode": 384,
+      "bytes": 1091
+    },
+    "hooks/vote-cancel-regression.rs.fragment": {
+      "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+      "mode": 384,
+      "bytes": 3374
+    }
+  },
+  "commands": [
+    {
+      "name": "apply",
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/peer_codec.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/work/raft-runtime-76/hooks/timeout-dynamic-vote.rs.fragment",
+        "/workspace/work/raft-runtime-76/hooks/vote-cancel-regression.rs.fragment"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/source-only-validation/final-02/apply.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sources_before": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "e2b37b29b2ed412fb309cbe8aa4f5e6abdd092146b802096100f123347df3c6d",
+          "mode": 384,
+          "bytes": 92645
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      },
+      "sources_after": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+          "mode": 384,
+          "bytes": 93127
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      }
+    },
+    {
+      "name": "stable-check",
+      "argv": [
+        "rustfmt",
+        "+stable",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/peer_codec.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/work/raft-runtime-76/hooks/timeout-dynamic-vote.rs.fragment",
+        "/workspace/work/raft-runtime-76/hooks/vote-cancel-regression.rs.fragment"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/source-only-validation/final-02/stable-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sources_before": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+          "mode": 384,
+          "bytes": 93127
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      },
+      "sources_after": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+          "mode": 384,
+          "bytes": 93127
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      }
+    },
+    {
+      "name": "msrv-check",
+      "argv": [
+        "rustfmt",
+        "+1.85.0",
+        "--edition",
+        "2021",
+        "--check",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/runtime.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/peer_codec.rs",
+        "/workspace/work/raft-runtime-76/draft/partitionline-broker/tests/raft_runtime.rs",
+        "/workspace/work/raft-runtime-76/hooks/timeout-dynamic-vote.rs.fragment",
+        "/workspace/work/raft-runtime-76/hooks/vote-cancel-regression.rs.fragment"
+      ],
+      "exit_code": 0,
+      "log": "/workspace/work/raft-runtime-76/source-only-validation/final-02/msrv-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sources_before": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+          "mode": 384,
+          "bytes": 93127
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      },
+      "sources_after": {
+        "draft/partitionline-broker/src/raft/runtime.rs": {
+          "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+          "mode": 384,
+          "bytes": 93127
+        },
+        "draft/partitionline-broker/src/raft/peer_codec.rs": {
+          "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+          "mode": 384,
+          "bytes": 27638
+        },
+        "draft/partitionline-broker/tests/raft_runtime.rs": {
+          "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+          "mode": 384,
+          "bytes": 31440
+        },
+        "hooks/timeout-dynamic-vote.rs.fragment": {
+          "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+          "mode": 384,
+          "bytes": 1091
+        },
+        "hooks/vote-cancel-regression.rs.fragment": {
+          "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+          "mode": 384,
+          "bytes": 3374
+        }
+      }
+    }
+  ],
+  "cargo_executed": false,
+  "tests_executed": 0,
+  "runtime_executed": false
+}

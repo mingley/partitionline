@@ -4145,6 +4145,33 @@ impl Node {
         }
         Ok(tally)
     }
+    /// Cancel one exact source-generated candidacy request. No denial, grant,
+    /// contact, term, vote, clock or durable state is synthesized by cancellation.
+    /// Other current-campaign correlations remain usable. An absent, consumed,
+    /// replaced-directory, old-epoch or old-term request rejects without mutation.
+    pub fn timeout_dynamic_vote(&mut self, request: DynamicVoteRequest) -> Result<(), Error> {
+        self.ready()?;
+        let state = self.state().election;
+        if state.role != Role::Candidate
+            || request.request.term != state.persistent.term
+            || request.context.leader != self.local_key()?
+            || request.context.configuration_epoch != self.voters()?.epoch()
+            || !self.voters()?.contains(request.context.peer)
+        {
+            return Err(Error::InvalidPeer);
+        }
+        let votes = &mut self
+            .dynamic
+            .as_mut()
+            .ok_or(Error::MembershipChangeUnsupported)?
+            .votes;
+        let position = votes
+            .iter()
+            .position(|expected| *expected == request)
+            .ok_or(Error::InvalidPeer)?;
+        votes.remove(position);
+        Ok(())
+    }
     /// Register a bounded observer and emit actual feature discovery before addition.
     /// Registration is not a voter change and never contributes to a majority.
     pub fn probe_addition(

@@ -1,0 +1,6 @@
+{
+  "scope": "WORK-only additive actual capture settings; no repository edits or execution",
+  "runtime_sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+  "runtime_mode": 384,
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf"
+}

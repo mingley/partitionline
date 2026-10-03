@@ -1,0 +1,91 @@
+--- a/partitionline-broker/tests/raft_membership.rs
++++ b/partitionline-broker/tests/raft_membership.rs
+@@ -1807,3 +1807,88 @@
+     historical_configuration_source_counterexample(false)?;
+     historical_configuration_source_counterexample(true)
+ }
++
++#[test]
++fn exact_vote_cancellation_preserves_real_campaign_grants_and_all_durable_bytes() -> Result {
++    use std::io::Read;
++    fn bounded_bytes(path: &std::path::Path) -> Result<Vec<u8>> {
++        let mut bytes = Vec::new();
++        std::fs::File::open(path)?
++            .take(1024 * 1024 + 1)
++            .read_to_end(&mut bytes)?;
++        if bytes.len() > 1024 * 1024 {
++            return Err("vote regression journal bound".into());
++        }
++        Ok(bytes)
++    }
++    let mut group = DynamicGroup::new(5, voter(6)?)?;
++    let requests = group.node(0)?.campaign_dynamic(10)?;
++    assert_eq!(requests.len(), 4);
++    let name = format!(
++        "{}-{}",
++        group.key(0).id,
++        hex_bytes(&group.key(0).directory)?
++    );
++    let content_path = group.root.join(format!("{name}.wal"));
++    let election_path = group.root.join(format!("{name}.election"));
++    let before_content = bounded_bytes(&content_path)?;
++    let before_election = bounded_bytes(&election_path)?;
++    let before_state = group.node(0)?.state();
++    let before_vote = group.node(0)?.voted_directory()?;
++    let mut forged = requests[0];
++    forged.sequence += 1;
++    assert!(group.node(0)?.timeout_dynamic_vote(forged).is_err());
++    forged = requests[0];
++    forged.context.peer.directory = [99; 16];
++    assert!(group.node(0)?.timeout_dynamic_vote(forged).is_err());
++    forged = requests[0];
++    forged.context.configuration_epoch += 1;
++    assert!(group.node(0)?.timeout_dynamic_vote(forged).is_err());
++    forged = requests[0];
++    forged.request.log.index += 1;
++    assert!(group.node(0)?.timeout_dynamic_vote(forged).is_err());
++    group.node(0)?.timeout_dynamic_vote(requests[0])?;
++    assert!(
++        group.node(0)?.timeout_dynamic_vote(requests[0]).is_err(),
++        "absent request cannot be canceled twice"
++    );
++    let canceled_grant = group.node(1)?.receive_dynamic_vote(requests[0], 10)?;
++    assert!(canceled_grant.response.granted);
++    assert!(
++        group
++            .node(0)?
++            .acknowledge_dynamic_vote(canceled_grant, 10)
++            .is_err(),
++        "a real late grant cannot revive canceled correlation"
++    );
++    let after = group.node(0)?.state();
++    assert_eq!(after.election.persistent, before_state.election.persistent);
++    assert_eq!(after.election.role, Role::Candidate);
++    assert_eq!(after.wal_durable_ops, before_state.wal_durable_ops);
++    assert_eq!(
++        after.election_durable_states,
++        before_state.election_durable_states
++    );
++    assert_eq!(group.node(0)?.voted_directory()?, before_vote);
++    assert_eq!(bounded_bytes(&content_path)?, before_content);
++    assert_eq!(bounded_bytes(&election_path)?, before_election);
++    let first = group.node(2)?.receive_dynamic_vote(requests[1], 10)?;
++    group.node(0)?.acknowledge_dynamic_vote(first, 10)?;
++    assert_eq!(
++        group.node(0)?.state().election.role,
++        Role::Candidate,
++        "cancellation cannot manufacture a majority"
++    );
++    let second = group.node(3)?.receive_dynamic_vote(requests[2], 10)?;
++    group.node(0)?.acknowledge_dynamic_vote(second, 10)?;
++    assert_eq!(
++        group.node(0)?.state().election.role,
++        Role::Leader,
++        "other genuine correlations survive"
++    );
++    assert!(
++        group.node(0)?.timeout_dynamic_vote(requests[3]).is_err(),
++        "old candidacy request is stale after transition"
++    );
++    Ok(())
++}

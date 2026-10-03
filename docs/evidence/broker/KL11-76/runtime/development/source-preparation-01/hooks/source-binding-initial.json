@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "state": "unexecuted WORK-only proposal; frozen repository core untouched",
+  "source_basis": "7c10daf1e3b732d71f814f01a1a9a47e36eab30f",
+  "source_path": "partitionline-broker/src/raft/replication.rs",
+  "original_sha256": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+  "proposed_sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+  "existing_edge_inspection": [
+    "timeout_peer/timeout_dynamic release append/image outstanding, not candidacy vector",
+    "timeout_feature_probe is feature-only",
+    "acknowledge_dynamic_vote consumes a real received response and cannot stand in for cancellation"
+  ],
+  "new_api": "Node::timeout_dynamic_vote(DynamicVoteRequest) -> Result<(), Error>",
+  "no_persistent_or_clock_mutation": true
+}

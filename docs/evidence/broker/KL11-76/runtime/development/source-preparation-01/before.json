@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "claim_sha": "b7440d52eb1e4eb55cab90b777671c660d19cb89",
+  "head_before": "657d38ea298a8f84a6a9bb8465dcba30cf2bd731",
+  "source_before": {
+    "partitionline-broker/src/raft/replication.rs": {
+      "sha256": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+      "mode": 384,
+      "bytes": 174543
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "c7fca4fa166faee5a978b8f622dda264b51edcaccd6774e46bb17faa105d545f",
+      "mode": 384,
+      "bytes": 69001
+    }
+  },
+  "no_cargo": true
+}

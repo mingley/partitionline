@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "source_sha": "b7440d52eb1e4eb55cab90b777671c660d19cb89",
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "implementation_source_sha": null,
+  "disposition": "source-prepared-unqualified",
+  "qualification_complete": false,
+  "production_qualified": false,
+  "commands": [
+    "rustfmt +stable --edition 2021 --check /workspace/partitionline/partitionline-broker/src/raft/runtime.rs /workspace/partitionline/partitionline-broker/src/raft/peer_codec.rs /workspace/partitionline/partitionline-broker/tests/raft_runtime.rs /workspace/partitionline/partitionline-broker/src/raft/replication.rs /workspace/partitionline/partitionline-broker/tests/raft_membership.rs",
+    "rustfmt +1.85.0 --edition 2021 --check /workspace/partitionline/partitionline-broker/src/raft/runtime.rs /workspace/partitionline/partitionline-broker/src/raft/peer_codec.rs /workspace/partitionline/partitionline-broker/tests/raft_runtime.rs /workspace/partitionline/partitionline-broker/src/raft/replication.rs /workspace/partitionline/partitionline-broker/tests/raft_membership.rs"
+  ],
+  "results": {
+    "rustfmt_stable_exit": 0,
+    "rustfmt_1_85_exit": 0,
+    "type_checks_executed": 0,
+    "tests_executed": 0,
+    "live_histories_executed": 0,
+    "cargo_invocations": 0
+  },
+  "sources": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "sha256": "f44e253f1d8b135a37e986d281bcde52382c031dcb0300d2c38a7563917d2162",
+      "mode": 384,
+      "bytes": 96094
+    },
+    "partitionline-broker/src/raft/peer_codec.rs": {
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+      "mode": 384,
+      "bytes": 31440
+    },
+    "partitionline-broker/src/raft/replication.rs": {
+      "sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+      "mode": 384,
+      "bytes": 175742
+    },
+    "partitionline-broker/tests/raft_membership.rs": {
+      "sha256": "1988d80473f954dfc3ed93501a6da0fb5ee4616064fff4901a8e1c8b1892a21b",
+      "mode": 384,
+      "bytes": 72376
+    }
+  },
+  "artifacts": [
+    "docs/evidence/broker/KL11-76/runtime/README.md",
+    "docs/evidence/broker/KL11-76/runtime/draft-source-handoff.json",
+    "docs/evidence/broker/KL11-76/runtime/development/source-preparation-01/validation.json",
+    "docs/evidence/broker/KL11-76/runtime/development/source-preparation-01/capture-settings/validation.json",
+    "docs/evidence/broker/KL11-76/runtime/development/source-preparation-01/decoder-review.json"
+  ],
+  "limits": [
+    "Rustfmt parses/formats; no Rust type or behavior verification has run.",
+    "Actual source checkpoint and leased stable/MSRV full gates remain pending.",
+    "Written3/5 TCP, lifecycle and ownership tests have not run; no safety/performance result is claimed.",
+    "Private fixed numeric routes require trusted isolation; no native Kafka wire/authentication/autonomous discovery qualification.",
+    "OS socket buffers, allocator overhead and process RSS are excluded from the configured Rust-buffer ceiling."
+  ]
+}

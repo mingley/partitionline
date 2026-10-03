@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "source_path": "partitionline-broker/src/raft/replication.rs",
+  "source_sha256": "42530dc293771774b6825a5d5bfd157d132d12620456cddd9c79bf08b5dafc23",
+  "proposed_sha256": "430f3fb9be194ab304b5328afa1cd398d2d7fac1c8c6070f06409707566e3c3f",
+  "proposal_only": true,
+  "frozen_repository_core_edited": false,
+  "method": "Node::timeout_dynamic_vote(DynamicVoteRequest) -> Result<(),Error>",
+  "existing_edges_inspected": [
+    "timeout_dynamic/timeout_peer release append or image only",
+    "timeout_feature_probe is feature-only",
+    "acknowledge_dynamic_vote requires a received response, not cancellation"
+  ],
+  "mutation": "remove one complete matching current candidacy request, no clock/term/vote/WAL changes"
+}

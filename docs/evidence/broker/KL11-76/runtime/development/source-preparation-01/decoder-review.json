@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "state": "independent source review only; no additional execution",
+  "reviewed_inputs": {
+    "/workspace/work/raft-runtime-76/oracle-preparation/preparation.json": {
+      "sha256": "59378f6c1eb182efaffe18c945d74c0292d49c0d194e24aa776bf1a7d1dc1c2b",
+      "mode": 384,
+      "bytes": 1198
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/peer_bytes.py": {
+      "sha256": "29e770eb3480f5b44eaabe07440b182b2d6d019cd665df537464c60474654459",
+      "mode": 384,
+      "bytes": 9666
+    },
+    "/workspace/work/raft-runtime-76/oracle-preparation/check-peer-bytes.py": {
+      "sha256": "933920c7541cc397e4809ced14d965c8490b29aa229f01b824e30d9d9286d8b4",
+      "mode": 384,
+      "bytes": 4393
+    },
+    "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/peer_codec.rs": {
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "/workspace/partitionline/partitionline-broker/src/raft/membership.rs": {
+      "sha256": "7a2edfce6bd1f73924a2294c23da2dba620c93111cfdf468109d30ccbd15e18f",
+      "mode": 384,
+      "bytes": 22326
+    },
+    "/workspace/partitionline/partitionline-broker/src/raft/election.rs": {
+      "sha256": "d3d8c916054d75a8c7817e1b11ee2d59af8d5ae7b71c203d1e5308e78a89020a",
+      "mode": 384,
+      "bytes": 66814
+    }
+  },
+  "message_layouts": {
+    "header": {
+      "bytes": 24,
+      "fields": [
+        "magic8",
+        "version_u16",
+        "kind_u8",
+        "flags_u8_zero",
+        "rpc_u64",
+        "reserved4_zero"
+      ],
+      "crc_trailer": 4,
+      "tcp_prefix": 4
+    },
+    "hello_body": "52 + cluster_utf8_bytes + topic_utf8_bytes + genesis_bytes",
+    "context": 48,
+    "vote": 84,
+    "vote_reply": 101,
+    "feature": 64,
+    "append_fixed_body": 104,
+    "record_fixed_header": 24,
+    "response": 56,
+    "append_reply": 104,
+    "descriptor": 60,
+    "image_offer_begin_begun_finish": 140,
+    "image_chunk_header": 152,
+    "image_chunk_ack": 152,
+    "finished": 164,
+    "failure": 2
+  },
+  "layout_disposition": "No field-order, integer-width, endian, message-kind or CRC/prefix mismatch found across the15 frozen Rust message kinds.",
+  "findings": [
+    {
+      "id": "position-domain-policy",
+      "classification": "stricter independent domain check, not a field layout bug",
+      "rust_behavior": "Reader::pos delegates to election::LogPosition::new, which checks empty-coordinate consistency but has no MAX_TERM cap. Response matched/base positions can therefore parse above MAX_TERM at codec level.",
+      "python_behavior": "Reader.position rejects nonempty term > 2^31.",
+      "effect": "Valid source-generated Node positions remain in range. Malformed above-domain positions are rejected later by runtime response/descriptor correlation or Node authority. Do not claim this control demonstrates identical raw Rust decoder rejection.",
+      "recommendation": "Retain explicit parser-policy versus codec/runtime boundary classification, or move upper-term check to causal validation if exact decoder parity is desired."
+    },
+    {
+      "id": "hello-canonical-policy",
+      "classification": "intentional stricter preliminary semantic check with declared incomplete composition",
+      "rust_behavior": "Hello codec checks only genesis size <= MAX_CONFIGURATION_BYTES and remaining bytes; runtime compares whole group/genesis against configured canonical genesis.",
+      "python_behavior": "Requires min40 bytes and PLVOTR01 magic, but does not yet parse inner configuration CRC/fields/order/bootstrap epoch.",
+      "effect": "Normal canonical Hello bytes are compatible. Full membership_raw composition remains necessary before treating decoded Hello as a validated canonical group.",
+      "recommendation": "Keep declared limitation; final checker must compare full frozen configured group and independently decode Voters."
+    },
+    {
+      "id": "configured-envelope-gap",
+      "classification": "future resource-proof interface gap",
+      "python_behavior": "frame/body impose only global4MiB cap; frame has max_records but no max_frame parameter.",
+      "runtime_behavior": "Config validates per-runtime frame_bytes and read_frame passes configured live_entries. Current cfg(test) header records timer/managed/extra values but not explicit frame_bytes/live_entries.",
+      "effect": "Global parser acceptance alone cannot establish configured512KiB frame or64-record test budgets.",
+      "recommendation": "Under the future76 claim, capture actual frame_bytes/live_entries and other relevant owner limits directly from Config; add/consume a configured frame limit in the root oracle, without inferring it from transformed data."
+    }
+  ],
+  "preparation_coverage": {
+    "root_reported_executed_positive_kinds": [
+      10,
+      20
+    ],
+    "root_reported_negative_controls": 26,
+    "remaining13kinds": "source-reviewed, not newly executed by this reviewer"
+  },
+  "unchanged_source": true,
+  "parser_modified": false,
+  "runtime_or_cargo_execution": false,
+  "no_additional_runtime_claim": true
+}

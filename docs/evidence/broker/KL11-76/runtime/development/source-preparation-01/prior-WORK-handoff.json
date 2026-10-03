@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "task": "KL11-76",
+  "state": "WORK-only source preparation; unqualified, not staged",
+  "source_basis": "403be1e3db073df86921d6fb21189f695c4f1eaf",
+  "sources": {
+    "partitionline-broker/src/raft/runtime.rs": {
+      "work_path": "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/runtime.rs",
+      "sha256": "36295fa427daa8e53870753fba88f1998badb93409d213f606c769496944772e",
+      "mode": 384,
+      "bytes": 93127
+    },
+    "partitionline-broker/src/raft/peer_codec.rs": {
+      "work_path": "/workspace/work/raft-runtime-76/draft/partitionline-broker/src/raft/peer_codec.rs",
+      "sha256": "5ce6d89c95e19a0e53e3be8fa48de5e1c20ab3b4715053978d436dba36ff901c",
+      "mode": 384,
+      "bytes": 27638
+    },
+    "partitionline-broker/tests/raft_runtime.rs": {
+      "work_path": "/workspace/work/raft-runtime-76/draft/partitionline-broker/tests/raft_runtime.rs",
+      "sha256": "9d509b8df12c2977e76771d991d3c5f00bca45f382c3a29bd06fe6d68248e478",
+      "mode": 384,
+      "bytes": 31440
+    }
+  },
+  "hook_proposal": {
+    "hooks/source-binding-initial.json": {
+      "sha256": "67aa83e2de12f841260304d7adeb4dfe684183bd15a4825e324654eb05aaea81",
+      "mode": 384
+    },
+    "hooks/source-binding.json": {
+      "sha256": "b598d9d373fe9050c05faaf05f8e6801a14f584f009b4cb63adbda9a44dbfa49",
+      "mode": 384
+    },
+    "hooks/timeout-dynamic-vote.patch": {
+      "sha256": "55a7d91876d47e4ff398d13b06a94c7ef6c408dfff7d498e5bf68c862e0d82f8",
+      "mode": 384
+    },
+    "hooks/timeout-dynamic-vote.rs.fragment": {
+      "sha256": "c4c7ba35c723da9b5af05a28c15961b52f314744f907acb200532a613acaff45",
+      "mode": 384
+    },
+    "hooks/vote-cancel-regression.patch": {
+      "sha256": "fe8b1af3befd4d29e8ff1f770a940f0dcd9e682ffc47b5d03245a33c8340aae8",
+      "mode": 384
+    },
+    "hooks/vote-cancel-regression.rs.fragment": {
+      "sha256": "b409a972ffa95226b89fceec852cf0df3a7dfc10c97df2ae43906d6c6475334f",
+      "mode": 384
+    }
+  },
+  "future_write_set": [
+    "partitionline-broker/src/raft/runtime.rs",
+    "partitionline-broker/src/raft/peer_codec.rs",
+    "partitionline-broker/tests/raft_runtime.rs",
+    "partitionline-broker/src/raft/replication.rs",
+    "partitionline-broker/tests/raft_membership.rs",
+    "docs/evidence/broker/KL11-76/runtime/",
+    "docs/plan/evidence/KL11-76.json"
+  ],
+  "root_exports": [
+    "pub mod runtime;",
+    "mod peer_codec;"
+  ],
+  "source_only_validation": "/workspace/work/raft-runtime-76/source-only-validation/final-02/validation.json",
+  "source_only_validation_sha256": "c053c4d4b94508a22e3851a0b3f6b9d7eabdd089f7b989d39d7a50c1d9db94b7",
+  "checks": {
+    "rustfmt_stable_exit": 0,
+    "rustfmt_1_85_exit": 0,
+    "type_checks_executed": 0,
+    "tests_executed": 0,
+    "live_histories_executed": 0,
+    "cargo_invocations": 0
+  },
+  "known_source_blocker": "Prepared vote cleanup needs the proposed narrow core hook after74 qualification and the pushed76 claim. No other core API gap identified; type checking remains unperformed.",
+  "qualification_pending": [
+    "74 merged qualification/closure",
+    "Published76 claim and bounded compiler lease",
+    "Immutable stable/MSRV default/all-feature correctness and strict gates",
+    "Fresh actual3/5 TCP/cancellation/ownership histories",
+    "Independent private frame/WAL/election/image causal checker and deliberate controls"
+  ],
+  "prior_proposals_preserved": "/workspace/work/raft-runtime-76/initial-proposal",
+  "repository_edits_in_this_preparation": "Only separately authorized74 election test-module relocation; no76 repository edits."
+}
